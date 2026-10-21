@@ -21,7 +21,8 @@
 - Der `agenten-architekt` ist ein Skill (`/agenten-architekt`), kein Subagent, weil er
   ein Interview mit dem Nutzer führt.
 - Weitere Skills im Dialog mit dem Nutzer: `/laborbuch` (Zwischenstände außerhalb der
-  Arbeitspakete) und `/anforderungs-analyst` (Lastenheft und Nachverfolgungsmatrix).
+  Arbeitspakete), `/anforderungs-analyst` (Lastenheft und Nachverfolgungsmatrix)
+  und `/versuchsplanung` (Versuchsplan, Protokollvorlage, Messkonfiguration).
   Von ihnen übergebene, vom Nutzer bestätigte Auftragsvorschläge behandelst du als
   neue Aufgaben.
 
