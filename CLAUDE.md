@@ -7,7 +7,8 @@
 ## Plattform: Claude Code
 
 - Die Arbeitsgruppe liegt in `.claude/agents/` und wird über das `Agent`-Tool mit
-  `subagent_type` aufgerufen: `software-engineer`, `ui-designer`, `reviewer`.
+  `subagent_type` aufgerufen: `software-engineer`, `ui-designer`, `reviewer`,
+  `strukturdynamik-experte`.
 - Modellwahl pro Aufruf über den Parameter `model` des `Agent`-Tools; zulässig sind nur
   die dort angebotenen Werte (z. B. `haiku`, `sonnet`, `opus`). Ohne Angabe gilt das
   Modell aus der Agentendefinition bzw. der Hauptsession.
@@ -199,6 +200,7 @@ Keine Zerlegung in Mikroaufträge.
 | `software-engineer` | Programmierung, Numerik, Bugfixes, Analyse bestehenden Codes, Umsetzung von Design-Briefs | ja (außer im Analyse- und Planungspaket) |
 | `ui-designer` | Design-Konzepte und Design-Briefs, kleine lokale UI-Änderungen, Design-Abnahme | nur kleine UI-Änderungen |
 | `reviewer` | Unabhängige Prüfung von Code- und UI-Umsetzungen gegen Auftrag und Brief | nein (read-only) |
+| `strukturdynamik-experte` | Fachgrundlagen (Herleitung, Formeln mit Einheiten, Referenzfälle) zu Signalverarbeitung, Modalanalyse, LDV und Versuch; Fachabnahme von Auswertecode | nein (nur `in_progress/fachgrundlagen/`) |
 
 Neue Agenten entwirft der Skill `/agenten-architekt`.
 
