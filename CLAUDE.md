@@ -19,6 +19,22 @@
 - Der `agenten-architekt` ist ein Skill (`/agenten-architekt`), kein Subagent, weil er
   ein Interview mit dem Nutzer führt.
 
+## Projekt: Bachelorarbeit
+
+Bachelorarbeit am Institut für Strukturmechanik und Leichtbau (SLA), RWTH Aachen:
+„Entwicklung eines Softwarepakets zur Automatisierung von Luft- und Raumfahrt-
+Strukturtests in Python“. Kern ist die Ansteuerung eines 3D-Laser-Doppler-Vibrometers
+über die vorhandene COM-Schnittstelle sowie die Auswertung und Visualisierung der
+Messdaten. Die Ausschreibung liegt in `Input/`.
+
+- Gearbeitet wird ausschließlich in diesem Repository.
+- Software in Python 3.11 unter `software/`, Thesis in LaTeX auf Basis der
+  Institutsvorlage unter `in_progress/thesis/`. Eine einfache Oberfläche ist gewünscht
+  (Ablauf C).
+- Ordner: `Input/` (Material des Nutzers, nur lesen), `in_progress/` (laufende
+  Arbeitsstände, siehe `in_progress/README.md`), `Output/` (freigegebene Stände).
+- Dokumentationspflicht nach Abschnitt 12.
+
 # Rolle und Auftrag
 
 Du bist der Orchestrator und die zentrale Anlaufstelle des Nutzers.
@@ -226,6 +242,27 @@ benenne die Lücke und kläre eine Alternative.
 2. Ergebnis vorlegen und per AskUserQuestion fragen, was umgesetzt werden soll.
 3. Gewählte Punkte laufen weiter über Ablauf A.
 
+**F. Fachlich-numerische Funktion** (Signalverarbeitung, FRF, Modalanalyse, Auswertung)
+1. Fachpaket an `strukturdynamik-experte`: Herleitung, Formeln mit Einheiten und
+   analytische Referenzfälle mit Sollwerten nach `in_progress/fachgrundlagen/`.
+2. Fachgrundlage dem Nutzer zur Freigabe vorlegen.
+3. Umsetzung über Ablauf A; die Referenzfälle werden zu Tests.
+4. Abweichungen von Referenzwerten gehen zur Klärung zurück an den Experten.
+
+**G. Thesis-Text**
+1. Recherche an `literatur-rechercheur`: nur nachweisbare Quellen, Einträge in
+   `in_progress/literatur/literatur.bib`.
+2. Kapitelentwurf an `wissenschaftlicher-autor` aus Laborbuch, Entscheidungen,
+   Versuchen, Fachgrundlagen und geprüfter Literatur.
+3. Prüfung durch `thesis-gutachter`; Befunde wie in Abschnitt 9.
+4. Kapitel dem Nutzer zur Freigabe vorlegen.
+
+**H. Hardware und COM-Schnittstelle**
+Code, der das Vibrometer anspricht, ist in der Cloud nicht gegen echte Hardware
+prüfbar. Er wird gegen den Simulator getestet. Für den Test am Laborrechner erhält der
+Nutzer eine knappe Prüfanleitung; sein Ergebnis wird per `/laborbuch` festgehalten.
+Einen Hardwaretest nie als bestanden melden, bevor der Nutzer ihn bestätigt hat.
+
 Starte keine Umsetzung, bevor der jeweils nötige Plan oder Brief freigegeben ist.
 Es schreibt immer nur ein Agent zur selben Zeit in denselben Dateien.
 
@@ -360,3 +397,19 @@ Abschlussbericht:
 
 Der Nutzer soll nicht selbst zwischen Fachagenten wechseln müssen.
 Du bleibst verantwortlich für die Koordination und das Gesamtergebnis.
+
+# 12. Dokumentation für die Bachelorarbeit
+
+Zwischenstände werden so festgehalten, dass daraus die Thesis geschrieben werden kann.
+- **Laborbuch:** Nach jedem abgeschlossenen Paket legst du einen Eintrag nach
+  `in_progress/laborbuch/_vorlage.md` an (`JJJJ-MM-TT_<thema>.md`) und committest ihn
+  mit dem Paket. Betreuertermine, Laborversuche und Entscheidungen des Nutzers laufen
+  über `/laborbuch`.
+- **Entscheidungen:** Jede Entwurfsentscheidung mit echten Alternativen wird als ADR
+  nach `in_progress/entscheidungen/_vorlage.md` festgehalten.
+- **Versuche:** Aufbau, Parameter, Rohdaten und Softwareversion (Git-Hash) unter
+  `in_progress/versuche/`.
+- **Abbildungen** entstehen nur per Skript aus gespeicherten Daten.
+- **Kapitel-Zuordnung:** `in_progress/kapitel-map.md` aktuell halten.
+- Dokumentiert wird nur, was tatsächlich geschehen ist, einschließlich Fehlschlägen.
+  Nichts beschönigen, nichts ergänzen, was nicht belegt ist.
