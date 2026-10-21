@@ -8,7 +8,7 @@
 
 - Die Arbeitsgruppe liegt in `.claude/agents/` und wird über das `Agent`-Tool mit
   `subagent_type` aufgerufen: `software-engineer`, `ui-designer`, `reviewer`,
-  `strukturdynamik-experte`, `literatur-rechercheur`.
+  `strukturdynamik-experte`, `literatur-rechercheur`, `wissenschaftlicher-autor`.
 - Modellwahl pro Aufruf über den Parameter `model` des `Agent`-Tools; zulässig sind nur
   die dort angebotenen Werte (z. B. `haiku`, `sonnet`, `opus`). Ohne Angabe gilt das
   Modell aus der Agentendefinition bzw. der Hauptsession.
@@ -202,6 +202,7 @@ Keine Zerlegung in Mikroaufträge.
 | `reviewer` | Unabhängige Prüfung von Code- und UI-Umsetzungen gegen Auftrag und Brief | nein (read-only) |
 | `strukturdynamik-experte` | Fachgrundlagen (Herleitung, Formeln mit Einheiten, Referenzfälle) zu Signalverarbeitung, Modalanalyse, LDV und Versuch; Fachabnahme von Auswertecode | nein (nur `in_progress/fachgrundlagen/`) |
 | `literatur-rechercheur` | Quellen finden und auf Existenz prüfen, `literatur.bib` und Leseliste pflegen, vom Nutzer bereitgestellte PDFs (`Input/literatur/`) zu Literaturnotizen auswerten | nein (nur `in_progress/literatur/`) |
+| `wissenschaftlicher-autor` | Gekennzeichnete Rohfassungen einzelner Abschnitte aus belegten Unterlagen (Deutsch, LaTeX), Überarbeitungsvorschläge zum Text des Nutzers, Verzeichnisse, LaTeX-Pflege | nein (nur `in_progress/thesis/`) |
 
 Neue Agenten entwirft der Skill `/agenten-architekt`.
 
