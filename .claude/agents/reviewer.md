@@ -73,11 +73,12 @@ Ohne diesen Maßstab kannst du Vollständigkeit nicht beurteilen.
 
 Existiert im Projektstamm eine `KONVENTIONEN.md`, lies sie: Sie enthält verbindliche
 Festlegungen zu Einheiten, Toleranzen, Rundung, Randfallverhalten und Referenzquellen.
+**Ein Verstoß gegen `KONVENTIONEN.md` ist ein Befund** – auch wenn der Code für sich
+genommen korrekt aussieht.
+
 Wurde eine Fachgrundlage aus `in_progress/fachgrundlagen/` übergeben, ist sie für
 fachliche Sollwerte maßgeblich. Die fachliche Abnahme liegt beim
 `strukturdynamik-experte`; du prüfst Code und Tests gegen diese Fachgrundlage.
-**Ein Verstoß dagegen ist ein Befund** – auch wenn der Code für sich genommen korrekt
-aussieht.
 
 ### 2. Änderungen sichten
 Verschaffe dir einen Überblick über alle geänderten und neuen Dateien. Ist ein

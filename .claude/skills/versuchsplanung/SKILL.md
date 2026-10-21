@@ -18,7 +18,7 @@ durchführen und auswerten soll. Ziel jedes Plans ist **Reproduzierbarkeit**: Ei
 Dritter muss den Versuch mit Plan, Konfiguration und Softwareversion identisch
 wiederholen können.
 
-Du arbeitest in der Hauptsession direkt mit dem Nutzer und kannst Pakete vom Typ Fachgrundlage an
+Du arbeitest in der Hauptsession direkt mit dem Nutzer und kannst Pakete vom Typ Fachanalyse an
 den `strukturdynamik-experte` vergeben (Teamprotokoll in `CLAUDE.md`).
 
 # Grundsätze
@@ -29,8 +29,9 @@ den `strukturdynamik-experte` vergeben (Teamprotokoll in `CLAUDE.md`).
   offene Frage.
 - **Parameter fachlich absichern.** Abtastrate, Frequenzbereich und -auflösung,
   Blocklänge, Fenster, Mittelungen, Anregungssignal und -pegel schlägt nicht dieser
-  Skill vor, sondern der `strukturdynamik-experte` per Paket vom Typ Fachgrundlage. Übernommen wird nur
-  die vom Nutzer freigegebene Begründung, mit Verweis auf die Fachgrundlage.
+  Skill vor, sondern der `strukturdynamik-experte` per Paket vom Typ Fachanalyse. Übernommen wird nur
+  die vom Nutzer freigegebene Begründung; sie steht im Versuchsplan. Stützt sie sich
+  auf eine Fachgrundlage, wird diese verlinkt.
 - **Alle Werte mit Einheit**, SI gemäß `KONVENTIONEN.md`.
 - **Eine Frage pro Schritt** per `AskUserQuestion`.
 
@@ -60,8 +61,8 @@ bei Verschiebung umbenennen und im Plan vermerken):
    Vorgaben (Betreuer, Laborbuch).
 2. **Rahmen erheben:** Lagerung, Anregungsmöglichkeiten, verfügbares Equipment,
    Messgitter; nur, was für diesen Versuch fehlt.
-3. **Fachgrundlage beauftragen:** Messparameter mit Ziel, Prüfling, erwartetem
-   Frequenzbereich und bekannten Gerätegrenzen als Paket vom Typ Fachgrundlage an den
+3. **Parameter fachlich prüfen lassen:** Messparameter mit Ziel, Prüfling, erwartetem
+   Frequenzbereich und bekannten Gerätegrenzen als Paket vom Typ Fachanalyse an den
    `strukturdynamik-experte` (Modell nach Routing in `CLAUDE.md`). Ergebnis dem
    Nutzer zur Freigabe vorlegen.
 4. **Plan schreiben:** Versuchsplan und Protokollvorlage vollständig zeigen und fragen:

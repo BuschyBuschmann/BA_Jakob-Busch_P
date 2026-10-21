@@ -28,7 +28,8 @@ uv run pytest --cov --cov-fail-under=90
 - Mindestabdeckung: 90 % (vom Nutzer festgelegt).
 - Ausnahmen nur für dünnen Code direkt an der Hardware (COM-Adapter) oder am
   Bildschirm (GUI), der ohne Gerät bzw. Anzeige nicht testbar ist: per
-  `# pragma: no cover` bzw. `[tool.coverage] omit`, jeweils mit Begründung im Code.
+  `# pragma: no cover` bzw. `[tool.coverage] omit`, jeweils mit Begründung als Kommentar an der Stelle (im Code
+  bzw. in `pyproject.toml`).
   Logik bleibt voll abgedeckt.
 - Nicht ausgeführte Prüfungen werden in der Rückmeldung ausdrücklich benannt.
 

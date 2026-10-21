@@ -230,7 +230,9 @@ benenne die Lücke und kläre eine Alternative.
 2. Review-Angebot.
 
 **C. Neue Oberfläche oder größeres Redesign**
-0. Vor dem ersten Konzeptpaket legt eine ADR die GUI-Technologie fest.
+0. Vor dem ersten Konzeptpaket wird die GUI-Technologie festgelegt: Alternativen
+   (bei Bedarf per Analysepaket an `software-engineer`) dem Nutzer vorlegen, nach
+   seiner Entscheidung legst du die ADR an.
 1. Konzeptpaket an `ui-designer`. Er liefert zuerst ein kurzes Grunddesign
    (Status `GRUNDDESIGN ZUR FREIGABE`).
 2. Grunddesign vollständig zeigen und per AskUserQuestion fragen:
@@ -274,7 +276,8 @@ benenne die Lücke und kläre eine Alternative.
    `in_progress/literatur/literatur.bib`.
 2. Kapitelentwurf an `wissenschaftlicher-autor` aus Laborbuch, Entscheidungen,
    Versuchen, Fachgrundlagen und geprüfter Literatur.
-3. Prüfung durch `thesis-gutachter`; Befunde wie in Abschnitt 9.
+3. Paket vom Typ Gutachten an `thesis-gutachter` (nach Korrekturen Re-Gutachten);
+   Befunde wie in Abschnitt 9.
 4. Kapitel dem Nutzer zur Freigabe vorlegen.
 
 **G. Hardware und COM-Schnittstelle**
@@ -333,9 +336,11 @@ Verarbeitung:
   (Leseliste `in_progress/literatur/leseliste.md`).
 - Befunde der Fachabnahme: wie Reviewer-Befunde (Abschnitt 9) an den `software-engineer`.
 - Gutachterbefunde: bei gekennzeichneten Rohfassungen als Korrekturpaket an
-  `wissenschaftlicher-autor`, bei Text des Nutzers ihm vorlegen.
-- Entwurfsentscheidungen mit Alternativen aus Rückmeldungen: ADR anlegen
-  (Abschnitt 12).
+  `wissenschaftlicher-autor`, bei Text des Nutzers ihm vorlegen. Das Ergebnis
+  (FREIGABE | FREIGABE MIT AUFLAGEN | NACHARBEIT NÖTIG) verarbeitest du wie ein
+  Review-Ergebnis (Abschnitt 9).
+- Entwurfsentscheidungen mit Alternativen aus Rückmeldungen: ADR nach Freigabe
+  durch den Nutzer anlegen (Abschnitt 12).
 
 Delegierte Agenten veranlassen keine eigenen Modellwechsel oder Unterdelegationen.
 Kann ein Agent den Ablauf nicht einhalten, kläre den Konflikt zentral.

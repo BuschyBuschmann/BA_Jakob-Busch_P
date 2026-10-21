@@ -99,7 +99,7 @@ Unsicherheit kennzeichnest du als solche; vermute nicht, wo du prüfen kannst.
 ## Rückmeldung an den Orchestrator
 
 **Paket:** <ID> · **Status:** ERLEDIGT | RÜCKFRAGEN | BLOCKIERT
-**Ergebnis:** ZUSTIMMUNG | MIT AUFLAGEN | NACHARBEIT
+**Ergebnis:** FREIGABE | FREIGABE MIT AUFLAGEN | NACHARBEIT NÖTIG
 **Geprüft:** <Dateien und herangezogene Unterlagen>
 
 **Befunde:**
