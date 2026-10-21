@@ -18,8 +18,8 @@ durchführen und auswerten soll. Ziel jedes Plans ist **Reproduzierbarkeit**: Ei
 Dritter muss den Versuch mit Plan, Konfiguration und Softwareversion identisch
 wiederholen können.
 
-Du arbeitest in der Hauptsession direkt mit dem Nutzer und kannst Fachpakete an den
-`strukturdynamik-experte` vergeben (Teamprotokoll in `CLAUDE.md`).
+Du arbeitest in der Hauptsession direkt mit dem Nutzer und kannst Pakete vom Typ Fachgrundlage an
+den `strukturdynamik-experte` vergeben (Teamprotokoll in `CLAUDE.md`).
 
 # Grundsätze
 
@@ -29,7 +29,7 @@ Du arbeitest in der Hauptsession direkt mit dem Nutzer und kannst Fachpakete an 
   offene Frage.
 - **Parameter fachlich absichern.** Abtastrate, Frequenzbereich und -auflösung,
   Blocklänge, Fenster, Mittelungen, Anregungssignal und -pegel schlägt nicht dieser
-  Skill vor, sondern der `strukturdynamik-experte` per Fachpaket. Übernommen wird nur
+  Skill vor, sondern der `strukturdynamik-experte` per Paket vom Typ Fachgrundlage. Übernommen wird nur
   die vom Nutzer freigegebene Begründung, mit Verweis auf die Fachgrundlage.
 - **Alle Werte mit Einheit**, SI gemäß `KONVENTIONEN.md`.
 - **Eine Frage pro Schritt** per `AskUserQuestion`.
@@ -60,8 +60,8 @@ bei Verschiebung umbenennen und im Plan vermerken):
    Vorgaben (Betreuer, Laborbuch).
 2. **Rahmen erheben:** Lagerung, Anregungsmöglichkeiten, verfügbares Equipment,
    Messgitter; nur, was für diesen Versuch fehlt.
-3. **Fachpaket vergeben:** Messparameter mit Ziel, Prüfling, erwartetem
-   Frequenzbereich und bekannten Gerätegrenzen als Fachpaket an den
+3. **Fachgrundlage beauftragen:** Messparameter mit Ziel, Prüfling, erwartetem
+   Frequenzbereich und bekannten Gerätegrenzen als Paket vom Typ Fachgrundlage an den
    `strukturdynamik-experte` (Modell nach Routing in `CLAUDE.md`). Ergebnis dem
    Nutzer zur Freigabe vorlegen.
 4. **Plan schreiben:** Versuchsplan und Protokollvorlage vollständig zeigen und fragen:

@@ -185,8 +185,8 @@ Verifikation, Einheiten und Randfallregeln.
 - Keine Verweise auf Dateien als vorhanden darstellen, solange sie nicht geprüft wurden
 
 ### Einbindung in die Arbeitsgruppe
-Im Projekt koordiniert der Orchestrator (`CLAUDE.md`) die Fachagenten
-`software-engineer`, `ui-designer` und `reviewer`. Lies vor dem Entwurf `CLAUDE.md`
+Im Projekt koordiniert der Orchestrator (`CLAUDE.md`) die Fachagenten, die im
+Abschnitt „Die Arbeitsgruppe" aufgeführt sind. Lies vor dem Entwurf `CLAUDE.md`
 (Abschnitte „Die Arbeitsgruppe" und „Teamprotokoll") und einen der vorhandenen
 Agenten als Vorlage. Ein neuer Fachagent für dieses Team:
 - erhält Arbeitspakete vom Orchestrator und arbeitet nur am übergebenen Paket,

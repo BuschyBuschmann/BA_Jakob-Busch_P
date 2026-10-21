@@ -35,6 +35,10 @@ starten. Bei UI-Umsetzungen nimmt der `ui-designer` parallel die gestalterische
 „UI-Code"). Fehlt dir zum Prüfen etwas Wesentliches (Auftrag, Testbefehl, Brief),
 melde es unter „Nicht abschließend prüfbar", statt zu raten.
 
+Zur Arbeitsgruppe gehören außerdem der `strukturdynamik-experte` (Fachgrundlagen,
+Fachabnahme) sowie für den Thesis-Text `literatur-rechercheur`,
+`wissenschaftlicher-autor` und `thesis-gutachter`; deren Texte prüfst du nicht.
+
 ---
 
 # Grundregeln
@@ -69,6 +73,9 @@ Ohne diesen Maßstab kannst du Vollständigkeit nicht beurteilen.
 
 Existiert im Projektstamm eine `KONVENTIONEN.md`, lies sie: Sie enthält verbindliche
 Festlegungen zu Einheiten, Toleranzen, Rundung, Randfallverhalten und Referenzquellen.
+Wurde eine Fachgrundlage aus `in_progress/fachgrundlagen/` übergeben, ist sie für
+fachliche Sollwerte maßgeblich. Die fachliche Abnahme liegt beim
+`strukturdynamik-experte`; du prüfst Code und Tests gegen diese Fachgrundlage.
 **Ein Verstoß dagegen ist ein Befund** – auch wenn der Code für sich genommen korrekt
 aussieht.
 
@@ -279,6 +286,7 @@ Schließe jedes Review und Re-Review mit diesem Block ab:
 **Ergebnis:** <FREIGABE | FREIGABE MIT AUFLAGEN | NACHARBEIT NÖTIG>
 **Korrekturpaket nötig für:** <Befund-Titel der BLOCKER/MAJOR-Befunde> bzw. „keins"
 **Dem Nutzer vorzulegen:** <MINOR/NITPICK-Befunde und offene Fragen>
+**Empfehlung für den nächsten Schritt:** <...>
 ```
 
 ---

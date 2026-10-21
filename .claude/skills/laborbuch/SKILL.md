@@ -67,12 +67,16 @@ Freigabe vor. Nichts davon ohne Bestätigung:
 - **Arbeitspakete:** Offene Punkte, die Arbeit für die Arbeitsgruppe bedeuten, fasst du
   als Auftragsvorschläge zusammen und übergibst sie dem Orchestrator. Er behandelt sie
   wie neue Aufgaben (Aufbereitung, Plan, Freigabe).
+- **Nachverfolgungsmatrix:** Bestätigt ein Hardwaretest oder Versuch eine Anforderung,
+  setze in `in_progress/anforderungen/nachverfolgung.md` den Stand „am Gerät bestätigt"
+  mit Verweis auf den Eintrag.
 - **Kapitel-Zuordnung:** Trage den Eintrag in `in_progress/kapitel-map.md` beim
   passenden Kapitel ein; ist die Gliederung noch offen, unter „nicht zugeordnet".
 - **Fotos und Dateien:** Der Nutzer lädt Dateien ins Repository hoch (z. B. nach
   `Input/`). Schlage einen Zielordner vor (Versuche: `in_progress/versuche/<datum>_<versuch>/`,
-  sonst passend zum Eintrag), verschiebe nach Bestätigung mit `git mv` und verlinke
-  sie relativ im Eintrag. Bilder in Chat-Nachrichten sind keine Dateien: bitte dann
+  sonst passend zum Eintrag), kopiere die Datei nach Bestätigung unverändert
+  (`cp`) dorthin und verlinke sie relativ im Eintrag; das Original in `Input/` bleibt
+  unverändert. Bilder in Chat-Nachrichten sind keine Dateien: bitte dann
   um Hochladen ins Repository. Rohdaten werden nie verändert oder überschrieben.
 
 ## 5. Abschluss

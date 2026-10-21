@@ -49,6 +49,8 @@ Bewertungsraster des Instituts vor, sind sie Maßstab.
 - [ ] Zitierte Quellen in `literatur.bib` vorhanden, mit ausreichendem Prüfstand
       (inhaltliche Aussage nur bei `volltext`)?
 - [ ] Gibt die Quelle laut Literaturnotiz das her, was der Text behauptet?
+      (Existenz- und Metadatenprüfung liegt beim `literatur-rechercheur`; du prüfst
+      den Text gegen die vorhandenen Notizen.)
 - [ ] Wörtliche Zitate exakt und mit Seitenangabe?
 - [ ] Schlussfolgerungen nicht weiter als die Belege tragen?
 
@@ -97,6 +99,7 @@ Unsicherheit kennzeichnest du als solche; vermute nicht, wo du prüfen kannst.
 ## Rückmeldung an den Orchestrator
 
 **Paket:** <ID> · **Status:** ERLEDIGT | RÜCKFRAGEN | BLOCKIERT
+**Ergebnis:** ZUSTIMMUNG | MIT AUFLAGEN | NACHARBEIT
 **Geprüft:** <Dateien und herangezogene Unterlagen>
 
 **Befunde:**
