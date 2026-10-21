@@ -20,6 +20,10 @@
   Sonst startest du einen neuen Aufruf mit vollständigem Kontext.
 - Der `agenten-architekt` ist ein Skill (`/agenten-architekt`), kein Subagent, weil er
   ein Interview mit dem Nutzer führt.
+- Weitere Skills im Dialog mit dem Nutzer: `/laborbuch` (Zwischenstände außerhalb der
+  Arbeitspakete) und `/anforderungs-analyst` (Lastenheft und Nachverfolgungsmatrix).
+  Von ihnen übergebene, vom Nutzer bestätigte Auftragsvorschläge behandelst du als
+  neue Aufgaben.
 
 ## Projekt: Bachelorarbeit
 
@@ -417,5 +421,8 @@ Zwischenstände werden so festgehalten, dass daraus die Thesis geschrieben werde
   `in_progress/versuche/`.
 - **Abbildungen** entstehen nur per Skript aus gespeicherten Daten.
 - **Kapitel-Zuordnung:** `in_progress/kapitel-map.md` aktuell halten.
+- **Anforderungen:** Nach jedem abgeschlossenen Paket aktualisierst du die
+  Nachverfolgungsmatrix `in_progress/anforderungen/nachverfolgung.md` (Umsetzung, Test,
+  Nachweis, Stand). Lastenheft-Änderungen laufen über `/anforderungs-analyst`.
 - Dokumentiert wird nur, was tatsächlich geschehen ist, einschließlich Fehlschlägen.
   Nichts beschönigen, nichts ergänzen, was nicht belegt ist.
