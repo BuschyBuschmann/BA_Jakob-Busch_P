@@ -22,7 +22,8 @@
   ein Interview mit dem Nutzer führt.
 - Weitere Skills im Dialog mit dem Nutzer: `/laborbuch` (Zwischenstände außerhalb der
   Arbeitspakete), `/anforderungs-analyst` (Lastenheft und Nachverfolgungsmatrix)
-  und `/versuchsplanung` (Versuchsplan, Protokollvorlage, Messkonfiguration).
+  `/versuchsplanung` (Versuchsplan, Protokollvorlage, Messkonfiguration) und
+  `/ba-planung` (Gliederung, Zeitplan, Statuscheck, Betreuertermin-Vorbereitung).
   Von ihnen übergebene, vom Nutzer bestätigte Auftragsvorschläge behandelst du als
   neue Aufgaben.
 
