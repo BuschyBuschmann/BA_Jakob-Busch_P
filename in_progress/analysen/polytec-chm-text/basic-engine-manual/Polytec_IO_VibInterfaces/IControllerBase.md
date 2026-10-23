@@ -1,0 +1,494 @@
+# Polytec_IO_VibInterfaces – IControllerBase
+
+## IControllerBase Interface
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase.html` · Polytec IO VibInterfaces Type Library*
+
+### Description
+
+The base interface of the IController Interface and the IControllerGroup Interface.
+
+### Object Model
+
+
+---
+
+## IControllerBase Interface Members
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase_members.html` · Polytec IO VibInterfaces Type Library*
+
+### Public Methods
+
+| Disconnect | Disconnects the controller from the hardware. |
+|---|---|
+| GetSelectedBandwidthRange | Returns the active decoder bandwidth range for the given quantity. |
+| GetSelectedDecoderRange | Returns the active decoder range for the given quantity. |
+| GetSelectedFilterRange | Returns the active filter range for the given filter type. |
+| GetSelectedMaxVelocityRange | Returns the active maximum velocity range for the given quantity. |
+
+### Public Properties
+
+| ControllerInfo | The information about the controller. |
+|---|---|
+| DecoderClearModes | The clear modes of the controller. |
+| Decoders | The decoders of the controller. |
+| DigitalDemodulation | The digital demodulation object of the controller. |
+| Filters | The filters of the controller. |
+| FrontEndIPAddress | Returns the IP address of the front end. |
+| PowerUp | The power-up settings of the controller. |
+| Quantities | The quantities of the controller. |
+| Settings | The settings of the controller. |
+
+
+---
+
+## Disconnect Method
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~Disconnect.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : Disconnect Method*
+
+### Description
+
+Disconnects the controller from the hardware.
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Sub Disconnect()
+```
+
+
+---
+
+## GetSelectedBandwidthRange Method
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~GetSelectedBandwidthRange.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : GetSelectedBandwidthRange Method*
+
+### Description
+
+Returns the active decoder bandwidth range for the given quantity.
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Function GetSelectedBandwidthRange( _
+   ByVal QuantityType As QuantityType _
+) As IBandwidthRange
+```
+
+### Parameters
+
+QuantityType
+
+| Value | Description |
+|---|---|
+| QuantityType_Acceleration | Quantity acceleration. |
+| QuantityType_Angle | Quantity angle. |
+| QuantityType_AngleDegree | Quantity angle in degree. |
+| QuantityType_AngularAcceleration | Quantity angular acceleration. |
+| QuantityType_AngularAccelerationDegree | Quantity angular acceleration in degree. |
+| QuantityType_AngularVelocity | Quantity angular velocity. |
+| QuantityType_AngularVelocityDegree | Quantity angular velocity in degree. |
+| QuantityType_Charge | Quantity charge. |
+| QuantityType_Counts | Quantity counts. |
+| QuantityType_Current | Quantity current. |
+| QuantityType_Displacement | Quantity displacement. |
+| QuantityType_Force | Quantity force. |
+| QuantityType_Frequency | Quantity frequency. |
+| QuantityType_GravitationalAcceleration | Quantity gravitational acceleration. |
+| QuantityType_LuminousIntensity | Quantity luminous intensity. |
+| QuantityType_Mass | Quantity mass. |
+| QuantityType_None | No quantity. |
+| QuantityType_Order | Quantity order. |
+| QuantityType_Power | Quantity power. |
+| QuantityType_Pressure | Quantity pressure. |
+| QuantityType_Resistance | Quantity resistance. |
+| QuantityType_Revolution | Quantity revolution. |
+| QuantityType_Rpm | Quantity RPM. |
+| QuantityType_SoundPressure | Quantity sound pressure. |
+| QuantityType_Strain | Quantity strain. |
+| QuantityType_Stress | Quantity stress. |
+| QuantityType_Substance | Quantity substance. |
+| QuantityType_Temperature | Quantity temperature. |
+| QuantityType_Time | Quantity time. |
+| QuantityType_Torque | Quantity torque. |
+| QuantityType_User | Quantity user. |
+| QuantityType_Velocity | Quantity velocity. |
+| QuantityType_Voltage | Quantity voltage. |
+| QuantityType_Volume | Quantity volume. |
+| QuantityType_VolumeAcceleration | Quantity volume acceleration. |
+| QuantityType_VolumeVelocity | Quantity volume velocity. |
+| QuantityType_Work | Quantity work. |
+The quantity to get the selected bandwidth range for.
+
+
+---
+
+## GetSelectedDecoderRange Method
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~GetSelectedDecoderRange.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : GetSelectedDecoderRange Method*
+
+### Description
+
+Returns the active decoder range for the given quantity.
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Function GetSelectedDecoderRange( _
+   ByVal QuantityType As QuantityType _
+) As IDecoderRange
+```
+
+### Parameters
+
+QuantityType
+
+| Value | Description |
+|---|---|
+| QuantityType_Acceleration | Quantity acceleration. |
+| QuantityType_Angle | Quantity angle. |
+| QuantityType_AngleDegree | Quantity angle in degree. |
+| QuantityType_AngularAcceleration | Quantity angular acceleration. |
+| QuantityType_AngularAccelerationDegree | Quantity angular acceleration in degree. |
+| QuantityType_AngularVelocity | Quantity angular velocity. |
+| QuantityType_AngularVelocityDegree | Quantity angular velocity in degree. |
+| QuantityType_Charge | Quantity charge. |
+| QuantityType_Counts | Quantity counts. |
+| QuantityType_Current | Quantity current. |
+| QuantityType_Displacement | Quantity displacement. |
+| QuantityType_Force | Quantity force. |
+| QuantityType_Frequency | Quantity frequency. |
+| QuantityType_GravitationalAcceleration | Quantity gravitational acceleration. |
+| QuantityType_LuminousIntensity | Quantity luminous intensity. |
+| QuantityType_Mass | Quantity mass. |
+| QuantityType_None | No quantity. |
+| QuantityType_Order | Quantity order. |
+| QuantityType_Power | Quantity power. |
+| QuantityType_Pressure | Quantity pressure. |
+| QuantityType_Resistance | Quantity resistance. |
+| QuantityType_Revolution | Quantity revolution. |
+| QuantityType_Rpm | Quantity RPM. |
+| QuantityType_SoundPressure | Quantity sound pressure. |
+| QuantityType_Strain | Quantity strain. |
+| QuantityType_Stress | Quantity stress. |
+| QuantityType_Substance | Quantity substance. |
+| QuantityType_Temperature | Quantity temperature. |
+| QuantityType_Time | Quantity time. |
+| QuantityType_Torque | Quantity torque. |
+| QuantityType_User | Quantity user. |
+| QuantityType_Velocity | Quantity velocity. |
+| QuantityType_Voltage | Quantity voltage. |
+| QuantityType_Volume | Quantity volume. |
+| QuantityType_VolumeAcceleration | Quantity volume acceleration. |
+| QuantityType_VolumeVelocity | Quantity volume velocity. |
+| QuantityType_Work | Quantity work. |
+The type of the quantity.
+
+
+---
+
+## GetSelectedFilterRange Method
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~GetSelectedFilterRange.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : GetSelectedFilterRange Method*
+
+### Description
+
+Returns the active filter range for the given filter type.
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Function GetSelectedFilterRange( _
+   ByVal FilterType As FilterType _
+) As IBaseFilterRange
+```
+
+### Parameters
+
+FilterType
+
+| Value | Description |
+|---|---|
+| FilterType_AccelerationAse | The ASE filter for acceleration. |
+| FilterType_AccelerationHighPass | The acceleration high pass filter. |
+| FilterType_AccelerationLowPass | The acceleration low pass filter. |
+| FilterType_Adaptive | The adaptive filter. |
+| FilterType_Ase | The ASE filter, e.g. for a IVS-500 system. |
+| FilterType_DCResponse | The DC response filter. |
+| FilterType_DisplacementAse | The ASE filter for displacement. |
+| FilterType_DisplacementHighPass | The displacement high pass filter. |
+| FilterType_DisplacementLowPass | The displacement low pass filter. |
+| FilterType_HighPass | The high pass filter. |
+| FilterType_LowPass | The low pass filter. |
+| FilterType_Rotation | The rotation filter. |
+| FilterType_RpmResponse | The RPM response filter. |
+| FilterType_Tracking | The tracking filter. |
+| FilterType_Translation | The translation filter. |
+The filter type.
+
+
+---
+
+## GetSelectedMaxVelocityRange Method
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~GetSelectedMaxVelocityRange.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : GetSelectedMaxVelocityRange Method*
+
+### Description
+
+Returns the active maximum velocity range for the given quantity.
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Function GetSelectedMaxVelocityRange( _
+   ByVal QuantityType As QuantityType _
+) As IMaxVelocityRange
+```
+
+### Parameters
+
+QuantityType
+
+| Value | Description |
+|---|---|
+| QuantityType_Acceleration | Quantity acceleration. |
+| QuantityType_Angle | Quantity angle. |
+| QuantityType_AngleDegree | Quantity angle in degree. |
+| QuantityType_AngularAcceleration | Quantity angular acceleration. |
+| QuantityType_AngularAccelerationDegree | Quantity angular acceleration in degree. |
+| QuantityType_AngularVelocity | Quantity angular velocity. |
+| QuantityType_AngularVelocityDegree | Quantity angular velocity in degree. |
+| QuantityType_Charge | Quantity charge. |
+| QuantityType_Counts | Quantity counts. |
+| QuantityType_Current | Quantity current. |
+| QuantityType_Displacement | Quantity displacement. |
+| QuantityType_Force | Quantity force. |
+| QuantityType_Frequency | Quantity frequency. |
+| QuantityType_GravitationalAcceleration | Quantity gravitational acceleration. |
+| QuantityType_LuminousIntensity | Quantity luminous intensity. |
+| QuantityType_Mass | Quantity mass. |
+| QuantityType_None | No quantity. |
+| QuantityType_Order | Quantity order. |
+| QuantityType_Power | Quantity power. |
+| QuantityType_Pressure | Quantity pressure. |
+| QuantityType_Resistance | Quantity resistance. |
+| QuantityType_Revolution | Quantity revolution. |
+| QuantityType_Rpm | Quantity RPM. |
+| QuantityType_SoundPressure | Quantity sound pressure. |
+| QuantityType_Strain | Quantity strain. |
+| QuantityType_Stress | Quantity stress. |
+| QuantityType_Substance | Quantity substance. |
+| QuantityType_Temperature | Quantity temperature. |
+| QuantityType_Time | Quantity time. |
+| QuantityType_Torque | Quantity torque. |
+| QuantityType_User | Quantity user. |
+| QuantityType_Velocity | Quantity velocity. |
+| QuantityType_Voltage | Quantity voltage. |
+| QuantityType_Volume | Quantity volume. |
+| QuantityType_VolumeAcceleration | Quantity volume acceleration. |
+| QuantityType_VolumeVelocity | Quantity volume velocity. |
+| QuantityType_Work | Quantity work. |
+The quantity type.
+
+
+---
+
+## ControllerInfo Property
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~ControllerInfo.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : ControllerInfo Property*
+
+### Description
+
+The information about the controller.
+
+### Property type
+
+Read-only property
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Property ControllerInfo As ControllerInfo
+```
+
+
+---
+
+## DecoderClearModes Property
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~DecoderClearModes.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : DecoderClearModes Property*
+
+### Description
+
+The clear modes of the controller.
+
+### Property type
+
+Read-only property
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Property DecoderClearModes As DecoderClearModeCollection
+```
+
+
+---
+
+## Decoders Property
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~Decoders.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : Decoders Property*
+
+### Description
+
+The decoders of the controller.
+
+### Property type
+
+Read-only property
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Property Decoders As IDecoderCollection
+```
+
+
+---
+
+## DigitalDemodulation Property
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~DigitalDemodulation.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : DigitalDemodulation Property*
+
+### Description
+
+The digital demodulation object of the controller.
+
+### Property type
+
+Read-only property
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Property DigitalDemodulation As IDigitalDemodulation
+```
+
+
+---
+
+## Filters Property
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~Filters.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : Filters Property*
+
+### Description
+
+The filters of the controller.
+
+### Property type
+
+Read-only property
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Property Filters As IFilterCollection
+```
+
+
+---
+
+## FrontEndIPAddress Property
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~FrontEndIPAddress.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : FrontEndIPAddress Property*
+
+### Description
+
+Returns the IP address of the front end.
+
+### Property type
+
+Read-only property
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Property FrontEndIPAddress As String
+```
+
+
+---
+
+## PowerUp Property
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~PowerUp.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : PowerUp Property*
+
+### Description
+
+The power-up settings of the controller.
+
+### Property type
+
+Read-only property
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Property PowerUp As IPowerUp
+```
+
+
+---
+
+## Quantities Property
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~Quantities.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : Quantities Property*
+
+### Description
+
+The quantities of the controller.
+
+### Property type
+
+Read-only property
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Property Quantities As IQuantityCollection
+```
+
+
+---
+
+## Settings Property
+
+*Quelle: `Polytec_IO_VibInterfaces~IControllerBase~Settings.html` · Polytec IO VibInterfaces Type Library · IControllerBase Interface : Settings Property*
+
+### Description
+
+The settings of the controller.
+
+### Property type
+
+Read-write property
+
+### Syntax
+
+*Visual Basic:*
+```
+Public Property Settings As ControllerSettings
+```
