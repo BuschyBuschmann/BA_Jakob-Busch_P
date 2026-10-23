@@ -238,3 +238,22 @@ Falls das Skript in mehrere Module zerlegt wird, geht die Einzeldatei-Eigenschaf
 **ADR-Kandidaten (keine Entscheidung):** Whitelist-Proxy im Produktiv-Adapter; Early gegen Late Binding; Einzeldatei-Werkzeug gegen Paket-interne Skripte; Fake-PSV im Werkzeug gegen Gerätesimulator des Hauptpakets.
 
 **Review-Empfehlung:** Nach der Umsetzung Review mit Schwerpunkt Whitelist-Vollständigkeit (Default deny, keine Umgehung über `getattr`/Attributketten), Dateischutz (ReadOnly, kein Überschreiben) und Watchdog-Verhalten; Fachabnahme der Prüfliste nicht nötig, solange keine Auswertung erfolgt.
+---
+
+## Nachtrag 2026-10-23: Entscheidungen des Nutzers nach Review R-E1
+
+Review: `in_progress/analysen/2026-10-23_R-E1_review-erkundungsskript.md`.
+
+1. **Planabweichungen (MAJOR 2) werden übernommen und nachgetragen:**
+   - (a) Vibrometer: Gelesen werden die Controller-Daten (`ControllerInfo`); Laserwellenlänge
+     und Laserleistung werden zusätzlich über den in der Polytec-Doku belegten Weg gelesen
+     ([BEM] „Access to General Information“: `SensorHeadInfo` unter den Controllern bzw.
+     Sensorköpfen), nur lesend und über die Whitelist.
+   - (b) Kein `pytest`-Test mit Marker `hardware` für das Erkundungsskript: `pytest` auf dem
+     Messrechner widerspricht der Variante „ohne Installation“ (L1).
+   - (c) Die Y-Achse wird über `Signal.Description.YAxis` statt `GetYAxes` gelesen (gleichwertig).
+2. **Alle MINOR- und NITPICK-Befunde** des Reviews werden korrigiert.
+3. **Technische Sperre gegen ungewollten PSV-Start:** Stufe 1 legt das Objekt
+   `PSV.AcquisitionInstance` nur an, wenn Stufe 0 einen laufenden PSV-Prozess gefunden hat;
+   sonst wird Stufe 1 übersprungen, außer mit `--start-psv` und Bestätigung „JA“. Die
+   Prüfanleitung empfiehlt, Stufe 0 zuerst allein laufen zu lassen.
