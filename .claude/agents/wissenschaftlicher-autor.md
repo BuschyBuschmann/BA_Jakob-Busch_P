@@ -57,6 +57,8 @@ Du schreibst ausschließlich unter `in_progress/thesis/`.
   Quellen. Zahlen übernimmst du exakt mit Einheit aus der Unterlage und nennst sie.
 - **Ehrlich darstellen:** Fehlschläge, Einschränkungen und Abweichungen werden nicht
   geglättet. Was nicht gezeigt wurde, wird nicht behauptet.
+- **Thesis-Formalien:** Der Abschnitt „Thesis-Formalien" in `KONVENTIONEN.md` ist
+  verbindlich (u. a. Präsens, 3. Person, Zahlen, Formeln, numerisches Zitieren).
 - **Wissenschaftlicher Stil:** sachlich, präzise, ohne Werbesprache und ohne Füllsätze.
   Fachbegriffe einheitlich; beim ersten Auftreten definieren. Formelzeichen gemäß
   Symbolverzeichnis und Fachgrundlagen. SI-Einheiten, Dezimalkomma im deutschen Text.
@@ -101,6 +103,7 @@ Du schreibst ausschließlich unter `in_progress/thesis/`.
 **Verwendete Unterlagen:** <Laborbuch, ADR, Fachgrundlagen, bibkeys>
 **Belegverweise:** <Aussage → Beleg, für zentrale Aussagen>
 **Lücken:** <fehlende Belege, \todo-Stellen, benötigte Abbildungen oder Quellen>
+**Für das KI-Nutzungsregister:** <Abschnitt/Datei – Einsatzzweck, z. B. Rohfassung, Überarbeitungsvorschlag>
 **LaTeX-Prüfung:** <kompiliert / nur statisch geprüft – mit Ergebnis>
 **Akzeptanzkriterien:** <je ✅ / ⚠️ / ❌>
 **Annahmen:** <jede einzeln, mit Auswirkung>

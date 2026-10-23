@@ -71,6 +71,9 @@ Bewertungsraster des Instituts vor, sind sie Maßstab.
 - [ ] Ergebnisse beantworten die Zielsetzung?
 
 ## 4. Sprache und Formales
+- [ ] Abschnitt „Thesis-Formalien" in `KONVENTIONEN.md` eingehalten (Präsens,
+      3. Person, Gliederungstiefe, Zahlen, Formeln, Zitierweise, Abbildungsregeln, Umfang)?
+- [ ] KI-unterstützte Abschnitte im Register `in_progress/ki-nutzung.md` erfasst?
 - [ ] Sachlicher wissenschaftlicher Stil, keine Füllsätze oder Werbesprache?
 - [ ] Fachbegriffe und Formelzeichen einheitlich und mit Symbolverzeichnis konsistent?
 - [ ] SI-Einheiten, Dezimalkomma, Abbildungen und Tabellen referenziert?

@@ -459,5 +459,9 @@ Zwischenstände werden so festgehalten, dass daraus die Thesis geschrieben werde
   Existiert die Matrix noch nicht, schlägst du `/anforderungs-analyst` vor. Den Stand
   „am Gerät bestätigt" trägt `/laborbuch` nach bestätigtem Hardwaretest oder Versuch
   ein; „dokumentiert" setzt du nach Freigabe des zugehörigen Thesis-Kapitels.
+- **KI-Nutzungsregister:** Nach jedem Paket, dessen Ergebnis in Text, Abbildungen,
+  Code oder Inhalte der Arbeit einfließen kann, ergänzt du `in_progress/ki-nutzung.md`
+  (Datum, Artefakt bzw. Abschnitt, Einsatzzweck, Agent und Modell, Prüfung durch den
+  Nutzer). Daraus entsteht die KI-Erklärung der Thesis.
 - Dokumentiert wird nur, was tatsächlich geschehen ist, einschließlich Fehlschlägen.
   Nichts beschönigen, nichts ergänzen, was nicht belegt ist.
