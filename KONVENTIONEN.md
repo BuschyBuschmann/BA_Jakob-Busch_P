@@ -74,7 +74,15 @@ Quelle: Analyseberichte I1 und I2 unter `in_progress/analysen/`.
   wird mitgeführt.
 - Frequenzachse von Polytec-FFT-Daten: $f_k = k\,\Delta f$ mit $k = 1 \dots n_\mathrm{FFT}$
   und $\Delta f = BW/n_\mathrm{FFT}$, DC nicht enthalten. **Vorläufig**, an einer realen
-  Messdatei zu bestätigen.
+  Messdatei zu bestätigen. Stütze: Matlab-Beispiel zu Polytec File Access
+  (`Input/literatur/polytec/Schulungsunterlagen/11.2 Polytec-File-Access_Matlab.pdf`,
+  Folie 8: 400 Linien, 12,5 Hz bis 5000 Hz).
+- Messpunkte führen im Code immer `index` (COM-Index, 1-basiert, nur im Adapter) und
+  `label` getrennt. Was die PSV-Oberfläche „Index“ nennt, heißt im Code `label`.
+- Messdateien (Rohdaten) werden mit Polytec File Access nur schreibgeschützt geöffnet;
+  geschrieben wird ausschließlich in Kopien.
+- Service- und Kalibriermethoden des Scankopfs (z. B. `ScanHeadControl.Write…`) werden
+  nie aufgerufen. Der Adapter kapselt nur ausdrücklich freigegebene Methoden.
 - Vorzeichen: positive Geschwindigkeit bedeutet Bewegung in Richtung Scankopf;
   3D-Komponenten liegen im Objektkoordinatensystem des 3D-Abgleichs.
 
