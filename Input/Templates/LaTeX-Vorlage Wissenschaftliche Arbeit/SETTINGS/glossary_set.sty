@@ -1,0 +1,54 @@
+%--------------------------
+% 			INITIALISIERUNG + EINSTELLUNGEN   G L O S S A R I E S
+%--------------------------
+%
+% Hier werden zwei getrennte Symbolverzeichnisse angelegt: Das erste "Symbolverzeichnis"
+% beinhaltet alle Lateinischen und alle Griechischen Schriftzeichen
+% Das zweite Verzeichnis "Indizes" listet alle tiefergestellten Indizes auf
+
+\usepackage[nomain,acronym,nostyles]{glossaries}[=v4.49]
+%
+
+%
+\newglossary[slg1]{notation}{syi1}{syg1}{Symbolverzeichnis} 				% Neues Vz. "Symbolverzeichnis"
+\newglossary[slg2]{subscripts}{syi2}{syg2}{Indizes} 						% Neues Vz. "Indizes"
+%
+\newglossarystyle{symlongcolgrskip}{\renewenvironment{theglossary}{			% NEUER STIL ("symlongcolgrskip")
+	\begin{longtable}{@{}p{15mm}p{15mm}p{\dimexpr\linewidth-15mm-15mm-4	 	% FUER VERZEICHNIS "notation"
+				 \tabcolsep\relax}@{}}}{\end{longtable}}					% mit der Ueberschrift "Symbolverzeichnis"
+	\renewcommand*{\glossaryheader}{ 										% basierend auf der Umgebung: longtable
+		\iflanguage{ngerman}{ 												%
+			\textbf{Zeichen}&\textbf{Einheit}&\textbf{Beschreibung}}{		% Beschriftung Deutsch
+			\textbf{Symbol}	&\textbf{Unit}	 &\textbf{Description}}\\		% Beschriftung Englisch
+		\midrule\endhead}													%
+	\renewcommand*{\glsgroupheading}[1]{}									% keine Beschriftung zw. Gruppen
+	\renewcommand*{\glossaryentryfield}[4]{									% Haupteintraege in einer Zeile:
+		\glstarget{##1}{##2}&{##4}		 & ##3\\}							% Symbol / Einheit / Beschreibung
+	\renewcommand*{\glsgroupskip}{	&		 &\\}							% nichts zw. Gruppen
+}
+%
+\newglossarystyle{symlongcol}{\renewenvironment{theglossary}{ 				% NEUER STIL ("symlongcol")
+	\begin{longtable}{@{}p{15mm}p{15mm}p{\dimexpr\linewidth-15mm-15mm-4 	% FUER VERZEICHNIS "subscripts"
+				 	 \tabcolsep\relax}@{}}}{\end{longtable}}				% mit der Ueberschrift "Indizes"
+	\renewcommand*{\glossaryheader}{										% basierend auf der Umgebung: longtable
+		\iflanguage{ngerman}{ 												%
+			\textbf{Zeichen}&	 			 &\textbf{Beschreibung}}{		% Beschriftung Deutsch
+			\textbf{Symbol}	&				 &\textbf{Description}}\\		% Beschriftung Englisch
+		\midrule\endhead}													%
+	\renewcommand*{\glsgroupheading}[1]{}									% keine Ueberschriften zwischen Gruppen
+	\renewcommand*{\glossaryentryfield}[4]{									% Haupteintraege in einer Zeile:
+		\glstarget{##1}{##2}& {##4}		& ##3\\}							% Symbol / Einheit / Beschreibung
+	\renewcommand*{\glsgroupskip}{}											% nichts zw. Gruppen
+}
+%
+\newglossarystyle{acrolongcol}{\renewenvironment{theglossary}{				% NEUER STIL ("acrolongcol") für
+	\begin{longtable}{@{}p{30mm}p{\dimexpr\linewidth-30mm-4 				% \acronymtype mit der
+					 \tabcolsep\relax}@{}}}{\end{longtable}}				% Ueberschrift "Abkürzungsverzeichnis"
+	\renewcommand*{\glossaryheader}{}										% Ohne Beschriftung
+	\renewcommand*{\glsgroupheading}[1]{}									% Ohne Gruppenueberschrift
+	\renewcommand*{\glossaryentryfield}[4]{									% Eintraege:
+		\glsentryitem{##1}\glstarget{##1}{##2}	&##3.\\}					% Kurzform / Langform
+																			% mit numberedlist: ##3. \hspace{2ex}(##5)
+	\renewcommand*{\glsgroupskip}{}
+}																% Glossar-Befehle anschalten
+%

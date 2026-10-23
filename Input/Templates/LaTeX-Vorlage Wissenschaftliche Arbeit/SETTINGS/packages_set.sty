@@ -1,0 +1,90 @@
+%--------------------------
+%			 L O A D I N G		P A C K A G E S
+%--------------------------
+%
+% usepackage loads all the packages used in this document.
+% read the comments if you want to know what the package does.
+% if you need more information you can look on ctan, namsu.de or google the name of the package.
+% feel free to add your own packages.
+
+\usepackage{ifthen}
+\usepackage{ae}               	% almost european, virtueller T1-Font
+\usepackage{array}          	% fuer aufwändigere Tabellen
+\usepackage{colortbl}       	% farbige Tabellen (v. D. Carlisle)
+\usepackage{longtable}      	% seitenübergreifende Tabellen
+\usepackage{tabu}			% Kombiniert longtable mit tabularx
+\usepackage{tabularx} 			% automatische Spaltenbreite
+			\renewcommand{\arraystretch}{1.3}
+\usepackage{color}    			% Farbiger/grauer Text
+\usepackage[utf8]{inputenc}
+\ifthenelse{\equal{ngerman}{\mylanguage}}{\usepackage[british,ngerman]{babel}}{\usepackage[ngerman,british]{babel}}
+%\usepackage{amsfonts}
+\usepackage{amsmath,amssymb}
+\usepackage[sc]{mathpazo}	% Palatino Schrift
+%\usepackage[T1]{fontenc}
+\renewcommand*\familydefault{\rmdefault}
+\usepackage[automark,markcase=ignoreuppercase,headsepline]{scrlayer-scrpage} % this package replaced scrpage2, which is outdated. (2020)
+\usepackage{pdfpages}
+\usepackage[T1,hyphens]{url} 	% much like \verb allow line breaks for paths and URLs
+\usepackage{calc}
+\usepackage[absolute]{textpos}
+\usepackage{lscape}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{tocbasic}
+\usepackage{paralist}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{rotating}
+\usepackage{mathtools}
+\usepackage{mdwlist}
+\usepackage{anysize}
+\usepackage{pslatex}
+\usepackage{wrapfig}
+\usepackage{scrhack}
+\usepackage{overpic}
+\usepackage{csquotes}
+\usepackage{xkeyval}
+\usepackage{xfor}
+\usepackage{amsgen}
+\usepackage{xfrac}
+\usepackage{caption}
+
+
+\usepackage[cmyk,dvipsnames]{xcolor}
+\allowdisplaybreaks[1]
+\usepackage{tikz}				% fuer Grafiken, Baeume und Graphen
+	\usetikzlibrary{decorations.pathmorphing}
+	\usetikzlibrary{shapes}
+	\usetikzlibrary{backgrounds}
+\usepackage{subfig}
+\newcommand{\MySetFigureCaption}{%
+	\iflanguage{ngerman}{Abb.}{}\iflanguage{british}{Fig.}{}%
+}
+\usepackage[format		= hang,	%
+ 			margin		= 10pt,	%
+ 			font		= small]%
+ 			{caption}			% captions (Bildunterschriften) formatieren
+	\captionsetup[figure]{		%
+	  		name 		= \MySetFigureCaption} %
+\usepackage{epstopdf} 			% Konvertiert eps zu pdf, wenn erkannt
+\usepackage{fixmath}  			%
+\usepackage{dcolumn}  			% Ausrichtung an Komma oder Punkt
+\usepackage{cancel}
+\usepackage[
+			   bottom,     		% Footnotes appear always on bottom. This is necessary
+			               		% especially when floats are used
+			   stable,      	% Make footnotes stable in section titles
+			   perpage,     	% Reset on each page
+			   %para,       	% Place footnotes side by side of in one paragraph.
+			   %side,       	% Place footnotes in the margin
+			   %ragged,      	% Use RaggedRight
+			   %norule,   	  	% suppress rule above footnotes
+			   multiple,  	  	% rearrange multiple footnotes intelligent in the text.
+			   %symbol,     	% use symbols instead of numbers
+			]{footmisc}
+\newcommand{\MyVariorefLanguage}{%
+	\iflanguage{ngerman}{ngerman}{}\iflanguage{british}{english}{}%
+}
+\usepackage[\MyVariorefLanguage]{varioref} 			% Intelligente Querverweise

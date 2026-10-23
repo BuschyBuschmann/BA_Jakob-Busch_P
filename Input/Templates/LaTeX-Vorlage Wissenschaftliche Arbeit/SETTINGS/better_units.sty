@@ -1,0 +1,26 @@
+\usepackage{siunitx}
+\usepackage{etoolbox}
+
+% Map language name to a number
+\def\langnum{0}
+\edef\langcheck{\mylanguage}
+\typeout{siunitx: Current language is '\langcheck'}
+
+\ifdefstring{\langcheck}{british}{\def\langnum{1}}{}
+\ifdefstring{\langcheck}{ngerman}{\def\langnum{2}}{}
+
+\ifcase\langnum
+  \PackageError{siunitx setup}{Unsupported language: \langcheck. Please use 'british' or 'ngerman'.}{}
+\or
+  \sisetup{locale = UK}
+\or
+  \sisetup{locale = DE}
+\fi
+
+\sisetup{
+  per-mode = symbol-or-fraction,
+  product-units=single,
+  bracket-unit-denominator = true,
+  scientific-notation=true,
+}
+

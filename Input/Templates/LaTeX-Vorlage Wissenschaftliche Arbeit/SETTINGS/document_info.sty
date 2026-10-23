@@ -1,0 +1,52 @@
+%#########################
+%   D O C U M E N T   I N F O
+%#########################
+
+% This file contains all the general information of this thesis, like title etc.
+% Add your personal information here editing the fields marked with XXX-?-XXX
+% It uses iflanguage to determine the thesis language and
+
+% Art der Arbeit (Studienarbeit, Dissertation, ...)
+\newcommand{\mythesistypede}{XXX-Bachelorarbeit-XXX}
+\newcommand{\mythesistypeen}{XXX-Bachelorthesis-XXX}
+\newcommand{\mythesisnumber}{XXX-BA2019-06-XXX} % BA / PA / MA + Year - Number
+\newcommand{\mythesistypeshort}{XXX-BA-XXX}
+
+% Titel der Arbeit:
+\newcommand{\mytitlede}{XXX-MEIN-TITEL-XXX}
+\newcommand{\mytitleen}{XXX-MY-TITLE-XXX}
+\newcommand{\mytitleshort}{XXX-Shorttitel-XXX}
+
+\newcommand{\mysurname}{XXX-SURNAME-XXX}
+\newcommand{\myname}{XXX-NAME-XXX}
+\newcommand{\myemail}{XXX-my.mail@rwth-aachen.de-XXX}
+\newcommand{\mymatrnr}{XXX-123456-XXX}
+\newcommand{\mydeadlineMonth}{XXX-Month-XXX}
+\newcommand{\mydeadlineYYYY}{XXX-YEAR-XXX}
+  % kann auch manuell auf das Abgabedatum gesetzt werden, dann statt \today einfach
+  % das Datum reinschreiben
+\newcommand{\myplace}{Aachen } % Ort, kann an der TU meist so bleiben
+\iflanguage{ngerman}{
+	\newcommand{\myuni}{RWTH \myplace University}
+	\newcommand{\mydepart}{Fakult\"at f\"ur Maschinenwesen} % Fakult�tsangabe
+	\newcommand{\myinstitute}{Institut f\"ur Strukturmechanik und Leichtbau (SLA)} % Angabe des Instituts
+        \newcommand{\phraseI}{Diese Arbeit wurde vorgelegt am}
+        \newcommand{\phraseII}{von}
+        \newcommand{\advisor}{Betreuer}
+}{
+	% und nochmal f�r Englisch
+	\newcommand{\myuni}{RWTH \myplace University}
+	\newcommand{\mydepart}{Faculty of Mechanical Engineering} % Fakult�tsangabe
+	\newcommand{\myinstitute}{Institute of Structural Mechanics and Lightweight Design} % Angabe des Instituts
+        \newcommand{\phraseI}{Thesis presented at the}
+        \newcommand{\phraseII}{by}
+        \newcommand{\advisor}{Advisor}        
+}
+\newcommand{\myinstituteshort}{SLA}
+
+\newcommand{\myprof}{Prof. Dr.-Ing. Kai-Uwe Schr\"oder}% Professor
+\newcommand{\myadvisorone}{XXX-ADVISOR-XXX}% Betreuer der Arbeit
+\newcommand{\myadvinstone}{SLA, RWTH Aachen}
+\newcommand{\myadvisortwo}{Titel und Name d. 2. Betreuers} % zweiter Betreuer, nur notwendig wenn es wie bei einer Studienarbeit keinen Pr�fer, aber zwei Betreuer gibt
+\newcommand{\myadvinsttwo}{Externe Institution}
+\newcommand{\mykeywords}{}

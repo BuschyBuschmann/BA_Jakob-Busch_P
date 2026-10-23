@@ -1,0 +1,25 @@
+%--------------------------
+% 			S E T T I N G		U P		B I B L A T E X
+%--------------------------
+%
+% This file contains the settings for your bibliography.
+%
+\usepackage[style= numeric,
+	    subentry,
+	    sorting = none,
+	    backend = biber]{biblatex}
+
+\renewcommand{\mkbibnamefamily}[1]{\textsc{#1}}
+\renewcommand{\bibname}{Bibliography}
+
+\DeclareFieldFormat{title}{#1\isdot}
+\DeclareFieldFormat{journaltitle}{#1\isdot}
+\DeclareFieldFormat{booktitle}{#1\isdot}
+\DeclareFieldFormat{issuetitle}{#1\isdot}
+\DeclareFieldFormat{maintitle}{#1\isdot}
+\DeclareFieldFormat{thesistitle}{#1\isdot}
+\DeclareFieldFormat[article]{title}{#1}
+\DeclareFieldFormat[inbook]{title}{#1}
+\DeclareFieldFormat[incollection]{title}{#1}
+\DeclareFieldFormat[patent]{title}{#1}
+\DeclareFieldFormat[thesis]{title}{#1}

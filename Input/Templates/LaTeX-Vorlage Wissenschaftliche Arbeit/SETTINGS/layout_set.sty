@@ -1,0 +1,62 @@
+%##########################
+% 			S E T T I N G S		P A G E L A Y O U T
+%##########################
+
+% this file defines the general pagelayout.
+
+%
+%--------------------------
+%			K E Y W O R D S
+%--------------------------
+% this creates a new environment for keywords.
+\newenvironment{keywords}{\begin{trivlist}\item[]{\bfseries \iflanguage{ngerman}{Schlagwörter:}{Keywords:}} }{\end{trivlist}}
+
+%
+%--------------------------
+%			L I N E S P R E A D		S P A C E 		Z E I L E N A B S T A N D
+%--------------------------
+% this sets the distance between two lines
+\linespread{1.05}
+
+
+%--------------------------
+% 				K O P F Z E I L E   UND   F U SS Z E I L E
+%--------------------------
+% scrlayer_scrpage package (replaced scrpage2)
+\clearpairofpagestyles
+\setkomafont{pageheadfoot}{\normalfont\normalcolor}
+\setkomafont{pagenumber}{\normalfont}
+\automark[section]{chapter}													% scrheadings mit Kapitel bzw. section und Seitenzahl oben
+\ofoot[]{}																	% scrplain ohne alles
+\KOMAoptions{headsepline=.4pt}
+\ohead[]{\normalfont\pagemark}
+\ihead[]{\normalfont\headmark}
+% Appendix Seitenlayout
+\defpagestyle{app}{{\headmark\hfill}{\headmark\hfill}{\headmark\hfill}}{ 	%
+				   {\pagemark\hfill}{\hfill\pagemark}{\hfill\pagemark\hfill}}
+%
+%--------------------------
+% 				S T I L   Ü B E R S C H R I F T E N
+%--------------------------
+\setkomafont{sectioning}{\rmfamily\bfseries}
+%
+%--------------------------
+% 				S T I L   U N T E R S C H R I F T E N
+%--------------------------
+\addtokomafont{caption}{\small\normalfont}
+%
+
+
+%--------------------------
+% 			O P T I O N S
+%--------------------------subsection-level
+%sectionlevel und subsectionlevel gibt es nicht mehr, die wurden mit scrpage2 abgeschafft.
+%was die vernünftige Nachfolge ist, habe ich nicht herausgefunden...
+% Hotfix: use numbers instead of sectionlevel
+\setcounter{tocdepth}{1}%{\sectionlevel}										% nur bis 1.1/1.2/... ins Inhaltsvz.
+\setcounter{secnumdepth}{2}%{\subsectionlevel}   								% Kapitel-Nummerierung nur bis 1.1.1/ 1.1.2/...
+\clubpenalty 					= 10000										% Schusterjungen und Hurenkinder verhindern.
+\widowpenalty 					= 10000										% Wen's interessiert:
+\displaywidowpenalty 			= 10000										% http://de.wikipedia.org/wiki/Hurenkind_und_Schusterjunge
+\interlinepenalty 				= 5000
+\relpenalty						= 5000
