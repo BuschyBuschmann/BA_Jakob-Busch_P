@@ -62,7 +62,7 @@ uv run pytest --cov --cov-fail-under=90
 - Erstellt werden sie vom `software-engineer` im Umsetzungspaket.
 
 ## Polytec-Konventionen
-Quelle: Analyseberichte I1 und I2 unter `in_progress/analysen/`.
+Quelle: Analyseberichte I1, I2, I5 und I5-F unter `in_progress/analysen/`.
 - „COM“ bezeichnet im Projekt das Component Object Model von Windows. Serielle Ports
   heißen „serielle Schnittstelle“.
 - Daten aus Polytec-Schnittstellen (COM, Polytec File Access, Exporte) werden an der
@@ -72,19 +72,33 @@ Quelle: Analyseberichte I1 und I2 unter `in_progress/analysen/`.
 - Punkt- und Collection-Indizes sind intern 0-basiert. Die Umrechnung von bzw. zu den
   1-basierten Polytec-Indizes erfolgt nur im Adapter; der Originalindex der Messpunkte
   wird mitgeführt.
-- Frequenzachse von Polytec-FFT-Daten: $f_k = k\,\Delta f$ mit $k = 1 \dots n_\mathrm{FFT}$
-  und $\Delta f = BW/n_\mathrm{FFT}$, DC nicht enthalten. **Vorläufig**, an einer realen
-  Messdatei zu bestätigen. Stütze: Matlab-Beispiel zu Polytec File Access
+- Frequenzachse von Polytec-FFT-Daten: **vorläufig** $f_k = k\,\Delta f$ mit
+  $\Delta f = BW/n_\mathrm{FFT}$ und $k = k_\mathrm{min} \dots k_\mathrm{max}$; im Vollbereich
+  $k = 1 \dots n_\mathrm{FFT}$, DC nicht enthalten. Bei eingeschränktem Bereich (Von/Bis)
+  enthält die Datei möglicherweise weniger Linien. Die Achse wird deshalb immer aus den
+  Achsdaten der Datei (`XAxis`) gebildet und gegen $k\,\Delta f$ geprüft. An einer realen
+  Messdatei zu bestätigen. Stützen: Matlab-Beispiel zu Polytec File Access
   (`Input/literatur/polytec/Schulungsunterlagen/11.2 Polytec-File-Access_Matlab.pdf`,
-  Folie 8: 400 Linien, 12,5 Hz bis 5000 Hz).
+  Folie 8), Software-Handbuch PSV 7-16/7-17.
+- Spektren von Polytec sind einseitig und amplitudentreu auf die Spitzenamplitude
+  (0-to-peak) skaliert. Real/Imag entsprechen $A\,e^{i\varphi_0}$ bei Zeitabhängigkeit
+  $e^{+i\omega t}$, also $A\cos(\omega t + \varphi_0)$. Eine Phase ist nur gültig, wenn die
+  Messung eine Referenz oder einen Trigger hatte; sonst kennzeichnet der Adapter sie als
+  ungültig.
 - Messpunkte führen im Code immer `index` (COM-Index, 1-basiert, nur im Adapter) und
   `label` getrennt. Was die PSV-Oberfläche „Index“ nennt, heißt im Code `label`.
 - Messdateien (Rohdaten) werden mit Polytec File Access nur schreibgeschützt geöffnet;
   geschrieben wird ausschließlich in Kopien.
 - Service- und Kalibriermethoden des Scankopfs (z. B. `ScanHeadControl.Write…`) werden
   nie aufgerufen. Der Adapter kapselt nur ausdrücklich freigegebene Methoden.
-- Vorzeichen: positive Geschwindigkeit bedeutet Bewegung in Richtung Scankopf;
-  3D-Komponenten liegen im Objektkoordinatensystem des 3D-Abgleichs.
+- Vorzeichen: Bei Kanälen je Scankopf (1D) bedeutet positive Geschwindigkeit Bewegung
+  in Richtung Scankopf. Bei den 3D-Komponenten X/Y/Z bedeutet positiv Bewegung entlang
+  der jeweiligen Achse des Koordinatensystems aus dem 3D-Abgleich (vorläufig, am Gerät
+  zu bestätigen).
+- Jeder COM-Zugriff, auch in Hilfsskripten, läuft über einen Whitelist-Proxy
+  (Default deny): Nur ausdrücklich freigegebene Objekte, Methoden und Properties werden
+  weitergereicht. Hilfswerkzeuge liegen unter `software/tools/` und importieren nicht
+  aus dem Hauptpaket.
 
 ## Thesis-Formalien
 Quelle: SLA-LaTeX-Vorlage unter `Input/Templates/LaTeX-Vorlage Wissenschaftliche Arbeit/`
