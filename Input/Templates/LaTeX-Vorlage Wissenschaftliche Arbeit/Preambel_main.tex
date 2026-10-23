@@ -1,0 +1,254 @@
+%#########################
+%			M A I N		D O C U M E N T
+%#########################
+%
+% Here is where everything starts.
+% Please read the README.md for general information on how this document works, folder-structer etc.
+%
+% Content of this file:
+% Header:
+% - SETTING UP DOCUMENT
+% - IMPORTING DOCUMENT-INFO
+% - SETTINGS
+% 		- LOADING PACKAGES
+% 		- SETTING UP PAGELAYOUT
+% 		- SETTING UP GLOSSARY
+% 		- SETTING UP BIBLATEX
+% 		- PDF SETTINGS
+% 		- SETUP GLOSSARY AND BIBLIOGRAPHY
+% Body:
+% - Content of the document
+%
+% via \usepackage{package name} settings are loaded! You only add your info in the document_info.sty file.
+% If you want to include another chapter, appendix, etc. add it with \include{} to the body, next to the others.
+%
+%#########################
+%			H E A D E R
+%#########################
+%
+%--------------------------
+%			S E T T I N G		UP		D O C U M E N T
+%--------------------------
+% this defines the general information of this document.
+% look at this webside for all the options: https://texblog.org/2013/02/13/latex-documentclass-options-illustrated/
+\documentclass[a4paper,		% Size of paper
+               12pt,    	% Size of the text (fontsize)
+               titlepage,       % Has titlepage
+               twoside,	% Document is book styled
+               DIV = 14,
+               BCOR = 6mm,
+               parskip = half,
+               numbers = noenddot,
+               headings	= small,
+               headsepline = .4pt,
+               cleardoublepage = empty]
+               {scrbook} %scrbook is the type of document defined by KOMA
+\newcommand{\mylanguage}{british}	%british or ngerman
+%
+%
+%
+%#########################
+%			S E T T I N G S
+%#########################
+%
+% You should not need to change the following files in the header.
+%
+%--------------------------
+%			L O A D I N G		P A C K A G E S
+%--------------------------
+% this opens the packages.sty file which loads all the needed packages.
+\usepackage{SETTINGS/packages_set}
+\usepackage{SETTINGS/better_symbols}
+\usepackage{SETTINGS/better_units}
+%
+%
+%--------------------------
+%			S E L E C T   L A N G U A G E   F O R   T I T E L P A G E
+%--------------------------
+% use "british" or "ngerman" 
+\selectlanguage{\mylanguage}
+% --------------------------
+%		I M P O R T I N G		D O C U M E N T - I N F O
+%--------------------------
+% this loads all the general info on your document, like title etc.
+% change this in the document_info.sty file.
+% also add your own commands in there.
+%
+\usepackage{SETTINGS/document_info}
+% --------------------------
+%			S E T T I N G		P A G E L A Y O U T
+%--------------------------
+% this loads the pagelayout from layout.tex
+\usepackage{SETTINGS/layout_set}
+%
+%--------------------------
+%			S E T T I N G		U P		G L O S S A R I E S
+%--------------------------
+% this loads glossary.sty file and setups the glossary-style.
+% Two glossaries will be created, one with latin and one with greek chars.
+%
+\usepackage{SETTINGS/glossary_set}
+%
+% TO ADD SOMETHING TO THE GLOSSARY USE Input_glossaries.tex FILE!
+%
+%
+%--------------------------
+% 			S E T T I N G		U P		B I B L A T E X
+%--------------------------
+%
+% this loads all the settings for your bilbiography.
+%
+\usepackage{SETTINGS/biblatex_set}
+%
+%%--------------------------
+% 			P D F   S E T T I N G S		H Y P E R R E F
+%--------------------------
+% this sets up the settings for the pdf, like filename.
+% note: filename etc. are created from your settings in document_info.sty
+%
+% IMPORTANT: SET THE DRAFT SETTING TO TRUE FOR THE PRINT VERSION!
+%
+\usepackage{SETTINGS/pdf_set}
+%
+%
+%--------------------------
+% 			I N I T I A L I S I E R U N G			M A K E I N D E X
+%--------------------------
+%
+\usepackage{makeidx}
+\usepackage{float}
+% Here I still do not fully understand why those are included here and cannot be
+% included earlier...
+% Kompatibilitaetsgruenden ganz zum Schluss einbinden
+
+%
+%--------------------------
+% 			L O A D		G L O S S A R Y		/		 B I B L I O G R A P H Y
+%--------------------------
+\makeglossaries
+\loadglsentries{BIB_AND_GLOSSARY/Input_glossaries} % *.tex filename of your glossaries.
+% Standardmaessig werden im Glossar nur die Symbole angezeigt welche im Text mit \gls[}
+% aufgerufen werden. Um alle definierten Eintraege anzuzeigen kann das \glsaddall Befehl
+% verwendet werden:
+% \glsaddall[types={notation,subscripts}]
+\bibliography{BIB_AND_GLOSSARY/Biblio}	% *.bib filename of your literature.
+%
+%
+%
+% 
+%
+%
+%
+%
+%
+%
+%
+%##########################
+%		B O D Y
+%##########################
+% The following contains the body of this document. With other words the content.
+% This is where you actually start working. Add, change, remove chapters here.
+% All your text is added with the \include{}.
+% CHAPTERS_REST contains all the not so important files, like titlepage or summary.
+% CHAPTERS_CONTENT is where you can put your chapters.
+%
+% Starts the body of the document
+\begin{document}
+% Defines footnotes
+\deffootnote[1.5em]{1.5em}{1em}{\textsuperscript{\thefootnotemark}}
+%
+%--------------------------
+% 			T I T L E P A G E
+%--------------------------
+% creates your titlepage
+% Frontmatter activates roman pagenumbers. Pagestyle empty
+\frontmatter
+\pagestyle{empty}															% keine Kopf/Fusszeile, keine Seitenzahlen
+\include{CHAPTERS_REST/01_titlepage}			\cleardoublepage
+% Alternatively there seems to be an PDF file (by  Matsen) containing a spacial titlepage.
+% You can add it with this command:
+%\includepdf{titelseite.pdf}	\cleardoublepage
+%
+%--------------------------
+% 			S U B J E C T			D E C L A R A T I O N   O N   T H E   U S E   O F   A I - B A S E D   T O O L S 
+%--------------------------
+%
+% It has to be in german.
+\pagestyle{empty}	% keine Kopf/Fusszeile, keine Seitenzahlen
+\selectlanguage{ngerman}												% Erzwungen: Deutsch fuer Eigenstaendigkeitserklaerung
+\include{CHAPTERS_REST/03_integrity}	\cleardoublepage							% Eigenstaendigkeitserklaerung
+%
+%--------------------------
+% 			PREFACE + ABSTRACT
+%--------------------------
+\pagestyle{scrheadings} % Koma-script Kopf-/Fusszeile , Definition s.o.
+%\pagenumbering{roman}														% Seitennummerierung in kleinen roemischen Zahlen
+\begin{otherlanguage}{ngerman}
+	\include{CHAPTERS_REST/04_abstract_de} 	\cleardoublepage
+\end{otherlanguage}
+\begin{otherlanguage}{british}
+	\include{CHAPTERS_REST/05_abstract} \cleardoublepage
+\end{otherlanguage}
+% Falls ein Vorwort verwendet wird, entkommentiert die folgende Zeile
+% \include{CHAPTERS_REST/06_preface} \cleardoublepage
+%
+%--------------------------
+%			S E L E C T   L A N G U A G E   F O R   L I S T I N G S
+%--------------------------
+% use "british" or "ngerman" 
+\selectlanguage{\mylanguage}
+% --------------------------
+% 			LISTINGS
+%    --------------------------
+\tableofcontents \cleardoublepage
+%	\listoffigures 				\cleardoublepage  % Wollte der Chef streichen
+%	\listoftables				\cleardoublepage  % Wollte der Chef streichen
+\printglossary[	type = \acronymtype,
+		style = acrolongcol,
+		title = Abkürzungsverzeichnis,
+		nonumberlist] \cleardoublepage
+\printglossary[	type = notation,
+		style = symlongcolgrskip,
+		nonumberlist] \clearpage
+\printglossary[	type = subscripts,
+        	style = symlongcol,
+		nonumberlist] \cleardoublepage
+%
+%
+%--------------------------
+% 			CONTENT
+%--------------------------
+\mainmatter
+\pagestyle{scrheadings}	% Koma-script Kopf-/Fusszeile , Definition s.o.
+% Here you add chapters. Those are in the directory CHAPTERS_CONTENT.
+% Numbers are only for sorting purpose in the directory.
+\include{CHAPTERS_CONTENT/01_introduction}		\cleardoublepage
+\include{CHAPTERS_CONTENT/02_stateofart}		\cleardoublepage
+\include{CHAPTERS_CONTENT/03_theory}			\cleardoublepage
+\include{CHAPTERS_CONTENT/04_execution}		\cleardoublepage
+\include{CHAPTERS_CONTENT/05_implementation}	\cleardoublepage
+\include{CHAPTERS_CONTENT/06_conclusion} 	\cleardoublepage
+%
+%--------------------------
+% 			BIBLIOGRAPHY
+%--------------------------
+\addcontentsline{toc}{chapter}{Bibliography}% add literature to  table of contents.
+\nocite{*} % Alle Literatureintraege ins Vz. aufnehmen
+% BITTE AUSKOMMENTIEREN FUER DIE ARBEIT
+% NUR ZU ANSCHAUUNGSZWECKEN IN DEM BEISPIEL
+\printbibliography \cleardoublepage
+%
+%--------------------------
+% 			APPENDIX
+%--------------------------
+\appendix
+\pagestyle{scrheadings}	% Koma-script Kopf-/Fusszeile , Definition s.o.
+\include{APPENDIX/appendix_content} \cleardoublepage
+\include{APPENDIX/appendix} \cleardoublepage
+%	\include{APPENDIX/appendix_matlab}			\cleardoublepage
+%
+\end{document}
+%
+%
+%
+%% end of file, you have done it!

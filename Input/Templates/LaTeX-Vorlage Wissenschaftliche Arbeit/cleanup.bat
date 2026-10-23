@@ -1,0 +1,19 @@
+@echo off
+del /f /q *.acn 2>nul
+del /f /q *.acr 2>nul
+del /f /q *.alg 2>nul
+del /f /q *.aux 2>nul
+del /f /q *.bbl 2>nul
+del /f /q *.bcf 2>nul
+del /f /q *.blg 2>nul
+del /f /q *.ist 2>nul
+del /f /q *.log 2>nul
+del /f /q *.out 2>nul
+del /f /q *.xml 2>nul
+del /f /q *.slg1 2>nul
+del /f /q *.slg2 2>nul
+del /f /q *.syg1 2>nul
+del /f /q *.syg2 2>nul
+del /f /q *.syi1 2>nul
+del /f /q *.syi2 2>nul
+del /f /q *.toc  2>nul
