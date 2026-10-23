@@ -118,11 +118,12 @@ class FakeNode:
         self._props[name] = value
 
 
-def _collection(world: World, kind: str, items: list[FakeNode]) -> FakeNode:
+def _collection(world: World, kind: str, items: list[FakeNode], base: int = 1) -> FakeNode:
     def item(index: int) -> FakeNode:
-        if not isinstance(index, int) or index < 1 or index > len(items):
+        pos = index - base
+        if not isinstance(index, int) or pos < 0 or pos >= len(items):
             raise FakeComError(f"Index {index} ungültig")
-        return items[index - 1]
+        return items[pos]
 
     return FakeNode(kind, world, {"Count": len(items)}, {"Item": item})
 
@@ -174,10 +175,28 @@ def build_psv(
         ],
     )
     align2d = _collection(world, "Alignments2D", [FakeNode("Alignment2D", world, {"Valid": True})])
+    head_info = FakeNode(
+        "SensorHeadInfo",
+        world,
+        {
+            "Name": "OFV-505",
+            "SerialNumber": "SH1",
+            "FirmwareVersion": "2.0",
+            "LaserWavelength": 6.328e-7,
+            "LaserPower": 1.0,
+        },
+    )
+    sensor_heads = _collection(
+        world, "SensorHeads", [FakeNode("SensorHead", world, {"SensorHeadInfo": head_info})], 0
+    )
+    controllers = _collection(
+        world, "Controllers", [FakeNode("Controller", world, {"SensorHeads": sensor_heads})], 0
+    )
     controller = FakeNode(
         "ControllerGroup",
         world,
         {
+            "Controllers": controllers,
             "ControllerInfo": FakeNode(
                 "ControllerInfo",
                 world,
@@ -187,7 +206,7 @@ def build_psv(
                     "Name": "Ctrl",
                     "SerialNumber": "SN1",
                 },
-            )
+            ),
         },
     )
     hardware = FakeNode(

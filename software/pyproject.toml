@@ -43,6 +43,8 @@ convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D"]  # Tests dokumentieren sich über ihre Namen
+# Der Python-Versions-Check steht bewusst vor den übrigen Imports (klarer Hinweis statt Absturz).
+"tools/erkundung/erkundung.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.11"

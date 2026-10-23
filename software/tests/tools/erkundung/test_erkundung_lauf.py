@@ -107,7 +107,8 @@ def test_k8_echte_umgebung_unter_linux_liefert_saubere_hinweise(tmp_path: Path) 
     assert st["P1-2-registry"] == "uebersprungen"
     assert st["P1-4-typelibs-com"] == "uebersprungen"
     assert st["P1-5-verbinden"] == "uebersprungen"
-    assert "pywin32" in entry(report, "P1-5-verbinden")["hinweis"]
+    assert "Sperre" in entry(report, "P1-5-verbinden")["hinweis"]
+    assert "pywin32" in entry(report, "P1-4-typelibs-com")["hinweis"]
     # Alle übrigen Stufe-1-Punkte werden mangels Verbindung übersprungen, nichts stürzt ab.
     assert all(v in ("ok", "uebersprungen") for v in st.values())
 
@@ -347,6 +348,7 @@ def test_verweigerter_zugriff_ist_befund_und_exit_code_1(
         erkundung,
         "build_steps",
         lambda stufe, with_file: [
+            erkundung.Step("P1-5-prozess", "0", "p", "x", erkundung._step_prozess),
             erkundung.Step("P1-5-verbinden", "1", "v", "x", erkundung._step_verbinden),
             erkundung.Step("X-bad", "1", "bad", "x", bad_step),
         ],
@@ -430,8 +432,8 @@ def test_k7_stufe1b_liest_nur_und_laesst_datei_unveraendert(tmp_path: Path) -> N
     assert derived["delta_f_aus_achse_hz"] == pytest.approx(1.25, rel=1e-12)
     assert derived["mid0_durch_delta_f"] == pytest.approx(1.0, rel=1e-12)
     assert derived["datenlaenge_durch_maxcount"] == pytest.approx(2.0, rel=1e-12)
-    assert derived["rel_abw_delta_f_zu_SampleResolution"] == pytest.approx(0.0, abs=1e-12)
-    assert derived["Bandwidth_durch_Lines_hz"] == pytest.approx(1.25, rel=1e-12)
+    assert derived["rel_abw_delta_f_zu_SampleResolution_LIVE_PSV"] == pytest.approx(0.0, abs=1e-12)
+    assert derived["Bandwidth_durch_Lines_hz_LIVE_PSV"] == pytest.approx(1.25, rel=1e-12)
     struktur = entry(report, "P1-10-struktur")["werte"]
     assert [d.get("gewaehlt_fuer_daten") for d in struktur["domaenen"]] == [None, True]
     assert [k["Name"] for k in struktur["kanaele"]] == [
@@ -451,7 +453,7 @@ def test_stufe1b_ohne_psv_laeuft_trotzdem(tmp_path: Path) -> None:
     assert st["P1-10-oeffnen"] == "ok"
     assert st["P1-10-schliessen"] == "ok"
     derived = entry(report, "P1-10-daten")["werte"]["abgeleitet"]
-    assert "rel_abw_delta_f_zu_SampleResolution" not in derived  # keine Stufe-1-Werte
+    assert "rel_abw_delta_f_zu_SampleResolution_LIVE_PSV" not in derived  # keine Stufe-1-Werte
 
 
 def test_stufe1b_sharing_violation_wird_klar_gemeldet(tmp_path: Path) -> None:

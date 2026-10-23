@@ -139,6 +139,8 @@ def test_get_application_start_nur_mit_freigabe() -> None:
         ("PointDomain", "GetXAxis", (1,)),
         ("DataPoint", "GetData", (1, 0)),
         ("XAxis", "GetMidX", (-1,)),
+        ("Controllers", "Item", (-1,)),
+        ("SensorHeads", "Item", (True,)),
     ],
 )
 def test_argumentpruefung_verweigert_unzulaessige_aufrufe(
@@ -169,6 +171,11 @@ def test_display_argument_wird_entpackt_und_nur_display_akzeptiert() -> None:
     with pytest.raises(PermissionError):
         domain.DataPoints.Item(1).GetData(display, -1)
     assert domain.GetXAxis(display).GetMidX(0) == pytest.approx(1.25, rel=1e-12)
+
+
+def test_nullbasierte_collections_erlauben_index_null() -> None:
+    node = FakeNode("Controllers", World(), {}, {"Item": lambda i: None})
+    assert _proxy(node, "Controllers").Item(0) is None
 
 
 def test_readonly_nur_true_erlaubt() -> None:

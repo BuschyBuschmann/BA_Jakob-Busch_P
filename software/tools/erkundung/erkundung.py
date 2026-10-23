@@ -22,6 +22,9 @@ Stufen (jede höhere Stufe führt die niedrigeren mit aus)
 
 Sicherheitsprinzip
 ------------------
+Stufe 1 legt ``PSV.AcquisitionInstance`` nur an, wenn Stufe 0 einen laufenden PSV-Prozess
+gefunden hat (oder ``--start-psv`` bestätigt wurde): COM könnte beim Anlegen einer als
+Server registrierten EXE diese sonst selbst starten.
 Jeder COM-Zugriff läuft über :class:`WhitelistProxy` (Default deny): Nur Mitglieder, die in
 :data:`POLICY` stehen, werden weitergereicht. Alles andere löst ``PermissionError`` aus und
 landet im Bericht unter ``verweigert``. :data:`BLACKLIST` ist nur ein Testkatalog.
@@ -39,20 +42,41 @@ Ein neuer Ordner ``erkundung_<Rechnername>_<JJJJ-MM-TT_HHMMSS>`` (nie überschri
 ``bericht.json`` (Schema siehe README.md), ``zusammenfassung.md``, ``konsole.log``,
 ``registry.reg.txt`` und ``typelibs.txt``. Keine Messdaten, keine Binärdaten.
 
-Voraussetzung: Python 3.11 (Projektvorgabe; ältere Versionen sind nicht geprüft).
+Voraussetzung: Python 3.11 (Projektvorgabe). Ältere Versionen werden gleich zu Beginn mit einem
+Hinweis abgewiesen (Syntax bewusst so gehalten, dass die Datei bis dahin parsebar ist).
 Das Skript hängt nicht vom Hauptpaket ab und lässt sich als Einzeldatei kopieren.
 Nur die Adapterfunktionen am Ende importieren ``winreg``, ``ctypes`` und ``win32com``.
 
-Exit-Codes: 0 normal, 1 Zugriff verweigert (Befund zur Whitelist), 2 Aufruffehler,
-3 blockiert (Teilbericht geschrieben), 130 Abbruch mit Strg+C.
+Exit-Codes: 0 normal, 1 Zugriff verweigert (Befund zur Whitelist), 2 Aufruffehler oder
+Python zu alt, 3 blockiert (Teilbericht geschrieben), 4 interner Fehler außerhalb eines
+Prüfpunkts (z. B. Schreibfehler; Teilbericht soweit möglich), 130 Abbruch mit Strg+C.
 """
 
 from __future__ import annotations
+
+import sys
+
+MIN_PYTHON = (3, 11)
+
+
+def _require_python(version_info: tuple[int, ...] = tuple(sys.version_info[:3])) -> None:
+    """Bricht vor jeder Ausgabe mit klarem Hinweis ab, wenn Python zu alt ist."""
+    if tuple(version_info[:2]) < MIN_PYTHON:
+        sys.stderr.write(
+            "erkundung.py braucht Python 3.11 oder neuer (gefunden: "
+            + ".".join(str(v) for v in version_info[:3])
+            + "). Es wurde nichts angelegt und nichts gelesen.\n"
+        )
+        raise SystemExit(2)
+
+
+_require_python()
 
 import argparse
 import contextlib
 import csv
 import datetime as dt
+import gc
 import hashlib
 import importlib
 import importlib.metadata
@@ -79,6 +103,7 @@ SCHEMA_VERSION = 1
 EXIT_OK = 0
 EXIT_DENIED = 1
 EXIT_BLOCKED = 3
+EXIT_ERROR = 4
 EXIT_INTERRUPTED = 130
 
 DEFAULT_TIMEOUT_S = 60.0  # Annahme des Umsetzers: Plan nennt nur "Parameter", keinen Wert.
@@ -87,6 +112,10 @@ DEFAULT_MAX_VALUES = 6  # Datenwerte aus GetData (Plan: "die ersten wenigen")
 START_TIMEOUT_MS = 30000  # GetApplication(True, ...) nur mit --start-psv; Wert aus I5 10 (P1-5)
 MAX_DIR_ENTRIES = 200
 MAX_VIBROMETERS = 4
+MAX_CONTROLLERS = 3
+MAX_SENSORHEADS = 2
+WRITE_RETRIES = 5
+WRITE_RETRY_WAIT_S = 0.05
 MAX_ALIGNMENTS = 3
 MAX_DOMAINS = 6
 MAX_CHANNELS = 8
@@ -301,6 +330,10 @@ def _item(kind: str) -> Member:
     return Member("call", kind, _chk_index)
 
 
+def _item0(kind: str) -> Member:
+    return Member("call", kind, _chk_nonneg_int)
+
+
 # Namen aus [BEM]; Zuordnung und Belege siehe Plan E1, Abschnitt 2.
 # fmt: off
 APP_PROPS = (
@@ -345,6 +378,7 @@ INFOS_HAS = (
 )
 # fmt: on
 SCANHEAD_PROPS = ("ScanHeadName", "ScanHeadType")
+SENSORHEAD_PROPS = ("Name", "SerialNumber", "FirmwareVersion", "LaserWavelength", "LaserPower")
 CONTROLLER_PROPS = ("DeviceName", "FirmwareVersion", "Name", "SerialNumber")
 MEASPOINT_PROPS = ("Index", "Label", "ScanStatus", "AverageCount", "Sigma")
 ALIGN3D_PROPS = (
@@ -399,8 +433,18 @@ POLICY: dict[str, dict[str, Member]] = {
     "Hardware": _values(*HARDWARE_PROPS),
     "ScanHeadDevicesInfo": _values(*SCANHEAD_PROPS),
     "Vibrometers": {"Count": Member("get"), "Item": _item("ControllerGroup")},
-    "ControllerGroup": {"ControllerInfo": _obj("ControllerInfo")},
+    "ControllerGroup": {
+        "ControllerInfo": _obj("ControllerInfo"),
+        "Controllers": _obj("Controllers"),
+    },
     "ControllerInfo": _values(*CONTROLLER_PROPS),
+    # [BEM] "Access to General Information": Vibrometers(1).Controllers(0).SensorHeads(0);
+    # Controllers und SensorHeads sind 0-basiert (Vibrometers 1-basiert).
+    "Controllers": {"Count": Member("get"), "Item": _item0("Controller")},
+    "Controller": {"SensorHeads": _obj("SensorHeads")},
+    "SensorHeads": {"Count": Member("get"), "Item": _item0("SensorHead")},
+    "SensorHead": {"SensorHeadInfo": _obj("SensorHeadInfo")},
+    "SensorHeadInfo": _values(*SENSORHEAD_PROPS),
     "MeasPoints": {
         "Count": Member("get"),
         "Item": _item("MeasPoint"),
@@ -554,7 +598,14 @@ BLACKLIST: tuple[tuple[str, str, str, Any], ...] = (
     ("DigitalPort", "Value", "set", 1),
     *_call_members("DigitalPort", "Pulse"),
     *_call_members("Alignment3D", "Calculate", "Invalidate"),
-    *_call_members("ScanHeadControl", "WriteParameter", "WriteCalibration"),
+    *_call_members(
+        "ScanHeadControl",
+        "WriteFocusDataFactorySettings",
+        "WriteFocusDataFocalLength",
+        "WriteFocusDataInfinitePos",
+        "WriteLaserIntensityData",
+        "WriteMirrorAdjustmentData",
+    ),
     ("Waveform", "Amplitude", "set", 1.0),
 )
 
@@ -718,33 +769,71 @@ def to_jsonable(value: Any) -> Any:
     return repr(value)
 
 
+def _snapshot(value: Any, attempts: int = 5) -> Any:
+    """Kopiert Daten, die ein anderer Thread gerade beschreiben kann (Wiederholung bei Race)."""
+    for _ in range(attempts):
+        try:
+            return to_jsonable(value)
+        except RuntimeError:  # z. B. "dictionary changed size during iteration"
+            time.sleep(0.01)
+    return {"hinweis": "Werte wegen gleichzeitigen Schreibens nicht lesbar"}
+
+
 class Redactor:
     """Entfernt den Benutzernamen aus Texten (Rechnername bleibt im Klartext).
 
     Parameters
     ----------
     username
-        Zu entfernender Benutzername.
+        Zu entfernender Anmeldename.
     active
         ``False`` bei ``--keep-user``.
     protected
         Texte, die unverändert bleiben müssen (z. B. der Rechnername).
+    profile_dirs
+        Tatsächliche Profilpfade (z. B. ``USERPROFILE``); ihr Ordnername wird wie der
+        Anmeldename behandelt, weil er davon abweichen kann (Domänenkonten, ``jbusch.RWTH``).
 
     Notes
     -----
-    Der Name wird in Pfaden unterhalb von ``Users`` immer ersetzt, als freies Wort nur bei
-    mindestens vier Zeichen (kürzere Namen würden zu viele Treffer erzeugen).
+    Ersetzt werden (1) jedes Pfadsegment direkt unter ``Users`` außer den Systemprofilen
+    (``Public``, ``Default``, ``All Users``), das deckt auch 8.3-Kurznamen wie ``JAKOBB~1``
+    ab, (2) Anmeldename und Profilordnername als freies Wort ab vier Zeichen, in
+    ``Users``-Pfaden auch kürzere. Profilnamen mit Leerzeichen werden nur über
+    ``profile_dirs`` erkannt.
     """
 
-    def __init__(self, username: str, active: bool, protected: Sequence[str] = ()) -> None:
-        self.active = active and bool(username)
+    _SYSTEM_PROFILES = r"(?:Public|Default(?: User)?|All Users)"
+
+    def __init__(
+        self,
+        username: str,
+        active: bool,
+        protected: Sequence[str] = (),
+        profile_dirs: Sequence[str] = (),
+    ) -> None:
+        names = {username} if username else set()
+        for profile in profile_dirs:
+            last = re.split(r"[\\/]", profile.rstrip("\\/"))[-1]
+            if last:
+                names.add(last)
+        self.active = active and bool(names)
         self._protected = [p for p in protected if p]
         self._patterns: list[re.Pattern[str]] = []
         if self.active:
-            name = re.escape(username)
-            self._patterns.append(re.compile(rf"(?i)(?<=[\\/]Users[\\/]){name}(?![A-Za-z0-9_])"))
-            if len(username) >= 4:
-                self._patterns.append(re.compile(rf"(?i)(?<![A-Za-z0-9_]){name}(?![A-Za-z0-9_])"))
+            for name in sorted(names, key=len, reverse=True):
+                esc = re.escape(name)
+                self._patterns.append(re.compile(rf"(?i)(?<=[\\/]Users[\\/]){esc}[^\\/\s\"',;:)]*"))
+                if len(name) >= 4:
+                    self._patterns.append(
+                        re.compile(rf"(?i)(?<![A-Za-z0-9_]){esc}(?![A-Za-z0-9_])")
+                    )
+            self._patterns.append(
+                re.compile(
+                    rf"(?i)(?<=[\\/]Users[\\/])(?!{self._SYSTEM_PROFILES}(?![^\\/\s\"',;:)]))"
+                    r"(?!<user>)[^\\/\s\"',;:)]+"
+                )
+            )
 
     def text(self, value: str) -> str:
         """Ersetzt den Benutzernamen in einem Text durch ``<user>``."""
@@ -932,6 +1021,7 @@ class Env:
     hostname: str
     username: str
     system: str
+    profile_dirs: tuple[str, ...] = ()
     extras: dict[str, Any] = field(default_factory=dict)
 
 
@@ -1102,6 +1192,9 @@ def build_env() -> Env:
         hostname=platform.node(),
         username=getpass.getuser(),
         system=platform.system(),
+        profile_dirs=tuple(
+            dict.fromkeys(p for p in (os.environ.get("USERPROFILE"), str(Path.home())) if p)
+        ),
     )
 
 
@@ -1183,12 +1276,14 @@ class StepContext:
             raise PermissionError(f"verweigert (Default deny): Dispatch({progid!r})")
         start = time.perf_counter()
         error: str | None = None
+        ctx.pending = {"pfad": f"Dispatch.{progid}", "op": "dispatch", "argumente": []}
         try:
             obj = self.com(self.env.dispatch, progid)
         except Exception as exc:
             error = _short_error(exc)
             raise
         finally:
+            ctx.pending = None
             ctx.record_call("Dispatch", progid, "dispatch", (), time.perf_counter() - start, error)
         return WhitelistProxy(obj, kind, ctx)
 
@@ -1266,6 +1361,8 @@ class Runner:
         self.current: _Running | None = None
         self.blocked = False
         self.exit_code = EXIT_OK
+        self.worker_error: Exception | None = None
+        self._completed = False
         self._lock = threading.RLock()
         self._console_lines: list[str] = []
 
@@ -1283,8 +1380,17 @@ class Runner:
         """Einzige Schreibstelle: schreibt atomar in eine Datei des Ausgabeordners."""
         target = self.out_dir / name
         temp = self.out_dir / (name + ".tmp")
-        temp.write_text(text, encoding="utf-8", newline="\n")
-        os.replace(temp, target)
+        for attempt in range(WRITE_RETRIES):
+            try:
+                temp.write_text(text, encoding="utf-8", newline="\n")
+                os.replace(temp, target)
+            except OSError:
+                # z. B. kurzzeitig gesperrt durch einen Virenscanner (WinError 5/32)
+                if attempt == WRITE_RETRIES - 1:
+                    raise
+                time.sleep(WRITE_RETRY_WAIT_S)
+            else:
+                return
 
     def flush(self) -> None:
         """Schreibt bericht.json, zusammenfassung.md und die Rohdateien."""
@@ -1329,7 +1435,10 @@ class Runner:
         cx = StepContext(self, step)
         started = self.env.monotonic()
         self.proxy_ctx.current_step = step.id
-        self.current = _Running(step, started, cx)
+        with self._lock:
+            if self.blocked:
+                return
+            self.current = _Running(step, started, cx)
         status = "ok"
         try:
             step.func(cx)
@@ -1353,8 +1462,16 @@ class Runner:
             for step in steps:
                 if self.blocked:
                     return
-                self.execute(step)
+                try:
+                    self.execute(step)
+                except Exception as exc:  # Fehler außerhalb von step.func (z. B. Schreiben)
+                    self.worker_error = exc
+                    return
+            self._completed = True
         finally:
+            # COM-Referenzen im Apartment des Workers freigeben, bevor es endet.
+            self.state.clear()
+            gc.collect()
             try:
                 self.env.thread_done()
             except Exception as exc:
@@ -1380,11 +1497,20 @@ class Runner:
                     }
                 )
 
-    def _stop_run(self, steps: Sequence[Step], run_status: str, hint: str, code: int) -> None:
+    def _stop_run(
+        self,
+        steps: Sequence[Step],
+        run_status: str,
+        hint: str,
+        code: int,
+        expected: _Running | None = None,
+    ) -> bool:
         with self._lock:
+            running = self.current
+            if expected is not None and running is not expected:
+                return False  # der Prüfpunkt hat inzwischen gewechselt: kein falscher Alarm
             self.blocked = True
             self.exit_code = code
-            running = self.current
             self.data["lauf"] = {"status": run_status, "hinweis": hint}
             if running is not None:
                 pending = self.proxy_ctx.pending
@@ -1397,17 +1523,44 @@ class Runner:
                         "status": "blockiert",
                         "kernwert": "",
                         "hinweis": hint,
-                        "werte": running.cx.w,
-                        "auffaelligkeiten": running.cx.sub_errors,
+                        "werte": _snapshot(running.cx.w),
+                        "auffaelligkeiten": list(running.cx.sub_errors),
                         "dauer_s": round(self.env.monotonic() - running.started, 4),
                         "exception": None,
                         "letzter_aufruf": pending,
                     }
                 )
             self._mark_remaining(steps, f"Lauf beendet: {run_status}")
-        self.say(f"!!! {run_status}: {hint}")
-        self.flush()
-        self.env.hard_exit(code)
+        try:
+            self.say(f"!!! {run_status}: {hint}")
+            self.flush()
+        except Exception as exc:
+            sys.stderr.write(f"Teilbericht konnte nicht geschrieben werden: {_short_error(exc)}\n")
+        finally:
+            self.env.hard_exit(code)
+        return True
+
+    def _fail_run(self, steps: Sequence[Step]) -> None:
+        """Der Worker ist ohne regulären Abschluss beendet (z. B. Schreibfehler)."""
+        exc = self.worker_error
+        hint = (
+            f"Interner Fehler außerhalb eines Prüfpunkts: {_short_error(exc)}"
+            if exc is not None
+            else "Der Worker-Thread wurde unerwartet beendet."
+        )
+        with self._lock:
+            self.exit_code = EXIT_ERROR
+            self.data["lauf"] = {
+                "status": "fehler",
+                "hinweis": hint,
+                "exception": describe_exception(exc) if exc is not None else None,
+            }
+            self._mark_remaining(steps, "Lauf beendet: fehler")
+        try:
+            self.say(f"!!! {hint}")
+            self.flush()
+        except Exception as exc2:
+            sys.stderr.write(f"Teilbericht konnte nicht geschrieben werden: {_short_error(exc2)}\n")
 
     def run_guarded(self, steps: Sequence[Step]) -> bool:
         """Führt alle Prüfpunkte in einem Worker-Thread aus und überwacht den Timeout.
@@ -1415,8 +1568,9 @@ class Runner:
         Returns
         -------
         bool
-            ``True``, wenn alle Prüfpunkte durchgelaufen sind; ``False`` nach Blockade oder
-            Abbruch (der Teilbericht ist dann geschrieben und ``hard_exit`` aufgerufen).
+            ``True``, wenn alle Prüfpunkte regulär durchgelaufen sind; ``False`` nach
+            Blockade, Abbruch oder einem Fehler außerhalb der Prüfpunkte (Teilbericht
+            geschrieben, soweit möglich; ``exit_code`` gesetzt).
         """
         worker = threading.Thread(target=self._worker, args=(steps,), daemon=True)
         worker.start()
@@ -1434,10 +1588,13 @@ class Runner:
                         f"{pending['pfad'] if pending else 'keiner'}). "
                         "Teilbericht geschrieben, Prozess wird beendet."
                     )
-                    self._stop_run(steps, "blockiert", hint, EXIT_BLOCKED)
-                    return False
+                    if self._stop_run(steps, "blockiert", hint, EXIT_BLOCKED, expected=running):
+                        return False
         except KeyboardInterrupt:
             self._stop_run(steps, "abgebrochen", "Abbruch mit Strg+C", EXIT_INTERRUPTED)
+            return False
+        if not self._completed and not self.blocked:
+            self._fail_run(steps)
             return False
         return True
 
@@ -1622,7 +1779,7 @@ def _step_prozess(cx: StepContext) -> None:
         if len(row) >= 2 and any(key in row[0].lower() for key in PROCESS_KEYWORDS):
             found.append({"name": row[0], "pid": row[1]})
     cx.w["psv_prozesse"] = found
-    cx.state["psv_prozess_laeuft"] = bool(found)
+    cx.state["psv_prozess_laeuft"] = any("psv" in p["name"].lower() for p in found)
     cx.kern = f"{len(found)} passende Prozesse"
 
 
@@ -1654,8 +1811,9 @@ def _step_typelibs_com(cx: StepContext) -> None:
     }
     if len(missing) == len(expected):
         cx.hint = (
-            "Keine win32com-Konstanten verfügbar (kein gen_py-Cache für PSV; das Skript "
-            "erzeugt keinen)."
+            "Keine win32com-Konstanten verfügbar. Die Ursache wurde nicht geprüft; der "
+            "Vergleich mit I5 Abschnitt 8 ist damit nicht möglich (das Skript erzeugt "
+            "keine Typbibliotheks-Wrapper)."
         )
     for name, pair in wrong.items():
         cx.deviation(f"{name}: erwartet {pair['erwartet']}, gefunden {pair['gefunden']}", "I5 8")
@@ -1663,6 +1821,14 @@ def _step_typelibs_com(cx: StepContext) -> None:
 
 
 def _step_verbinden(cx: StepContext) -> None:
+    if not (cx.state.get("psv_prozess_laeuft") or cx.state.get("start_erlaubt")):
+        raise Skipped(
+            "Sperre: Stufe 0 hat keinen laufenden PSV-Prozess gefunden (oder die Prozessliste "
+            "war nicht lesbar). Das Objekt PSV.AcquisitionInstance wird deshalb nicht angelegt, "
+            "weil COM bei einer als Server registrierten PSV-EXE diese beim Anlegen selbst "
+            "starten könnte. PSV im Erfassungsmodus starten und erneut ausführen, oder "
+            "--start-psv mit Bestätigung verwenden."
+        )
     inst = cx.dispatch("PSV.AcquisitionInstance")
     running = bool(cx.rd("IsRunning", lambda: inst.IsRunning))
     if cx.errors:
@@ -1784,9 +1950,50 @@ def _step_vibrometer(cx: StepContext) -> None:
                 )
                 if info is not None:
                     cx.read_all(info, CONTROLLER_PROPS, into=sec)
+                _read_controllers(cx, group, sec)
             groups.append(sec)
     cx.w["gruppen"] = groups
     cx.kern = f"Vibrometers.Count {count!r}"
+
+
+def _read_controllers(cx: StepContext, group: WhitelistProxy, sec: dict[str, Any]) -> None:
+    """Sensorkopf-Infos über Controllers(c).SensorHeads(s).SensorHeadInfo (0-basiert, nur lesen)."""
+    controllers = cx.rd("Controllers", lambda: group.Controllers, into=sec, keep=False)
+    if controllers is None:
+        return
+    ccount = cx.rd("Controllers_Count", lambda: controllers.Count, into=sec)
+    listing: list[dict[str, Any]] = []
+    if isinstance(ccount, int):
+        for c in range(min(ccount, MAX_CONTROLLERS)):
+            csec: dict[str, Any] = {"controller": c}
+            ctrl = cx.rd("Item", lambda c=c: controllers.Item(c), into=csec, keep=False)
+            heads = (
+                cx.rd("SensorHeads", lambda ct=ctrl: ct.SensorHeads, into=csec, keep=False)
+                if ctrl is not None
+                else None
+            )
+            hcount = (
+                cx.rd("SensorHeads_Count", lambda h=heads: h.Count, into=csec)
+                if heads is not None
+                else None
+            )
+            infos: list[dict[str, Any]] = []
+            if heads is not None and isinstance(hcount, int):
+                for h in range(min(hcount, MAX_SENSORHEADS)):
+                    hsec: dict[str, Any] = {"sensorkopf": h}
+                    head = cx.rd("Item", lambda h=h, hs=heads: hs.Item(h), into=hsec, keep=False)
+                    info = (
+                        cx.rd("SensorHeadInfo", lambda hd=head: hd.SensorHeadInfo, into=hsec,
+                              keep=False)
+                        if head is not None
+                        else None
+                    )  # fmt: skip
+                    if info is not None:
+                        cx.read_all(info, SENSORHEAD_PROPS, into=hsec)
+                    infos.append(hsec)
+            csec["sensorkoepfe"] = infos
+            listing.append(csec)
+    sec["controller"] = listing
 
 
 def read_measpoints(cx: StepContext, infos: WhitelistProxy, max_points: int) -> None:
@@ -2031,12 +2238,19 @@ def _derive_axis(
     if _is_int(length) and _is_int(max_count) and max_count > 0:
         out["datenlaenge_durch_maxcount"] = length / max_count
     if fft:
+        out["hinweis_LIVE_PSV"] = (
+            "Felder *_LIVE_PSV stammen aus der aktuellen PSV-Konfiguration (P1-6-eigenschaften), "
+            "nicht aus der Datei; sie gelten nur, wenn die Datei mit denselben Einstellungen "
+            "gemessen wurde."
+        )
         res, bw, lines = _num(fft.get("SampleResolution")), _num(fft.get("Bandwidth")), _num(
             fft.get("Lines"))  # fmt: skip
         if res is not None and "delta_f_aus_achse_hz" in out and res != 0:
-            out["rel_abw_delta_f_zu_SampleResolution"] = out["delta_f_aus_achse_hz"] / res - 1.0
+            out["rel_abw_delta_f_zu_SampleResolution_LIVE_PSV"] = (
+                out["delta_f_aus_achse_hz"] / res - 1.0
+            )
         if bw is not None and lines:
-            out["Bandwidth_durch_Lines_hz"] = bw / lines
+            out["Bandwidth_durch_Lines_hz_LIVE_PSV"] = bw / lines
     return out
 
 
@@ -2180,8 +2394,6 @@ def build_steps(stufe: str, with_file: bool) -> list[Step]:
     ]  # fmt: skip
     if stufe == "1":
         steps += [
-            Step("P1-4-typelibs-com", "1", "EnumTlbs und Konstanten", "I5 10 P1-4; 8",
-                 _step_typelibs_com),
             Step("P1-5-verbinden", "1", "Verbinden (ohne Start)", "I5 3.1; 10 P1-5",
                  _step_verbinden),
             Step("P1-5-application", "1", "Application: Version, Mode", "I5 3.1; 10 P1-5",
@@ -2200,6 +2412,10 @@ def build_steps(stufe: str, with_file: bool) -> list[Step]:
                  _step_abgleich),
             Step("P3-2-existenz", "1", "PositionDevice, DigitalPorts (Existenz)", "I5 10 P3-2",
                  _step_existenz),
+            # Zuletzt: win32com.client.constants wird erst nach dem Laden von
+            # Typbibliotheks-Wrappern (frühestens beim Dispatch) gefüllt [ungeprüft].
+            Step("P1-4-typelibs-com", "1", "EnumTlbs und Konstanten", "I5 10 P1-4; 8",
+                 _step_typelibs_com),
         ]  # fmt: skip
         if with_file:
             steps += [
@@ -2297,7 +2513,9 @@ def main(argv: Sequence[str] | None = None, env: Env | None = None, poll_s: floa
     base = Path(args.out) if args.out else Path(__file__).resolve().parent
     base.mkdir(parents=True, exist_ok=True)
     out_dir = create_out_dir(base, env.hostname, env.now())
-    redactor = Redactor(env.username, not args.keep_user, protected=[env.hostname])
+    redactor = Redactor(
+        env.username, not args.keep_user, protected=[env.hostname], profile_dirs=env.profile_dirs
+    )
     proxy_ctx = ProxyContext(allow_start=start_allowed)
     runner = Runner(env, args, out_dir, redactor, proxy_ctx, poll_s)
     runner.state["start_erlaubt"] = start_allowed

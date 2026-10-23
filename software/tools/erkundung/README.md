@@ -17,8 +17,11 @@ bestätigt (Ablauf G). Das Ergebnis wird per `/laborbuch` festgehalten.
 ### Vorbedingungen
 
 1. Zustimmung geklärt (Frage F4) bzw. du nutzt eine Variante ohne Installation. Das Skript
-   braucht **Python 3.11** (Projektvorgabe; ältere Versionen sind nicht geprüft). Stufe 1
-   braucht zusätzlich **pywin32**. Stufe 0 nutzt nur die Standardbibliothek.
+   braucht **Python 3.11** (Projektvorgabe). Stufe 1 braucht zusätzlich **pywin32**. Stufe 0
+   nutzt nur die Standardbibliothek. Bei Python < 3.11 meldet das Skript sofort „braucht Python
+   3.11 oder neuer“ (Exit-Code 2), legt nichts an und liest nichts. Die Datei ist so
+   geschrieben, dass sie bis zu diesem Check auch unter älteren Versionen parsebar ist
+   (geprüft mit Python 3.8 und 3.10).
 2. Bei Stufe 1: PSV läuft im **Datenerfassungsmodus**, Messsystem eingeschaltet wie für eine
    normale Messung, **keine laufende Messung**. Kein Prüfling nötig. Der Generator-Ausgang
    darf nicht an einen Shaker/Verstärker angeschlossen sein oder muss aus sein (nur
@@ -32,10 +35,17 @@ bestätigt (Ablauf G). Das Ergebnis wird per `/laborbuch` festgehalten.
 
 1. `erkundung.py` auf den Rechner kopieren (z. B. `C:\Users\<du>\erkundung\`).
 2. Eingabeaufforderung oder PowerShell öffnen, in den Ordner wechseln.
-3. Stufe 0: `python erkundung.py --stufe 0` (ca. 1 Minute).
+3. **Stufe 0 zuerst allein** (PSV dabei noch nicht starten):
+   `python erkundung.py --stufe 0` (ca. 1 Minute). Danach `zusammenfassung.md` und
+   `registry.reg.txt` ansehen, besonders `P1-2-registry`: Ist `PSV.AcquisitionInstance` als
+   `LocalServer32` (eigene EXE) registriert, kann COM diese EXE beim Anlegen des Objekts selbst
+   starten. Deshalb gilt die Sperre unten.
 4. PSV im Erfassungsmodus öffnen, **keine Dialoge offen lassen**. Stufe 1:
    `python erkundung.py --stufe 1`. Das Skript führt Stufe 0 mit aus und meldet pro Prüfpunkt
-   die Dauer.
+   die Dauer. **Sperre:** `PSV.AcquisitionInstance` wird nur angelegt, wenn Stufe 0 in der
+   Prozessliste einen laufenden PSV-Prozess (Name enthält „psv“) gefunden hat; sonst steht
+   `P1-5-verbinden` auf `uebersprungen`, und der COM-Teil von Stufe 1 läuft nicht. Ausnahme:
+   `--start-psv` mit Bestätigung `JA`. Stufe 1b (PolyFile) ist davon nicht betroffen.
 5. Optional 1b: `python erkundung.py --stufe 1 --datei "<Pfad>\Example.svd"`. Stufe 1b läuft
    auch, wenn PSV nicht läuft.
 6. Ausgabeordner prüfen (`zusammenfassung.md` öffnen) und ins Repository legen:
@@ -78,20 +88,38 @@ vor dem Upload kurz durchsehen.
 | `--max-punkte N` | Messpunkte am Anfang und am Ende (Standard 3) |
 | `--max-werte N` | Datenwerte aus `GetData` im Bericht (Standard 6) |
 
-Exit-Codes: 0 normal, 1 Zugriff verweigert, 2 Aufruffehler, 3 blockiert, 130 Strg+C.
+Exit-Codes: 0 normal, 1 Zugriff verweigert, 2 Aufruffehler oder Python zu alt, 3 blockiert,
+4 interner Fehler außerhalb eines Prüfpunkts (z. B. Schreibfehler; Restpunkte stehen als
+`uebersprungen` im Bericht, `lauf.status` ist `fehler`), 130 Strg+C. Schreibfehler beim
+Bericht (z. B. durch einen Virenscanner) werden kurz wiederholt, bevor sie als Fehler zählen.
 
 ## Sicherheitskonzept
 
 - Jeder COM-Zugriff läuft über einen Whitelist-Proxy (Default deny, `POLICY` im Skript):
   Nur dort aufgeführte Typen, Properties und Methoden werden weitergereicht, Rückgabewerte
-  sind entweder einfache Werte oder wieder Proxys. Private Namen, Zuweisungen und Löschen
-  sind gesperrt. Einzige erlaubte Zuweisung: `PolyFile.ReadOnly = True`.
+  sind entweder einfache Werte oder wieder Proxys. Über den Proxy sind private Namen,
+  Zuweisungen und Löschen gesperrt. Einzige erlaubte Zuweisung: `PolyFile.ReadOnly = True`.
+  Der Proxy schützt vor Fehlern im eigenen Skript, nicht vor Absicht: Ein Slot-Zugriff auf das
+  interne Attribut `_obj` im Python-Code würde das rohe COM-Objekt liefern.
 - Die `BLACKLIST` im Skript ist nur ein Testkatalog (jeder Eintrag hat einen Test).
 - Start von PSV (`GetApplication(True, ...)`) ist ohne `--start-psv` samt Bestätigung gesperrt.
 - Eine laufende Messung wird nie angefasst (kein `Stop`, kein `Start`).
-- Das Skript erzeugt keinen `gen_py`-Cache (kein `makepy`); die Konstantenprüfung nutzt nur
-  einen vorhandenen Cache.
-- Schreibzugriffe nur im neuen Ausgabeordner; kein Netzwerk, kein `eval`/`exec`/`pickle`.
+- Das Skript ruft selbst kein `makepy` und kein `gencache.EnsureDispatch` auf. **Aber:**
+  pywin32 kann schon beim `import win32com.client` (Stufe 0, `P1-4-pywin32`) selbst einen
+  `gen_py`-Cache im pywin32-Verzeichnis anlegen [nach pywin32-Quelltext, unter Windows nicht
+  geprüft]. Das betrifft keine Polytec-Dateien, ist aber ein Schreibzugriff außerhalb des
+  Ausgabeordners, den das Skript nicht verhindern kann.
+- Mit Late Binding (`Dispatch` ohne Typinformation) kann pywin32 beim Zugriff auf einen
+  unbekannten Namen die Property „lesen“ wollen. Betroffen wären nur freigegebene Mitglieder
+  (kein Schreib- oder Messbefehl); ob PSV/PFA Typinformation liefern, ist ungeprüft.
+- Die Konstantenprüfung (`P1-4-typelibs-com`) läuft bewusst zuletzt; sie ist nur
+  aussagekräftig, wenn pywin32 Typbibliotheks-Wrapper geladen hat. Fehlen die Konstanten, steht
+  die Ursache als nicht geprüft im Bericht.
+- Sonst werden Dateien nur im neuen Ausgabeordner geschrieben; kein Netzwerk, kein
+  `eval`/`exec`/`pickle`.
+- Die Berichte schwärzen den Anmeldenamen, den Ordnernamen des Profils (`USERPROFILE`,
+  `Path.home()`) und jedes Pfadsegment unter `Users` (außer `Public`, `Default`, `All Users`,
+  das deckt auch Kurznamen wie `JAKOBB~1` ab). Der Rechnername bleibt im Klartext.
 
 ## Ausgabe
 
@@ -132,16 +160,37 @@ angehängt; nie überschrieben):
 | P1-2-registry, P1-2-dateien | 0 | ProgIDs, CLSID, Server (64- und 32-Bit-Sicht), PE-Typ, Dateiversion |
 | P1-4-typelibs-registry | 0 | registrierte Typbibliotheken mit „Poly“/„PSV“/„VibSoft“ |
 | P1-3-verzeichnisse, P1-5-prozess | 0 | `Polytec`-Verzeichnisse, laufende PSV-Prozesse |
-| P1-4-typelibs-com | 1 | `EnumTlbs`, Vergleich der Konstanten mit I5 Abschnitt 8 |
+| P1-4-typelibs-com | 1 | (läuft zuletzt) `EnumTlbs`, Vergleich der Konstanten mit I5 Abschnitt 8 |
 | P1-5-verbinden, P1-5-application | 1 | `IsRunning`, `GetApplication(False)`, Version, Mode |
 | P1-6-zustand | 1 | `State`, Mode, Generator, Laser (`GetLaserOn`) |
 | P1-6-eigenschaften | 1 | Gruppen, FFT/Mittelung/Allgemein, Validator vorhanden? |
-| P1-6-hardware, -scankopf, -vibrometer | 1 | Hardware, Scankopf, Controller |
+| P1-6-hardware, -scankopf, -vibrometer | 1 | Hardware, Scankopf, Controller und Sensorkopf-Infos (Seriennummer, Firmware, Laserwellenlänge, Laserleistung) |
 | P1-6-messpunkte, P1-6-abgleich | 1 | Messpunkte (Index/Label), Abgleich 3D/2D |
 | P3-2-existenz | 1 | `PositionDevice`, `DigitalPorts` (nur Existenz) |
 | P1-10-oeffnen, -struktur, -daten, -schliessen | 1b | Datei, Domänen/Kanäle, `GetData`, `XAxis` |
 
 Alle diese Punkte sind **am Gerät unbestätigt**, bis der Nutzer das Ergebnis bestätigt.
+
+Die Kennzahlen in `P1-10-daten.abgeleitet` mit Endung `_LIVE_PSV` stammen aus der aktuellen
+PSV-Konfiguration (Stufe 1), nicht aus der Datei; ein Hinweisfeld nennt das.
+
+## Abweichungen vom Plan
+
+Vom Nutzer nach Review R-E1 übernommen (Plan-Nachtrag 2026-10-23):
+
+- **Vibrometer:** Gelesen werden `ControllerInfo` (DeviceName, FirmwareVersion, Name,
+  SerialNumber) und zusätzlich über den dokumentierten Weg
+  `Infos.Vibrometers(g).Controllers(c).SensorHeads(s).SensorHeadInfo` Name, SerialNumber,
+  FirmwareVersion, LaserWavelength und LaserPower ([BEM] „Access to General Information“,
+  `ISensorHead~SensorHeadInfo`). Vibrometers ist 1-basiert, Controllers und SensorHeads sind
+  0-basiert. Nur lesend und über die Whitelist.
+- **Kein `pytest`-Test mit Marker `hardware`** für dieses Werkzeug (`pytest` auf dem
+  Messrechner widerspräche der Variante ohne Installation). Der Marker bleibt für spätere
+  Pakete registriert.
+- **Y-Achse** über `Signal.Description.YAxis` statt `GetYAxes` (gleichwertig).
+- **Typbasierte Whitelist** statt Pfadmuster; **kein `--makepy`**; Stufe 1 enthält Stufe 0;
+  Watchdog je Prüfpunkt (siehe Rückmeldung zu E1-U).
+- **Technische Sperre** des COM-Teils von Stufe 1 (siehe Prüfanleitung).
 
 ## Entwicklung
 
