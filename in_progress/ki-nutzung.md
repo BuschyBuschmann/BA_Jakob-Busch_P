@@ -14,3 +14,4 @@ Nutzer hat das Ergebnis geprüft und verantwortet es.
 | 2026-10-23 | `in_progress/analysen/2026-10-23_I2_messtechnik-fachgrundlagen.md` | Fachliche Sichtung der Polytec-Unterlagen, nachgerechnete Referenzwerte | strukturdynamik-experte (sonnet) | offen |
 | 2026-10-23 | `in_progress/analysen/2026-10-23_I3_vorlagen-richtlinien.md` | Sichtung von LaTeX-Vorlage und Richtlinien | wissenschaftlicher-autor (sonnet) | offen |
 | 2026-10-23 | `in_progress/input-uebersicht.md` | Zusammenfassung der Sichtung | Orchestrator | offen |
+| 2026-10-23 | `in_progress/planung/erwartungsmanagement.md` | Strukturierung und Formulierung aus den Interviewantworten des Nutzers (Skill /ba-planung) | Orchestrator | offen |
