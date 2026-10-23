@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+dist/
+*.egg-info/
+# Ausgabeordner des Erkundungsskripts, falls lokal (nicht auf dem Messrechner) ausgeführt
+tools/erkundung/erkundung_*/

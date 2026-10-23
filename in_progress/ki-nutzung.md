@@ -18,3 +18,5 @@ Nutzer hat das Ergebnis geprüft und verantwortet es.
 | 2026-10-23 | `in_progress/analysen/2026-10-23_I5_com-referenz.md`, `in_progress/analysen/polytec-chm-text/` | Vertiefte Analyse der COM-Schnittstelle, Textfassung der Polytec-Hilfen | software-engineer (opus) | offen |
 | 2026-10-23 | `in_progress/analysen/2026-10-23_I5F_fachpruefung-com-referenz.md` | Fachliche Prüfung der COM-Referenz | strukturdynamik-experte (sonnet) | offen |
 | 2026-10-23 | `in_progress/planung/plaene/2026-10-23_E1_erkundungsskript.md` | Plan für das Erkundungsskript | software-engineer (sonnet) | offen |
+| 2026-10-23 | `in_progress/analysen/2026-10-23_I5_com-referenz.md` (Überarbeitung K1) | Einarbeitung der Fachprüfung in die COM-Referenz | software-engineer (sonnet) | offen |
+| 2026-10-23 | `software/` (Projektgerüst, `tools/erkundung/`, Tests) | Umsetzung Erkundungsskript E1-U und Projektgerüst | software-engineer (sonnet) | offen |
