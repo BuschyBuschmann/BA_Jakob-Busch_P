@@ -173,30 +173,69 @@ def test_skript_laeuft_als_datei(tmp_path: Path) -> None:
 def test_redactor_profilordner_weicht_vom_anmeldenamen_ab() -> None:
     red = Redactor("jbusch", True, profile_dirs=["C:\\Users\\Jakob.Busch"])
     assert red.text("C:\\Users\\Jakob.Busch\\x") == "C:\\Users\\<user>\\x"
-    assert red.text("Ordner Jakob.Busch ok") == "Ordner <user> ok"
     assert red.text("C:\\Users\\jbusch_000\\x") == "C:\\Users\\<user>\\x"  # generische Regel
-    assert red.text("C:\\Users\\JAKOBB~1\\AppData") == "C:\\Users\\<user>\\AppData"  # 8.3-Name
+    assert red.text("C:\\Users\\JAKOBB~1\\AppData") == "C:\\Users\\<user>\\AppData"  # 8.3
     assert red.text("D:/Users/jbusch.RWTH/x") == "D:/Users/<user>/x"
+    assert red.text("C:\\Users\\jbusch\\x") == "C:\\Users\\<user>\\x"
 
 
 def test_redactor_laesst_systemprofile_stehen_und_ist_idempotent() -> None:
-    red = Redactor("jbusch", True)
+    red = Redactor("jbusch", True, profile_dirs=["C:\\Users\\jbusch"])
     for keep in ("C:\\Users\\Public\\Documents", "C:\\Users\\Default\\x", "C:\\Users\\All Users"):
         assert red.text(keep) == keep
     once = red.text("C:\\Users\\jbusch\\x")
     assert red.text(once) == once == "C:\\Users\\<user>\\x"
+    assert red.apply({"a": [once]}) == {"a": [once]}
 
 
-def test_redactor_profilname_mit_leerzeichen_nur_ueber_profile_dirs() -> None:
-    red = Redactor("jb", True, profile_dirs=["C:\\Users\\Jakob Busch"])
-    assert red.text("C:\\Users\\Jakob Busch\\Desktop") == "C:\\Users\\<user>\\Desktop"
+@pytest.mark.parametrize("account", ["Polytec", "Labor", "Messung", "PSV"])
+def test_redactor_zerstoert_keine_fachbegriffe_bei_sprechendem_kontonamen(account: str) -> None:
+    red = Redactor(account, True, protected=["MESS-PC"], profile_dirs=[f"C:\\Users\\{account}"])
+    technical = [
+        "C:\\Program Files\\Polytec\\PSV\\PSV.exe",
+        "Polytec PSV Type Library | %ProgramFiles%\\Polytec | Labor 3 Messung PSV",
+        '[HKCR(64-Bit-Sicht)\\CLSID\\{1}\\LocalServer32] @ = "C:\\Polytec\\psv.exe"',
+        "HKCU\\Software\\Users\\Settings",
+    ]
+    for line in technical:
+        assert red.text(line) == line, line
+    report = {"SummaryInfo": {"Title": "Labor 3 Messung", "Comments": f"{account} PSV"}}
+    assert red.apply(report) == report
+    assert red.text(f"C:\\Users\\{account}\\AppData\\x") == "C:\\Users\\<user>\\AppData\\x"
+
+
+def test_redactor_schwaerzt_personenfelder_auch_als_freies_wort() -> None:
+    red = Redactor("jbusch", True, protected=["JBUSCH-PC"], profile_dirs=["C:\\Users\\Jakob.Busch"])
+    out = red.apply(
+        {"SummaryInfo": {"Author": "jbusch (Jakob.Busch) auf JBUSCH-PC", "Title": "jbusch-Test"}}
+    )
+    assert out["SummaryInfo"]["Author"] == "<user> (<user>) auf JBUSCH-PC"
+    assert out["SummaryInfo"]["Title"] == "jbusch-Test"  # kein Personenfeld
+    assert Redactor("ab", True).apply({"Author": "ab"}) == {"Author": "<user>"}
+    assert Redactor("ab", True).apply({"Author": "abc"}) == {"Author": "abc"}
+
+
+def test_redactor_randfaelle() -> None:
+    red = Redactor("jbusch", True, profile_dirs=["C:\\Users\\Max Mustermann"])
+    # Registry-Pfad mit "Users" bleibt, Dateipfade nur mit Laufwerk.
+    assert red.text("HKCU\\Software\\Users\\Settings") == "HKCU\\Software\\Users\\Settings"
+    # Profilname mit Leerzeichen vollständig, wenn bekannt.
+    assert red.text("C:\\Users\\Max Mustermann\\x") == "C:\\Users\\<user>\\x"
+    # Klammern gehören zum Ordnernamen, ein schließendes ")" nicht.
+    assert red.text("C:\\Users\\jbusch(1)\\x") == "C:\\Users\\<user>\\x"
+    assert red.text("(siehe C:\\Users\\jbusch)") == "(siehe C:\\Users\\<user>)"
+    # Ein fremdes Profil mit Leerzeichen wird nur bis zum Leerzeichen erkannt (dokumentiert).
+    assert red.text("C:\\Users\\Anna Beispiel\\x") == "C:\\Users\\<user> Beispiel\\x"
+    assert red.text("/home/jbusch/x") == "/home/<user>/x"
+    assert red.text("/Users/jbusch/x") == "/Users/<user>/x"
+    assert Redactor("", True).active is False
+    assert Redactor("x", False).text("C:\\Users\\x") == "C:\\Users\\x"
 
 
 def test_redactor_nur_profil_ohne_anmeldename() -> None:
     red = Redactor("", True, profile_dirs=["/home/ab"])
     assert red.active is True
-    assert red.text("/home/Users/ab/x") == "/home/Users/<user>/x"
-    assert Redactor("", True).active is False
+    assert red.text("/home/ab/x") == "/home/<user>/x"
 
 
 def test_bericht_schwaerzt_abweichenden_profilordner(tmp_path: Path) -> None:
@@ -355,7 +394,7 @@ def test_laserwellenlaenge_und_leistung_ueber_sensorheadinfo(tmp_path: Path) -> 
     group = vib["werte"]["gruppen"][0]
     assert group["SerialNumber"] == "SN1"  # ControllerInfo bleibt
     head = group["controller"][0]["sensorkoepfe"][0]
-    assert head["LaserWavelength"] == pytest.approx(6.328e-7, rel=1e-12)
+    assert head["LaserWavelength"] == pytest.approx(632.8, rel=1e-12)
     assert head["LaserPower"] == pytest.approx(1.0, rel=1e-12)
     assert head["SerialNumber"] == "SH1"
     pf_log = {(k, n) for k, n, _ in h.world.log}
@@ -369,7 +408,7 @@ def test_sensorheadinfo_fehler_bleibt_auf_den_punkt_beschraenkt(tmp_path: Path) 
     _, report, _ = run(tmp_path, h, "--stufe", "1")
     assert status(report)["P1-6-vibrometer"] == "fehler"
     head = entry(report, "P1-6-vibrometer")["werte"]["gruppen"][0]["controller"][0]
-    assert head["sensorkoepfe"][0]["LaserWavelength"] == pytest.approx(6.328e-7, rel=1e-12)
+    assert head["sensorkoepfe"][0]["LaserWavelength"] == pytest.approx(632.8, rel=1e-12)
     assert status(report)["P1-6-messpunkte"] == "ok"
 
 
@@ -425,3 +464,39 @@ def test_blacklist_enthaelt_dokumentierte_scanhead_namen() -> None:
         "WriteLaserIntensityData",
         "WriteMirrorAdjustmentData",
     }
+
+
+def test_lauf_mit_konto_polytec_behaelt_polytec_pfade_und_typbibliotheken(tmp_path: Path) -> None:
+    h = make_harness(tmp_path, username="Polytec", hostname="MESS-PC")
+    h.env.profile_dirs = ("C:\\Users\\Polytec",)
+    _, report, folder = run(tmp_path, h, "--stufe", "0")
+    text = (folder / "bericht.json").read_text(encoding="utf-8")
+    assert "Polytec PSV Type Library" in text
+    assert "Program Files\\\\Polytec\\\\psv.tlb" in text
+    assert "Polytec PSV Type Library" in (folder / "typelibs.txt").read_text(encoding="utf-8")
+    assert report["benutzername_entfernt"] is True
+
+
+def test_schreiben_von_umgebung_und_rohdaten_nimmt_den_runner_lock(tmp_path: Path) -> None:
+    h = make_harness(tmp_path)
+    args = erkundung.build_parser().parse_args([])
+    out = tmp_path / "r"
+    out.mkdir()
+    runner = erkundung.Runner(h.env, args, out, Redactor("", False), erkundung.ProxyContext(), 0.01)
+    runner.data.update({"umgebung": {}, "abweichungen": []})
+    step = erkundung.Step("T", "0", "t", "x", lambda cx: None)
+    cx = erkundung.StepContext(runner, step)
+    done = threading.Event()
+
+    def writer() -> None:
+        cx.raw("a.txt", ["x"])
+        cx.deviation("t", "r")
+        done.set()
+
+    with runner.lock:
+        thread = threading.Thread(target=writer)
+        thread.start()
+        assert not done.wait(0.2)  # blockiert, solange der Flush den Lock hält
+    assert done.wait(5)
+    thread.join()
+    assert runner.raw_files == {"a.txt": ["x"]}

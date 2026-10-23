@@ -186,7 +186,7 @@ class ProxyContext:
         self.allow_start = allow_start
         self.current_step = ""
         self.pending: dict[str, Any] | None = None
-        self._lock = threading.Lock()
+        self.lock = threading.Lock()
         self._calls: list[dict[str, Any]] = []
         self._denied: list[dict[str, Any]] = []
 
@@ -200,7 +200,7 @@ class ProxyContext:
         error: str | None,
     ) -> None:
         """Protokolliert einen tatsächlich weitergereichten Zugriff."""
-        with self._lock:
+        with self.lock:
             self._calls.append(
                 {
                     "nr": len(self._calls) + 1,
@@ -215,7 +215,7 @@ class ProxyContext:
 
     def record_denied(self, kind: str, name: str, op: str, reason: str) -> None:
         """Protokolliert einen verweigerten Zugriffsversuch."""
-        with self._lock:
+        with self.lock:
             self._denied.append(
                 {
                     "pruefpunkt": self.current_step,
@@ -227,7 +227,7 @@ class ProxyContext:
 
     def snapshot(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         """Liefert Kopien von Aufrufprotokoll und Verweigerungen."""
-        with self._lock:
+        with self.lock:
             return list(self._calls), list(self._denied)
 
 
@@ -780,30 +780,41 @@ def _snapshot(value: Any, attempts: int = 5) -> Any:
 
 
 class Redactor:
-    """Entfernt den Benutzernamen aus Texten (Rechnername bleibt im Klartext).
+    r"""Entfernt personenbezogene Namen aus Berichten (Rechnername bleibt im Klartext).
 
     Parameters
     ----------
     username
-        Zu entfernender Anmeldename.
+        Anmeldename des Windows-Kontos.
     active
         ``False`` bei ``--keep-user``.
     protected
         Texte, die unverändert bleiben müssen (z. B. der Rechnername).
     profile_dirs
-        Tatsächliche Profilpfade (z. B. ``USERPROFILE``); ihr Ordnername wird wie der
-        Anmeldename behandelt, weil er davon abweichen kann (Domänenkonten, ``jbusch.RWTH``).
+        Tatsächliche Profilpfade (``USERPROFILE``, ``Path.home()``). Ihr Ordnername darf vom
+        Anmeldenamen abweichen (Domänenkonten, ``jbusch.RWTH``, Leerzeichen).
 
     Notes
     -----
-    Ersetzt werden (1) jedes Pfadsegment direkt unter ``Users`` außer den Systemprofilen
-    (``Public``, ``Default``, ``All Users``), das deckt auch 8.3-Kurznamen wie ``JAKOBB~1``
-    ab, (2) Anmeldename und Profilordnername als freies Wort ab vier Zeichen, in
-    ``Users``-Pfaden auch kürzere. Profilnamen mit Leerzeichen werden nur über
-    ``profile_dirs`` erkannt.
+    Geschwärzt wird nur in **personenbezogenen Kontexten**, nie als freies Wort im
+    Fließtext, weil Konten oft nach Systemen heißen („Polytec“, „Labor“) und sonst Pfade,
+    Typbibliotheksnamen oder ``SummaryInfo``-Inhalte zerstört würden:
+
+    1. die bekannten Profilpfade aus ``profile_dirs`` (auch mit Leerzeichen),
+    2. jedes Segment direkt unter ``<Laufwerk>:\Users`` (deckt fremde Profile und 8.3-Kurznamen
+       wie ``JAKOBB~1`` ab; ausgenommen ``Public``, ``Default``, ``All Users``) sowie unter
+       ``/home`` und ``/Users``; Registry-Pfade wie ``HKCU\Software\Users`` bleiben stehen,
+    3. Werte von Feldern, die Personen- oder Kontonamen enthalten (:attr:`PERSON_KEYS`, z. B.
+       ``SummaryInfo.Author``): dort Anmelde- und Profilname auch als freies Wort.
+
+    Grenzen: Ein Profilname mit Leerzeichen eines *fremden* Profils (nicht in
+    ``profile_dirs``) wird nur bis zum ersten Leerzeichen erkannt; Kontonamen in anderen
+    Zusammenhängen (z. B. ``DOMAIN\jbusch``) werden nicht erkannt.
     """
 
+    PERSON_KEYS = frozenset({"author", "autor", "username", "benutzername", "user", "konto"})
     _SYSTEM_PROFILES = r"(?:Public|Default(?: User)?|All Users)"
+    _SEGMENT = r"""(?:[^\\/\s"',;:|()]|\([^()\s]*\))+"""
 
     def __init__(
         self,
@@ -813,42 +824,76 @@ class Redactor:
         profile_dirs: Sequence[str] = (),
     ) -> None:
         names = {username} if username else set()
+        profiles: list[str] = []
         for profile in profile_dirs:
-            last = re.split(r"[\\/]", profile.rstrip("\\/"))[-1]
-            if last:
-                names.add(last)
+            clean = profile.rstrip("\\/")
+            parts = re.split(r"[\\/]", clean)
+            if parts[-1]:
+                names.add(parts[-1])
+                profiles.append(clean)
         self.active = active and bool(names)
         self._protected = [p for p in protected if p]
-        self._patterns: list[re.Pattern[str]] = []
-        if self.active:
-            for name in sorted(names, key=len, reverse=True):
-                esc = re.escape(name)
-                self._patterns.append(re.compile(rf"(?i)(?<=[\\/]Users[\\/]){esc}[^\\/\s\"',;:)]*"))
-                if len(name) >= 4:
-                    self._patterns.append(
-                        re.compile(rf"(?i)(?<![A-Za-z0-9_]){esc}(?![A-Za-z0-9_])")
-                    )
-            self._patterns.append(
+        self._path_patterns: list[re.Pattern[str]] = []
+        self._person_patterns: list[re.Pattern[str]] = []
+        if not self.active:
+            return
+        keep = rf"(?!{self._SYSTEM_PROFILES}(?![^\\/\s\"',;:|]))(?!<user>)"
+        for profile in sorted(set(profiles), key=len, reverse=True):
+            *parent, last = re.split(r"[\\/]", profile)
+            pre = r"[\\/]".join(re.escape(x) for x in parent) + r"[\\/]"
+            self._path_patterns.append(
+                re.compile(rf"(?i)(?P<pre>{pre}){re.escape(last)}(?![^\\/\s\"',;:|])")
+            )
+        self._path_patterns.append(
+            re.compile(
+                rf"(?i)(?<![A-Za-z0-9_])(?P<pre>[A-Za-z]:[\\/]Users[\\/]){keep}{self._SEGMENT}"
+            )
+        )
+        self._path_patterns.append(
+            re.compile(
+                rf"(?i)(?<![A-Za-z0-9_.:\\/-])(?P<pre>/(?:home|Users)/){keep}{self._SEGMENT}"
+            )
+        )
+        for name in sorted(names, key=len, reverse=True):
+            esc = re.escape(name)
+            self._person_patterns.append(
                 re.compile(
-                    rf"(?i)(?<=[\\/]Users[\\/])(?!{self._SYSTEM_PROFILES}(?![^\\/\s\"',;:)]))"
-                    r"(?!<user>)[^\\/\s\"',;:)]+"
+                    rf"(?i)^{esc}$"
+                    if len(name) < 3
+                    else rf"(?i)(?<![A-Za-z0-9_]){esc}(?![A-Za-z0-9_])"
                 )
             )
 
-    def text(self, value: str) -> str:
-        """Ersetzt den Benutzernamen in einem Text durch ``<user>``."""
-        if not self.active:
-            return value
+    def _protect(self, value: str) -> str:
         for i, keep in enumerate(self._protected):
             value = value.replace(keep, f"\x00{i}\x00")
-        for pattern in self._patterns:
-            value = pattern.sub("<user>", value)
+        return value
+
+    def _restore(self, value: str) -> str:
         for i, keep in enumerate(self._protected):
             value = value.replace(f"\x00{i}\x00", keep)
         return value
 
+    def text(self, value: str) -> str:
+        """Schwärzt Profilpfade in einem Text (ersetzt den Ordnernamen durch ``<user>``)."""
+        if not self.active:
+            return value
+        value = self._protect(value)
+        for pattern in self._path_patterns:
+            value = pattern.sub(lambda m: m.group("pre") + "<user>", value)
+        return self._restore(value)
+
+    def person(self, value: str) -> str:
+        """Schwärzt in einem Personen-/Kontofeld Pfade und Namen als freies Wort."""
+        if not self.active:
+            return value
+        value = self._protect(self.text(value))
+        for pattern in self._person_patterns:
+            value = pattern.sub("<user>", value)
+        return self._restore(value)
+
     def apply(self, value: Any) -> Any:
-        """Wendet :meth:`text` rekursiv auf alle Zeichenketten an."""
+        """Wendet :meth:`text` rekursiv an, in Personenfeldern :meth:`person`."""
         if not self.active:
             return value
         if isinstance(value, str):
@@ -856,7 +901,13 @@ class Redactor:
         if isinstance(value, list):
             return [self.apply(v) for v in value]
         if isinstance(value, dict):
-            return {self.text(str(k)): self.apply(v) for k, v in value.items()}
+            out: dict[Any, Any] = {}
+            for k, v in value.items():
+                if isinstance(v, str) and str(k).lower() in self.PERSON_KEYS:
+                    out[self.text(str(k))] = self.person(v)
+                else:
+                    out[self.text(str(k))] = self.apply(v)
+            return out
         return value
 
 
@@ -1327,13 +1378,15 @@ class StepContext:
 
     def raw(self, filename: str, lines: list[str]) -> None:
         """Legt Rohtext für eine Datei im Ausgabeordner ab."""
-        self.runner.raw_files[filename] = lines
+        with self.runner.lock:
+            self.runner.raw_files[filename] = lines
 
     def deviation(self, text: str, ref: str) -> None:
         """Hält eine Abweichung von der Erwartung aus I5 fest."""
-        self.runner.data["abweichungen"].append(
-            {"pruefpunkt": self.step.id, "text": text, "beleg_ref": ref}
-        )
+        with self.runner.lock:
+            self.runner.data["abweichungen"].append(
+                {"pruefpunkt": self.step.id, "text": text, "beleg_ref": ref}
+            )
 
 
 class Runner:
@@ -1363,7 +1416,7 @@ class Runner:
         self.exit_code = EXIT_OK
         self.worker_error: Exception | None = None
         self._completed = False
-        self._lock = threading.RLock()
+        self.lock = threading.RLock()  # schützt data/raw_files gegen den Flush des Watchdogs
         self._console_lines: list[str] = []
 
     # -- Ausgabe ------------------------------------------------------------------------
@@ -1372,7 +1425,7 @@ class Runner:
         line = self.redactor.text(text)
         encoding = sys.stdout.encoding or "utf-8"
         print(line.encode(encoding, "replace").decode(encoding), flush=True)
-        with self._lock:
+        with self.lock:
             self._console_lines.append(line)
             self._write("konsole.log", "\n".join(self._console_lines) + "\n")
 
@@ -1394,7 +1447,7 @@ class Runner:
 
     def flush(self) -> None:
         """Schreibt bericht.json, zusammenfassung.md und die Rohdateien."""
-        with self._lock:
+        with self.lock:
             calls, denied = self.proxy_ctx.snapshot()
             self.data["whitelist_aufrufe"] = calls
             self.data["verweigert"] = denied
@@ -1422,7 +1475,7 @@ class Runner:
             "dauer_s": round(self.env.monotonic() - started, 4),
             "exception": cx.exception,
         }
-        with self._lock:
+        with self.lock:
             if self.blocked:
                 return
             self.data["pruefpunkte"].append(entry)
@@ -1435,7 +1488,7 @@ class Runner:
         cx = StepContext(self, step)
         started = self.env.monotonic()
         self.proxy_ctx.current_step = step.id
-        with self._lock:
+        with self.lock:
             if self.blocked:
                 return
             self.current = _Running(step, started, cx)
@@ -1505,7 +1558,7 @@ class Runner:
         code: int,
         expected: _Running | None = None,
     ) -> bool:
-        with self._lock:
+        with self.lock:
             running = self.current
             if expected is not None and running is not expected:
                 return False  # der Prüfpunkt hat inzwischen gewechselt: kein falscher Alarm
@@ -1548,7 +1601,7 @@ class Runner:
             if exc is not None
             else "Der Worker-Thread wurde unerwartet beendet."
         )
-        with self._lock:
+        with self.lock:
             self.exit_code = EXIT_ERROR
             self.data["lauf"] = {
                 "status": "fehler",
@@ -1607,7 +1660,8 @@ class Runner:
 def _step_umgebung(cx: StepContext) -> None:
     info = collect_platform(cx.env.environ)
     cx.w.update(info)
-    cx.runner.data["umgebung"].update(info)
+    with cx.runner.lock:
+        cx.runner.data["umgebung"].update(info)
     cx.kern = (
         f"{info['system']} {info['release']}, Python {info['python_version']} "
         f"({info['python_bit']} Bit)"
@@ -1617,7 +1671,8 @@ def _step_umgebung(cx: StepContext) -> None:
 def _step_pywin32(cx: StepContext) -> None:
     info = cx.env.pywin32_info()
     cx.w.update(info)
-    cx.runner.data["umgebung"]["pywin32"] = info
+    with cx.runner.lock:
+        cx.runner.data["umgebung"]["pywin32"] = info
     cx.state["pywin32_ok"] = bool(info.get("importierbar"))
     if info.get("importierbar"):
         cx.kern = f"pywin32 importierbar, Version {info.get('version')}"

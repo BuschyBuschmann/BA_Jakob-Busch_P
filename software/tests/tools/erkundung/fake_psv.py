@@ -182,7 +182,7 @@ def build_psv(
             "Name": "OFV-505",
             "SerialNumber": "SH1",
             "FirmwareVersion": "2.0",
-            "LaserWavelength": 6.328e-7,
+            "LaserWavelength": 632.8,
             "LaserPower": 1.0,
         },
     )

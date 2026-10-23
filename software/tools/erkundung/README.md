@@ -117,9 +117,16 @@ Bericht (z. B. durch einen Virenscanner) werden kurz wiederholt, bevor sie als F
   die Ursache als nicht geprüft im Bericht.
 - Sonst werden Dateien nur im neuen Ausgabeordner geschrieben; kein Netzwerk, kein
   `eval`/`exec`/`pickle`.
-- Die Berichte schwärzen den Anmeldenamen, den Ordnernamen des Profils (`USERPROFILE`,
-  `Path.home()`) und jedes Pfadsegment unter `Users` (außer `Public`, `Default`, `All Users`,
-  das deckt auch Kurznamen wie `JAKOBB~1` ab). Der Rechnername bleibt im Klartext.
+- Schwärzung (`<user>`) nur in personenbezogenen Kontexten, nie als freies Wort im Fließtext
+  (Konten heißen oft „Polytec“ oder „Labor“; Pfade, Typbibliotheksnamen und
+  `SummaryInfo`-Inhalte bleiben deshalb erhalten): (1) die Profilpfade aus `USERPROFILE` und
+  `Path.home()` (auch mit Leerzeichen), (2) jedes Segment direkt unter `<Laufwerk>:\Users`, `/home`
+  und `/Users` außer `Public`, `Default`, `All Users` (deckt abweichende Profilordner und
+  8.3-Kurznamen wie `JAKOBB~1` ab; Registry-Pfade wie `HKCU\Software\Users` bleiben), (3) Werte von
+  Feldern mit Personen- oder Kontonamen (z. B. `SummaryInfo.Author`), dort auch Anmelde- und
+  Profilname als freies Wort. Grenzen: fremde Profile mit Leerzeichen nur bis zum
+  Leerzeichen, Kontonamen sonst (z. B. `DOMAIN\jbusch` im Fließtext) werden nicht erkannt.
+  Bitte den Bericht vor dem Upload kurz durchsehen. Der Rechnername bleibt im Klartext.
 
 ## Ausgabe
 

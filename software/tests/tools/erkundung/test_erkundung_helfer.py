@@ -13,7 +13,6 @@ from typing import Any
 
 import erkundung
 import pytest
-from erkundung import Redactor
 from fake_psv import FakeComError
 
 # --- to_jsonable ------------------------------------------------------------------------
@@ -47,35 +46,6 @@ def test_to_jsonable_wandelt_sonderwerte_in_strenges_json() -> None:
     assert loaded["pfad"] == str(Path("x/y"))
     assert loaded["3"] is None
     assert "object" in loaded["objekt"]
-
-
-# --- Redactor ---------------------------------------------------------------------------
-
-
-def test_redactor_ersetzt_benutzernamen_in_pfaden_und_woertern() -> None:
-    red = Redactor("jakob", True)
-    assert red.text("C:\\Users\\Jakob\\Desktop\\x") == "C:\\Users\\<user>\\Desktop\\x"
-    assert red.text("/home/Users/jakob/x") == "/home/Users/<user>/x"
-    assert red.text("Konto jakob angemeldet") == "Konto <user> angemeldet"
-    assert red.text("jakobs Ordner") == "jakobs Ordner"  # kein freies Wort
-    assert red.apply({"jakob": ["C:\\Users\\jakob", 1, ("t",)], "n": None}) == {
-        "<user>": ["C:\\Users\\<user>", 1, ("t",)],
-        "n": None,
-    }
-
-
-def test_redactor_kurze_namen_nur_in_users_pfaden() -> None:
-    red = Redactor("jo", True)
-    assert red.text("C:\\Users\\jo\\x und jo") == "C:\\Users\\<user>\\x und jo"
-
-
-def test_redactor_schuetzt_rechnernamen_und_kann_deaktiviert_werden() -> None:
-    red = Redactor("jakob", True, protected=["JAKOB-PC"])
-    assert red.text("JAKOB-PC \\Users\\jakob") == "JAKOB-PC \\Users\\<user>"
-    off = Redactor("jakob", False)
-    assert off.text("jakob") == "jakob"
-    assert off.apply({"a": "jakob"}) == {"a": "jakob"}
-    assert Redactor("", True).active is False
 
 
 # --- Exceptions, Dateien, PE ------------------------------------------------------------
