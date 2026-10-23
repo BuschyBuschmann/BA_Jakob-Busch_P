@@ -9,6 +9,7 @@ Hier entsteht die Grundlage der Bachelorarbeit. Jeder Ordner hat eine feste Aufg
 | `entscheidungen/` | Entwurfsentscheidungen mit Alternativen und Begründung (ADR) | `ADR-NNN_<titel>.md` nach `entscheidungen/_vorlage.md` |
 | `versuche/` | Versuchsprotokolle: Aufbau, Parameter, Rohdaten, Softwareversion | `JJJJ-MM-TT_<versuch>/` |
 | `anforderungen/` | Lastenheft (R-IDs, Muss/Soll/Kann) und Nachverfolgungsmatrix | `lastenheft.md`, `nachverfolgung.md` |
+| `analysen/` | Analyseberichte der Arbeitsgruppe (z. B. Sichtung von Unterlagen) mit Belegen | `JJJJ-MM-TT_<paket>_<thema>.md` |
 | `planung/` | Gliederung, Zeitplan, Statuschecks, Agenden für Betreuertermine | siehe `/ba-planung` |
 | `fachgrundlagen/` | Herleitungen, Formeln mit Einheiten, analytische Referenzfälle | `<thema>.md` |
 | `literatur/` | `literatur.bib` und Literaturnotizen (nur nachweisbare Quellen) | `<bibkey>.md` |
