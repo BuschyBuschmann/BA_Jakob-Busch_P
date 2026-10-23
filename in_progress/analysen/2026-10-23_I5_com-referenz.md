@@ -2,6 +2,19 @@
 
 # Referenz: COM-Schnittstelle der PSV-Software und Polytec File Access
 
+> **Überarbeitet am 2026-10-23 nach Fachprüfung I5-F** (`2026-10-23_I5F_fachpruefung-com-referenz.md`,
+> Korrekturpaket K1): M1 Frequenzachse bei Von/Bis (2.5, 4.4); M2 Skalierung und Phasenbezug (4.4);
+> M3 Metadaten-Ergänzungsliste und Ersatz der Aussage zur vollständigen Dokumentation (6);
+> M4 Machbarkeitstabelle und Voraussetzungen für U6 (9, 9.1); m1–m12 an den jeweiligen Stellen
+> (2.5, 4.3, 4.4, 6); neue Prüfpunkte für den Messrechner (10). Die
+> Polytec-Konventionen in `KONVENTIONEN.md` (Frequenzachse aus `XAxis`, Spektrenskalierung und
+> Phasengültigkeit, getrennte Vorzeichenregel) sind berücksichtigt. Neu belegte Aussagen sind mit
+> „(I5-F)“ gekennzeichnet, wenn der Beleg aus der Fachprüfung übernommen und nicht selbst
+> nachgeprüft wurde; stichprobenartig nachgeprüft sind die Aussagen zu Von/Bis ([HB] 7-16/7-17),
+> Frame-Semantik, `WindowFunctionParams` (read-only), `BurstStart` (Long) / `BurstStartEx`
+> (Double), `PhaseFromRef`, `SaveTimeDataForScan`, Overrange-Mittelung ([HB] 7-6), IEPE/Inv.
+> ([HB] 7-11/7-12).
+
 **Zweck.** Dieses Dokument ist die Arbeitsgrundlage für Anforderungen, Architektur und
 Umsetzung des Python-3.11-Pakets, das den Messablauf eines PSV-QTec-3D automatisiert.
 Es soll ohne die CHM-Dateien nutzbar sein. Es vertieft den Analysebericht I1
@@ -348,19 +361,34 @@ Trigger 10, Vibrometers 11, ZoomFft 12, FrontEnd 14 ([BEM] POLYPROPERTIESLib~PTC
 | Property | Typ | Zugriff | Einheit, Bereich |
 |---|---|---|---|
 | `Bandwidth` | Double | rw | Hz |
-| `StartFrequency` | Double | rw | Doku nennt keine Einheit („The start frequency of the FFT“); Hz [Einschätzung, analog `EndFrequency`] |
-| `EndFrequency` | Double | rw | Hz |
-| `Lines` | Long | rw | Anzahl FFT-Linien; in der GUI bis 819 200 ([HB] 7-17, PDF 225) |
+| `StartFrequency` | Double | rw | „Von“ der GUI; Doku nennt keine Einheit („The start frequency of the FFT“); Hz [Einschätzung, analog `EndFrequency`]. Schränkt den ausgewerteten Bereich ein ([HB] 7-16/7-17) |
+| `EndFrequency` | Double | rw | „Bis“ der GUI, Hz |
+| `Lines` | Long | rw | Anzahl FFT-Linien im **Vollbereich** (Gesamtzahl); in der GUI bis 819 200 ([HB] 7-17, PDF 225). Bei eingeschränktem Von/Bis entspricht die angezeigte Linienzahl nur dem Bereich zwischen Von und Bis ([HB] 7-17), siehe 4.4 |
 | `Overlap` | Long | rw | % ; nur bei Mittelung ohne Trigger wirksam ([HB] 7-17) |
-| `SampleFrequency` | Double | rw | Hz |
+| `SampleFrequency` | Double | rw | Hz; laut BEM rw, hängt aber von der Bandbreite ab (Gl. 7.1/7.2). Setzverhalten **[offen]** |
 | `SampleResolution` | Double | r | Frequenzauflösung Δf in Hz |
 | `Samples` | Long | rw | setzen nur im Modus MultiFrame |
 | `SampleTime` | Double | r | Messzeit (s laut Zoom-FFT-Thema; hier ohne Einheit) |
 | `FftAcqPropertiesValidator` | `FftAcqPropertiesValidator` | rw | siehe 2.6 |
 
 Die Formeln für Abtastfrequenz, Messzeit und Auflösung stehen in [HB] 7-17 (Gl. 7.1–7.4).
-Sie sind dort nur als Grafik enthalten und im Textauszug nicht lesbar. Die Werte liefert
-die Schnittstelle direkt (`SampleFrequency`, `SampleTime`, `SampleResolution`).
+Sie sind dort nur als Grafik enthalten und im Textauszug nicht lesbar; die Fachprüfung I5-F
+hat sie als Bild der PDF-Seite 225 gelesen (I5-F):
+- Abtastfrequenz $f_\mathrm{Abtast} = 2{,}5\cdot BW$ für alle Systeme außer den M-Systemen,
+  $2{,}56\cdot BW$ für die M-Systeme (Gl. 7.1/7.2).
+- Messzeit $t_\mathrm{Mess} = n_\mathrm{FFT}/BW$ (Gl. 7.3).
+- Auflösung $\Delta f = 1/t_\mathrm{Mess} = BW/n_\mathrm{FFT}$ (Gl. 7.4).
+- Prüfwerte (nachgerechnet in I5-F): $BW = 5000$ Hz, 400 Linien ergeben $\Delta f = 12{,}5$ Hz,
+  $f_\mathrm{Abtast} = 12\,500$ Hz, $t_\mathrm{Mess} = 0{,}08$ s, $N = 1000$ Abtastwerte.
+- Ob der PSV-QTec-3D(-H) als Nicht-M-System (2,5·BW) arbeitet, ist nur indirekt über die
+  H-System-Zuordnung belegt **[ungeprüft]**; Gegenprobe am Gerät über `SampleFrequency` und
+  `SampleResolution` (P1-11).
+- $N = 2{,}5\cdot n_\mathrm{FFT}$ ist keine Zweierpotenz (TM 3-3) **[offen]**.
+- **Sollwert-Strategie [Einschätzung]:** Nur `Bandwidth` und `Lines` (bzw. Von/Bis) setzen und die
+  abgeleiteten Größen (`SampleFrequency`, `SampleResolution`, `SampleTime`) zurücklesen und gegen
+  die Formeln prüfen. Die Werte liefert die Schnittstelle direkt.
+- Bei **Zoom-FFT** gilt eine andere Frequenzachse (Mittenfrequenz `CenterFrequency`); die
+  Formeln oben und die Achsenregel in 4.4 gelten nur für den Modus FFT (m4).
 
 **Zeit** (`TimeAcqProperties`, [BEM] PSV~TimeAcqProperties_members): `SampleFrequency`
 (Hz, rw), `Samples` (rw), `SampleResolution` (s, r), `SampleTime` (s, r),
@@ -377,9 +405,13 @@ Dateigröße > aktive Kanäle · Abtastpunkte · 4 Byte ([HB] 7-34, PDF 242).
   Das Handbuch nennt keine Untergrenze ([HB] 7-5). Ob Werte unter 3 abgewiesen werden,
   ist am Gerät zu prüfen. **[offen]**
 - `Type` rw (`PTCAverageType`: Off 0, Magnitude 1, Complex 2, Time 3, Peakhold 4).
+- `Magnitude` heißt in der GUI „Amplitude“ und ist die Betragsmittelung ohne Phase (I5-F).
 - Fachliche Hinweise aus der GUI: Komplexmittelung bei Referenz oder Trigger bzw.
   deterministischer Anregung; Mittelung Zeit nur getriggert; Overrange-Spektren werden
-  verworfen ([HB] 7-5/7-6, PDF 213/214).
+  bei der Mittelung nicht berücksichtigt ([HB] 7-5/7-6, PDF 213/214). **Ausnahme** ([HB] 7-6):
+  Haben alle bisher erfassten Spektren den Status Overrange, werden sie zunächst gemittelt
+  und angezeigt. Beim ersten Spektrum ohne Overrange wird der Mittelungszähler zurückgesetzt
+  und die bisherigen Overrange-Spektren werden verworfen. Überlappung wirkt nur ohne Trigger.
 
 **Allgemein** (`GeneralAcqProperties`, [BEM] PSV~GeneralAcqProperties_members)
 
@@ -388,7 +420,7 @@ Dateigröße > aktive Kanäle · Abtastpunkte · 4 Byte ([HB] 7-34, PDF 242).
 | `AutoRemeasure` | rw | automatisches Nachmessen nach dem Scan |
 | `AutoRemeasureAutoRange` | rw | bei Overrange Vibrometerbereich anpassen; braucht `AutoRemeasure = True`; verwendeter Bereich je Punkt in `MeasPoint.VibrometerRange` |
 | `IsAutoRemeasurePossible` | r | ob Nachmessen möglich ist |
-| `SaveTimeDataForScan` | rw | Zeitdaten zusätzlich speichern (FFT, FastScan); setzt SE auf „Fast“ |
+| `SaveTimeDataForScan` | rw | Zeitdaten zusätzlich speichern (FFT, FastScan); setzt SE auf „Fast“. Ob diese Property wie der Messmodus Zeit die Option TDD voraussetzt, ist **[offen]** (Prüfpunkt P3-6) |
 | `PrincipalComponentAnalysis` | rw | MIMO/PCA (Option PCA, [HB] 7-7) |
 | `RealSampleFrequency` | rw | Roh-Abtastrate vor Dezimierung, Hz [Einschätzung] |
 | `BandWidthExtension` | rw | nur UHF |
@@ -402,15 +434,15 @@ Overrange, bei aktivem SE auch Gültig ([HB] 7-6, PDF 214).
 | Property | Zugriff | Einheit/Bedeutung |
 |---|---|---|
 | `Active`, `Reference` | rw | Kanal aktiv; Kanal ist Referenz |
-| `ReferencePointIndex` | rw | 1-basierter Scanpunkt der Referenz, wird für UFF/ME'Scope-Export von FRF genutzt |
+| `ReferencePointIndex` | rw | 1-basierter Scanpunkt der Referenz; laut BEM nur beim UFF-/ME'Scope-Export von FRF und CP benutzt. Für die Modalanalyse ist er die Bezugs-DOF der Anregung, zusammen mit `DirectionOfVibration` des Referenzkanals in die Metadaten aufnehmen (I5-F, Abschnitt 6) |
 | `InputRange` | rw | **V** |
-| `Calibration` | rw | Kalibrierfaktor in SI (Messwert je 1 V, [HB] 7-12) |
+| `Calibration` | rw | Kalibrierfaktor in SI (Messwert je 1 V, [HB] 7-12). Bei Vibrometerkanälen automatisch je Messbereich gesetzt. Negative Faktoren und die GUI-Option „Inv.“ (Kehrwert) sind erlaubt ([HB] 7-12, selbst geprüft); beides ist vorzeichenrelevant für Kraft und Phase. Ob „Inv.“ eine eigene Property ist, ist **[ungeprüft]** |
 | `Quantity` / `Unit` | rw / r | physikalische Größe (`PTCPhysicalQuantity`), Einheit als Text |
 | `IntDiffPhysicalQuantity` | rw | Größe nach Integration/Differentiation; gleich `Quantity` = keine |
 | `DirectionOfVibration` | rw | `PTCVibrationDirection` (+Z 0 … 3D-Vektor 6) |
-| `WindowFunction`, `WindowFunctionParams`, `WindowFunctionRMSCorrection` | rw, r, r | Fensterfunktion (nur FFT, Zoom-FFT, MultiFrame) |
+| `WindowFunction`, `WindowFunctionParams`, `WindowFunctionRMSCorrection` | rw, **r**, r | Fensterfunktion (nur FFT, Zoom-FFT, MultiFrame). `WindowFunctionParams` ist laut BEM read-only (Double-Array, [BEM] PSV~ChannelAcqProperties~WindowFunctionParams, selbst geprüft). Ob Parameter von Tapered Hanning, Kraft- und Exponentialfenster per COM setzbar sind (z. B. über den Properties-Container), ist **[offen]**, Prüfpunkt P2-13 |
 | `DigitalFilter` | rw | `DigitalFilterLowpass/Highpass/Bandpass/Notch/None` |
-| `InputCoupling`, `InputImpedance` (Ω), `ICPInput`, `DifferentialInput` | rw | Hardware-Eingang |
+| `InputCoupling`, `InputImpedance` (Ω), `ICPInput`, `DifferentialInput` | rw | Hardware-Eingang. Der Vibrometerkanal ist fest DC-gekoppelt. IEPE an einem Referenzkanal schaltet automatisch auf AC-Kopplung mit analogem Hochpass um; die Einschwingzeit beträgt bis zu 1 min, währenddessen wird Overrange angezeigt, relevant für Kraftkanäle bei tiefen Frequenzen ([HB] 7-11/7-12, selbst geprüft für IEPE/AC) |
 | `SignalDelay` | rw | s; Phasenkorrektur zwischen Vibrometer- und Referenzkanälen |
 | `SEActive` | rw | Signal Enhancement je Kanal |
 | `Name`, `ShortName` (≤ 4 Zeichen), `Type` (`PTCChannelType`), `VibrometerIndex` (r, 1-basiert, 0 = kein Vibrometer) | – | Beschreibung |
@@ -434,8 +466,10 @@ Overrange, bei aktivem SE auch Gültig ([HB] 7-6, PDF 214).
 **Trigger** (`TriggerAcqProperties`, [BEM] PSV~TriggerAcqProperties_members): `Source`
 (`PTCTriggerSource`: Off 0, External 1, Analog 2, Internal 3), `Edge` (Rising 0,
 Falling 1), `Level` (% von −99 bis 99), `AnalogSourceChannel`, `PreTrigger` (% im
-Bereich `PreTriggerMin`…`PreTriggerMax`), `PreTriggerPossible`, `PhaseFromRef`. Externer
-Trigger 0 bis 5 V TTL ([HB] 7-22, PDF 230).
+Bereich `PreTriggerMin`…`PreTriggerMax`), `PreTriggerPossible`, `PhaseFromRef` (rw; legt
+fest, ob bei aktivem Trigger die Phase der Antwortkanäle aus der Phase der FRF zum ersten
+Referenzkanal bestimmt wird, [BEM] PSV~TriggerAcqProperties~PhaseFromRef, selbst geprüft;
+Bedeutung für den Phasenbezug siehe 4.4). Externer Trigger 0 bis 5 V TTL ([HB] 7-22, PDF 230).
 
 **Generator** (`GeneratorsAcqProperties.Item(1)` → `GeneratorAcqProperties`;
 höchstens ein Generator, [BEM] PSV~GeneratorsAcqProperties~Count;
@@ -456,13 +490,17 @@ Signalformen ([BEM] POLYWAVEFORMSLib; Parameter in Hz bzw. s):
 - `WaveformSine.Frequency`
 - `WaveformSweep.StartFrequency`, `EndFrequency`, `SweepTime`
 - `WaveformBurstChirp.StartFrequency`, `EndFrequency`, `BurstStart`, `BurstLength`
-  (in % der Messzeit)
-- `WaveformPeriodicChirp`, `WaveformPseudoRandom` und `WaveformWhiteNoise` haben keine
-  eigenen Parameter. Sie regen nur im Bereich `StartFrequency`…`EndFrequency` der
-  FFT-Einstellung an ([HB] 7-16, 7-31; PDF 224, 239).
+  (Typ `Long`, ganzzahlige Prozent) sowie `BurstStartEx`, `BurstLengthEx` (Typ `Double`,
+  „in percent“; [BEM] POLYWAVEFORMSLib~WaveformBurstChirp, selbst geprüft). „In % der Messzeit“
+  nennt das BEM nicht ausdrücklich **[ungeprüft]**.
+- `WaveformPeriodicChirp`, `WaveformPseudoRandom`, `WaveformWhiteNoise` und
+  `WaveformBurstRandom` haben laut BEM keine eigenen Parameter (BurstRandom: I5-F). Sie regen
+  nur im Bereich `StartFrequency`…`EndFrequency` der FFT-Einstellung an ([HB] 7-16, 7-31;
+  PDF 224, 239).
 - Im Modus FastScan wird immer mit Sinus auf der FastScan-Frequenz angeregt ([HB] 7-30).
-- Bei 50-Ω-Abschluss ist die Ausgangsspannung nur halb so groß wie eingestellt
-  ([HB] 7-32, PDF 240).
+- Die Amplitude ist der Spitzenwert bei hochohmigem Abschluss; bei 50-Ω-Abschluss ist die
+  Ausgangsspannung nur halb so groß wie eingestellt ([HB] 7-32, PDF 240). Der Abschluss ist
+  per COM nicht lesbar und gehört ins manuelle Protokoll (Abschnitt 6).
 
 **Signal Enhancement** (`SEAcqProperties`): `Mode` (`PTCSignalEnhancementMode`: Fast 0,
 FastStandard 1, Standard 2, StandardBest 3, Best 4), `SpeckleTracking`
@@ -717,6 +755,11 @@ Die Sequenzen geben den belegten Weg an. Die Python-Umsetzung ist **[ungeprüft]
   Benutzerkanal „Usr“.
 - Signale: „Velocity“, „Displacement“, „FRF Velocity/Voltage“, H1/H2, Kohärenz u. a.
   ([BEM] Access to Data).
+- **FRF-Signale und Kombikanäle (I5-F, SWP Tab. 3.2, 3-31):** FRF, H1, H2, Kohärenz und
+  Kreuzspektrum (CP) liegen in Kombikanälen („Vib & Ref n“, „Vib 3D & Ref 1“) und sind nur
+  vorhanden, wenn ein Referenzkanal aktiv war. Die Signalnamen tragen die Einheit der Referenz
+  (z. B. „H1 Geschwindigkeit/Spannung“). Referenzgröße und -einheit sind über
+  `SignalDescription` (`ReferenceDOFs`, `YAxis.Unit`) zu prüfen, nicht aus dem Namen zu raten.
 - **Build-Flags:** Standard bei `GetPointDomains` ist `ptcBuildPointDataXYZ` (723775) mit
   den Kanälen Vib X/Y/Z. `ptcBuildPointData3d` (722751) erzeugt „Vib 3D“
   ([BEM] POLYFILELib~PolyFile~GetPointDomains; POLYSIGNALLib~PTCSignalBuildFlags).
@@ -728,7 +771,8 @@ Die Sequenzen geben den belegten Weg an. Die Python-Umsetzung ist **[ungeprüft]
   - `ptcDisplaySamples` (12, Zeitdaten)
   - Quelle: [BEM] POLYSIGNALLib~PTCDisplayType.
 - `Signal.Description` (`SignalDescription`) liefert: `DomainType`, `FunctionType` (z. B.
-  H1 = 300, H2 = 301, Kohärenz = 6, Kreuzspektrum = 3, Zeit = 1), `Complex`, `XAxis`
+  H1 = 300, H2 = 301, Kohärenz = 6, Kreuzspektrum = 3, Zeit = 1, Spectrum = 12, FRF = 4;
+  dazu die PCA-Typen 302–304, relevant für U6, siehe Abschnitt 8), `Complex`, `XAxis`
   (Name, Unit, Min, Max, MaxCount), `YAxis` (Name, Unit), `ResponseDOFs`/`ReferenceDOFs`
   mit `Node`, `Direction`, `Quantity`, `Unit`, `RMSCorrectionFactor`
   ([BEM] POLYSIGNALLib~SignalDescription; POLYSIGNALLib~PTCFunctionType; POLYSIGNALLib~DegreeOfFreedomID).
@@ -740,17 +784,29 @@ Die Sequenzen geben den belegten Weg an. Die Python-Umsetzung ist **[ungeprüft]
 Belegt ([BEM] Access to Data; POLYFILELib~DataPoint~GetData, ~Get3DData, ~GetDataSection):
 - Rückgabe ist ein **0-basiertes Array aus Single (float32)**.
 - **Zeitmodus:** Abtastwerte der letzten Mittelung, Index 0 … Samples−1.
-- **FFT:** gemitteltes Spektrum ab **Linie 1 (Index 0)** bis Linie Lines (Index Lines−1).
+- **FFT:** gemitteltes Spektrum ab **Linie 1 (Index 0)** bis Linie Lines (Index Lines−1)
+  ([BEM] Access to Data). `Lines` ist dort die Gesamtzahl der Linien im Vollbereich. Bei
+  eingeschränktem Frequenzbereich (Von/Bis) siehe die Regel unter „Frequenzachse“ unten:
+  die Datenlänge kann kleiner als `Lines` sein.
 - **Zwei Größen** (Real & Imag., Mag. & Phase) liegen **verschränkt**: gerade Indizes
   Real bzw. Betrag, ungerade Imag bzw. Phase.
 - **3D-Kanal** (`ptcChannelCapsVector`): erst alle x-, dann alle y-, dann alle z-Werte.
   `Get3DData` füllt bei 1D-Quellen die fehlenden Richtungen mit Nullen.
-- **Frame:** 0 außer bei MultiFrame (0 = Mittelwert-Frame) und Benutzersignalen
-  (Frames 1…12). Fehlt der Frame, kommt ein leeres Array ohne Fehler ([BEM] Access to
-  Data, „Access to User-Defined Data“). → Leeres Array im Adapter als Fehler behandeln
-  [Einschätzung].
-- `GetDataSection(Display, Frame, Average, First, Last)` liefert einen Ausschnitt und
-  einzelne Zeitblöcke der Mittelung (`Average` 1…`AverageCount`).
+- **Frame:** Der Frame ist 0, außer in folgenden Fällen ([BEM] POLYFILELib~DataPoint~GetData,
+  selbst geprüft):
+  - **MultiFrame-Modus:** Frame 0 ist der „average frame“, die weiteren Frames sind 1…Anzahl
+    der Frames. „Mittelwert-Frame“ hat nichts mit der FFT-Mittelung zu tun.
+  - **PCA-Signale:** Principal Inputs und Virtual Coherences haben die Frames
+    1…Anzahl der Referenzkanäle.
+  - **Benutzersignale:** Frames 1…12.
+  Fehlt der Frame, kommt ein leeres Array ohne Fehler ([BEM] Access to Data, „Access to
+  User-Defined Data“). → Leeres Array im Adapter als Fehler behandeln [Einschätzung].
+- `GetDataSection(Display, Frame, Average, First, Last)` liefert einen Ausschnitt. Mit
+  `Average` (1…`AverageCount`) liefert sie die Einzelblöcke (Zeitspuren) der FFT-Mittelung,
+  aber nur für Zeitsignal-Displays von FFT-Messungen, also nur, wenn Zeitdaten gespeichert
+  wurden (`SaveTimeDataForScan`/Modus Zeit). Ein Average > 1 ist nur für Zeitspuren aus einem
+  Messmodus mit FFT-Mittelung gültig ([BEM] POLYFILELib~DataPoint~GetDataSection, selbst
+  geprüft).
 - **Punktmittel:** `GetPointAverageDomains` → `PointAverageDomain.GetData`. Es ist das
   Mittel über alle gültigen Punkte, laut PFA nur als Amplitudenmittel; ein komplexes
   Punktmittel fehlt in PSV ([BEM] Access to Data; [PFA] Examples, ComplexPointAverage).
@@ -763,15 +819,60 @@ Belegt ([BEM] Access to Data; POLYFILELib~DataPoint~GetData, ~Get3DData, ~GetDat
 **Frequenzachse:**
 - `PointDomain.GetXAxis(Display)` → `XAxis` mit `Min`, `Max`, `MaxCount`, `Unit` und
   `GetLeftX/GetMidX/GetRightX(i)` ([BEM] POLYFILELib~PointDomain~GetXAxis; POLYFILELib~XAxis).
+- **Von/Bis-Regel (M1, KONVENTIONEN):**
+  - Die Frequenzachse wird **immer aus `XAxis`** gebildet (`Min`, `Max`, `MaxCount`,
+    `GetMidX(i)`), nie aus $\Delta f\cdot\mathrm{arange}(1, n+1)$ angenommen.
+  - Begründung: Mit eingeschränktem Bereich ($\mathrm{Von} \ne 0$ oder $\mathrm{Bis} \ne BW$)
+    kann die gespeicherte Datenlänge kleiner als `Lines` sein ([HB] 7-16/7-17: „Von, Bis: Sie
+    können den Frequenzbereich einschränken, der angezeigt und ausgewertet wird“; „Die
+    angezeigte Anzahl von FFT-Linien entspricht dem Frequenzbereich zwischen Von und Bis“,
+    selbst geprüft). Dann wäre die angenommene Achse um den Index der ersten Linie
+    verschoben. Ob die Datei nur den Teilbereich enthält, ist aus der Doku nicht belegbar
+    **[offen]**, Prüfpunkt P1-11.
+  - Rechenbeispiel (I5-F): $BW = 5000$ Hz, 400 Linien ($\Delta f = 12{,}5$ Hz), Bereich
+    1000–4000 Hz ergibt 241 Linien von 1000 bis 4000 Hz ($k_\mathrm{min} = 80$,
+    $k_\mathrm{max} = 320$).
+  - Prüfregel im Adapter: Die Datenlänge (Anzahl komplexer Werte) muss `XAxis.MaxCount`
+    entsprechen; $\Delta f$ aus `SampleResolution` (bzw. $BW/\mathrm{Lines}$) bestimmen; der
+    Linienindex $k = f/\Delta f$ wird mitgeführt, `MaxCount` mal $\Delta f$ muss zum Bereich
+    passen; Abweichungen sind ein Fehler, keine stille Korrektur.
+  - Von/Bis (`StartFrequency`, `EndFrequency`) gehören in die Metadaten (Abschnitt 6).
+  - Die KONVENTIONEN-Formel lautet entsprechend $k = k_\mathrm{min}\dots k_\mathrm{max}$, im
+    Vollbereich $1\dots n_\mathrm{FFT}$.
+- **Achsenarten (m4):** Diese Frequenzachse gilt nur für den Modus FFT. Zoom-FFT hat eine
+  andere Achse (Mittenfrequenz `CenterFrequency`). Für Zeitdaten gilt
+  $\Delta t = 1/f_\mathrm{Abtast}$ mit $f_\mathrm{Abtast} = 2{,}5\cdot BW$ (M-Systeme 2,56·BW,
+  siehe 2.5); `XAxis.Unit` ist dann s [Einschätzung; Einheit am Gerät prüfen].
 - **Neuer Beleg zur KONVENTIONEN-Annahme:** Das Matlab-Beispiel zeigt für ein FFT-Signal
   `XMin = 12.5`, `XMax = 5000`, `XCount = 400`, Einheit Hz ([PFA-M] Folie 8; x als
   1×400 mit Minimum 12,5 auf Folie 9). Das passt genau zu $f_k = k\,\Delta f$ mit
   $k = 1\dots400$ und $\Delta f = 5000/400 = 12{,}5$ Hz: $(5000-12{,}5)/399 = 12{,}5$
-  (nachgerechnet). DC ist nicht enthalten.
+  (nachgerechnet, in I5-F bestätigt). DC ist nicht enthalten. Die Bandbreite ist auf der Folie
+  nicht sichtbar; es gilt daher nur „konsistent mit“, nicht „bewiesen“.
 - Ob `XMin`/`XMax` Bin-Mitten sind, sagt die Doku nicht. **Empfehlung [Einschätzung]:**
   Die Achse im Adapter aus `GetMidX(i)` bzw. `Min/Max/MaxCount` bilden und gegen
   $k\,\Delta f$ mit `rtol` prüfen, statt sie zu berechnen. Die Konvention bleibt
-  „vorläufig“, bis eine reale Datei vorliegt (P1-10).
+  „vorläufig“, bis eine reale Datei vorliegt (P1-11).
+
+**Skalierung und Phasenbezug (M2).** Die folgenden Punkte stammen aus I5-F (Quellen dort:
+I2 §1.2/§3.3/§3.8, TM 3-3 und Tab. 6.1, Matlab-Folie 9) und sind **nicht** von mir an der
+Originalquelle nachgeprüft; an einer realen Datei zu bestätigen:
+- **Skalierung:** Die Spektren sind einseitig und amplitudentreu auf die Spitzenamplitude
+  (0-to-peak, Fensterkorrektur) skaliert. Die Matlab-Folie 9 zeigt „Amplitude in m/s“. Eine
+  falsch angenommene Skalierung (RMS statt Spitzenwert) würde ODS-Auswertung und alle
+  Sollwert-Tests verfälschen.
+- **Bedeutung der komplexen Daten:** Real/Imag entsprechen $A\,e^{i\varphi_0}$ bei der
+  Zeitabhängigkeit $e^{+i\omega t}$, also $A\cos(\omega t + \varphi_0)$ (KONVENTIONEN).
+- **Einheiten je Spektrenart:** Autospektrum (AP) hat die Einheit (Einheit)², PSD zusätzlich
+  pro Hz, FRF den Quotienten der Einheiten. Die Einheit wird aus `YAxis.Unit` gelesen.
+- **Phasenbezug:** Phase ist nur mit Referenz oder Trigger definiert (TM Tab. 6.1). Mit
+  Referenz gilt die Phase relativ zur Referenz, mit Trigger ohne Referenz relativ zum
+  Fensteranfang. Bei Betragsmittelung wird die Phase nachträglich aus dem Kreuzspektrum
+  zugewiesen. Mit `PhaseFromRef` (bei aktivem Trigger) wird die Phase der Antwortkanäle aus
+  der FRF zum ersten Referenzkanal bestimmt ([BEM] PSV~TriggerAcqProperties~PhaseFromRef).
+- **Pflichtmetadaten je Messung:** Mittelungstyp, Trigger, Referenzkanäle, `PhaseFromRef`,
+  Fenster (Abschnitt 6). **Ohne Referenz und ohne Trigger darf der Adapter keine Phase als
+  gültig kennzeichnen** (KONVENTIONEN).
 
 **Umrechnung (Vorschlag für den Adapter [Einschätzung], konform zu KONVENTIONEN):**
 
@@ -780,10 +881,23 @@ Belegt ([BEM] Access to Data; POLYFILELib~DataPoint~GetData, ~Get3DData, ~GetDat
 | Single-Array (float32) | `np.asarray(x, dtype=np.float32).astype(np.float64)`; die Umwandlung float32→float64 ist exakt, mehr Genauigkeit entsteht aber nicht |
 | Real&Imag verschränkt | `z = a[0::2] + 1j*a[1::2]` → `complex128` |
 | Mag&Phase (Grad) | vermeiden; falls nötig `ptcDisplayMagPhaseRad` oder Real/Imag verwenden |
-| 3D xyz hintereinander | `a.reshape(3, n)` bzw. bei komplex `a.reshape(3, n, 2)` → Achse 0 = x, y, z im Objektkoordinatensystem des 3D-Abgleichs (KONVENTIONEN) |
+| 3D xyz hintereinander | `a.reshape(3, n)` bzw. bei komplex `a.reshape(3, n, 2)` → Achse 0 = x, y, z im Objektkoordinatensystem des 3D-Abgleichs (KONVENTIONEN). Belegt ist das Layout für den Vektorkanal (`GetData` auf „Vib 3D“, `Get3DData`). Für 3D nur Real&Imag verwenden und den Betrag selbst berechnen (siehe unten) |
 | 1-basierte Punkte | interner Index `i0 = index - 1`; `label` und `index` mitführen |
 | Einheit | aus `YAxis.Unit`/`Signal.Description.YAxis.Unit` lesen und prüfen (z. B. „m/s“), nicht annehmen |
-| Frequenzachse | aus `XAxis` (Hz), Abgleich gegen $k\,\Delta f$ |
+| Frequenzachse | aus `XAxis` (Hz), Abgleich gegen $k\,\Delta f$; Datenlänge gegen `MaxCount` prüfen (Von/Bis, siehe oben) |
+| Phase | nur mit Referenz oder Trigger als gültig kennzeichnen (siehe „Skalierung und Phasenbezug“) |
+
+**3D-Komponenten, Betrag und Vorzeichen (m2).**
+- Ob die Displays Betrag/Phase auf einem Vektorkanal den Vektorbetrag oder je Komponente
+  liefern, ist nicht belegt **[offen]**. I2 nennt $A=\sqrt{A_x^2+A_y^2+A_z^2}$ mit „Phase nicht
+  verfügbar“; eine Quelle dazu fand die Fachprüfung im Textextrakt nicht (I5-F). Deshalb für 3D
+  nur Real&Imag lesen und den Betrag im Adapter selbst berechnen.
+- **Vorzeichen getrennt** (KONVENTIONEN): Bei Kanälen je Scankopf (1D) bedeutet positive
+  Geschwindigkeit Bewegung in Richtung Scankopf (KA 2-32). Für X/Y/Z gilt positiv = entlang
+  der Achse des 3D-Koordinatensystems; das ist nur über `PTCVibrationDirection` (+X/+Y/+Z)
+  indirekt gestützt **[ungeprüft]**, am Gerät zu bestätigen (P1-12).
+- Die Mess-Koordinatendefinition (`CoordDefinitionMode`, Abschnitt 8) gehört in die
+  Metadaten (Abschnitt 6).
 
 ### 4.5 Geometrie, Punktstatus und Mesh
 
@@ -940,8 +1054,9 @@ Belegt ([BEM] Access to Data; POLYFILELib~DataPoint~GetData, ~Get3DData, ~GetDat
 
 ## 6 Reproduzierbarkeits-Metadaten
 
-Ziel (U3): Jede Messung soll vollständig dokumentiert sein. Die Tabelle nennt, was per
-COM bzw. PolyFile auslesbar ist. Ergänzend kommen Git-Hash und Paketversion aus unserer
+Ziel (U3): Jede Messung soll vollständig dokumentiert sein. Die erste Tabelle nennt, was per
+COM bzw. PolyFile auslesbar ist; die Ergänzungsliste danach (Fachprüfung I5-F) führt weitere
+reproduzierbarkeitskritische Größen mit ihrer Verfügbarkeit. Ergänzend kommen Git-Hash und Paketversion aus unserer
 Software dazu (KONVENTIONEN).
 
 | Information | Quelle zur Laufzeit (COM) | Quelle in der Datei (PolyFile) | Beleg |
@@ -966,14 +1081,46 @@ Software dazu (KONVENTIONEN).
 | Fokus | `MeasPoint.FocusValues/FocusStatus` | gleich | [BEM] POLYFILELib~MeasPoint~FocusStatus |
 | Generator, Signalform | `GeneratorsProperties(1)`: `Amplitude` (V), `Offset`, `SteadyStateTime`, `Waveform` + Parameter | `AcquisitionInfoModes.ActiveProperties.GeneratorsProperties(1).Waveform` | [BEM] POLYPROPERTIESLib~GeneratorAcqPropertiesContainer, Beispiel |
 | Kanalkalibrierung | `ChannelAcqProperties.Calibration`, `Unit`, `InputRange`, `Quantity`, `SignalDelay`, `WindowFunction` | Container gleich | [BEM] PSV~ChannelAcqProperties |
-| Signalpegel vor dem Scan | `GetSignalAmplitudes([])` (%), `SensorHead.SignalLevel` (%) | – | [BEM] PSV~Acquisition~GetSignalAmplitudes |
+| Aussteuerung je Kanal vor dem Scan | `GetSignalAmplitudes([])` (% des Maximalpegels; Aussteuerung vor der Koordinatentransformation) | – | [BEM] PSV~Acquisition~GetSignalAmplitudes; [HB] 4.1.2.2 (I5-F) |
+| Optischer Signalpegel des Lasers je Kopf (andere Größe als die Aussteuerung) | `Infos.Vibrometers(1).Controllers(0).SensorHeads(0).SignalLevel` (%) | – | [BEM] Access to General Information; Polytec_IO_VibInterfaces~ISensorHead~SignalLevel |
 | Videobild | `ExportVideoSnapshotEx` | `Infos.VideoBitmap` | [BEM] POLYFILELib~VideoBitmap |
 | Lizenzierte Optionen, Seriennummer PSV | **nicht per COM belegt**; GUI: Hilfe > PSV Info > Optionen | – | [HB] 2-28 |
 | Dateiinformation als Text | **nicht per COM belegt**; GUI: Datei > Info > ASCII-Export (`ScanInfo.txt`) | – | [HB] 10-2 |
 
+### Ergänzungsliste (nach Fachprüfung I5-F, M3)
+
+Verfügbarkeit: **COM** = per COM zur Laufzeit lesbar, **Datei** = per PolyFile/Messdatei
+lesbar, **nein** = nur manuelles Protokoll, **[U]** = in der Doku nicht belegt (entspricht
+[ungeprüft]/[offen]). Spalte „Warum“: I2 §2.3 bzw. Plausibilitätskriterium P1–P17 aus I2. Belege
+mit „(I5-F)“ stammen aus der Fachprüfung und sind nicht erneut nachgeprüft.
+
+| Größe | Warum | Verfügbarkeit laut Doku | Beleg |
+|---|---|---|---|
+| Von/Bis (`StartFrequency`, `EndFrequency`), Bandbreite, Lines; abgeleitet $f_\mathrm{Abtast}$, $\Delta f$, $t_\mathrm{Mess}$, Overlap | Frequenzachse, P5 | COM und Datei (`AcquisitionInfoModes`) | [BEM] PSV~FftAcqProperties; [HB] 7-16/7-17; 2.5 |
+| Mittelungstyp und -anzahl, `AverageCount` je Punkt, SE-Modus, Speckle Tracking, `SignalEnhancement` je Kanal (`SEActive`) | effektive Mittelungszahl ([HB] 7-25), Phasenbezug | COM und Datei; je Punkt in der Datei `MeasPoint.AverageCount` | [BEM] PSV~AverageAcqProperties, ~SEAcqProperties; POLYFILELib~MeasPoint~AverageCount |
+| Fensterfunktion und Parameter je Kanal, RMS-Korrekturfaktor | P6, Skalierung | COM/Datei lesbar; Parameter schreiben **[offen]** (`WindowFunctionParams` read-only, P2-13) | [BEM] PSV~ChannelAcqProperties |
+| Trigger (Quelle, Flanke, Level, Pretrigger, `PhaseFromRef`) | Phasenbezug, P15 | COM und Datei | [BEM] PSV~TriggerAcqProperties |
+| Referenzkanäle: `Reference`, `Active`, `Quantity`, `Calibration`, `InputRange`, Kopplung (IEPE/AC), `SignalDelay`, Kehrwert („Inv.“) | FRF-Einheit, Phase, Vorzeichen, Verzögerung | COM und Datei; „Inv.“ als Property **[U]** | [BEM] PSV~ChannelAcqProperties; [HB] 7-11/7-12 |
+| `ReferencePointIndex`, `DirectionOfVibration` je Kanal | Anregungs-DOF für die Modalanalyse | COM und Datei | [BEM] PSV~ChannelAcqProperties~ReferencePointIndex |
+| Generator: Signalform und Parameter, Amplitude, Offset, `SteadyStateTime`, Generatorverstärker (`GeneratorAmplifierEnabled/Factor`), Amplitudenkorrektur | Anregungsreproduzierbarkeit | COM und Datei; Verstärkerfaktor in 2.5 (Generator), in der ersten Tabelle oben fehlend | [BEM] PSV~GeneratorAcqProperties, ~FrontEndAcqProperties |
+| Abschlussimpedanz des Generators (50 Ω/hochohmig) | Spannung am Shaker | **nein** (nur manuell protokollieren); Eingangsimpedanz der Karte per COM (`InputImpedance`) | [HB] 7-32 |
+| Messbereich und Filter der Vibrometer, `MaxVelocityRange`, `BandwidthRange`, Trackingfilter | Reproduzierbarkeit, Dropouts | COM und Datei; XML-Format **[U]** | [BEM] Polytec_IO_VibInterfaces~QuantitySettings |
+| Alignment-Details: `CoordDefinitionMode`, `Mirror`, Kopfpositionen (`GetScanHeadPosition`), `ScanHeadDistance`, Qualität je Abgleichpunkt (`Align3DPoint.Quality`) | P3, P4, Koordinatensystem | COM und Datei; in der ersten Tabelle oben nur teilweise | [BEM] POLYALIGNMENTLib~Alignment3D, ~Align3DPoint |
+| Koordinatensystem der Geometrie und Importeinheit (Skalierungsfaktor) | Geometrie | Importfaktor GUI **[U]** | (I5-F) |
+| Strahlgeometrie-Konditionszahl (P4) | Rauschverstärkung 3D | abgeleitet aus Kopfpositionen und Punktkoordinaten (beide COM/Datei); Zerlegungsmatrix selbst nicht dokumentiert **[U]** | (I5-F) |
+| Aussteuerung je Kanal und optischer Signalpegel je Kopf (getrennt) | P16, Signalqualität | COM live (`GetSignalAmplitudes`, `SignalLevel`); Datei nur über Status und `VibrometerRange` **[U]**. H-Systeme arbeiten mit 100 % Aussteuerungsreserve, eine Anzeige über 100 % ist daher kein Clipping ([HB] 8-5, I5-F); die 30–80 %-Regel stammt aus VFC und ist für QTec **[U]** | [BEM] PSV~Acquisition~GetSignalAmplitudes; [HB] 8-5 |
+| Modus und Kamera-/Zoom-Einstellungen | Alignment-Gültigkeit | nicht untersucht (2.4) | – |
+| Zeitpunkt und Zeitzone der Messung; Warmlaufbeginn (30 min bzw. 120 min, KA S. 46) | P13 | `FileTime` ja, Zeitzone **[offen]**; Warmlaufbeginn **nein** | [BEM] POLYFILELib~Version~FileTime; [KA] 46 (I5-F) |
+| Lizenzierte Optionen (TDD, PCA …), PSV-Seriennummer | Rahmen | **nein** (nur GUI) | [HB] 2-28 |
+| Versuchsrandbedingungen: Prüflingsbezeichnung, Lagerung, Befestigung, Anregungsort und -richtung, Shaker/Hammer-Typ, Kraftsensor-Typ und -Empfindlichkeit, Oberflächenpräparation, Messabstand, Umgebungstemperatur, Messung durch Glas oder Medium | I2 §2.3, §5.1 | **nein**, nur Protokoll (`protokoll.md`, `/versuchsplanung`) | (I5-F) |
+| Scanzeit, Statusverteilung, Overrange-Anteil, Anzahl Nachmessungen | P2 | Status je Punkt: Datei ja; Scanzeit/Nachmessungen **[U]**; Meldungen in `SummaryInfo.Subject` | [BEM] POLYFILELib~SummaryInfo~Subject |
+| Kombinierte Dateien (`ContainedFiles`) | P14 | Datei, Einzelheiten **[U]** | [BEM] Operating on Combined Files |
+
 **Folgerung [Einschätzung]:**
-- Der COM-Weg reicht für eine vollständige Dokumentation. Lücken sind die lizenzierten
-  Optionen, die Seriennummer des Systems und die Zeitzone von `FileTime`.
+- COM/PolyFile liefert die Gerätekonfiguration; die Versuchsrandbedingungen sind manuell per
+  Protokoll zu erfassen. Nicht per COM belegt sind lizenzierte Optionen, Seriennummer des
+  Systems, Zeitzone von `FileTime`, Abschlussimpedanz des Generators, Warmlaufbeginn und
+  alle Versuchsrandbedingungen der letzten Zeile der Liste.
 - Vorschlag für eine Sidecar-Datei je Messung:
   - Hash der `.svd`
   - Snapshot der `.set`
@@ -1134,11 +1281,38 @@ Alle Werte stammen aus den Enumerationsthemen (Ordner der Textfassung in Klammer
 |---|---|---|---|---|
 | U1 | Einarbeitung COM | ja, dokumentarisch abgeschlossen | dieses Dokument; Verhalten aus Python offen (Abschnitt 10) | gering |
 | U2 | Messablauf automatisieren | **ja, belegt** für Verbinden, Settings laden, Parameter setzen (Validator), Scan starten/fortsetzen/nachmessen, Zustand überwachen, Stoppen, Speichern (automatisch), Export | Scanpunkte und 3D-Abgleich nur **eingeschränkt**: praktisch interaktiv in PSV vorbereiten und per `.set` laden (2.4); Event-Empfang aus Python offen; Meldungsdialoge als Blocker | mittel |
-| U3 | Dokumentation jeder Messung | **ja, weitgehend** | fast alle Metadaten per COM/PolyFile (Abschnitt 6). Nicht belegt: lizenzierte Optionen, System-Seriennummer, Zeitzone der Messzeit, Format des Controller-XML | gering |
+| U3 | Dokumentation jeder Messung | **teilweise**: Gerätekonfiguration ja, Versuchsrandbedingungen nein | Die Gerätekonfiguration kommt per COM/PolyFile (Abschnitt 6). Die Versuchsrandbedingungen (Generatorlast, Lagerung, Anregungsort, Oberflächenpräparation, Umgebung, Warmlaufbeginn, Kraftsensor-Empfindlichkeit) sind manuell per Protokoll zu erfassen. Nicht per COM belegt außerdem: lizenzierte Optionen, System-Seriennummer, Zeitzone der Messzeit, Format des Controller-XML | mittel |
 | U4 | Daten nach Python, Auswertung, Visualisierung | **ja**, über PolyFile (Windows) oder UFF-Export (plattformunabhängig) | float32-Quelle; exklusiver Dateizugriff; FFT-Achse vorläufig, neuer Beleg [PFA-M] Folie 8 | gering bis mittel |
 | U5 | Einfache Oberfläche | ja, indirekt | COM im Worker-Thread; Threading-Modell undokumentiert | mittel |
-| U6 | Weitergehende Auswertung | Daten dafür sind verfügbar: komplexe FRF (H1/H2), Kohärenz, 3D-Komponenten, Geometrie, Status, optional Zeitdaten | Zeitdaten nur mit Option TDD bzw. `SaveTimeDataForScan`; Multi-Referenz-Modalanalyse nur mit PCA ([HB] 7-10); messtechnische Bewertung durch den strukturdynamik-experte | fachlich |
+| U6 | Weitergehende Auswertung | **nur mit Voraussetzungen**, Einstufung je Auswertung in 9.1. Spektren, Peak-Picking und 3D-Komponenten sind ohne Zusatz machbar. Komplexe FRF (H1/H2) und Kohärenz brauchen einen aktiven Referenzkanal. Eine absolute FRF (Mobilität in (m/s)/N) und skalierte Modalparameter brauchen eine **Kraftmessung** (Kraftsensor am Referenzkanal mit Größe „Kraft“ und Kalibrierfaktor, [HB] 7-12). ODS und Phase brauchen **Referenz oder Trigger** (TM Tab. 6.1). Zeitdaten-Auswertungen brauchen den Messmodus Zeit und damit die Option **TDD** ([HB] 7-2, 7-34) | Der Messmodus Zeit braucht TDD. `SaveTimeDataForScan` setzt SE auf „Fast“; ob es ebenfalls TDD voraussetzt, ist **[offen]**. „Multi-Referenz“ mit PCA gilt nur für die Polytec-interne MIMO-Rechnung, nicht für eine externe Auswertung mehrerer Messungen. Messtechnische Bewertung durch den strukturdynamik-experte | fachlich |
 | U7 | Weiteres Equipment | **teilweise**: interner/angeschlossener Generator per COM (Signalform, Amplitude, an/aus); Polytec-Positioniereinheit per `PositionDevice`; digitale Ein-/Ausgänge (Aux In/Out, `Pulse`) für einfache Synchronisation | Fremdgeräte (externer Verstärker, Shaker-Regelung, fremde Achsen) **nicht** über PSV-COM, sondern nur über eigene Treiber | offen (F6) |
+
+### 9.1 Machbarkeit der Auswertungen aus COM/PolyFile-Daten (Fachprüfung I5-F, M4)
+
+Legende: **machbar** = mit den belegten Daten ohne weitere Hardware; **mit Voraussetzung** = nur,
+wenn die genannte Bedingung bei der Messung erfüllt war; **nicht machbar** = Daten fehlen.
+Belege mit „(I5-F)“ stammen aus der Fachprüfung (TM = Theoriehandbuch, SWP/SWA = Software
+Handbuch PSV).
+
+| Auswertung | Einstufung | Begründung und Beleg |
+|---|---|---|
+| Spektren je Punkt (Real/Imag, Betrag), x/y/z oder Vib 3D, Einheit m/s, Amplitude 0-to-peak | machbar | `DataPoint.GetData`/`Get3DData` ([BEM] Access to Data); Skalierung TM 3-3, Matlab-Folie 9 (I5-F). Skalierung und Phasenbezug dokumentieren (4.4) |
+| Peak-Picking, Eigenfrequenzen, −3-dB-Dämpfung (SDOF), FG-04 | machbar | Aus dem Betragsspektrum. Auflösung begrenzt durch $\Delta f = BW/n_\mathrm{FFT}$; Halbwertsbreite gilt für $\zeta \ll 1$ (I2 FG-04); Fenster-Scalloping beachten (I2 §3.2) |
+| Integration und Differentiation (Weg, Beschleunigung) | machbar | Polytec berechnet die Größen aus der Auswahl in der Datei ([HB] 7-12); eigene Umrechnung im Frequenzbereich mit $1/(i\omega)$ möglich |
+| FRF H1/H2/Kohärenz aus der Datei | mit Voraussetzung | Nur, wenn ein Referenzkanal aktiv war (Kombikanäle, SWP 3-31). Mit Spannungsreferenz in (m/s)/V, relative FRF inklusive Verstärker/Shaker; Mobilität (m/s)/N nur mit Kraftsensor, `Quantity` Kraft und Kalibrierfaktor ([HB] 7-12). Hv liefert Polytec nicht |
+| ODS und Animation ($\mathrm{Re}\{A\,e^{i\omega t}\}$) | mit Voraussetzung (Referenz oder Trigger) | Phase nur mit Referenz oder Trigger (TM Tab. 6.1). Besser deterministische Anregung mit Komplexmittelung, bei stochastischer Anregung Referenz und H1 (TM 3-6). Gültigen 3D-Abgleich und Punktstatus filtern. ODS ist nicht gleich Eigenform. Das Punktmittel (Betragsmittel) ist für ODS nicht geeignet |
+| Modalanalyse: Eigenfrequenzen, Dämpfung, unskalierte Formen (SDOF/MDOF, LSCF/PolyMAX, MAC) | mit Voraussetzung (FRF-Spalte) | Eine FRF-Spalte (fester Anregungspunkt, alle Messpunkte, 3 Komponenten) ist verfügbar. Mit Spannungsreferenz sind Frequenzen und Formen näherungsweise nutzbar, Genauigkeit durch Shaker-Struktur-Kopplung eingeschränkt [Einschätzung]. Eigene MDOF-Schätzung ist extern in Python möglich (PSV hat nur SDOF-Peak-Fit, SWP 3-14) |
+| Skalierte Modalparameter (Modalmasse, Residuen), absolute FRF | mit Voraussetzung (**Kraftmessung**) | Braucht Kraftsensor am Referenzkanal mit Kalibrierfaktor und Referenz-DOF (`ReferencePointIndex`, `DirectionOfVibration`). Ohne Kraft nicht machbar |
+| Mehrfachanregung (MIMO), nahe beieinander liegende Moden sicher trennen | mit Voraussetzung | Polytec-intern PCA-Option ([HB] 7-7; TM Kap. 8); PSV unterstützt derzeit nur einen Generator ([BEM] PSV~Acquisition~GeneratorsOn). Extern: mehrere Messläufe mit verschiedenen Anregungspunkten, Gruppierung nur über eigene Metadaten [Einschätzung] |
+| Plausibilität P1 Kohärenz | mit Voraussetzung | Referenzkanal und Kombikanal nötig |
+| P2 Status, P3 Alignment-Qualität, P5 Einstellungskonsistenz, P6 Signal-Fenster-Matrix, P8 Sweep-Parameter, P11 Auflösungsregel, P14 Stitching, P15 Phasenreferenz | machbar | Aus Status, Alignment, Properties und Metadaten (Abschnitt 6); P11 aus $\Delta f$ und der −3-dB-Breite; P14 bei kombinierten Dateien **[ungeprüft]** |
+| P4 Strahlgeometrie (Konditionszahl) | machbar (abgeleitet) | Aus Kopf- und Punktkoordinaten; die Polytec-Zerlegungsmatrix ist nicht belegt |
+| P9 Wiederholbarkeit, P10 Nichtlinearität | machbar | Zwei oder mehr Messdateien; `Generator.Amplitude` per COM stufbar |
+| P13 Aufwärmzeit | mit Voraussetzung | Zeitstempel `FileTime` plus manuelles Protokoll (Zeitzone **[offen]**) |
+| P16 Aussteuerung | mit Voraussetzung | Nur live (`GetSignalAmplitudes`) bzw. über `VibrometerRange`/Overrange-Status; 30–80 % nicht für QTec belegt |
+| P17 Niederfrequenz-Check | machbar | Aus dem Spektrum, nur bei Fußpunktanregung |
+| P7 Burst-Abklingen, P12 Parseval-Test, logarithmisches Dekrement, Hammer-Kraftfenster nachträglich, eigene Welch-/H1-Schätzung, Neu-Fensterung | mit Voraussetzung (**Zeitdaten, TDD**) | Der Modus Zeit braucht die Option TDD ([HB] 7-2, 7-34). `SaveTimeDataForScan` setzt SE auf „Fast“; Lizenzbedarf **[offen]**. Ohne Zeitdaten nicht machbar, da Fenster und Mittelung bei der Erfassung festgelegt wurden. P12 nur gegen die Polytec-RMS-Domain wäre kein unabhängiger Zeitbereichstest. Speicher: Dateigröße > Kanäle · Abtastwerte · 4 Byte ([HB] 7-34) |
+| Impulshammer-Auswertung | mit Voraussetzung | Trigger extern/analog, IEPE-Kraftkanal, Kraft- und Exponentialfenster (F04 S. 18–23, I5-F); Fensterparameter per COM **[offen]** (P2-13); Hammer nicht über den PSV-Generator |
 
 **Weitere Risiken und Grenzen**
 - **Versionsabhängigkeit:** Die Hilfe beschreibt mindestens PSV 10.4, die Folien zeigen
@@ -1177,6 +1351,8 @@ wenn der Nutzer das Ergebnis meldet (Ablauf G).
 | P1-8 | Meldungsverhalten: Was passiert bei einer typischen Meldung (z. B. ungültiger `ScanFileName`-Pfad, vorhandene Zieldatei) mit `SuppressMessagesForAutomation=True`? Blockiert ein Dialog? Exception? | 5.1 | Verhalten, Text |
 | P1-9 | Kleiner Scan (z. B. 3×3 Punkte, vorbereitete `.set`): `ScanFileName`, `ScanEx(ptcScanAll, ptcScanCapsNone)`, Polling; danach Datei in PSV schließen; `PolyFile.Open` mit `ReadOnly=True`; Sharing Violation wann? | 3.4, 4.2 | Dauer, Freigabezeitpunkt |
 | P1-10 | Datenformat an dieser Datei: Länge von `GetData` (Real&Imag), `XAxis.Min/Max/MaxCount`, `GetMidX(0)`, Vergleich mit `SampleResolution`/`Bandwidth`/`Lines`; Einheiten aus `YAxis.Unit`; 3D-Kanäle Vib X/Y/Z; Zeitstempel `Version.FileTime`; zusätzlich UFF-Export derselben Datei als Golden File ablegen | 4.4; KONVENTIONEN „vorläufig“ | Werte, Dateien |
+| P1-11 | **XAxis und Datenlänge bei Von/Bis:** dieselbe Messung einmal mit Vollbereich (Von = 0, Bis = BW) und einmal mit eingeschränktem Bereich (z. B. 1000–4000 Hz bei 5000 Hz/400 Linien, erwartet 241 Linien, falls die Datei nur den Teilbereich enthält); `GetData`-Länge, `XAxis.Min/Max/MaxCount`, Bin-Konvention (Mitte oder Kante), DC-Linie; Abgleich `SampleFrequency`/`SampleResolution` mit 2,5·BW bzw. $BW/n_\mathrm{FFT}$ (Nicht-M-System?) | 2.5, 4.4 (M1) | Datenlängen, Achsenwerte |
+| P1-12 | **Vorzeichen und Betrag 3D:** Vorzeichen der X/Y/Z-Komponenten gegen die Achsen des 3D-Koordinatensystems (z. B. definierte Bewegung in +X) und Vorzeichen der Kanäle je Kopf (1D, Richtung Scankopf); ob „Vib 3D“-Betrag/Phase-Displays den Vektorbetrag oder je Komponente liefern, im Vergleich zu $\sqrt{A_x^2+A_y^2+A_z^2}$ aus Real&Imag; Skalierung 0-to-peak gegen bekannte Anregung | 4.4 (m2, M2) | Vorzeichen, Zahlenwerte |
 
 ### P2 – wichtig für die Architektur
 
@@ -1194,6 +1370,8 @@ wenn der Nutzer das Ergebnis meldet (Ablauf G).
 | P2-10 | Threading: Verbindung und Scan aus einem Worker-Thread (`CoInitialize`), GUI-Thread blockiert nicht | 5.5 |
 | P2-11 | Verhalten bei vorhandenem `ScanFileName` (Überschreiben? Rückfrage?) | 3.4 |
 | P2-12 | Typ und Indexbasis von `ChannelsProperties.Item`, `Alignments3D.Item`; Punktreihenfolge im Scan | 1.6 |
+| P2-13 | **Fensterparameter per COM:** `ChannelAcqProperties.WindowFunctionParams` ist read-only; Setzbarkeit der Parameter von Tapered Hanning, Kraft- und Exponentialfenster (z. B. über den Properties-Container) prüfen; `WindowFunction` und RMS-Korrekturfaktor zurücklesen | 2.5 (m10) |
+| P2-14 | Phasengültigkeit: Messung mit Referenz, mit Trigger ohne Referenz und ohne beides; `PhaseFromRef`; Phase relativ zu Referenz bzw. Fensteranfang prüfen; Kombikanäle (`Vib & Ref n`) und Signalnamen/Einheiten über `SignalDescription` | 4.3, 4.4 (M2, m3) |
 
 ### P3 – Ausbau und Komfort
 
@@ -1204,7 +1382,7 @@ wenn der Nutzer das Ergebnis meldet (Ablauf G).
 | P3-3 | Lesedauer `GetData` je Punkt vs. `DataPointReader` bei großem Scan | 4.7 |
 | P3-4 | Laser/Fokus: `GetLaserOn`, `SetLaserOn(-1, False, True)`, `AutoFocusLaser`, `AssignFocusAutomatically` | 2.1 |
 | P3-5 | Gleichzeitige Bedienung der PSV-GUI während der Automation; `QuitEx` | 9 |
-| P3-6 | `SaveTimeDataForScan` (falls TDD lizenziert): Zeitdaten in `.svd` lesbar? | 2.5, U6 |
+| P3-6 | **Lizenz `SaveTimeDataForScan`:** Setzen mit und ohne Option TDD (Fehlermeldung/Exception?); falls möglich Zeitdaten in `.svd` lesbar (`GetDataSection` mit `Average`)? Welche Optionen am Messrechner installiert sind (TDD, PCA …) | 2.5, 4.4, U6 |
 | P3-7 | Fehler provozieren (ungültiger Pfad, ungültige Bandbreite, PolyFile auf offene Datei) und HRESULT sowie `excepinfo` protokollieren | 5.2 |
 | P3-8 | Start des Pakets aus PSV über *Werkzeuge > Externe Werkzeuge* | 7.3 |
 
