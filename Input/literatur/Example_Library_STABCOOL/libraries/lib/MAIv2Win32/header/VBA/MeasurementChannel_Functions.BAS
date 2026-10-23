@@ -1,0 +1,4 @@
+Option Explicit 
+Public Declare Function MeasurementChannel_GetNumberOfValues LIB "maiv2dll.DLL" (ByVal nInstance As Long, ByVal eChannelType As Long, ByVal nChannelListEntry As Long, ByRef nNumberOfValues As Long) As Long
+Public Declare Function MeasurementChannel_ReadDataAsUInt32 LIB "maiv2dll.DLL" (ByVal nInstance As Long, ByVal ChannelType As Long, ByVal nChannelListEntry As Long, ByRef pData As Long, ByRef nNumberOfValues As Long, ByVal bPartBlock As Long, ByRef DateTimeT0 As LongLong, ByRef DateTimeDeltaT As Double) As Long
+Public Declare Function MeasurementChannel_ReadDataAsDouble LIB "maiv2dll.DLL" (ByVal nInstance As Long, ByVal ChannelType As Long, ByVal nChannelListEntry As Long, ByRef pData As Double, ByRef nNumberOfValues As Long, ByVal bPartBlock As Long, ByRef DateTimeT0 As LongLong, ByRef DateTimeDeltaT As Double) As Long
