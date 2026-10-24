@@ -126,7 +126,17 @@ Bericht (z. B. durch einen Virenscanner) werden kurz wiederholt, bevor sie als F
   Feldern mit Personen- oder Kontonamen (z. B. `SummaryInfo.Author`), dort auch Anmelde- und
   Profilname als freies Wort. Grenzen: fremde Profile mit Leerzeichen nur bis zum
   Leerzeichen, Kontonamen sonst (z. B. `DOMAIN\jbusch` im Fließtext) werden nicht erkannt.
-  Bitte den Bericht vor dem Upload kurz durchsehen. Der Rechnername bleibt im Klartext.
+  Der Rechnername bleibt im Klartext.
+- **Durchsicht vor dem Upload (Pflicht):** Dein Anmeldename kann in Pfaden außerhalb von
+  `…\Users` ungeschwärzt stehen bleiben. Prüfe vor dem Hochladen gezielt diese Stellen in
+  `bericht.json`, `zusammenfassung.md` und `konsole.log`:
+  - `kommandozeile` und `parameter.datei` (Pfad aus `--datei`, z. B. `D:\Messdaten\<name>\…`),
+  - `dateien.*.pfad` (Eingabedatei von Stufe 1b),
+  - `Acquisition.ScanFileName` (zuletzt in PSV eingestellter Scan-Dateiname),
+  - Netzlaufwerks-Pfade (z. B. `\\server\home$\<name>\…`),
+  - Fehlermeldungen (`exception`, `excepinfo`), die Pfade oder Kontonamen enthalten.
+  Fremde Personennamen in Messdateien (z. B. `SummaryInfo.Author`) werden bewusst nicht
+  geschwärzt; sie gelten als Metadaten der Messung.
 
 ## Ausgabe
 

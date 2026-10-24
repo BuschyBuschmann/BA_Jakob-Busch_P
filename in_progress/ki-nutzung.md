@@ -20,3 +20,5 @@ Nutzer hat das Ergebnis geprüft und verantwortet es.
 | 2026-10-23 | `in_progress/planung/plaene/2026-10-23_E1_erkundungsskript.md` | Plan für das Erkundungsskript | software-engineer (sonnet) | offen |
 | 2026-10-23 | `in_progress/analysen/2026-10-23_I5_com-referenz.md` (Überarbeitung K1) | Einarbeitung der Fachprüfung in die COM-Referenz | software-engineer (sonnet) | offen |
 | 2026-10-23 | `software/` (Projektgerüst, `tools/erkundung/`, Tests) | Umsetzung Erkundungsskript E1-U und Projektgerüst | software-engineer (sonnet) | offen |
+| 2026-10-24 | `software/tools/erkundung/`, Tests (Korrekturen E1-K, E1-K2) | Korrekturen nach Reviews | software-engineer (sonnet) | offen |
+| 2026-10-24 | `in_progress/analysen/2026-10-23_R-E1*`, `2026-10-24_R-E1-R2*` | Code-Reviews des Erkundungsskripts | reviewer (opus) | offen |
