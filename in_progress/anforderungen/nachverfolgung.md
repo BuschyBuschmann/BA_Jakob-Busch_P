@@ -8,17 +8,17 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 |---|---|---|---|---|---|
 | R-001 | – | – | – | – | offen |
 | R-010 | – | – | – | – | offen |
-| R-011 | – | – | – | – | offen |
-| R-012 | – | – | – | – | offen |
-| R-013 | – | – | – | – | offen |
-| R-014 | – | – | – | – | offen |
-| R-015 | – | – | – | – | offen |
-| R-016 | – | – | – | – | offen |
+| R-011 | `domaene/eintraege.py`, `domaene/parameter.py` (U1) | `tests/domaene/test_domaene_parameter.py`, `test_domaene_eintraege.py` | Laborbuch 2026-10-26_u1 | – | umgesetzt (Domäne; Ablauf in U2) |
+| R-012 | `domaene/warteschlange.py` (U1) | `test_u1_1_*` | Laborbuch 2026-10-26_u1 | – | getestet (Domäne) |
+| R-013 | `domaene/warteschlange.py` (U1) | `test_u1_2_*` | Laborbuch 2026-10-26_u1 | – | getestet (Domäne) |
+| R-014 | `domaene/warteschlange.py` (U1) | `test_u1_2_*`, `test_u1_3_*` | Laborbuch 2026-10-26_u1 | – | getestet (Domäne) |
+| R-015 | `domaene/warteschlange.py` (U1) | `test_u1_2_*` | Laborbuch 2026-10-26_u1 | – | getestet (Domäne) |
+| R-016 | `domaene/warteschlange.py` (U1, Sperre/atomares Beanspruchen) | Mehr-Thread-Test in `test_domaene_warteschlange.py` | Laborbuch 2026-10-26_u1 | – | in Arbeit (Ablauf in U2) |
 | R-017 | – | – | – | – | offen |
 | R-018 | – | – | – | – | offen |
 | R-019 | – | – | – | – | offen |
 | R-020 | – | – | – | – | offen |
-| R-021 | – | – | – | – | offen |
+| R-021 | `persistenz/warteschlangendatei.py` (U1) | `test_u1_4_*`, `test_u1_5_*` | Laborbuch 2026-10-26_u1 | – | getestet (ohne GUI) |
 | R-022 | – | – | – | – | offen |
 | R-030 | – | – | – | – | offen |
 | R-031 | – | – | – | – | offen |

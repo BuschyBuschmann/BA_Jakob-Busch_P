@@ -24,3 +24,6 @@ Nutzer hat das Ergebnis geprüft und verantwortet es.
 | 2026-10-24 | `in_progress/analysen/2026-10-23_R-E1*`, `2026-10-24_R-E1-R2*` | Code-Reviews des Erkundungsskripts | reviewer (opus) | offen |
 | 2026-10-26 | `in_progress/anforderungen/lastenheft.md`, `nachverfolgung.md`, Ergänzung Erwartungsmanagement | Strukturierung der Anforderungen aus dem Interview (Skill /anforderungs-analyst) | Orchestrator | offen |
 | 2026-10-26 | `Output/2026-10-26_Betreuertermin_Stand_COM.docx` | Erstellung der Meeting-Unterlage | Orchestrator | offen |
+| 2026-10-26 | `in_progress/planung/plaene/2026-10-26_P3_design-brief.md`, Skizze Grunddesign | GUI-Grunddesign und Design-Brief | ui-designer (sonnet) | Grunddesign und Brief vom Nutzer freigegeben |
+| 2026-10-26 | `software/src/ldv_automation/{domaene,persistenz}/`, `geraet/schnittstelle.py`, Tests | Umsetzung U1 und Korrektur K-U1 | software-engineer (sonnet) | offen (Restbefunde vom Nutzer entschieden) |
+| 2026-10-26 | Review R-U1, Re-Review RR-U1 | Code-Review U1 | reviewer (opus) | Befundauswahl durch den Nutzer |
