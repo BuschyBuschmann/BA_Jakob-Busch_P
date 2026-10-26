@@ -267,3 +267,23 @@ def test_aufrufprotokoll_und_trennen(tmp_path: Path) -> None:
     assert sim.aufrufe[0] == ("verbinde", ())
     with pytest.raises(GeraeteFehler):
         sim.lies_einstellungsstand()
+
+
+def test_langsamer_aufruf_braucht_schlafen_und_vorgang_minus_eins() -> None:
+    from ldv_automation.geraet.simulator import LangsamerAufruf
+
+    with pytest.raises(ValueError, match="schlafen"):
+        Simulator(
+            Testuhr().monotonic,
+            drehbuch=[LangsamerAufruf(vorgang=0, methode="verbinde", dauer_s=1.0)],
+        )
+    uhr = Testuhr()
+    sim = Simulator(
+        uhr.monotonic,
+        drehbuch=[LangsamerAufruf(vorgang=-1, methode="verbinde", dauer_s=7.0)],
+        schlafen=uhr.sleep,
+    )
+    sim.verbinde()
+    assert uhr.monotonic() == 7.0  # exakt: eine Vorstellung um 7,0 s
+    with pytest.raises(ValueError, match="≥ 0"):
+        Simulator(Testuhr().monotonic, drehbuch=[Haenger(vorgang=-1)])

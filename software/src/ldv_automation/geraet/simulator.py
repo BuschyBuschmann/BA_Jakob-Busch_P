@@ -23,7 +23,8 @@ Nachgebildet (Plan P2, Abschnitt 5):
 8. Unbekannte Einstellungsdatei; Teil-Laden (Modus bleibt falsch).
 9. Platzhalter-Scandatei mit Kennung ``SIMULATOR``; vorhandene Datei wird verweigert.
 10. Drehbuch-Fehler: Ausnahme bei Start, Ausnahme während des Scans, vorzeitiges Ende,
-    Hänger, wirkungsloses ``Stop``, hängender Aufruf, keine Datei.
+    Hänger, wirkungsloses ``Stop``, hängender Aufruf, langsamer (normal zurückkehrender)
+    Aufruf, keine Datei.
 11. Meldungen an Punkt k.
 12. Aufrufprotokoll.
 
@@ -139,12 +140,27 @@ class HaengenderAufruf:
     """Der Aufruf ``methode`` blockiert im Vorgang ``vorgang`` bis :meth:`Simulator.haenger_loesen`.
 
     Für den Wächter (Plan P2, 2.5). Wird er nicht innerhalb von ``max_echtzeit_s``
-    (Echtzeit) gelöst, wirft der Aufruf :class:`ZeitlimitFehler`.
+    (Echtzeit) gelöst, wirft der Aufruf :class:`ZeitlimitFehler`. ``vorgang=-1`` meint
+    Aufrufe vor dem ersten Laden (z. B. ``verbinde``, ``setze_messfreigabe(True)``).
     """
 
     vorgang: int
     methode: str
     max_echtzeit_s: float = 30.0
+
+
+@dataclass(frozen=True, kw_only=True)
+class LangsamerAufruf:
+    """Der Aufruf ``methode`` dauert ``dauer_s`` und kehrt dann **normal** zurück.
+
+    Die Dauer vergeht über die beim Simulator übergebene Funktion ``schlafen`` (in Tests
+    ``Testuhr.sleep``, also ohne echtes Warten). Für die Aufrufgrenze der Steuerung
+    (Nutzerentscheidung K-U2b). ``vorgang=-1`` wie bei :class:`HaengenderAufruf`.
+    """
+
+    vorgang: int
+    methode: str
+    dauer_s: float
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -166,6 +182,7 @@ DrehbuchEreignis: TypeAlias = (
     | Haenger
     | KeineDatei
     | HaengenderAufruf
+    | LangsamerAufruf
     | MeldungBeiPunkt
 )
 
@@ -296,14 +313,20 @@ class Simulator:
         betriebsart: str = "simulator",
         konfiguration: SimulatorKonfiguration | None = None,
         drehbuch: Sequence[DrehbuchEreignis] = (),
+        schlafen: Callable[[float], None] | None = None,
     ) -> None:
         if betriebsart not in BETRIEBSARTEN:
             raise ValueError(
                 f"Simulator: unbekannte Betriebsart {betriebsart!r} "
                 f"(erlaubt: {', '.join(BETRIEBSARTEN)})"
             )
-        if any(e.vorgang < 0 for e in drehbuch):
-            raise ValueError("Simulator: Drehbuch-Vorgang muss ≥ 0 sein")
+        for e in drehbuch:
+            minimum = -1 if isinstance(e, HaengenderAufruf | LangsamerAufruf) else 0
+            if e.vorgang < minimum:
+                raise ValueError(f"Simulator: Drehbuch-Vorgang muss ≥ {minimum} sein: {e!r}")
+        if schlafen is None and any(isinstance(e, LangsamerAufruf) for e in drehbuch):
+            raise ValueError("Simulator: LangsamerAufruf braucht die Funktion 'schlafen'")
+        self._schlafen = schlafen
         self._zeit = zeit
         self.betriebsart = betriebsart
         self.konfiguration = konfiguration or SimulatorKonfiguration()
@@ -365,6 +388,10 @@ class Simulator:
             )
 
     def _vielleicht_haengen(self, methode: str) -> None:
+        for langsam in self._ereignisse(LangsamerAufruf):
+            assert isinstance(langsam, LangsamerAufruf) and self._schlafen is not None
+            if langsam.methode == methode:
+                self._schlafen(langsam.dauer_s)
         for e in self._ereignisse(HaengenderAufruf):
             assert isinstance(e, HaengenderAufruf)
             if e.methode != methode:
@@ -420,6 +447,7 @@ class Simulator:
     def verbinde(self) -> GeraeteInfo:
         """Verbindet; scheitert, wenn PSV nicht läuft (startet es nie)."""
         self._protokolliere("verbinde")
+        self._vielleicht_haengen("verbinde")
         if not self.konfiguration.psv_laeuft:
             raise GeraeteFehler("Simulator: PSV läuft nicht", methode="verbinde")
         self._verbunden = True
@@ -434,6 +462,7 @@ class Simulator:
     def trenne(self) -> None:
         """Trennt (idempotent)."""
         self._protokolliere("trenne")
+        self._vielleicht_haengen("trenne")
         self._verbunden = False
         self._freigabe = False
 
@@ -462,6 +491,7 @@ class Simulator:
     def setze_messfreigabe(self, freigegeben: bool) -> None:
         """Setzt die Messfreigabe; in Betriebsarten ohne Scan nur ``False`` erlaubt."""
         self._protokolliere("setze_messfreigabe", freigegeben)
+        self._vielleicht_haengen("setze_messfreigabe")
         if freigegeben and self.betriebsart not in _SCAN_ERLAUBT:
             raise VerweigertFehler(
                 f"Simulator: Messfreigabe in Betriebsart {self.betriebsart} verboten",

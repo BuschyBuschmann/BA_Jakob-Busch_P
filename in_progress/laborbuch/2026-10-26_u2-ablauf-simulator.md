@@ -38,3 +38,8 @@ Ablaufsteuerung der Mess-Warteschlange (Zustandsmaschine, Messablauf M1–M12, F
 
 ## Thesis-Bezug
 Konzept (Zustandsmodell, Nebenläufigkeit, Fehlerstrategie), Umsetzung, Verifikation (Simulator, Akzeptanztests, Review).
+
+## Nachtrag 2026-10-27 – Korrektur K-U2b
+- Nutzerentscheidung: Ein einzelner Geräteaufruf, der länger als `aufruf_grenze_s` dauert und dann normal zurückkehrt, führt zu GERAET_UNKLAR. Standard 60 s (unbelegt, am Montag einzustellen); bei `starte_scan` gilt stattdessen `zeitlimit_s` der Messung (600 s), weil ScanEx möglicherweise bis zum Scanende blockiert.
+- Hänger beim Verbinden, Setzen/Entziehen der Messfreigabe, Trennen und Gerätetausch werden als Hänger behandelt; Ereignis `durchgang_beendet` nur noch bei offenem Durchgang.
+- Re-Review RR-U2b: FREIGABE; 831 Tests, 97,46 %. Offen: Hänger beim Verbinden/Trennen außerhalb eines Durchgangs ergibt „Gerät verloren“ (Neubau beim nächsten Verbinden) statt GERAET_UNKLAR – Auslegung durch Jakob zu bestätigen; Nitpick `steuerung.py:738` (Freigabe entziehen nach internem Fehler nicht über `_aufruf`).

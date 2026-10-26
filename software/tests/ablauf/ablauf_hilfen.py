@@ -130,6 +130,7 @@ def aufbau(
         betriebsart=betriebsart,
         konfiguration=sim_konfiguration,
         drehbuch=drehbuch,
+        schlafen=uhr.sleep,
     )
     wurzel = tmp_path / "messdaten"
     wurzel.mkdir(exist_ok=True)

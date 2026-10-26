@@ -33,7 +33,7 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import TypeAlias
+from typing import TypeAlias, TypeVar
 from uuid import UUID, uuid4
 
 from ldv_automation.ablauf.fehlerstrategie import (
@@ -83,6 +83,8 @@ from ldv_automation.protokoll.messprotokoll import (
     zeitstempel,
 )
 from ldv_automation.protokoll.version import BuildInfo
+
+_T = TypeVar("_T")
 
 ERWARTETER_MODUS = "Fft"
 """Erfassungsmodus, den der Prototyp nach dem Laden erwartet (Plan P2, M5)."""
@@ -147,6 +149,15 @@ class AblaufKonfiguration:
         Geschätzte Dauer je Messpunkt in s, solange im Durchgang keine Messung fertig ist.
     einstellungen_sichern : bool
         ``True``: Einstellungen je Messung als ``.einstellungen.set`` sichern (M6, optional).
+    aufruf_grenze_s : float
+        Dauert ein einzelner Geräteaufruf länger, gilt das Gerät als unklar
+        (``GERAET_UNKLAR``), auch wenn der Aufruf danach normal zurückkehrt
+        (Nutzerentscheidung K-U2b). Gemessen wird die Aufrufdauer in der Steuerung mit der
+        injizierten Uhr; das funktioniert auch mit einem Adapter, der selbst keinen
+        ``ZeitlimitFehler`` auslöst. Ausnahme ``starte_scan``: Dort gilt das Zeitlimit der
+        Messung, weil ``ScanEx`` möglicherweise bis zum Scanende blockiert (am Gerät
+        unbestätigt). Standardwert 60 s ist eine **unbelegte Annahme, am Montag
+        einzustellen**. Getrennt davon warnt die Sitzung schon ab ``aufruf_warnung_s``.
     """
 
     poll_s: float = 0.5
@@ -154,9 +165,16 @@ class AblaufKonfiguration:
     stop_frist_s: float = 10.0
     punktdauer_schaetzung_s: float = 1.0
     einstellungen_sichern: bool = False
+    aufruf_grenze_s: float = 60.0
 
     def __post_init__(self) -> None:
-        for name in ("poll_s", "zeitlimit_s", "stop_frist_s", "punktdauer_schaetzung_s"):
+        for name in (
+            "poll_s",
+            "zeitlimit_s",
+            "stop_frist_s",
+            "punktdauer_schaetzung_s",
+            "aufruf_grenze_s",
+        ):
             wert = getattr(self, name)
             if isinstance(wert, bool) or not math.isfinite(wert) or wert <= 0:
                 raise ValueError(f"AblaufKonfiguration: {name} muss endlich und > 0 sein")
@@ -398,6 +416,7 @@ class Steuerung:
         self._interner_fehler: str | None = None
         self._aufruf_haengt = False
         self._geraet_verloren = False
+        self._durchgang_offen = False
         self._aktiv: _Aktiv | None = None
 
     # --- Lesen -------------------------------------------------------------------------
@@ -646,6 +665,44 @@ class Steuerung:
                 self._signal.wait(self._konf.poll_s)
                 self._signal.clear()
 
+    def _aufruf(
+        self, methode: str, ausfuehren: Callable[[], _T], *, grenze_s: float | None = None
+    ) -> _T:
+        """Führt einen Geräteaufruf aus und misst seine Dauer (Nutzerentscheidung K-U2b).
+
+        Überschreitet die Dauer ``grenze_s`` (Standard: ``aufruf_grenze_s``), wird ein
+        :class:`ZeitlimitFehler` ausgelöst, auch wenn der Aufruf normal zurückkehrte oder
+        einen anderen Gerätefehler meldete. Die Aufrufer behandeln ihn als Hänger.
+        """
+        grenze = self._konf.aufruf_grenze_s if grenze_s is None else grenze_s
+        beginn_s = self._uhr.monotonic()
+        try:
+            ergebnis = ausfuehren()
+        except ZeitlimitFehler:
+            raise
+        except GeraeteFehler as fehler:
+            dauer_s = self._uhr.monotonic() - beginn_s
+            if dauer_s > grenze:
+                raise ZeitlimitFehler(
+                    f"Geräteaufruf '{methode}' dauerte {dauer_s:.1f} s (Grenze {grenze:g} s) "
+                    f"und scheiterte: {fehler.text}",
+                    methode=methode,
+                ) from fehler
+            raise
+        dauer_s = self._uhr.monotonic() - beginn_s
+        if dauer_s > grenze:
+            raise ZeitlimitFehler(
+                f"Geräteaufruf '{methode}' dauerte {dauer_s:.1f} s (Grenze {grenze:g} s)",
+                methode=methode,
+            )
+        return ergebnis
+
+    def _markiere_verloren(self, haengt: bool) -> None:
+        """Gerät gilt als verloren; bei ``haengt`` wird es auch zum Trennen nicht mehr gerufen."""
+        self._geraet_verloren = True
+        if haengt:
+            self._aufruf_haengt = True
+
     def _behandle_internen_fehler(self, text: str) -> None:
         """Interner Fehler: sichtbar machen und die Steuerung bedienbar halten (best effort).
 
@@ -837,7 +894,10 @@ class Steuerung:
             and not self._geraet_verloren
         ):
             try:
-                alt.trenne()
+                self._aufruf("trenne", alt.trenne)
+            except ZeitlimitFehler as fehler:
+                # Altes Gerät wird verworfen; es wird nicht erneut angesprochen.
+                self._melde("fehler", f"Trennen des alten Geräts hängt: {fehler.text}")
             except GeraeteFehler as fehler:
                 self._melde("fehler", f"Trennen des alten Geräts fehlgeschlagen: {fehler.text}")
         try:
@@ -860,7 +920,7 @@ class Steuerung:
             betriebsart=befehl.betriebsart,
         )
         if z is DurchgangZustand.GERAET_UNKLAR:
-            self._beende_durchgang(DurchgangErgebnis.GERAET_UNKLAR, geraet_verloren=True)
+            self._verlasse_geraet_unklar()
 
     def _verbinden(self) -> None:
         if self._zustand not in (DurchgangZustand.BEREIT, DurchgangZustand.BEENDET):
@@ -876,7 +936,18 @@ class Steuerung:
             )
             return
         try:
-            info = self.geraet.verbinde()
+            info = self._aufruf("verbinde", self.geraet.verbinde)
+        except ZeitlimitFehler as fehler:
+            # Hänger beim Verbinden: Gerät verloren, kein weiterer Aufruf (auch nicht trenne).
+            self._markiere_verloren(haengt=True)
+            with self._sperre:
+                self._verbindung = None
+            self._melde(
+                "fehler",
+                f"Verbinden hängt; Gerät verloren: {fehler.text}",
+                art_fehler=FehlerArt.GERAET_UNKLAR.value,
+            )
+            return
         except GeraeteFehler as fehler:
             with self._sperre:
                 self._verbindung = None
@@ -908,14 +979,28 @@ class Steuerung:
             )
         elif geraet is not None:
             try:
-                geraet.trenne()
+                self._aufruf("trenne", geraet.trenne)
+            except ZeitlimitFehler as fehler:
+                self._markiere_verloren(haengt=True)
+                self._melde("fehler", f"Trennen hängt; Gerät verloren: {fehler.text}")
             except GeraeteFehler as fehler:
                 self._melde("fehler", f"Trennen fehlgeschlagen: {fehler.text}")
         with self._sperre:
             self._verbindung = None
         self._melde("verbindung", "Getrennt")
         if z is DurchgangZustand.GERAET_UNKLAR:
+            self._verlasse_geraet_unklar()
+
+    def _verlasse_geraet_unklar(self) -> None:
+        """Nach Trennen bzw. Gerätetausch: offenen Durchgang beenden, sonst nach ``BEREIT``."""
+        if self._durchgang_offen:
             self._beende_durchgang(DurchgangErgebnis.GERAET_UNKLAR, geraet_verloren=True)
+        else:
+            # z. B. interner Fehler ohne Durchgang: es gab nichts zu beenden.
+            with self._sperre:
+                self._fehler_offen = None
+                self._fehler_eintrag_id = None
+            self._wechsle(DurchgangZustand.BEREIT)
 
     def _abbrechen(self) -> None:
         z = self._zustand
@@ -1030,9 +1115,14 @@ class Steuerung:
             )
         except (OSError, ValueError) as fehler:
             self._melde("fehler", f"Warteschlangenkopie nicht geschrieben: {fehler}")
+        self._durchgang_offen = True
         if auftrag.messfreigabe:
             try:
-                self.geraet.setze_messfreigabe(True)
+                self._aufruf("setze_messfreigabe", lambda: self.geraet.setze_messfreigabe(True))
+            except ZeitlimitFehler as fehler:
+                self._markiere_verloren(haengt=True)
+                self._geraet_unklar(None, f"Messfreigabe setzen hängt: {fehler.text}", fehler)
+                return
             except GeraeteFehler as fehler:
                 self._melde("fehler", f"Messfreigabe verweigert: {fehler.text}")
                 self._beende_durchgang(DurchgangErgebnis.ABGEBROCHEN)
@@ -1063,10 +1153,15 @@ class Steuerung:
     ) -> None:
         if self._freigabe_gesetzt and not geraet_verloren:
             try:
-                self.geraet.setze_messfreigabe(False)
+                self._aufruf("setze_messfreigabe", lambda: self.geraet.setze_messfreigabe(False))
+            except ZeitlimitFehler as fehler:
+                self._markiere_verloren(haengt=True)
+                self._geraet_unklar(None, f"Messfreigabe entziehen hängt: {fehler.text}", fehler)
+                return
             except GeraeteFehler as fehler:
                 self._melde("fehler", f"Messfreigabe nicht entzogen: {fehler.text}")
         self._freigabe_gesetzt = False
+        self._durchgang_offen = False
         with self._sperre:
             self._ergebnis = ergebnis
             self._fortschritt = None
@@ -1153,7 +1248,7 @@ class Steuerung:
             self._messung_fehler(aktiv, FehlerArt.VORPRUEFUNG, vorpruefung, None)
             return
         try:
-            if self.geraet.zustand() is not GeraeteZustand.GESTOPPT:
+            if self._aufruf("zustand", self.geraet.zustand) is not GeraeteZustand.GESTOPPT:
                 self._messung_fehler(
                     aktiv,
                     FehlerArt.GERAET_NICHT_BEREIT,
@@ -1161,14 +1256,18 @@ class Steuerung:
                     None,
                 )
                 return
-            self.geraet.lade_einstellungen(m.einstellungsdatei)
+            self._aufruf(
+                "lade_einstellungen", lambda: self.geraet.lade_einstellungen(m.einstellungsdatei)
+            )
             if m.parameter:
-                self.geraet.setze_parameter(m.parameter)
-                ist = self.geraet.lies_parameter(tuple(m.parameter))
+                self._aufruf("setze_parameter", lambda: self.geraet.setze_parameter(m.parameter))
+                ist = self._aufruf(
+                    "lies_parameter", lambda: self.geraet.lies_parameter(tuple(m.parameter))
+                )
                 abweichung = self._vergleiche(aktiv, m.parameter, ist)
             else:
                 abweichung = None
-            stand = self.geraet.lies_einstellungsstand()
+            stand = self._aufruf("lies_einstellungsstand", self.geraet.lies_einstellungsstand)
             aktiv.einstellungen_ist = einstellungsstand_zu_dict(stand)
             aktiv.messpunkte = stand.messpunkte_anzahl
             if abweichung is not None:
@@ -1183,12 +1282,20 @@ class Steuerung:
                 )
                 return
             if self._konf.einstellungen_sichern:
-                self.geraet.speichere_einstellungen(str(ordner / (basis + ENDUNG_EINSTELLUNGEN)))
+                ziel = str(ordner / (basis + ENDUNG_EINSTELLUNGEN))
+                self._aufruf(
+                    "speichere_einstellungen", lambda: self.geraet.speichere_einstellungen(ziel)
+                )
             if auftrag.trockenlauf:
                 self._schliesse_messung(aktiv, MessungZustand.FERTIG)
                 return
             aktiv.t_scan_s = self._uhr.monotonic()
-            self.geraet.starte_scan(str(aktiv.zielpfad))
+            # ScanEx blockiert evtl. bis zum Scanende: Grenze ist das Zeitlimit der Messung.
+            self._aufruf(
+                "starte_scan",
+                lambda: self.geraet.starte_scan(str(aktiv.zielpfad)),
+                grenze_s=aktiv.zeitlimit_s,
+            )
             aktiv.scan_gestartet = True
             aktiv.phase = "scan"
         except ZeitlimitFehler as fehler:
@@ -1249,7 +1356,7 @@ class Steuerung:
         jetzt_s = self._uhr.monotonic()
         if aktiv.phase == "stop":
             try:
-                zustand = self.geraet.zustand()
+                zustand = self._aufruf("zustand", self.geraet.zustand)
             except ZeitlimitFehler as fehler:
                 self._haenger(aktiv, fehler)
                 return
@@ -1264,12 +1371,12 @@ class Steuerung:
                 )
             return
         try:
-            zustand = self.geraet.zustand()
-            for meldung in self.geraet.hole_meldungen():
+            zustand = self._aufruf("zustand", self.geraet.zustand)
+            for meldung in self._aufruf("hole_meldungen", self.geraet.hole_meldungen):
                 aktiv.meldungen.append(
                     {"stil": meldung.stil, "text": meldung.text, "antwort": meldung.antwort}
                 )
-            fortschritt = self.geraet.fortschritt()
+            fortschritt = self._aufruf("fortschritt", self.geraet.fortschritt)
         except ZeitlimitFehler as fehler:
             self._haenger(aktiv, fehler)
             return
@@ -1332,7 +1439,7 @@ class Steuerung:
 
     def _sende_stop(self, aktiv: _Aktiv, grund: str) -> None:
         try:
-            gesendet = self.geraet.stoppe()
+            gesendet = self._aufruf("stoppe", self.geraet.stoppe)
         except ZeitlimitFehler as fehler:
             self._haenger(aktiv, fehler)
             return
@@ -1386,23 +1493,32 @@ class Steuerung:
         Kein vorsorgliches ``stoppe()``, kein Wiederholen: Das Gerät hat gerade nicht
         geantwortet; jeder weitere Aufruf könnte erneut hängen.
         """
-        self._aufruf_haengt = True
+        self._markiere_verloren(haengt=True)
         methode = fehler.methode or "unbekannt"
         self._geraet_unklar(aktiv, f"Geräteaufruf '{methode}' hängt: {fehler.text}", fehler)
 
-    def _geraet_unklar(self, aktiv: _Aktiv, text: str, fehler: BaseException | None = None) -> None:
-        """Gerät verloren: Protokoll schreiben, danach keine Geräteaufrufe mehr."""
+    def _geraet_unklar(
+        self, aktiv: _Aktiv | None, text: str, fehler: BaseException | None = None
+    ) -> None:
+        """Gerät verloren: danach keine Geräteaufrufe mehr.
+
+        Lief eine Messung, wird ihr Protokoll geschrieben und sie wird ``FEHLER``. Der
+        Durchgang wartet in ``GERAET_UNKLAR`` auf Trennen oder Gerätetausch.
+        """
         self._melde("fehler", f"Gerät unklar: {text}", art_fehler=FehlerArt.GERAET_UNKLAR.value)
-        self._protokolliere(
-            aktiv, MessungZustand.FEHLER, (FehlerArt.GERAET_UNKLAR, text, fehler), None
-        )
-        self._setze_info(aktiv.messung.id, fehlerart=FehlerArt.GERAET_UNKLAR.value, fehlertext=text)
-        self._eintrag_zustand(aktiv.messung.id, MessungZustand.FEHLER, von="laeuft")
+        if aktiv is not None:
+            self._protokolliere(
+                aktiv, MessungZustand.FEHLER, (FehlerArt.GERAET_UNKLAR, text, fehler), None
+            )
+            self._setze_info(
+                aktiv.messung.id, fehlerart=FehlerArt.GERAET_UNKLAR.value, fehlertext=text
+            )
+            self._eintrag_zustand(aktiv.messung.id, MessungZustand.FEHLER, von="laeuft")
         with self._sperre:
             self._aktiv = None
             self._fortschritt = None
             self._fehler_offen = text
-            self._fehler_eintrag_id = aktiv.messung.id
+            self._fehler_eintrag_id = aktiv.messung.id if aktiv is not None else None
         self._freigabe_gesetzt = False  # Gerät verloren; Sitzung baut es neu (Vertrag)
         self._geraet_verloren = True
         self._melde(
