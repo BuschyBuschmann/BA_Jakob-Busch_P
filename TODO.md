@@ -26,7 +26,7 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 |---|---|---|---|---|
 | ☑ | P1 GUI-Technologie: PySide6/Qt (ADR-001) | – | – | `in_progress/entscheidungen/ADR-001_gui-technologie.md` |
 | ☑ | P2 Architekturplan Prototyp freigegeben, ADR-002 bis ADR-012 angelegt | – | – | `in_progress/planung/plaene/2026-10-26_P2_architektur-prototyp.md` |
-| ◐ | P3 GUI-Grunddesign und Design-Brief → Freigabe Jakob | ui-designer, Jakob | Mi 28.10. | Grunddesign freigegeben 26.10.; Brief in Arbeit |
+| ✔ | P3 GUI-Grunddesign und Design-Brief → Freigabe Jakob | ui-designer, Jakob | Mi 28.10. | Grunddesign und Design-Brief freigegeben 26.10. |
 | ◐ | P4 Umsetzung Prototyp in U1–U5 (U1 Kern-Domäne läuft) | software-engineer | Fr 30.10. | Lastenheft R-010–R-031 |
 | ☐ | P5 Review und Design-Abnahme, Korrekturen | reviewer, ui-designer | Sa 31.10. | |
 | ☐ | P6 Montags-Paket: Installationsanleitung (Python 3.11, pywin32, uv), Ablaufplan vor Ort, Protokollvorlage | software-engineer, Orchestrator | So 01.11. | |
