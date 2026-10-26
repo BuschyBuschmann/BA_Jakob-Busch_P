@@ -47,8 +47,8 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 
 | | Aufgabe | Wer | Bis | Hinweis |
 |---|---|---|---|---|
-| ⏳ | P8 Entwurf Inhaltsverzeichnis (Gliederung) – wartet auf die Orga-/To-do-Datei aus dem Input (noch hochzuladen) | `/ba-planung`, Jakob | diese Woche | SLA-Vorlage |
-| ☐ | Gesuchte Orga-/To-do-Datei in `Input/` hochladen | Jakob | – | |
+| ⏳ | P8 Entwurf Inhaltsverzeichnis (Gliederung) – wartet auf die Orga-/To-do-Datei von Daniel | `/ba-planung`, Jakob | diese Woche | SLA-Vorlage |
+| ⏳ | Orga-/To-do-Datei von Daniel erhalten (angefragt) und in `Input/` hochladen; danach Gliederung starten | Daniel, Jakob | – | |
 | ☐ | P8 Zeitplan mit Meilensteinen (sobald Abgabetermin bekannt) | `/ba-planung`, Jakob | nach Anmeldung | |
 | ☐ | P8 Glossar-Grundgerüst (Abkürzungen, Formelzeichen) | wissenschaftlicher-autor | nach Gliederung | |
 | ☐ | Klären: aktuelle LaTeX-Vorlage und Logo (F14), gültige Formalien (F13) | Jakob, Daniel | – | |
