@@ -24,13 +24,14 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 
 | | Aufgabe | Wer | Bis | Hinweis |
 |---|---|---|---|---|
-| ◐ | P1 Entscheidungsvorlage GUI-Technologie → Entscheidung Jakob → ADR | software-engineer, Jakob | Di 27.10. | |
-| ◐ | P2 Architekturplan Prototyp (Warteschlange, COM-Adapter, Simulator, Messprotokoll) + ADRs → Freigabe Jakob | software-engineer, Jakob | Di 27.10. | |
-| ☐ | P3 GUI-Grunddesign und Design-Brief → Freigabe Jakob | ui-designer, Jakob | Mi 28.10. | |
-| ☐ | P4 Umsetzung Prototyp Warteschlange mit kleiner GUI, im Simulator getestet | software-engineer | Fr 30.10. | Lastenheft R-010–R-031 |
+| ☑ | P1 GUI-Technologie: PySide6/Qt (ADR-001) | – | – | `in_progress/entscheidungen/ADR-001_gui-technologie.md` |
+| ☑ | P2 Architekturplan Prototyp freigegeben, ADR-002 bis ADR-012 angelegt | – | – | `in_progress/planung/plaene/2026-10-26_P2_architektur-prototyp.md` |
+| ◐ | P3 GUI-Grunddesign und Design-Brief → Freigabe Jakob | ui-designer, Jakob | Mi 28.10. | |
+| ◐ | P4 Umsetzung Prototyp in U1–U5 (U1 Kern-Domäne läuft) | software-engineer | Fr 30.10. | Lastenheft R-010–R-031 |
 | ☐ | P5 Review und Design-Abnahme, Korrekturen | reviewer, ui-designer | Sa 31.10. | |
 | ☐ | P6 Montags-Paket: Installationsanleitung (Python 3.11, pywin32, uv), Ablaufplan vor Ort, Protokollvorlage | software-engineer, Orchestrator | So 01.11. | |
 | ☑ | Erkundungsskript (nur lesend) mit Prüfanleitung | – | – | `software/tools/erkundung/` |
+| ☐ | Vor Ort in PSV: kleine Test-Einstellungsdatei (.set, z. B. 3×3 Punkte, Generator aus) und Prüfling vorbereiten | Jakob | Mo 02.11. | Anleitung im Montags-Paket |
 | ☐ | Vor Ort: Python 3.11 + pywin32 installieren; Erkundung Stufe 0 → 1 → 1b; Prototyp testen (echte Messung nur nach Bestätigung) | Jakob | Mo 02.11. | Ergebnisse nach `in_progress/versuche/erkundung/`, danach `/laborbuch` |
 
 ## 3 Auswertung (Schritt 2)
@@ -46,7 +47,8 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 
 | | Aufgabe | Wer | Bis | Hinweis |
 |---|---|---|---|---|
-| ☐ | P8 Entwurf Inhaltsverzeichnis (Gliederung) | `/ba-planung`, Jakob | diese Woche | SLA-Vorlage |
+| ⏳ | P8 Entwurf Inhaltsverzeichnis (Gliederung) – wartet auf die Orga-/To-do-Datei aus dem Input (noch hochzuladen) | `/ba-planung`, Jakob | diese Woche | SLA-Vorlage |
+| ☐ | Gesuchte Orga-/To-do-Datei in `Input/` hochladen | Jakob | – | |
 | ☐ | P8 Zeitplan mit Meilensteinen (sobald Abgabetermin bekannt) | `/ba-planung`, Jakob | nach Anmeldung | |
 | ☐ | P8 Glossar-Grundgerüst (Abkürzungen, Formelzeichen) | wissenschaftlicher-autor | nach Gliederung | |
 | ☐ | Klären: aktuelle LaTeX-Vorlage und Logo (F14), gültige Formalien (F13) | Jakob, Daniel | – | |
