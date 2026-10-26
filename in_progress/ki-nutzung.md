@@ -29,3 +29,5 @@ Nutzer hat das Ergebnis geprüft und verantwortet es.
 | 2026-10-26 | Review R-U1, Re-Review RR-U1 | Code-Review U1 | reviewer (opus) | Befundauswahl durch den Nutzer |
 | 2026-10-26 | `software/src/ldv_automation/geraet/com/`, `tests/geraet_com/`, Prüfanleitung U3 | Umsetzung COM-Adapter U3 und Korrekturen K-U3/K-U3b | software-engineer (opus) | offen (Befundauswahl durch den Nutzer; Hardwaretest ausstehend) |
 | 2026-10-26 | Review R-U3, Re-Review RR-U3 | Code-Review COM-Adapter | reviewer (opus) | Befundauswahl durch den Nutzer |
+| 2026-10-26 | `software/src/ldv_automation/{ablauf,protokoll}/`, `geraet/simulator.py`, `sitzung.py`, Tests | Umsetzung U2 und Korrektur K-U2 | software-engineer (opus) | offen (Befundauswahl und Entscheidungen durch den Nutzer) |
+| 2026-10-26 | Review R-U2, Re-Review RR-U2 | Code-Review Ablaufsteuerung | reviewer (opus) | Befundauswahl durch den Nutzer |
