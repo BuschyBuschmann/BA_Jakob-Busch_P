@@ -348,3 +348,38 @@ def test_tausch_nach_internem_fehler_in_bereit_ohne_durchgang_beendet(tmp_path: 
     a.steuerung.schritt()
     assert a.steuerung.zustand is DurchgangZustand.BEREIT
     assert _durchgang_beendet(a) == []
+
+
+def test_interner_fehler_mit_langem_freigabe_entzug_spricht_geraet_nicht_mehr_an(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """K-U2c: Messfreigabe entziehen im internen Fehlerpfad läuft über die Aufrufgrenze."""
+    a = aufbau(
+        tmp_path,
+        [messung(tmp_path, "M1")],
+        drehbuch=[LangsamerAufruf(vorgang=-1, methode="setze_messfreigabe", dauer_s=61.0)],
+        konfiguration=AblaufKonfiguration(aufruf_grenze_s=100.0),
+    )
+    a.starte()
+    a.steuerung.schritt()  # Start: setze_messfreigabe(True) dauert 61 s < 100 s Grenze
+    assert a.steuerung.zustand is DurchgangZustand.LAEUFT
+    # Grenze für den Fehlerpfad herabsetzen, damit der Entzug (ebenfalls 61 s) sie überschreitet
+    monkeypatch.setattr(a.steuerung, "_konf", AblaufKonfiguration(aufruf_grenze_s=60.0))
+
+    def kaputt(*_: object) -> None:
+        raise RuntimeError("Programmierfehler")
+
+    monkeypatch.setattr(a.steuerung, "_vorpruefung", kaputt)
+    a.steuerung.schritt()
+
+    stand = a.steuerung.momentaufnahme()
+    assert stand.durchgang is DurchgangZustand.GERAET_UNKLAR
+    assert stand.geraet_verloren
+    folge = next(e for e in a.ereignisse if e.art == "interner_fehler").daten["folgefehler"]
+    assert isinstance(folge, list) and any("hängt" in str(f) for f in folge)
+    assert a.sim.aufgerufene_methoden()[-1] == "setze_messfreigabe"
+    anzahl = len(a.sim.aufrufe)
+    a.steuerung.trenne()
+    a.steuerung.schritt()
+    assert len(a.sim.aufrufe) == anzahl  # Trennen spricht das Gerät nicht mehr an
+    assert a.steuerung.momentaufnahme().ergebnis is DurchgangErgebnis.GERAET_UNKLAR

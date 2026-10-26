@@ -733,9 +733,14 @@ class Steuerung:
                     self._eintrag_zustand(aktiv.messung.id, MessungZustand.FEHLER, von="laeuft")
             except Exception as exc:  # best effort, Folgefehler wird gemeldet
                 folgefehler.append(f"Eintragszustand: {exc!r}")
-        if self._freigabe_gesetzt and not self._aufruf_haengt and self._geraet is not None:
+        geraet = self._geraet
+        if self._freigabe_gesetzt and not self._aufruf_haengt and geraet is not None:
             try:
-                self._geraet.setze_messfreigabe(False)
+                self._aufruf("setze_messfreigabe", lambda: geraet.setze_messfreigabe(False))
+            except ZeitlimitFehler as exc:
+                # Hänger: Gerät auch zum Trennen nicht mehr ansprechen.
+                self._markiere_verloren(haengt=True)
+                folgefehler.append(f"Messfreigabe entziehen hängt: {exc!r}")
             except Exception as exc:  # best effort, Folgefehler wird gemeldet
                 folgefehler.append(f"Messfreigabe entziehen: {exc!r}")
         self._freigabe_gesetzt = False
