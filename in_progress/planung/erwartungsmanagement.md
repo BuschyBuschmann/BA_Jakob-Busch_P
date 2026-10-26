@@ -4,7 +4,7 @@
 Luft- und Raumfahrt-Strukturtests in Python
 **Verfasser:** Jakob Busch · **Betreuer:** Daniel Alboldt · **Institut:** Strukturmechanik
 und Leichtbau (SLA), RWTH Aachen
-**Stand:** Entwurf vom 2026-10-23 zur gemeinsamen Abstimmung
+**Stand:** Entwurf vom 2026-10-23, ergänzt am 2026-10-26 (Vorstellung Warteschlange, Lastenheft), zur gemeinsamen Abstimmung
 
 > Zweck: Wir gehen das Dokument im Termin Punkt für Punkt durch. In der Spalte
 > „Abgestimmt“ wird bestätigt (✔), geändert (✎) oder offen gelassen. Fragen an den
@@ -27,9 +27,11 @@ und Leichtbau (SLA), RWTH Aachen
 |---|---|---|---|
 | U1 | Einarbeitung in die COM-Schnittstelle der PSV-Software | Muss | |
 | U2 | Python-Paket (Python 3.11), das den Messablauf automatisiert: Verbindung zur PSV-Software, Einstellungen laden bzw. setzen, Scan starten und überwachen, Messdaten speichern | Muss | |
+| U2a | **Mess-Warteschlange:** mehrere Messungen nacheinander automatisch; Messungen einfügen, entfernen, noch nicht gelaufene bearbeiten, Reihenfolge ändern – auch während des Laufs; Pausenpunkte für Umbauten (Lastenheft R-010 bis R-018) | Muss | |
+| U2b | KI-Assistent, der Warteschlangen aus einer Beschreibung erstellen kann (R-040) | Kann | |
 | U3 | Nachvollziehbare Dokumentation jeder Messung (Einstellungen, Softwareversion, Messdaten), damit Versuche reproduzierbar sind | Muss | |
 | U4 | Übernahme der Messdaten nach Python und grundlegende Auswertung und Visualisierung | Muss | |
-| U5 | Einfache grafische Oberfläche zur Bedienung | Soll | |
+| U5 | Einfache grafische Oberfläche zur Bedienung der Mess-Warteschlange | **Muss** (geändert 2026-10-26, siehe Lastenheft R-030) | |
 | U6 | Weitergehende Auswertung, z. B. automatische Plausibilitätsprüfungen, Vergleich von Messungen, Modalanalyse (Eigenfrequenzen, Dämpfung, Eigenformen) | **gestuft:** Umfang wird am Entscheidungspunkt nach Phase 1 festgelegt, abhängig vom Aufwand der Schnittstelle | |
 | U7 | Ansteuerung weiteren Versuchsequipments (z. B. Signalgenerator, Positioniereinheit) | offen, **F6** | |
 | U8 | Ausdrücklich nicht Teil der Arbeit | offen, im Termin festlegen | |
@@ -124,3 +126,5 @@ Ich setze KI-Werkzeuge offen und kontrolliert ein:
 | F17 | Ist ein Zwischen- oder Abschlussvortrag vorgesehen? | Planung | |
 | F18 | Wo soll die Software nach der Arbeit liegen (z. B. Institutsrepository), und was braucht das Institut für die Weiterverwendung (Dokumentation, Sprache, Übergabe)? | Dokumentation, Übergabe | |
 | F19 | Was ist ausdrücklich nicht Teil der Arbeit? | Abgrenzung U8 | |
+| **F20** | **WICHTIG:** Was soll passieren, wenn eine Messung der Warteschlange fehlschlägt (Fehlermeldung von PSV, Zeitüberschreitung)? Pausieren und nachfragen, überspringen, abbrechen oder einstellbar? | Kern der Ablaufsteuerung (Lastenheft O1) | |
+| F21 | Hat der Messrechner Internetzugang, und welcher KI-Dienst darf für einen KI-Assistenten genutzt werden? | Machbarkeit R-040 | |
