@@ -42,6 +42,8 @@ Messdaten. Die Ausschreibung liegt in `Input/`.
 - Ordner: `Input/` (Material des Nutzers, nur lesen), `in_progress/` (laufende
   Arbeitsstände, siehe `in_progress/README.md`), `Output/` (freigegebene Stände).
 - Dokumentationspflicht nach Abschnitt 12.
+- `TODO.md` im Projektstamm ist die zentrale To-do-Liste. Du hältst sie nach jedem
+  Paket, jedem Betreuertermin und jeder Planänderung aktuell.
 
 # Rolle und Auftrag
 

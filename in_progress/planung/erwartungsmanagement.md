@@ -80,7 +80,7 @@ erstellt.
 |---|---|---|
 | Zugang zum PSV-Messrechner | vorhanden | |
 | Fernzugriff auf den Messrechner | möglich | |
-| Installation von Python 3.11 und COM-Bibliothek (pywin32) auf dem Messrechner | Polytec bittet bei Fremdsoftware um Rücksprache: **F4** | |
+| Installation von Python 3.11 und COM-Bibliothek (pywin32) auf dem Messrechner | **geklärt 2026-10-26: darf installiert werden** (F4) | ✔ |
 | PSV-Version und lizenzierte Optionen | **F5** | |
 | Vorhandene Makros, Referenzmessung, Gerätespezifikation | **F7**, **F8** | |
 | Prüfling, Lagerung, Anregung, Kraftmessung | **F9**, **F10** | |
@@ -110,7 +110,7 @@ Ich setze KI-Werkzeuge offen und kontrolliert ein:
 | F1 | Wann wird die Arbeit angemeldet, wie lang ist die Bearbeitungszeit, wann ist die Abgabe? | Zeitplan und Meilensteine | |
 | F2 | In welchem Rhythmus treffen wir uns, und wie erreiche ich Sie zwischen den Terminen? | Planung, Feedbackschleifen | |
 | F3 | Nach welchen Kriterien wird die Arbeit bewertet? Gibt es ein Bewertungsraster des Instituts? | Schwerpunktsetzung | |
-| F4 | Darf auf dem PSV-Messrechner Python 3.11 mit einer COM-Bibliothek (pywin32) installiert werden, oder ist dafür Rücksprache mit Polytec nötig? Alternativ: anderer Rechner? | Architektur, Phase 1 | |
+| F4 | Darf auf dem PSV-Messrechner Python 3.11 mit einer COM-Bibliothek (pywin32) installiert werden, oder ist dafür Rücksprache mit Polytec nötig? Alternativ: anderer Rechner? | Architektur, Phase 1 | Ja, darf installiert werden (Termin 2026-10-26) |
 | F5 | Welche PSV-Version ist installiert, und welche Optionen sind lizenziert (z. B. Zeitdaten, Signalgenerator, Exportformate)? Ist Polytec File Access installiert? | Datenpfad, eigene Auswertung aus Zeitdaten | |
 | F6 | Soll das Paket weiteres Versuchsequipment steuern (Signalgenerator, Positioniereinheit o. Ä.)? | Umfang U7 | |
 | F7 | Gibt es vorhandene Makros (z. B. `SettingsandScan.bas`) und eine kleine Referenzmessung (`.svd` mit UFF-Export), die ich nutzen kann? | Tests mit realen Daten | |
