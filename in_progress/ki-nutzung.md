@@ -27,3 +27,5 @@ Nutzer hat das Ergebnis geprüft und verantwortet es.
 | 2026-10-26 | `in_progress/planung/plaene/2026-10-26_P3_design-brief.md`, Skizze Grunddesign | GUI-Grunddesign und Design-Brief | ui-designer (sonnet) | Grunddesign und Brief vom Nutzer freigegeben |
 | 2026-10-26 | `software/src/ldv_automation/{domaene,persistenz}/`, `geraet/schnittstelle.py`, Tests | Umsetzung U1 und Korrektur K-U1 | software-engineer (sonnet) | offen (Restbefunde vom Nutzer entschieden) |
 | 2026-10-26 | Review R-U1, Re-Review RR-U1 | Code-Review U1 | reviewer (opus) | Befundauswahl durch den Nutzer |
+| 2026-10-26 | `software/src/ldv_automation/geraet/com/`, `tests/geraet_com/`, Prüfanleitung U3 | Umsetzung COM-Adapter U3 und Korrekturen K-U3/K-U3b | software-engineer (opus) | offen (Befundauswahl durch den Nutzer; Hardwaretest ausstehend) |
+| 2026-10-26 | Review R-U3, Re-Review RR-U3 | Code-Review COM-Adapter | reviewer (opus) | Befundauswahl durch den Nutzer |

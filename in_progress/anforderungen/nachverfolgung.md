@@ -6,7 +6,7 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 
 | ID | Umsetzung (Modul/Commit) | Test | Nachweis | Thesis-Kapitel | Stand |
 |---|---|---|---|---|---|
-| R-001 | – | – | – | – | offen |
+| R-001 | `geraet/com/adapter.py` (U3) | `tests/geraet_com/*` (gegen COM-Fake) | Laborbuch 2026-10-26_u3; Prüfanleitung U3 | – | getestet (Fake), am Gerät offen |
 | R-010 | – | – | – | – | offen |
 | R-011 | `domaene/eintraege.py`, `domaene/parameter.py` (U1) | `tests/domaene/test_domaene_parameter.py`, `test_domaene_eintraege.py` | Laborbuch 2026-10-26_u1 | – | umgesetzt (Domäne; Ablauf in U2) |
 | R-012 | `domaene/warteschlange.py` (U1) | `test_u1_1_*` | Laborbuch 2026-10-26_u1 | – | getestet (Domäne) |
