@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Automatisierung von Strukturtests mit einem 3D-Laser-Doppler-Vibrometer (Bachelorarbeit, SLA, RWTH Aachen)"
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
-dependencies = []
+dependencies = [
+    # ADR-001 nennt 6.12.0. 6.12.0 verliert unter Python 3.11 bei jedem Qt-Aufruf ohne
+    # Rückgabewert eine Referenz auf None (Absturz „none_dealloc“ nach einigen tausend
+    # Aufrufen, Nachweis U4). Deshalb vorläufig 6.11.3; Entscheidung des Nutzers offen.
+    "pyside6-essentials==6.11.3",
+]
 
 [project.optional-dependencies]
 # Windows-COM-Zugriff auf PSV. Nur unter Windows installierbar; unter Linux wird die
@@ -16,6 +21,7 @@ dev = [
     "mypy>=1.10",
     "pytest>=8.0",
     "pytest-cov>=5.0",
+    "pytest-qt==4.5.0",
     "ruff>=0.5",
 ]
 
@@ -38,6 +44,9 @@ ignore = [
     "D107",  # Docstring für __init__ steht im Klassen-Docstring (NumPy-Stil)
 ]
 
+# Der Gedankenstrich „–“ ist in den Oberflächentexten des Design-Briefs P3 vorgegeben.
+allowed-confusables = ["–"]
+
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
@@ -55,18 +64,42 @@ exclude = ["^\\.venv/"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "tools/erkundung"]
-addopts = "-ra --strict-markers -m 'not hardware'"
+addopts = "-ra --strict-markers -m 'not hardware and not gui'"
 markers = [
     "hardware: braucht echte Hardware bzw. den Messrechner (standardmäßig abgewählt; `pytest -m hardware`)",
+    "gui: Oberflächentest mit Qt (pytest-qt, `QT_QPA_PLATFORM=offscreen`, setzt Qt-Systembibliotheken voraus; standardmäßig abgewählt; `pytest -m gui`)",
 ]
 
 [tool.coverage.run]
 branch = true
 source = ["src/ldv_automation", "tools/erkundung"]
 
+# Qt-Widget-Module der Oberfläche: Sie laufen nur in den GUI-Tests (`pytest -m gui`, offscreen,
+# Qt-Systembibliotheken nötig), die standardmäßig abgewählt sind (KONVENTIONEN: Oberflächentests
+# per Marker). Die GUI-Logik (Aktivierung, Hinweisband, Fortschritt, Zeilenstatus, Prüfungen)
+# liegt Qt-frei in `gui/anzeige.py` und `gui/tokens.py` und wird im Standardlauf voll gemessen.
+# Abdeckung der Widget-Module separat:
+#   QT_QPA_PLATFORM=offscreen uv run pytest -m gui --cov --cov-config=tests/gui/coverage_gui.toml
+omit = [
+    "src/ldv_automation/gui/hauptfenster.py",
+    "src/ldv_automation/gui/tabelle.py",
+    "src/ldv_automation/gui/editor.py",
+    "src/ldv_automation/gui/hinweisband.py",
+    "src/ldv_automation/gui/dialoge.py",
+    "src/ldv_automation/gui/stil.py",
+    "src/ldv_automation/gui/start.py",
+]
+
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
+
+[[tool.mypy.overrides]]
+# Die Sitzungsfassade reicht die Typen ihres Zustandsbilds (DurchgangZustand,
+# DurchgangErgebnis, Fehlerentscheidung, FortschrittStand, GeraeteInfo) an die Oberfläche weiter;
+# `gui` darf nur `sitzung` und `domaene` importieren (Plan P2, 1; Importtest).
+module = ["ldv_automation.sitzung"]
+implicit_reexport = true
 
 [[tool.mypy.overrides]]
 # pywin32 und winreg gibt es nur unter Windows und sie liefern keine Typen mit.

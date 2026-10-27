@@ -1,0 +1,9 @@
+# Abdeckung der Qt-Widget-Module (nur mit `pytest -m gui` messbar, siehe pyproject.toml):
+#   QT_QPA_PLATFORM=offscreen uv run pytest -m gui --cov --cov-config=tests/gui/coverage_gui.toml
+[tool.coverage.run]
+branch = true
+source = ["src/ldv_automation/gui"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

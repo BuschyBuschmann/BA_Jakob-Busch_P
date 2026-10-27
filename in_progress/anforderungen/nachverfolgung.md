@@ -20,14 +20,14 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-020 | `protokoll/messprotokoll.py` (U2) | `test_u2_10_*` | Laborbuch 2026-10-26_u2 | – | getestet (Simulator) |
 | R-021 | `persistenz/warteschlangendatei.py` (U1) | `test_u1_4_*`, `test_u1_5_*` | Laborbuch 2026-10-26_u1 | – | getestet (ohne GUI) |
 | R-022 | – | – | – | – | offen |
-| R-030 | – | – | – | – | offen |
-| R-031 | `sitzung.py` Zustandsbild/Ereignisse (U2, Kern) | `test_u2_12_*` | Laborbuch 2026-10-26_u2 | – | in Arbeit (GUI in U4) |
+| R-030 | `gui/` (U4) | `tests/gui/*` (gui-Marker), Handtest-Checkliste U4 | Laborbuch 2026-10-27_u4 | – | umgesetzt (Handtest offen) |
+| R-031 | `sitzung.py` (U2), `gui/anzeige.py`, `gui/tabelle.py` (U4) | `test_u2_12_*`, UI-7/UI-8 | Laborbuch 2026-10-26_u2, 2026-10-27_u4 | – | getestet (Simulator) |
 | R-040 | – | – | – | – | offen |
 | R-050 | – | – | – | – | offen |
 | R-051 | – | – | – | – | offen |
 | R-052 | – | – | – | – | offen |
 | R-053 | – | – | – | – | offen |
 | R-054 | – | – | – | – | offen |
-| R-060 | – | – | – | – | offen |
+| R-060 | `pyproject.toml` (`requires-python >=3.11,<3.12`) | gesamte Testsuite unter Python 3.11 | Laborbuch 2026-10-27_u4 | – | umgesetzt |
 | R-061 | `geraet/simulator.py` (U2), COM-Fake (U3) | gesamte Testsuite | Laborbuch 2026-10-26_u2, _u3 | – | umgesetzt |
 | R-062 | – | – | – | – | offen |

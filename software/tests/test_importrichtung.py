@@ -41,7 +41,9 @@ REGELN: dict[str, tuple[str, ...]] = {
     AB: (D, S, PR, PE, AB),
     SI: (D, S, f"{PAKET}.geraet", AB, PR, PE, SI),
     GUI: (D, SI, GUI),
-    f"{PAKET}.__main__": (SI, GUI),
+    # Einstieg = Kompositionswurzel: setzt Simulator bzw. COM-Adapter für die Sitzung
+    # zusammen (die Sitzung hat keine eigene Gerätefabrik), U4.
+    f"{PAKET}.__main__": (SI, GUI, S, SIM, COM),
 }
 
 PYWIN32_ERLAUBT = "geraet/com/pywin32_bindung.py"
