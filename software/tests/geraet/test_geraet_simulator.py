@@ -287,3 +287,26 @@ def test_langsamer_aufruf_braucht_schlafen_und_vorgang_minus_eins() -> None:
     assert uhr.monotonic() == 7.0  # exakt: eine Vorstellung um 7,0 s
     with pytest.raises(ValueError, match="≥ 0"):
         Simulator(Testuhr().monotonic, drehbuch=[Haenger(vorgang=-1)])
+
+
+def test_u5_generatorzustand_konfigurierbar() -> None:
+    sim = Simulator(
+        lambda: 0.0,
+        konfiguration=SimulatorKonfiguration(
+            generator_aktiv=True, generator_amplitude_v=2.0, generatoren_an=True
+        ),
+    )
+    sim.verbinde()
+    stand = sim.lies_einstellungsstand()
+    assert stand.generator_aktiv is True and stand.generator_amplitude_v == 2.0
+    assert stand.gruppen["generator"] == {
+        "aktiv": True,
+        "amplitude_v": 2.0,
+        "generatoren_an": True,
+    }
+    standard = Simulator(lambda: 0.0)
+    standard.verbinde()
+    assert standard.lies_einstellungsstand().gruppen["generator"] == {
+        "aktiv": False,
+        "amplitude_v": 0.0,
+    }

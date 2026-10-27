@@ -63,8 +63,21 @@ class SitzungsFassade(Protocol):
     def trenne(self) -> None:
         """Verbindung trennen."""
 
-    def starte(self, name: str, *, messen_bestaetigt: bool = False) -> None:
-        """Durchgang starten."""
+    def starte(
+        self,
+        name: str,
+        *,
+        messen_bestaetigt: bool = False,
+        erwartete_betriebsart: Betriebsart | None = None,
+        erwartete_kennung: str | None = None,
+    ) -> None:
+        """Durchgang starten (auch aus ``BEENDET``), gebunden an den Schnappschuss."""
+
+    def setze_standard_zeitlimit(self, zeitlimit_s: float) -> None:
+        """Standard-Zeitlimit in s setzen."""
+
+    def setze_einstellungen(self, messdaten_wurzel: Path, standard_zeitlimit_s: float) -> None:
+        """Ordner und Standard-Zeitlimit gemeinsam übernehmen (``EinstellungsFehler``)."""
 
     def pausiere(self) -> None:
         """Pause anfordern."""

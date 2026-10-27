@@ -5,9 +5,10 @@ Anzeigewerte ab: Aktivierungstabelle (3.3), Hinweisband (3.5), Fortschritt (3.6)
 Zeilenstatus (3.4), Kurzform der Änderungen, Eingabeprüfung des Editors. Die Funktionen
 haben keinen Zustand und keine Qt-Abhängigkeit; die Widgets rufen sie nur auf.
 
-Grenzen (siehe Rückmeldung U4): Einfügebereich und Zieldateinamen liefert die Sitzung noch
-nicht. Der Einfügebereich wird hier aus den Eintragszuständen des Zustandsbilds abgeleitet
-(:func:`wartebereich_anfang`); Zieldateinamen werden **nicht** nachgebildet.
+Den zulässigen Einfügebereich (``Zustandsbild.einfuegen_ab``) und die Angaben für den
+Startdialog (``Zustandsbild.start_vorschau``) liefert die Sitzung (U5, B1/B8); die
+Oberfläche leitet sie nicht selbst ab. Zieldateinamen außerhalb des Startdialogs werden
+**nicht** nachgebildet.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from pathlib import PurePath
+from pathlib import PurePath, PureWindowsPath
 from uuid import UUID
 
 from ldv_automation.domaene import KATALOG, Parameterkatalog, ParameterSpec, ParameterWert
@@ -25,7 +26,11 @@ from ldv_automation.sitzung import (
     DurchgangErgebnis,
     DurchgangZustand,
     EintragBild,
+    GeneratorStand,
+    GeraeteDiagnose,
+    GeraeteStand,
     SitzungsEreignis,
+    StartVorschau,
     Voraussetzung,
     Zustandsbild,
 )
@@ -200,24 +205,16 @@ def laufende_messung(bild: Zustandsbild) -> EintragBild | None:
     return next((e for e in bild.eintraege if e.art == "messung" and e.zustand == "laeuft"), None)
 
 
-def wartebereich_anfang(eintraege: Sequence[EintragBild]) -> int:
-    """Erster Index hinter dem letzten nicht wartenden Eintrag (0, wenn alle warten).
+def einfuegeposition(bild: Zustandsbild, auswahl_index: int | None) -> int:
+    """Einfügeposition: hinter der Auswahl, ohne Auswahl am Ende, nie vor Gestartetes.
 
-    Einfügen und Verschieben bleiben in diesem Bereich (Brief 1, „Einfügeposition“). Die
-    Sitzung liefert den Bereich noch nicht; er wird aus den Eintragszuständen abgeleitet.
+    Die Untergrenze ist der von der Sitzung gelieferte Einfügebereich
+    (``Zustandsbild.einfuegen_ab``, Brief 1 „Einfügeposition“).
     """
-    anfang = 0
-    for i, e in enumerate(eintraege):
-        if e.zustand != WARTEND:
-            anfang = i + 1
-    return anfang
-
-
-def einfuegeposition(eintraege: Sequence[EintragBild], auswahl_index: int | None) -> int:
-    """Einfügeposition: hinter der Auswahl, ohne Auswahl am Ende, nie vor Gestartetes."""
+    eintraege = bild.eintraege
     wunsch = len(eintraege) if auswahl_index is None else auswahl_index + 1
     wunsch = min(max(wunsch, 0), len(eintraege))
-    return max(wunsch, wartebereich_anfang(eintraege))
+    return max(wunsch, bild.einfuegen_ab)
 
 
 def einfuegeort_text(
@@ -427,7 +424,7 @@ def bedienbarkeit(bild: Zustandsbild, auswahl: UUID | None) -> dict[str, Knopf]:
             for name in ("entfernen", "hoch", "runter", "uebernehmen"):
                 k[name] = Knopf(False, grund)
         else:
-            anfang = wartebereich_anfang(eintraege)
+            anfang = bild.einfuegen_ab
             k["entfernen"] = Knopf(True)
             k["uebernehmen"] = Knopf(True)
             k["hoch"] = (
@@ -571,6 +568,11 @@ def aenderungen_text(
 def limit_text(zeitlimit_s: float | None) -> str:
     """Spalte Limit: „600 s“ bzw. „Std.“ (Standard-Zeitlimit der Sitzung)."""
     return "Std." if zeitlimit_s is None else f"{zeitlimit_s:g} s"
+
+
+def standard_limit_hinweis(standard_zeitlimit_s: float) -> str:
+    """Kurzer Hinweis im Editor neben dem Limitfeld (B3, K-U5b); Langform im Tooltip."""
+    return f"(Standard: {standard_zeitlimit_s:g} s)"
 
 
 @dataclass(frozen=True)
@@ -1142,3 +1144,167 @@ def protokolltext(ereignis: SitzungsEreignis) -> str | None:
     if ereignis.art in _WARN_ARTEN:
         return f"Warnung: {ereignis.text}"
     return ereignis.text
+
+
+# --- Startdialog 3.9 und Gerät 3.10 (Angaben der Sitzung, U5/B1) -----------------------------
+
+UNBEKANNT = "unbekannt"
+
+
+def _ja_nein(wert: bool | None) -> str:
+    return UNBEKANNT if wert is None else "ja" if wert else "nein"
+
+
+def generator_text(g: GeneratorStand | None) -> str:
+    """„GeneratorsOn: nein, Aktiv: nein, Amplitude: 0.5 V“ (unbekannte Werte als „unbekannt“)."""
+    if g is None:
+        return "GeneratorsOn: unbekannt, Aktiv: unbekannt, Amplitude: unbekannt"
+    amplitude = UNBEKANNT if g.amplitude_v is None else f"{g.amplitude_v:g} V"
+    text = (
+        f"GeneratorsOn: {_ja_nein(g.generatoren_an)}, Aktiv: {_ja_nein(g.aktiv)}, "
+        f"Amplitude: {amplitude}"
+    )
+    if g.anzahl is not None and g.anzahl > 1:
+        text += f" (nur Generator 1 von {g.anzahl} gelesen)"
+    return text
+
+
+def generator_kurz(g: GeneratorStand | None) -> str:
+    """Tabellenspalte Generator: „aus“, „AKTIV“ oder „unbekannt“."""
+    if g is None:
+        return UNBEKANNT
+    if g.aktiv is True or g.generatoren_an is True:
+        return "AKTIV"
+    return "aus" if g.unbedenklich else UNBEKANNT
+
+
+def geraet_generator_text(stand: GeraeteStand | None, *, startdialog: bool = False) -> str:
+    """Block „Generator (gelesen …)“ aus dem zuletzt gelesenen Gerätestand.
+
+    Im Startdialog folgt der Hinweis, dass der Wert nur für die zuletzt geladene
+    Einstellung gilt; maßgeblich sind die Angaben je Messung in der Tabelle (K-U5b).
+    """
+    if stand is None:
+        text = "Generator (gelesen): unbekannt (kein Gerätestand gelesen)"
+    elif stand.fehler is not None:
+        text = f"Generator (gelesen {stand.quelle}): unbekannt ({stand.fehler})"
+    else:
+        text = f"Generator (gelesen {stand.quelle}): {generator_text(stand.generator)}"
+    if startdialog:
+        text += (
+            " – gilt nur für diese Datei bzw. die zuletzt in PSV geladene Einstellung; "
+            "maßgeblich sind die Angaben je Messung in der Tabelle."
+        )
+    return text
+
+
+def messpunkte_text(stand: GeraeteStand | None) -> str:
+    """Zeile Messpunkte im Dialog „Gerät“ (3.10)."""
+    if stand is None or stand.messpunkte is None:
+        grund = f" ({stand.fehler})" if stand is not None and stand.fehler else ""
+        return f"{UNBEKANNT}{grund}"
+    return f"{stand.messpunkte} (gelesen {stand.quelle})"
+
+
+def diagnose_text(diagnose: GeraeteDiagnose | None) -> str:
+    """Zeile Aufrufprotokoll im Dialog „Gerät“ (Prüfung T1: ohne Verweigerung)."""
+    if diagnose is None:
+        return "nicht verfügbar (Simulator)"
+    if not diagnose.verweigerungen:
+        return f"{diagnose.aufrufe_anzahl} Zugriffe, keine Verweigerung"
+    return (
+        f"{diagnose.aufrufe_anzahl} Zugriffe, {len(diagnose.verweigerungen)} Verweigerungen:\n"
+        + "\n".join(diagnose.verweigerungen)
+    )
+
+
+def start_anzahl_text(vorschau: Sequence[StartVorschau]) -> str:
+    """„<n> Messungen, <m> Messpunkte insgesamt (soweit bekannt)“ (Brief 3.9).
+
+    Ist kein Wert bekannt, heißt es „Messpunkte insgesamt: unbekannt“ statt „0“ (K-U5b).
+    """
+    bekannt = [v.messpunkte for v in vorschau if v.messpunkte is not None]
+    if not bekannt:
+        return f"{len(vorschau)} Messungen, Messpunkte insgesamt: unbekannt"
+    text = f"{len(vorschau)} Messungen, {sum(bekannt)} Messpunkte insgesamt (soweit bekannt"
+    offen = len(vorschau) - len(bekannt)
+    return text + (f"; bei {offen} Messungen unbekannt)" if offen else ")")
+
+
+def start_zeile(v: StartVorschau) -> tuple[str, str, str, str, str]:
+    """Tabellenzeile Nr · Einstellungsdatei · Zieldatei · Messpunkte · Generator.
+
+    Die Zieldatei erscheint nur als Dateiname; den vollen Pfad zeigt der Tooltip
+    (:func:`start_tooltip`). Übernommene Werte sind gekennzeichnet (K-U5b).
+    """
+    generator = generator_kurz(v.generator)
+    if v.uebernommen:
+        generator += " (übernommen)"
+    return (
+        f"{v.nummer:02d}",
+        v.einstellungsdatei,
+        PureWindowsPath(v.zielpfad).name if v.zielpfad else UNBEKANNT,
+        UNBEKANNT if v.messpunkte is None else str(v.messpunkte),
+        generator,
+    )
+
+
+def start_tooltip(v: StartVorschau, spalte: int) -> str:
+    """Tooltip einer Zelle des Startdialogs (voller Zielpfad, Herkunft der Werte)."""
+    wert = start_zeile(v)[spalte]
+    if spalte == 2:
+        return f"{v.zielpfad or UNBEKANNT}\n{v.hinweis}"
+    if spalte == 4:
+        return f"{generator_text(v.generator)}\n{v.hinweis}"
+    if spalte == 3:
+        return f"{wert}\n{v.hinweis}"
+    return wert
+
+
+def generator_warnung(vorschau: Sequence[StartVorschau]) -> str | None:
+    """Rote Warnzeile des Startdialogs oder ``None`` (nur bei aktiv oder unbekannt, B1).
+
+    Nennt aktive **und** unbekannte Messungen zugleich (K-U5b).
+    """
+    aktiv = [
+        v
+        for v in vorschau
+        if v.generator is not None
+        and (v.generator.aktiv is True or v.generator.generatoren_an is True)
+    ]
+    unklar = [v for v in vorschau if not v.generator_unbedenklich and v not in aktiv]
+    if not aktiv and not unklar:
+        return None
+    teile: list[str] = []
+    if aktiv:
+        teile.append(f"Generator ist aktiv (Nr {', '.join(f'{v.nummer:02d}' for v in aktiv)})")
+    if unklar:
+        nrn = ", ".join(f"{v.nummer:02d}" for v in unklar)
+        teile.append(
+            f"Generatorzustand unbekannt (Nr {nrn}; .set mit dem verbundenen Gerät nicht "
+            "geladen oder Wert nicht lesbar)"
+        )
+    return (
+        f"{symbol('fehler')} "
+        + "; ".join(teile)
+        + ". Ein in der .set aktiver Generator startet mit der Messung automatisch. Nur "
+        "fortfahren, wenn Shaker/Verstärker freigegeben sind."
+    )
+
+
+def konfiguration_text(info: Mapping[str, object] | None) -> str:
+    """Zeile Konfiguration im Dialog „Gerät“: Datei, SHA-256 und verwendete Werte (K-U5)."""
+    if info is None:
+        return "keine Angabe (Standardwerte der Sitzung)"
+    pfad = info.get("pfad")
+    sha = info.get("sha256")
+    kopf = (
+        f"Datei: {pfad} (SHA-256 {str(sha)[:12]}…)"
+        if pfad
+        else "Standardwerte (keine Konfigurationsdatei)"
+    )
+    werte = info.get("werte")
+    zeilen = [kopf]
+    if isinstance(werte, Mapping):
+        zeilen.extend(f"{k}: {v}" for k, v in werte.items())
+    return "\n".join(zeilen)

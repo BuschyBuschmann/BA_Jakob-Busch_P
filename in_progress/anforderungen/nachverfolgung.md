@@ -17,7 +17,7 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-017 | `ablauf/steuerung.py` (U2) | `test_u2_3_*` | Laborbuch 2026-10-26_u2 | – | getestet (Simulator) |
 | R-018 | `ablauf/steuerung.py` (U2) | `test_u2_4_*` | Laborbuch 2026-10-26_u2 | – | getestet (Simulator) |
 | R-019 | `ablauf/fehlerstrategie.py` (U2, vorläufig) | `test_u2_5_*`, `test_u2_6_*` | Laborbuch 2026-10-26_u2 | – | vorläufig umgesetzt (O1 offen) |
-| R-020 | `protokoll/messprotokoll.py` (U2) | `test_u2_10_*` | Laborbuch 2026-10-26_u2 | – | getestet (Simulator) |
+| R-020 | `protokoll/messprotokoll.py` (U2), Konfiguration und Build-Info (U5) | `test_u2_10_*`, `tests/test_konfig.py`, `test_build_info.py` | Laborbuch 2026-10-26_u2, 2026-10-27_u5 | – | getestet (Simulator) |
 | R-021 | `persistenz/warteschlangendatei.py` (U1) | `test_u1_4_*`, `test_u1_5_*` | Laborbuch 2026-10-26_u1 | – | getestet (ohne GUI) |
 | R-022 | – | – | – | – | offen |
 | R-030 | `gui/` (U4) | `tests/gui/*` (gui-Marker), Handtest-Checkliste U4 | Laborbuch 2026-10-27_u4 | – | umgesetzt (Handtest offen) |
@@ -30,4 +30,4 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-054 | – | – | – | – | offen |
 | R-060 | `pyproject.toml` (`requires-python >=3.11,<3.12`) | gesamte Testsuite unter Python 3.11 | Laborbuch 2026-10-27_u4 | – | umgesetzt |
 | R-061 | `geraet/simulator.py` (U2), COM-Fake (U3) | gesamte Testsuite | Laborbuch 2026-10-26_u2, _u3 | – | umgesetzt |
-| R-062 | – | – | – | – | offen |
+| R-062 | Standard-Prüfung aus KONVENTIONEN | ruff, mypy --strict, pytest ≥ 90 % (97,95 %) | Laborbuch 2026-10-27_u5 | – | umgesetzt |

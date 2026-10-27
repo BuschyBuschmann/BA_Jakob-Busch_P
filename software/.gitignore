@@ -12,3 +12,5 @@ dist/
 *.egg-info/
 # Ausgabeordner des Erkundungsskripts, falls lokal (nicht auf dem Messrechner) ausgeführt
 tools/erkundung/erkundung_*/
+# Build-Info (Git-Hash) wird vor dem Wheel-Bau erzeugt (tools/build_info/build_info.py)
+src/ldv_automation/_build_info.json

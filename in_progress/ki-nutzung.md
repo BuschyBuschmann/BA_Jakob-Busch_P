@@ -34,3 +34,6 @@ Nutzer hat das Ergebnis geprüft und verantwortet es.
 | 2026-10-27 | `software/src/ldv_automation/gui/`, `__main__.py`, `tests/gui/`, Handtest-Checkliste U4 | Umsetzung der Oberfläche U4 | software-engineer (opus) | offen (Handtest durch den Nutzer ausstehend) |
 | 2026-10-27 | Design-Brief Nachtrag „Zurücksetzen“, Design-Abnahme A-U4 | Konzept und Abnahme der Oberfläche | ui-designer (sonnet) | Nachtrag vom Nutzer freigegeben |
 | 2026-10-27 | Review R-U4, Re-Reviews RR-U2b/RR-U2c | Code-Review | reviewer (opus) | Befundauswahl durch den Nutzer |
+| 2026-10-27 | `software/` (U5: Integration, `konfig.py`, `hatch_build.py`, Selbsttest, GUI-Anpassungen) und Tests | Umsetzung U5 und Korrekturen K-U5/K-U5b | software-engineer (opus) | offen (Befunde und Entscheidungen durch den Nutzer; Windows-/Gerätetest ausstehend) |
+| 2026-10-27 | `in_progress/versuche/2026-11-02_prototyp/` (README, Installation, Ablaufplan, Protokollvorlage, Anleitung Test-.set), `software/tools/wheelhouse/` | Montagspaket P6 | software-engineer (sonnet) | offen (Durchsicht durch den Nutzer vor Montag) |
+| 2026-10-27 | Review R-U5, Re-Review RR-U5, Design-Abnahme A-U5 | Prüfung U5 | reviewer (opus), ui-designer (sonnet) | Befundauswahl durch den Nutzer |

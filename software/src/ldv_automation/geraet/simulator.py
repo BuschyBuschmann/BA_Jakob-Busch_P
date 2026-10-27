@@ -225,6 +225,12 @@ class SimulatorKonfiguration:
         ``--ereignisse``); sonst ``None``.
     hardware : mapping
         Gemeldete Hardware-Kennungen.
+    generator_aktiv : bool or None
+        Gelesenes ``Generator.Active`` (``None``: nicht lesbar).
+    generator_amplitude_v : float or None
+        Gelesene Generatoramplitude in V (``None``: nicht lesbar).
+    generatoren_an : bool or None
+        Gelesenes ``GeneratorsOn``; ``None`` (Standard): wird nicht gemeldet.
     """
 
     psv_laeuft: bool = True
@@ -250,6 +256,9 @@ class SimulatorKonfiguration:
     hardware: Mapping[str, str] = field(
         default_factory=lambda: {"frontend": "SIM-FE", "firmware": "SIM-1.0"}
     )
+    generator_aktiv: bool | None = False
+    generator_amplitude_v: float | None = 0.0
+    generatoren_an: bool | None = None
 
     def __post_init__(self) -> None:
         if self.punkte_anzahl <= 0:
@@ -565,20 +574,27 @@ class Simulator:
         return {s: self._werte[s] for s in schluessel}
 
     def lies_einstellungsstand(self) -> EinstellungsStand:
-        """Liest den Einstellungsstand (Generator immer aus)."""
+        """Liest den Einstellungsstand (Generator nach Konfiguration, Standard: aus)."""
         self._protokolliere("lies_einstellungsstand")
         self._pruefe_verbunden("lies_einstellungsstand")
         self._vielleicht_haengen("lies_einstellungsstand")
         w = self._werte
+        konf = self.konfiguration
+        generator: dict[str, bool | float | None] = {
+            "aktiv": konf.generator_aktiv,
+            "amplitude_v": konf.generator_amplitude_v,
+        }
+        if konf.generatoren_an is not None:
+            generator["generatoren_an"] = konf.generatoren_an
         return EinstellungsStand(
             modus=self._modus,
-            messpunkte_anzahl=self.konfiguration.punkte_anzahl,
-            generator_aktiv=False,
-            generator_amplitude_v=0.0,
+            messpunkte_anzahl=konf.punkte_anzahl,
+            generator_aktiv=konf.generator_aktiv,
+            generator_amplitude_v=konf.generator_amplitude_v,
             gruppen={
                 "fft": {"bandbreite_hz": w["fft.bandbreite_hz"], "linien": w["fft.linien"]},
                 "mittelung": {"anzahl": w["mittelung.anzahl"], "typ": w["mittelung.typ"]},
-                "generator": {"aktiv": False, "amplitude_v": 0.0},
+                "generator": generator,
             },
         )
 

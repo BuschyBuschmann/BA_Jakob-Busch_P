@@ -14,11 +14,18 @@ Betriebsarten (Plan P2, 6): Umschalten heißt, das Gerät im Geräte-Thread neu 
 (Vertrag in ``geraet/schnittstelle.py``). ``MESSEN`` setzt die Voraussetzungen aus
 :meth:`Sitzung.messen_voraussetzungen` voraus, ein Durchgang in ``MESSEN`` zusätzlich die
 ausdrückliche Bestätigung (``messen_bestaetigt=True``).
+
+Für den Dialog „Durchgang starten“ (Brief 3.9) liefert das Zustandsbild je wartender
+Messung eine :class:`StartVorschau` (Einstellungsdatei, voraussichtlicher Zielpfad,
+Messpunkte und Generatorzustand, soweit nach dem Laden der ``.set`` in dieser Sitzung
+gelesen). Unbekanntes bleibt ``None``; es wird nichts geraten.
 """
 
 from __future__ import annotations
 
 import contextlib
+import hashlib
+import math
 import os
 import queue
 import threading
@@ -28,9 +35,17 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
+from typing import Protocol, runtime_checkable
 from uuid import UUID
 
 from ldv_automation.ablauf.fehlerstrategie import Fehlerstrategie
+from ldv_automation.ablauf.geraetestand import (
+    GeneratorStand,
+    GeraeteStand,
+    noch_gueltig,
+    pfad_schluessel,
+    uebertragbar,
+)
 from ldv_automation.ablauf.steuerung import (
     AblaufEreignis,
     AblaufKonfiguration,
@@ -51,7 +66,37 @@ from ldv_automation.persistenz.warteschlangendatei import (
     lade_warteschlange,
     speichere_warteschlange,
 )
+from ldv_automation.protokoll.ablage import (
+    ENDUNG_MESSDATEI,
+    dateibasis,
+    pruefe_messdaten_ordner,
+    sicherer_name,
+)
 from ldv_automation.protokoll.version import BuildInfo, ermittle_build_info
+
+__all__ = [
+    "Betriebsart",
+    "DurchgangErgebnis",
+    "DurchgangZustand",
+    "EinstellungsFehler",
+    "EintragBild",
+    "Fehlerentscheidung",
+    "FortschrittStand",
+    "GeneratorStand",
+    "GeraeteDiagnose",
+    "GeraeteFabrik",
+    "GeraeteInfo",
+    "GeraeteStand",
+    "Sitzung",
+    "SitzungsEreignis",
+    "StartVorschau",
+    "Voraussetzung",
+    "Zustandsbild",
+]
+"""Öffentliche Namen; die Oberfläche importiert nur diese (Importregel ``gui -> sitzung``)."""
+
+ZIELORDNER_PLATZHALTER = "<JJJJ-MM-TT_HHMMSS>"
+"""Platzhalter für den Zeitstempel des Durchgangsordners im voraussichtlichen Zielpfad."""
 
 
 class Betriebsart(StrEnum):
@@ -65,6 +110,75 @@ class Betriebsart(StrEnum):
 
 GeraeteFabrik = Callable[[Betriebsart], Messgeraet]
 """Erzeugt das Gerät für eine Betriebsart (wird im Geräte-Thread aufgerufen)."""
+
+
+@runtime_checkable
+class _Diagnosequelle(Protocol):
+    """Optionale, thread-sichere Diagnose eines Geräts (COM-Adapter, T1 am Messrechner)."""
+
+    def aufrufe_anzahl(self) -> int:
+        """Anzahl der weitergereichten Gerätezugriffe."""
+        ...
+
+    def verweigerungen_text(self) -> tuple[str, ...]:
+        """Verweigerte Zugriffe als Text."""
+        ...
+
+
+@dataclass(frozen=True, kw_only=True)
+class GeraeteDiagnose:
+    """Aufrufprotokoll des Geräts in Kurzform (Prüfung T1: „ohne Verweigerung“).
+
+    ``None`` im Zustandsbild heißt: Das Gerät führt kein solches Protokoll (Simulator).
+    """
+
+    aufrufe_anzahl: int
+    verweigerungen: tuple[str, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class StartVorschau:
+    """Angaben einer wartenden Messung für den Dialog „Durchgang starten“ (Brief 3.9).
+
+    Parameters
+    ----------
+    eintrag_id : uuid.UUID
+        ID der Messung.
+    nummer : int
+        Voraussichtliche Nummer im Durchgang (Startreihenfolge, ab 1).
+    name : str
+        Name der Messung.
+    einstellungsdatei : str
+        Pfad der Einstellungsdatei.
+    zielpfad : str or None
+        Voraussichtlicher Pfad der Messdatei; der Zeitstempel des Durchgangsordners steht
+        als :data:`ZIELORDNER_PLATZHALTER` darin. ``None``, wenn kein Messdaten-Ordner
+        gesetzt ist oder sich aus dem Namen kein Dateiname bilden lässt (siehe ``hinweis``).
+    messpunkte : int or None
+        Nach dem Laden dieser ``.set`` in dieser Sitzung gelesen; sonst ``None``.
+    generator : GeneratorStand or None
+        Nach dem Laden dieser ``.set`` gelesen; sonst ``None`` (unbekannt).
+    hinweis : str
+        Herkunft bzw. Grund für „unbekannt“.
+    uebernommen : bool
+        ``True``, wenn Messpunkte und Generator von einem anderen COM-Gerät desselben
+        PSV-Prozesses stammen (z. B. aus dem Trockenlauf, K-U5b).
+    """
+
+    eintrag_id: UUID
+    nummer: int
+    name: str
+    einstellungsdatei: str
+    zielpfad: str | None
+    messpunkte: int | None
+    generator: GeneratorStand | None
+    hinweis: str
+    uebernommen: bool = False
+
+    @property
+    def generator_unbedenklich(self) -> bool:
+        """``True`` nur, wenn gelesen ist, dass kein Generator ausgibt."""
+        return self.generator is not None and self.generator.unbedenklich
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -133,6 +247,24 @@ class Zustandsbild:
     interner_fehler: str | None
     zuruecksetzen_moeglich: bool
     """``True``, wenn :meth:`Sitzung.zuruecksetzen` jetzt sinnvoll und erlaubt ist."""
+    einfuegen_ab: int = 0
+    """Kleinste zulässige Einfügeposition: hinter dem letzten nicht wartenden Eintrag (B8)."""
+    standard_zeitlimit_s: float = 600.0
+    """Zeitlimit in s für Messungen ohne eigenes Limit (einstellbar, B3)."""
+    messdaten_wurzel_probleme: tuple[str, ...] = ()
+    """Gründe, warum der Messdaten-Ordner ungeeignet ist (leer: geeignet, B4)."""
+    durchgangsname: str = ""
+    """Name, mit dem die Oberfläche den nächsten Durchgang startet (Ordnername)."""
+    start_vorschau: tuple[StartVorschau, ...] = ()
+    """Je wartender Messung die Angaben für den Startdialog (B1)."""
+    geraete_stand: GeraeteStand | None = None
+    """Zuletzt gelesener Gerätestand (Messpunkte, Generator), ``None`` ohne Verbindung."""
+    geraet_diagnose: GeraeteDiagnose | None = None
+    """Aufrufprotokoll des Geräts in Kurzform; ``None``, wenn das Gerät keines führt."""
+    warteschlangen_kennung: str = ""
+    """Prüfsumme über Definitionen, Zustände, Betriebsart und Messdaten-Ordner (B7)."""
+    konfiguration: Mapping[str, object] | None = None
+    """Herkunft und Werte der Konfigurationsdatei (K-U5); ``None``, wenn nicht angegeben."""
 
     @property
     def verbunden(self) -> bool:
@@ -151,6 +283,37 @@ class SitzungsEreignis:
     bild: Zustandsbild | None = None
 
 
+def _startangabe(v: StartVorschau) -> dict[str, object]:
+    """Angaben des Startdialogs je Messung für das Ereignisprotokoll (Herkunft, K-U5b)."""
+    g = v.generator
+    return {
+        "nummer": v.nummer,
+        "eintrag_id": str(v.eintrag_id),
+        "einstellungsdatei": v.einstellungsdatei,
+        "zielpfad": v.zielpfad,
+        "messpunkte": v.messpunkte,
+        "generator": None
+        if g is None
+        else {
+            "generatoren_an": g.generatoren_an,
+            "aktiv": g.aktiv,
+            "amplitude_v": g.amplitude_v,
+            "anzahl": g.anzahl,
+        },
+        "uebernommen": v.uebernommen,
+        "hinweis": v.hinweis,
+    }
+
+
+class EinstellungsFehler(ValueError):  # noqa: N818  (fachlicher Name)
+    """Einstellungen ungültig; ``ordner`` und ``zeitlimit`` tragen den Text je Feld."""
+
+    def __init__(self, *, ordner: str | None, zeitlimit: str | None) -> None:
+        super().__init__("; ".join(t for t in (ordner, zeitlimit) if t))
+        self.ordner = ordner
+        self.zeitlimit = zeitlimit
+
+
 class Sitzung:
     """Fassade über Warteschlange, Steuerung und Gerät.
 
@@ -165,7 +328,8 @@ class Sitzung:
     build_info : BuildInfo or None
         Versionsangaben (Standard: :func:`ermittle_build_info`).
     messdaten_wurzel : pathlib.Path or None
-        Wurzelordner der Messdaten.
+        Wurzelordner der Messdaten. Ein ungeeigneter Ordner wird übernommen, aber mit
+        seinen Problemen im Zustandsbild gemeldet; Start und ``MESSEN`` sind dann gesperrt.
     fehlerstrategie : Fehlerstrategie or None
         Fehlerverhalten (Standard: vorläufige Strategie der Steuerung).
     konfiguration : AblaufKonfiguration or None
@@ -175,6 +339,11 @@ class Sitzung:
         Gerät einzustellen).
     warteschlange : Warteschlange or None
         Anfangswarteschlange.
+    ordner_pruefung : callable
+        Prüfung des Messdaten-Ordners (Standard: :func:`pruefe_messdaten_ordner`).
+    konfiguration_info : mapping or None
+        Herkunft (Pfad, SHA-256) und Werte der Konfigurationsdatei (K-U5); erscheint in
+        Protokollen, im Zustandsbild und im Dialog „Gerät“.
 
     Raises
     ------
@@ -195,13 +364,20 @@ class Sitzung:
         konfiguration: AblaufKonfiguration | None = None,
         aufruf_warnung_s: float = 5.0,
         warteschlange: Warteschlange | None = None,
+        ordner_pruefung: Callable[[Path], tuple[str, ...]] = pruefe_messdaten_ordner,
+        konfiguration_info: Mapping[str, object] | None = None,
     ) -> None:
         if betriebsart is Betriebsart.MESSEN:
             raise ValueError("Sitzung: MESSEN nur über setze_betriebsart nach Freischaltung")
         self._fabrik = geraete_fabrik
         self._uhr: Uhr = uhr or Echtzeituhr()
         self._build = build_info or ermittle_build_info()
+        self._ordner_pruefung = ordner_pruefung
+        self._konfig_info = dict(konfiguration_info) if konfiguration_info is not None else None
         self._wurzel = messdaten_wurzel
+        self._wurzel_probleme: tuple[str, ...] = (
+            ordner_pruefung(messdaten_wurzel) if messdaten_wurzel is not None else ()
+        )
         self._warnung_s = aufruf_warnung_s
         self._sperre = threading.RLock()
         self._revision = 0
@@ -219,6 +395,7 @@ class Sitzung:
             fehlerstrategie=fehlerstrategie,
             konfiguration=konfiguration,
             bei_ereignis=self._bei_ablauf,
+            konfiguration_info=konfiguration_info,
         )
         self._tausche(betriebsart)
 
@@ -257,12 +434,15 @@ class Sitzung:
         stand = self.steuerung.momentaufnahme()
         eintraege: list[EintragBild] = []
         zaehler: dict[str, int] = {}
-        for e in self.warteschlange.eintraege():
+        bilanz = set(stand.durchgang_bilanz)
+        alle = self.warteschlange.eintraege()
+        for e in alle:
             info = stand.laufinfo.get(e.id)
             if isinstance(e, Messung):
-                zaehler[e.zustand.value] = zaehler.get(e.zustand.value, 0) + 1
-                if info is not None and info.uebersprungen:
-                    zaehler["uebersprungen"] = zaehler.get("uebersprungen", 0) + 1
+                if e.id in bilanz:  # nur Messungen des beendeten Durchgangs (B2)
+                    zaehler[e.zustand.value] = zaehler.get(e.zustand.value, 0) + 1
+                    if info is not None and info.uebersprungen:
+                        zaehler["uebersprungen"] = zaehler.get("uebersprungen", 0) + 1
                 set_fehlt = e.zustand is MessungZustand.WARTEND and not os.path.isfile(
                     e.einstellungsdatei
                 )
@@ -316,6 +496,11 @@ class Sitzung:
                     )
                 )
         beendet = stand.durchgang is DurchgangZustand.BEENDET
+        einfuegen_ab = 0
+        for i, e in enumerate(alle):
+            if not e.bearbeitbar:
+                einfuegen_ab = i + 1
+        art = Betriebsart(stand.betriebsart)
         return Zustandsbild(
             revision=self._revision,
             durchgang=stand.durchgang,
@@ -342,9 +527,116 @@ class Sitzung:
             interner_fehler=stand.interner_fehler,
             zuruecksetzen_moeglich=(
                 stand.durchgang in (DurchgangZustand.BEREIT, DurchgangZustand.BEENDET)
-                and any(not e.bearbeitbar for e in self.warteschlange.eintraege())
+                and any(not e.bearbeitbar for e in alle)
             ),
+            einfuegen_ab=einfuegen_ab,
+            standard_zeitlimit_s=stand.standard_zeitlimit_s,
+            messdaten_wurzel_probleme=self._wurzel_probleme,
+            durchgangsname=art.value,
+            start_vorschau=self._start_vorschau(stand, alle, art.value),
+            geraete_stand=stand.geraete_stand,
+            geraet_diagnose=self._diagnose(),
+            warteschlangen_kennung=self._kennung(alle, art),
+            konfiguration=self._konfig_info,
         )
+
+    def _start_vorschau(
+        self, stand: AblaufStand, alle: tuple[Eintrag, ...], durchgangsname: str
+    ) -> tuple[StartVorschau, ...]:
+        """Je wartender Messung Zielpfad, Messpunkte und Generator (B1, nur Gelesenes)."""
+        wurzel = self._wurzel
+        # durchgangsname ist ein Betriebsart-Wert und ergibt immer einen Ordnernamen.
+        ordnername = f"{ZIELORDNER_PLATZHALTER}_{sicherer_name(durchgangsname)}"
+        ergebnis: list[StartVorschau] = []
+        wartend = [
+            e for e in alle if isinstance(e, Messung) and e.zustand is MessungZustand.WARTEND
+        ]
+        for nummer, m in enumerate(wartend, start=1):
+            zielpfad: str | None = None
+            hinweise: list[str] = []
+            if wurzel is None:
+                hinweise.append("Zielpfad unbekannt: kein Messdaten-Ordner gesetzt")
+            else:
+                try:
+                    basis = dateibasis(nummer, m.name, m.versuch)
+                except ValueError as fehler:
+                    hinweise.append(f"Zielpfad unbekannt: {fehler}")
+                else:
+                    zielpfad = str(wurzel / ordnername / (basis + ENDUNG_MESSDATEI))
+            kenntnis = stand.einstellungs_kenntnis.get(pfad_schluessel(m.einstellungsdatei))
+            aktuell = stand.geraete_herkunft
+            if kenntnis is not None and (
+                aktuell is None or not uebertragbar(kenntnis.herkunft, aktuell)
+            ):
+                kenntnis = None  # Simulator, anderer Prozess, andere Lademaske (K-U5, K-U5b)
+            uebernommen = False
+            if kenntnis is None:
+                messpunkte, generator = None, None
+                hinweise.append(
+                    "Messpunkte und Generator unbekannt: .set mit dem aktuell verbundenen "
+                    "Gerät noch nicht geladen (Trockenlauf durchführen)"
+                )
+            elif not noch_gueltig(kenntnis):
+                messpunkte, generator = None, None
+                hinweise.append(
+                    "Messpunkte und Generator unbekannt: .set seit dem Laden geändert oder "
+                    "nicht lesbar"
+                )
+            else:
+                messpunkte = kenntnis.stand.messpunkte
+                generator = kenntnis.stand.generator
+                uebernommen = aktuell is not None and (
+                    kenntnis.herkunft.geraet_nr != aktuell.geraet_nr
+                )
+                if uebernommen:
+                    hinweise.append(
+                        f"gelesen in Betriebsart {kenntnis.herkunft.betriebsart.upper()} vom "
+                        f"{kenntnis.stand.zeit:%Y-%m-%d %H:%M:%S} {kenntnis.stand.quelle}; "
+                        "übernommen (gleicher PSV-Prozess, gleiche Lademaske, .set unverändert)"
+                    )
+                else:
+                    hinweise.append(
+                        f"gelesen {kenntnis.stand.quelle} um {kenntnis.stand.zeit:%H:%M:%S}"
+                    )
+            ergebnis.append(
+                StartVorschau(
+                    eintrag_id=m.id,
+                    nummer=nummer,
+                    name=m.name,
+                    einstellungsdatei=m.einstellungsdatei,
+                    zielpfad=zielpfad,
+                    messpunkte=messpunkte,
+                    generator=generator,
+                    hinweis="; ".join(hinweise),
+                    uebernommen=uebernommen,
+                )
+            )
+        return tuple(ergebnis)
+
+    def _diagnose(self) -> GeraeteDiagnose | None:
+        """Kurzform des Aufrufprotokolls, falls das Gerät eines führt (thread-sicher)."""
+        geraet = self.steuerung.geraet_oder_none
+        if not isinstance(geraet, _Diagnosequelle):
+            return None
+        try:
+            return GeraeteDiagnose(
+                aufrufe_anzahl=geraet.aufrufe_anzahl(),
+                verweigerungen=geraet.verweigerungen_text(),
+            )
+        except Exception:  # bewusst: Anzeige ohne Diagnose statt ohne Zustandsbild
+            return None
+
+    def _kennung(self, alle: tuple[Eintrag, ...], art: Betriebsart) -> str:
+        """Prüfsumme für die Schnappschuss-Bindung des Starts (K-U4, B7)."""
+        teile: list[object] = [art.value, str(self._wurzel)]
+        for e in alle:
+            if isinstance(e, Messung):
+                teile.append(
+                    (*self._definition(e), e.zustand.value, e.versuch)  # Definition + Lauf
+                )
+            else:
+                teile.append(("pausenpunkt", e.id, e.text, e.zustand.value))
+        return hashlib.sha256(repr(teile).encode("utf-8")).hexdigest()
 
     def zustandsbild(self) -> Zustandsbild:
         """Aktuelles Zustandsbild (aus jedem Thread)."""
@@ -513,17 +805,106 @@ class Sitzung:
     # --- Einstellungen und Betriebsart -------------------------------------------------
 
     def setze_messdaten_wurzel(self, pfad: Path) -> None:
-        """Setzt den Wurzelordner der Messdaten (nur ohne laufenden Durchgang)."""
-        self._pruefe_ruhe("Messdaten-Wurzel setzen")
+        """Setzt den Wurzelordner der Messdaten (nur ohne laufenden Durchgang).
+
+        Der Ordner wird geprüft (B4, Brief 3.11): absoluter Pfad mit Laufwerk, nicht in
+        Polytec- oder Programmordnern, nicht in einem Git-Repository, vorhanden und
+        beschreibbar. Ändert sich der Ordner, wird das Gerät über die Fabrik neu erzeugt,
+        damit es den neuen Ordner übernimmt (B5; der COM-Adapter prüft Zielpfade gegen
+        ihn). Bestand eine Verbindung, wird danach wieder verbunden.
+
+        Raises
+        ------
+        ValueError
+            Bei laufendem Durchgang oder ungeeignetem Ordner (Meldung nennt jeden Grund);
+            der bisherige Ordner bleibt dann gesetzt.
+        """
+        self._pruefe_ruhe("Messdaten-Ordner setzen")
+        probleme = self._ordner_pruefung(pfad)
+        if probleme:
+            raise ValueError("Messdaten-Ordner ungeeignet: " + "; ".join(probleme))
+        self._uebernehme_wurzel(pfad)
+
+    def _uebernehme_wurzel(self, pfad: Path) -> None:
+        """Setzt einen bereits geprüften Ordner; baut das Gerät bei Änderung neu (B5)."""
         with self._sperre:
+            geaendert = self._wurzel != pfad
             self._wurzel = pfad
+            self._wurzel_probleme = ()
         self._neues_ereignis("einstellung", f"Messdaten-Wurzel: {pfad}", {"pfad": str(pfad)})
+        if geaendert and self.steuerung.zustand is not DurchgangZustand.GERAET_UNKLAR:
+            verbunden = self.steuerung.momentaufnahme().verbindung is not None
+            self._tausche(self.betriebsart)
+            if verbunden:
+                self.steuerung.verbinde()
+
+    @staticmethod
+    def _zeitlimit_fehler(zeitlimit_s: object) -> str | None:
+        if isinstance(zeitlimit_s, bool) or not isinstance(zeitlimit_s, int | float):
+            return f"Standard-Zeitlimit muss eine Zahl sein, erhalten {zeitlimit_s!r}"
+        if not math.isfinite(zeitlimit_s) or zeitlimit_s <= 0:
+            return f"Standard-Zeitlimit muss endlich und > 0 s sein, erhalten {zeitlimit_s!r}"
+        return None
+
+    def setze_einstellungen(self, messdaten_wurzel: Path, standard_zeitlimit_s: float) -> None:
+        """Übernimmt Messdaten-Ordner und Standard-Zeitlimit gemeinsam oder gar nicht (K-U5b).
+
+        Erst werden beide Werte geprüft, dann beide gesetzt. Ist einer ungültig, ändert sich
+        nichts (insbesondere wird das Gerät nicht neu erzeugt).
+
+        Raises
+        ------
+        EinstellungsFehler
+            Bei ungültigem Ordner und/oder Zeitlimit; Texte je Feld.
+        ValueError
+            Bei laufendem Durchgang.
+        """
+        self._pruefe_ruhe("Einstellungen übernehmen")
+        probleme = self._ordner_pruefung(messdaten_wurzel)
+        fehler_ordner = "Messdaten-Ordner ungeeignet: " + "; ".join(probleme) if probleme else None
+        fehler_limit = self._zeitlimit_fehler(standard_zeitlimit_s)
+        if fehler_ordner or fehler_limit:
+            raise EinstellungsFehler(ordner=fehler_ordner, zeitlimit=fehler_limit)
+        if not math.isclose(float(standard_zeitlimit_s), self.steuerung.standard_zeitlimit_s):
+            self.setze_standard_zeitlimit(standard_zeitlimit_s)
+        self._uebernehme_wurzel(messdaten_wurzel)
+
+    def setze_standard_zeitlimit(self, zeitlimit_s: float) -> None:
+        """Setzt das Standard-Zeitlimit in s für Messungen ohne eigenes Limit (B3).
+
+        Nur ohne laufenden Durchgang; gilt ab dem nächsten Durchgang.
+
+        Raises
+        ------
+        ValueError
+            Bei laufendem Durchgang oder wenn der Wert keine endliche Zahl > 0 ist.
+        """
+        self._pruefe_ruhe("Standard-Zeitlimit setzen")
+        if isinstance(zeitlimit_s, bool) or not isinstance(zeitlimit_s, int | float):
+            raise ValueError(f"Standard-Zeitlimit muss eine Zahl sein, erhalten {zeitlimit_s!r}")
+        try:
+            self.steuerung.setze_standard_zeitlimit(float(zeitlimit_s))
+        except ValueError:
+            raise ValueError(
+                f"Standard-Zeitlimit muss endlich und > 0 s sein, erhalten {zeitlimit_s!r}"
+            ) from None
+        self._neues_ereignis(
+            "einstellung",
+            f"Standard-Zeitlimit: {float(zeitlimit_s):g} s",
+            {"standard_zeitlimit_s": float(zeitlimit_s)},
+        )
 
     def _voraussetzungen(
         self, verbindung: GeraeteInfo | None, trockenlauf_ok: bool
     ) -> tuple[Voraussetzung, ...]:
         wurzel = self._wurzel
-        wurzel_ok = wurzel is not None and wurzel.is_dir() and os.access(wurzel, os.W_OK | os.X_OK)
+        probleme = self._wurzel_probleme
+        wurzel_ok = (
+            wurzel is not None
+            and not probleme
+            and wurzel.is_dir()
+            and os.access(wurzel, os.W_OK | os.X_OK)
+        )
         build = self._build
         return (
             Voraussetzung(
@@ -556,6 +937,8 @@ class Sitzung:
                 erfuellt=wurzel_ok,
                 text=f"Messdaten-Wurzel beschreibbar: {wurzel}"
                 if wurzel_ok
+                else f"Messdaten-Wurzel ungeeignet: {'; '.join(probleme)}"
+                if probleme
                 else f"Messdaten-Wurzel fehlt oder ist nicht beschreibbar: {wurzel}",
             ),
             Voraussetzung(
@@ -681,8 +1064,18 @@ class Sitzung:
             self._pruefe_ruhe("Trennen")
         self.steuerung.trenne()
 
-    def starte(self, name: str, *, messen_bestaetigt: bool = False) -> None:
-        """Startet einen Durchgang.
+    def starte(
+        self,
+        name: str,
+        *,
+        messen_bestaetigt: bool = False,
+        erwartete_betriebsart: Betriebsart | None = None,
+        erwartete_kennung: str | None = None,
+    ) -> None:
+        """Startet einen Durchgang, auch direkt aus ``BEENDET`` (B7).
+
+        Aus ``BEENDET`` wird der alte Durchgang zuerst quittiert; Quittieren und Start gehen
+        unmittelbar nacheinander an den Geräte-Thread, ohne Warten in der Oberfläche.
 
         Parameters
         ----------
@@ -690,22 +1083,50 @@ class Sitzung:
             Durchgangsname.
         messen_bestaetigt : bool
             In ``MESSEN`` Pflicht: ausdrückliche Bestätigung des Durchgangs (Dialog).
+        erwartete_betriebsart : Betriebsart or None
+            Schnappschuss der Oberfläche (Klick auf „Start“): Weicht die aktuelle
+            Betriebsart ab, wird nicht gestartet.
+        erwartete_kennung : str or None
+            :attr:`Zustandsbild.warteschlangen_kennung` des Schnappschusses: Weicht die
+            aktuelle Warteschlange (Definitionen, Zustände, Messdaten-Ordner) ab, wird nicht
+            gestartet.
 
         Raises
         ------
         ValueError
-            Wenn der Durchgang nicht ``BEREIT`` ist, keine Verbindung besteht, keine
-            Messdaten-Wurzel gesetzt ist, die Betriebsart ``NUR_LESEN`` ist oder in
-            ``MESSEN`` die Bestätigung bzw. eine Voraussetzung fehlt.
+            Wenn der Durchgang nicht ``BEREIT`` oder ``BEENDET`` ist, keine Verbindung
+            besteht, kein geeigneter Messdaten-Ordner gesetzt ist, die Betriebsart
+            ``NUR_LESEN`` ist, der Schnappschuss nicht mehr stimmt oder in ``MESSEN`` die
+            Bestätigung bzw. eine Voraussetzung fehlt.
         """
-        stand = self.steuerung.momentaufnahme()
-        if stand.durchgang is not DurchgangZustand.BEREIT:
-            raise ValueError(f"Start nur im Zustand bereit (aktuell {stand.durchgang.value})")
+        with self._sperre:
+            stand = self.steuerung.momentaufnahme()
+            if stand.durchgang not in (DurchgangZustand.BEREIT, DurchgangZustand.BEENDET):
+                raise ValueError(
+                    f"Start nur im Zustand bereit oder beendet (aktuell {stand.durchgang.value})"
+                )
+            art = self.betriebsart
+            if erwartete_betriebsart is not None and art is not erwartete_betriebsart:
+                raise ValueError(
+                    f"Start verworfen: Betriebsart ist {art.value}, bestätigt war "
+                    f"{erwartete_betriebsart.value}"
+                )
+            if erwartete_kennung is not None and erwartete_kennung != self._kennung(
+                self.warteschlange.eintraege(), art
+            ):
+                raise ValueError(
+                    "Start verworfen: Warteschlange oder Messdaten-Ordner hat sich seit der "
+                    "Bestätigung geändert"
+                )
         if stand.verbindung is None:
             raise ValueError("Start nicht möglich: keine Verbindung zum Gerät")
         if self._wurzel is None:
             raise ValueError("Start nicht möglich: keine Messdaten-Wurzel gesetzt")
-        art = self.betriebsart
+        if self._wurzel_probleme:
+            raise ValueError(
+                "Start nicht möglich: Messdaten-Ordner ungeeignet: "
+                + "; ".join(self._wurzel_probleme)
+            )
         if art is Betriebsart.NUR_LESEN:
             raise ValueError("In der Betriebsart NUR_LESEN ist kein Durchgang möglich")
         if art is Betriebsart.MESSEN:
@@ -714,6 +1135,9 @@ class Sitzung:
             fehlend = [v.text for v in self.messen_voraussetzungen() if not v.erfuellt]
             if fehlend:
                 raise ValueError("MESSEN nicht freigeschaltet: " + "; ".join(fehlend))
+        startangaben = tuple(_startangabe(v) for v in self.zustandsbild().start_vorschau)
+        if stand.durchgang is DurchgangZustand.BEENDET:
+            self.steuerung.quittiere()
         self.steuerung.starte(
             DurchgangsAuftrag(
                 name=name,
@@ -721,6 +1145,8 @@ class Sitzung:
                 betriebsart=art.value,
                 trockenlauf=art is Betriebsart.TROCKENLAUF,
                 messfreigabe=art in (Betriebsart.SIMULATOR, Betriebsart.MESSEN),
+                messen_bestaetigt=art is Betriebsart.MESSEN and messen_bestaetigt,
+                startangaben=startangaben,
             )
         )
 

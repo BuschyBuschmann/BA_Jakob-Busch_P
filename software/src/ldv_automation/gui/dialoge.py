@@ -7,7 +7,7 @@ Dialog der Gefahr-Klasse hat den Gefahr-Knopf als Standard.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -31,12 +31,28 @@ from PySide6.QtWidgets import (
 )
 
 from ldv_automation.gui import tokens as t
-from ldv_automation.gui.anzeige import VoraussetzungZeile, zieldatei_text
+from ldv_automation.gui.anzeige import (
+    VoraussetzungZeile,
+    diagnose_text,
+    generator_warnung,
+    geraet_generator_text,
+    konfiguration_text,
+    messpunkte_text,
+    start_anzahl_text,
+    start_tooltip,
+    start_zeile,
+)
 from ldv_automation.gui.stil import schrift
-from ldv_automation.sitzung import EintragBild, GeraeteInfo
+from ldv_automation.sitzung import GeraeteDiagnose, GeraeteInfo, GeraeteStand, StartVorschau
 
 BESTAETIGUNGSWORT = "MESSEN"
 """Text, der im Dialog „Durchgang starten“ exakt einzutippen ist (Brief 3.9)."""
+
+EINSTELLUNGEN_MIN_BREITE_PX = 480
+"""Mindestbreite des Dialogs „Einstellungen“ (K-U5b: Pfade und Meldungen lesbar)."""
+
+LIMIT_MAX_S = 864_000
+"""Obergrenze des Felds Standard-Zeitlimit (10 Tage); nur Eingabegrenze des Felds."""
 
 
 def _titel(text: str) -> QLabel:
@@ -174,70 +190,67 @@ class MessenFreischaltenDialog(QDialog):
 class DurchgangStartenDialog(QDialog):
     """Dialog 3.9 „Durchgang starten: echte Messung“ (Schnappschuss zum Startzeitpunkt).
 
-    Messpunkte je Messung, Zielpfade und Generatorzustand liefert die Sitzung noch nicht;
-    der Dialog zeigt das ausdrücklich als „unbekannt“ und warnt vorsorglich (Rückfrage U4).
+    Alle Angaben kommen aus dem Zustandsbild der Sitzung (``start_vorschau`` je wartender
+    Messung, ``geraete_stand``). Messpunkte und Generator sind nur bekannt, wenn die ``.set``
+    in dieser Sitzung geladen und danach gelesen wurde; sonst steht „unbekannt“. Die rote
+    Warnzeile erscheint, wenn ein Generator aktiv oder sein Zustand unbekannt ist.
+    Abweichung vom Brief: zusätzliche Tabellenspalte „Generator“ je Messung.
     """
 
     def __init__(
         self,
-        messungen: Sequence[tuple[str, EintragBild]],
+        vorschau: Sequence[StartVorschau],
+        geraet: GeraeteStand | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("dialog_durchgang_starten")
         self.setWindowTitle("Durchgang starten: echte Messung")
         self.setModal(True)
-        self.resize(760, 480)
+        self.resize(860, 480)
         layout = QVBoxLayout(self)
         layout.addWidget(_titel("Durchgang starten: echte Messung"))
-        anzahl = QLabel(
-            f"{len(messungen)} Messungen, Messpunkte insgesamt: unbekannt "
-            "(die Sitzung liefert die Messpunkte noch nicht)"
-        )
+        anzahl = QLabel(start_anzahl_text(vorschau))
         anzahl.setObjectName("start_anzahl")
         anzahl.setWordWrap(True)
         layout.addWidget(anzahl)
-        tabelle = QTableWidget(len(messungen), 4)
+        spalten = ["Nr", "Einstellungsdatei", "Zieldatei", "Messpunkte", "Generator"]
+        tabelle = QTableWidget(len(vorschau), len(spalten))
         tabelle.setObjectName("start_tabelle")
-        tabelle.setHorizontalHeaderLabels(["Nr", "Einstellungsdatei", "Zieldatei", "Messpunkte"])
+        tabelle.setHorizontalHeaderLabels(spalten)
         tabelle.verticalHeader().setVisible(False)
         tabelle.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         kopf = tabelle.horizontalHeader()
-        kopf.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        kopf.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        kopf.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        kopf.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        for nr, modus in enumerate(
+            (
+                QHeaderView.ResizeMode.ResizeToContents,
+                QHeaderView.ResizeMode.Stretch,
+                QHeaderView.ResizeMode.Stretch,
+                QHeaderView.ResizeMode.ResizeToContents,
+                QHeaderView.ResizeMode.ResizeToContents,
+            )
+        ):
+            kopf.setSectionResizeMode(nr, modus)
         tabelle.setWordWrap(True)
         tabelle.setTextElideMode(Qt.TextElideMode.ElideNone)
-        for r, (nr, e) in enumerate(messungen):
-            werte = (
-                nr,
-                e.einstellungsdatei or "",
-                zieldatei_text(e, e.name).removeprefix("Zieldatei: "),
-                "unbekannt",
-            )
-            for s, w in enumerate(werte):
-                item = QTableWidgetItem(w)
-                item.setToolTip(w)
-                tabelle.setItem(r, s, item)
+        for r, v in enumerate(vorschau):
+            for spalte, wert in enumerate(start_zeile(v)):
+                item = QTableWidgetItem(wert)
+                item.setToolTip(start_tooltip(v, spalte))
+                tabelle.setItem(r, spalte, item)
         tabelle.resizeRowsToContents()
         self.tabelle = tabelle
         layout.addWidget(tabelle, 1)
-        generator = QLabel(
-            "Generator (gelesen): nicht verfügbar – die Sitzung liefert GeneratorsOn, Aktiv "
-            "und Amplitude noch nicht."
-        )
+        generator = QLabel(geraet_generator_text(geraet, startdialog=True))
         generator.setObjectName("start_generator")
         generator.setWordWrap(True)
         layout.addWidget(generator)
-        warnung = QLabel(
-            f"{t.symbol('fehler')} Generatorzustand unbekannt. Ein in der .set aktiver "
-            "Generator startet mit der Messung automatisch. Nur fortfahren, wenn "
-            "Shaker/Verstärker freigegeben sind."
-        )
+        warnung = QLabel(generator_warnung(vorschau) or "")
         warnung.setObjectName("start_generator_warnung")
         warnung.setProperty("art", "fehler")
         warnung.setWordWrap(True)
+        warnung.setVisible(bool(warnung.text()))
+        self.warnung = warnung
         layout.addWidget(warnung)
         eingabe_label = QLabel(f"Zur Bestätigung {BESTAETIGUNGSWORT} eintippen")
         self.eingabe = QLineEdit()
@@ -272,7 +285,15 @@ class DurchgangStartenDialog(QDialog):
 class GeraetDialog(QDialog):
     """Dialog 3.10 „Gerät“: schreibgeschützte Anzeige aus dem Zustandsbild."""
 
-    def __init__(self, info: GeraeteInfo | None, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        info: GeraeteInfo | None,
+        parent: QWidget | None = None,
+        *,
+        stand: GeraeteStand | None = None,
+        diagnose: GeraeteDiagnose | None = None,
+        konfiguration: Mapping[str, object] | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setObjectName("dialog_geraet")
         self.setWindowTitle("Gerät")
@@ -300,11 +321,10 @@ class GeraetDialog(QDialog):
                 ),
                 ("Hardware", hardware, "geraet_hardware"),
                 ("Lademaske", info.lademaske or "–", "geraet_lademaske"),
-                (
-                    "Messpunkte",
-                    "nicht verfügbar (die Sitzung liefert den Wert noch nicht)",
-                    "geraet_messpunkte",
-                ),
+                ("Messpunkte", messpunkte_text(stand), "geraet_messpunkte"),
+                ("Generator", geraet_generator_text(stand), "geraet_generator"),
+                ("Aufrufprotokoll", diagnose_text(diagnose), "geraet_aufrufe"),
+                ("Konfiguration", konfiguration_text(konfiguration), "geraet_konfiguration"),
             ):
                 label = QLabel(wert)
                 label.setObjectName(objekt)
@@ -320,6 +340,10 @@ class GeraetDialog(QDialog):
         layout.addWidget(knoepfe)
 
 
+Uebernahme = Callable[[Path, int], tuple[str | None, str | None]]
+"""Setzt Ordner und Standard-Zeitlimit (s) in der Sitzung; liefert je Feld Fehlertext/None."""
+
+
 class EinstellungenDialog(QDialog):
     """Dialog 3.11 „Einstellungen“: Messdaten-Ordner und Standard-Zeitlimit.
 
@@ -327,24 +351,28 @@ class EinstellungenDialog(QDialog):
     ----------
     ordner : str or None
         Aktueller Messdaten-Ordner.
+    zeitlimit_s : float
+        Aktuelles Standard-Zeitlimit der Sitzung in s.
     uebernehmen : callable
-        Setzt den Ordner in der Sitzung; gibt eine Fehlermeldung oder ``None`` zurück.
-
-    Notes
-    -----
-    Das Standard-Zeitlimit kann die Sitzung noch nicht setzen; das Feld ist deshalb
-    deaktiviert (Rückfrage U4).
+        Setzt Ordner und Zeitlimit in der Sitzung; gibt ``(fehler_ordner, fehler_limit)``
+        zurück (je ``None`` bei Erfolg). Die Prüfung des Ordners macht die Sitzung.
+    probleme : sequence of str
+        Meldungen der Sitzung zum aktuellen Ordner; sie stehen beim Öffnen unter dem Feld.
     """
 
     def __init__(
         self,
         ordner: str | None,
-        uebernehmen: Callable[[Path], str | None],
+        zeitlimit_s: float,
+        uebernehmen: Uebernahme,
         parent: QWidget | None = None,
+        *,
+        probleme: Sequence[str] = (),
     ) -> None:
         super().__init__(parent)
         self.setObjectName("dialog_einstellungen")
         self.setWindowTitle("Einstellungen")
+        self.setMinimumWidth(EINSTELLUNGEN_MIN_BREITE_PX)
         self._uebernehmen = uebernehmen
         self.ordner_waehlen: Callable[[str], str | None] = self._ordner_dialog
         layout = QVBoxLayout(self)
@@ -377,26 +405,20 @@ class EinstellungenDialog(QDialog):
         form.addRow(label_ordner, behaelter)
         self.limit = QSpinBox()
         self.limit.setObjectName("einstellung_limit")
-        self.limit.setRange(1, 864_000)
-        self.limit.setValue(600)
+        self.limit.setRange(1, LIMIT_MAX_S)
+        self.limit.setValue(min(max(round(zeitlimit_s), 1), LIMIT_MAX_S))
         self.limit.setSuffix(" s")
-        self.limit.setEnabled(False)
-        self.limit.setToolTip(
-            "Noch nicht einstellbar: Die Sitzung bietet dafür keinen Befehl (Rückfrage U4). "
-            "Es gilt das Standard-Zeitlimit der Sitzung."
-        )
-        limit_hinweis = QLabel(
-            "Noch nicht einstellbar (die Sitzung bietet dafür keinen Befehl); es gilt das "
-            "Standard-Zeitlimit der Sitzung."
-        )
-        limit_hinweis.setObjectName("einstellung_limit_hinweis")
-        limit_hinweis.setProperty("art", "gedaempft")
-        limit_hinweis.setWordWrap(True)
+        self.limit.setToolTip("Gilt für Messungen ohne eigenes Limit, ab dem nächsten Durchgang.")
+        self.limit_fehler = QLabel()
+        self.limit_fehler.setObjectName("einstellung_limit_fehler")
+        self.limit_fehler.setProperty("art", "fehler")
+        self.limit_fehler.setWordWrap(True)
+        self.limit_fehler.hide()
         limit_behaelter = QWidget()
         l_layout = QVBoxLayout(limit_behaelter)
         l_layout.setContentsMargins(0, 0, 0, 0)
         l_layout.addWidget(self.limit)
-        l_layout.addWidget(limit_hinweis)
+        l_layout.addWidget(self.limit_fehler)
         label_limit = QLabel("Standard-&Zeitlimit")
         label_limit.setBuddy(self.limit)
         form.addRow(label_limit, limit_behaelter)
@@ -411,6 +433,8 @@ class EinstellungenDialog(QDialog):
         knoepfe.accepted.connect(self._annehmen)
         knoepfe.rejected.connect(self.reject)
         layout.addWidget(knoepfe)
+        if probleme:
+            self._zeige_fehler(f"{t.symbol('fehler')} " + "; ".join(probleme))
 
     def _waehle(self) -> None:
         pfad = self.ordner_waehlen(self.ordner.text())
@@ -423,12 +447,18 @@ class EinstellungenDialog(QDialog):
 
     def _annehmen(self) -> None:
         text = self.ordner.text().strip()
+        self.fehler.hide()
+        self.limit_fehler.hide()
         if not text:
             self._zeige_fehler(f"{t.symbol('fehler')} Bitte einen Ordner angeben.")
             return
-        meldung = self._uebernehmen(Path(text))
-        if meldung:
-            self._zeige_fehler(f"{t.symbol('fehler')} {meldung}")
+        fehler_ordner, fehler_limit = self._uebernehmen(Path(text), self.limit.value())
+        if fehler_ordner:
+            self._zeige_fehler(f"{t.symbol('fehler')} {fehler_ordner}")
+        if fehler_limit:
+            self.limit_fehler.setText(f"{t.symbol('fehler')} {fehler_limit}")
+            self.limit_fehler.show()
+        if fehler_ordner or fehler_limit:
             return
         self.accept()
 

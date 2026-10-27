@@ -79,7 +79,8 @@ class Aufbau:
             DurchgangsAuftrag(
                 name="Test",
                 messdaten_wurzel=self.wurzel,
-                betriebsart="trockenlauf" if trockenlauf else "simulator",
+                # K-U5: Der Auftrag muss zur Betriebsart des aktiven Geräts passen.
+                betriebsart=self.steuerung.betriebsart,
                 trockenlauf=trockenlauf,
                 messfreigabe=freigabe,
             )

@@ -43,7 +43,12 @@ REGELN: dict[str, tuple[str, ...]] = {
     GUI: (D, SI, GUI),
     # Einstieg = Kompositionswurzel: setzt Simulator bzw. COM-Adapter für die Sitzung
     # zusammen (die Sitzung hat keine eigene Gerätefabrik), U4.
-    f"{PAKET}.__main__": (SI, GUI, S, SIM, COM),
+    # Selbsttest (U5): simulierte Zeit (ablauf.uhr.Testuhr), Domäne für die Testeinträge,
+    # Ablage- und Protokollkonstanten für die Prüfung der Ergebnisse.
+    f"{PAKET}.__main__": (SI, GUI, S, SIM, COM, AB, D, PR, f"{PAKET}.konfig"),
+    # Konfigurationsdatei (K-U5): Werte für Steuerung (ablauf) und COM-Adapter (Lademaske
+    # nur über die Richtlinie in geraet.com).
+    f"{PAKET}.konfig": (AB, COM, S, D, f"{PAKET}.konfig"),
 }
 
 PYWIN32_ERLAUBT = "geraet/com/pywin32_bindung.py"

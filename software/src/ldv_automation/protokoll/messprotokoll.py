@@ -68,6 +68,8 @@ PFLICHTFELDER: tuple[str, ...] = (
     "meldungen_hinweis",
     "fortschritt_quelle",
     "einschraenkungen",
+    # Konfigurationsdatei des Messrechners (K-U5): Pfad, SHA-256, verwendete Werte
+    "konfiguration",
 )
 """Felder, die jedes Messprotokoll enthält (Plan P2, 4.3)."""
 

@@ -93,7 +93,12 @@ def test_minor_1_nach_geraet_unklar_wird_geraet_neu_erzeugt(tmp_path: Path) -> N
 
     assert len(fabrik.erzeugt) == 2
     assert len(alt.aufrufe) == anzahl  # altes Gerät nicht mehr angesprochen
-    assert fabrik.erzeugt[1].aufgerufene_methoden() == ("verbinde", "zustand")
+    # U5/B1: beim Verbinden wird zusätzlich der Gerätestand gelesen (nur lesend).
+    assert fabrik.erzeugt[1].aufgerufene_methoden() == (
+        "verbinde",
+        "zustand",
+        "lies_einstellungsstand",
+    )
     bild = s.zustandsbild()
     assert bild.verbunden and bild.betriebsart is Betriebsart.SIMULATOR
 

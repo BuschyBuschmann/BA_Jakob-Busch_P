@@ -1,0 +1,10 @@
+{
+  "art": "ldv-messrechner-konfig",
+  "schema_version": 1,
+  "validator_rueckfall_direkt": false,
+  "lademaske": ["Acquisition", "Alignment", "APS", "2DAlignment", "3DAlignment"],
+  "aufruf_grenze_s": 60,
+  "aufruf_warnung_s": 5,
+  "stop_frist_s": 10,
+  "standard_zeitlimit_s": 600
+}

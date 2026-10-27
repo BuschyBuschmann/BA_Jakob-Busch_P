@@ -10,7 +10,6 @@ from __future__ import annotations
 import itertools
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from uuid import UUID
@@ -72,8 +71,6 @@ from ldv_automation.gui.anzeige import (
     start_dialog,
     verbindung_text,
     voraussetzung_zeilen,
-    wartebereich_anfang,
-    wartende_messungen,
     zeilen,
     zuruecksetzen_frage_text,
 )
@@ -92,7 +89,13 @@ from ldv_automation.gui.fassade import SitzungsFassade
 from ldv_automation.gui.hinweisband import Hinweisband
 from ldv_automation.gui.stil import schrift, setze_eigenschaft
 from ldv_automation.gui.tabelle import Warteschlangentabelle
-from ldv_automation.sitzung import Betriebsart, DurchgangZustand, Fehlerentscheidung, Zustandsbild
+from ldv_automation.sitzung import (
+    Betriebsart,
+    DurchgangZustand,
+    EinstellungsFehler,
+    Fehlerentscheidung,
+    Zustandsbild,
+)
 
 Z = DurchgangZustand
 
@@ -100,24 +103,12 @@ DURCHGANG_MAX_BREITE_PX = 480
 """Breite, bis zu der der Durchgangstext nie gekürzt wird (Statuszeile, 1100 px)."""
 BEFEHL_SPERRE_MAX_S = 2.0
 """Längste Sperre der Ablaufknöpfe nach einem Befehl, falls kein neues Zustandsbild kommt."""
-START_AUSSTEHEND_MAX_S = 5.0
-"""Längste Wartezeit auf ``BEREIT`` nach dem Quittieren, bevor ein Start verworfen wird."""
 DATEIFILTER_WARTESCHLANGE = "Warteschlange (*.warteschlange.json)"
 ENDUNG_WARTESCHLANGE = ".warteschlange.json"
 KONFLIKT_GESTARTET = (
     f"{t.symbol('fehler')} Der Eintrag wurde inzwischen gestartet. "
     "Deine Änderungen wurden nicht übernommen."
 )
-
-
-@dataclass(frozen=True)
-class StartAusstehend:
-    """Start, der nach ``quittiere`` auf ``BEREIT`` wartet, mit Schnappschuss beim Klick."""
-
-    name: str
-    bestaetigt: bool
-    betriebsart: Betriebsart
-    definitionen: tuple[tuple[object, ...], ...]
 
 
 def _nr_text(bild: Zustandsbild, eintrag_id: UUID) -> str | None:
@@ -191,8 +182,6 @@ class Hauptfenster(QMainWindow):
         self._beendet_quittiert: str | None = None
         self._sperre_revision: int | None = None
         self._sperre_seit = 0.0
-        self._start_ausstehend: StartAusstehend | None = None
-        self._start_ausstehend_seit = 0.0
         self._auto_verbinden_versucht = False
         self._war_verbunden = False
         self._letzte_betriebsart: Betriebsart | None = None
@@ -553,14 +542,8 @@ class Hauptfenster(QMainWindow):
             return False
         return True
 
-    def _automatik(self, bild: Zustandsbild) -> bool:
-        """Verbindet im SIMULATOR selbst (Knopf dort deaktiviert) und startet ausstehend.
-
-        Returns
-        -------
-        bool
-            ``True``, wenn dabei ein Befehl gesendet und die Anzeige schon neu geschrieben wurde.
-        """
+    def _automatik(self, bild: Zustandsbild) -> None:
+        """Verbindet im SIMULATOR selbst (Knopf dort deaktiviert)."""
         if bild.betriebsart != self._letzte_betriebsart:
             self._letzte_betriebsart = bild.betriebsart
             self._auto_verbinden_versucht = False
@@ -578,34 +561,6 @@ class Hauptfenster(QMainWindow):
                 self._sitzung.verbinde()
             except ValueError as fehler:
                 self.protokolliere(f"Fehler: Simulator nicht verbunden: {fehler}")
-        aus = self._start_ausstehend
-        if aus is not None:
-            if bild.durchgang is Z.BEREIT:
-                self._start_ausstehend = None
-                if (
-                    bild.betriebsart is not aus.betriebsart
-                    or definitionen(bild) != aus.definitionen
-                ):
-                    self._start_verwerfen(
-                        "Betriebsart oder Warteschlange hat sich seit dem Klick auf „Start“ "
-                        "geändert. Bitte erneut starten."
-                    )
-                    return False
-                return self._befehl(
-                    lambda: self._sitzung.starte(aus.name, messen_bestaetigt=aus.bestaetigt)
-                )
-            elif (
-                bild.durchgang is not Z.BEENDET
-                or time.monotonic() - self._start_ausstehend_seit > START_AUSSTEHEND_MAX_S
-            ):
-                self._start_ausstehend = None
-                self._start_verwerfen("Der Durchgang wurde nicht bereit.")
-        return False
-
-    def _start_verwerfen(self, grund: str) -> None:
-        """Verwirft einen ausstehenden Start mit Protokollzeile und Meldung."""
-        self.protokolliere(f"Warnung: Start verworfen. {grund}")
-        self._meldung(QMessageBox.Icon.Warning, "Start verworfen", f"Start verworfen. {grund}")
 
     def _zeige(self, bild: Zustandsbild) -> None:
         aussen = not self._in_zeige
@@ -618,8 +573,7 @@ class Hauptfenster(QMainWindow):
 
     def _zeige_bild(self, bild: Zustandsbild) -> None:
         self._bild = bild
-        if self._automatik(bild):
-            return  # Anzeige wurde im Befehl bereits mit dem neueren Bild geschrieben
+        self._automatik(bild)
         z = bild.durchgang
         gesperrt = self._befehl_gesperrt(bild)
 
@@ -641,8 +595,6 @@ class Hauptfenster(QMainWindow):
         self.lbl_verbindung.setText(verbindung_text(bild))
 
         k = bedienbarkeit(bild, self.tabelle.gewaehlte_id())
-        if self._start_ausstehend is not None:
-            k = self._sperre_waehrend_start(k)
         ba = k["betriebsart"]
         self.btn_betriebsart.setEnabled(ba.aktiv)
         self.btn_betriebsart.setToolTip(
@@ -704,27 +656,6 @@ class Hauptfenster(QMainWindow):
         self.fortschritt_text.setText(fa.text)
 
     @staticmethod
-    def _sperre_waehrend_start(k: dict[str, Knopf]) -> dict[str, Knopf]:
-        """Sperrt Betriebsart und Bearbeitung, solange ein Start nach „quittiere“ aussteht."""
-        grund = "Start wird vorbereitet …"
-        gesperrt = dict(k)
-        for name in (
-            "betriebsart",
-            "messung_neu",
-            "pausenpunkt_neu",
-            "entfernen",
-            "hoch",
-            "runter",
-            "uebernehmen",
-            "laden",
-            "verbinden",
-            "einstellungen",
-            "start",
-        ):
-            gesperrt[name] = Knopf(False, grund, k[name].text)
-        return gesperrt
-
-    @staticmethod
     def _setze_knopf(knopf: QWidget, k: Knopf) -> None:
         knopf.setEnabled(k.aktiv)
         if k.text is not None and hasattr(knopf, "setText"):
@@ -758,10 +689,8 @@ class Hauptfenster(QMainWindow):
                 ed.bearbeite(e, nummern.get(e.id))
             elif ed.modus == "anzeigen":
                 ed.aktualisiere_anzeige(e, nummern.get(e.id))
+        ed.setze_standard_limit(bild.standard_zeitlimit_s)
         k = bedienbarkeit(bild, ed.eintrag_id)
-        if self._start_ausstehend is not None:
-            k = self._sperre_waehrend_start(k)
-            k["messung_neu"] = k["pausenpunkt_neu"] = k["uebernehmen"]
         if ed.modus == "neu_messung":
             ed.setze_uebernehmen_erlaubt(k["messung_neu"])
         elif ed.modus == "neu_pausenpunkt":
@@ -836,7 +765,7 @@ class Hauptfenster(QMainWindow):
         if not aktion.isEnabled():
             return
         index = index_von(bild.eintraege, self.tabelle.gewaehlte_id())
-        position = einfuegeposition(bild.eintraege, index)
+        position = einfuegeposition(bild, index)
         self._neu_am_anfang = position == 0
         self._neu_anker = bild.eintraege[position - 1].id if position > 0 else None
         ort = einfuegeort_text(
@@ -859,14 +788,17 @@ class Hauptfenster(QMainWindow):
         self._neu(pausenpunkt=True)
 
     def _einfuegeposition_jetzt(self) -> int:
-        """Position zum Zeitpunkt von „Übernehmen“: hinter dem Anker, nie vor Gestartetes."""
+        """Position zum Zeitpunkt von „Übernehmen“: hinter dem Anker, nie vor Gestartetes.
+
+        Die Untergrenze liefert die Sitzung (``Zustandsbild.einfuegen_ab``, B8).
+        """
         eintraege = self._bild.eintraege
         if self._neu_am_anfang or self._neu_anker is None:
             wunsch = 0
         else:
             i = index_von(eintraege, self._neu_anker)
             wunsch = len(eintraege) if i is None else i + 1
-        return max(wunsch, wartebereich_anfang(eintraege))
+        return max(wunsch, self._bild.einfuegen_ab)
 
     def _uebernehmen(self) -> None:
         ed = self.editor
@@ -1068,14 +1000,13 @@ class Hauptfenster(QMainWindow):
     def _start(self) -> None:
         if not self.act_start.isEnabled():
             return
+        # Schnappschuss beim Klick (K-U4): Die Sitzung startet nur, wenn Betriebsart und
+        # Warteschlange danach unverändert sind, auch direkt aus BEENDET (B7).
         bild = self._bild
         art = start_dialog(bild)
         bestaetigt = False
         if art == "messen":
-            # Ein neuer Durchgang vergibt die Dateinummern ab 01 in Tabellenreihenfolge.
-            dialog = DurchgangStartenDialog(
-                [(f"{i:02d}", e) for i, e in enumerate(wartende_messungen(bild), start=1)], self
-            )
+            dialog = DurchgangStartenDialog(bild.start_vorschau, bild.geraete_stand, self)
             if not self._angenommen(dialog):
                 return
             bestaetigt = True
@@ -1084,21 +1015,14 @@ class Hauptfenster(QMainWindow):
             self._fuehre_aus(box)
             if box.clickedButton() is not ja:
                 return
-        name = bild.betriebsart.value
-        if bild.durchgang is Z.BEENDET:
-            # Start in BEENDET: erst quittieren, dann starten, sobald die Sitzung BEREIT meldet.
-            schnappschuss = StartAusstehend(
-                name=name,
-                bestaetigt=bestaetigt,
-                betriebsart=bild.betriebsart,
-                definitionen=definitionen(bild),
+        self._befehl(
+            lambda: self._sitzung.starte(
+                bild.durchgangsname,
+                messen_bestaetigt=bestaetigt,
+                erwartete_betriebsart=bild.betriebsart,
+                erwartete_kennung=bild.warteschlangen_kennung,
             )
-            if self._befehl(self._sitzung.quittiere):
-                self._start_ausstehend = schnappschuss
-                self._start_ausstehend_seit = time.monotonic()
-                self.aktualisiere()
-            return
-        self._befehl(lambda: self._sitzung.starte(name, messen_bestaetigt=bestaetigt))
+        )
 
     def _pause(self) -> None:
         if not self.act_pause.isEnabled():
@@ -1199,17 +1123,38 @@ class Hauptfenster(QMainWindow):
             self._befehl(self._sitzung.verbinde)
 
     def _geraet(self) -> None:
-        self._fuehre_aus(GeraetDialog(self._bild.verbindung, self))
+        bild = self._bild
+        self._fuehre_aus(
+            GeraetDialog(
+                bild.verbindung,
+                self,
+                stand=bild.geraete_stand,
+                diagnose=bild.geraet_diagnose,
+                konfiguration=bild.konfiguration,
+            )
+        )
 
     def _einstellungen(self) -> None:
-        def setze(pfad: Path) -> str | None:
+        def setze(pfad: Path, limit_s: int) -> tuple[str | None, str | None]:
+            # Beides oder nichts; die Prüfung macht die Sitzung (B4, K-U5b).
             try:
-                self._sitzung.setze_messdaten_wurzel(pfad)
+                self._sitzung.setze_einstellungen(pfad, float(limit_s))
+            except EinstellungsFehler as fehler:
+                return fehler.ordner, fehler.zeitlimit
             except ValueError as fehler:
-                return str(fehler)
-            return None
+                return str(fehler), None
+            return None, None
 
-        self._fuehre_aus(EinstellungenDialog(self._bild.messdaten_wurzel, setze, self))
+        bild = self._bild
+        self._fuehre_aus(
+            EinstellungenDialog(
+                bild.messdaten_wurzel,
+                bild.standard_zeitlimit_s,
+                setze,
+                self,
+                probleme=bild.messdaten_wurzel_probleme,
+            )
+        )
         self.aktualisiere()
 
     # --- Schließen (3.13) ------------------------------------------------------------------

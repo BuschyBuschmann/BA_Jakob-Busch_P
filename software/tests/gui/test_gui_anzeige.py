@@ -148,12 +148,22 @@ def test_ui_3_wartender_eintrag_vor_gestartetem_ist_nicht_verschiebbar() -> None
 
 def test_ui_2_einfuegeposition_hinter_auswahl_ohne_auswahl_am_ende() -> None:
     e = [eintrag(), eintrag(), eintrag()]
-    assert a.einfuegeposition(e, None) == 3
-    assert a.einfuegeposition(e, 0) == 1
-    assert a.einfuegeposition([], None) == 0
+    assert a.einfuegeposition(bild(eintraege=e), None) == 3
+    assert a.einfuegeposition(bild(eintraege=e), 0) == 1
+    assert a.einfuegeposition(bild(eintraege=[]), None) == 0
     gestartet = [eintrag(zustand="fertig"), eintrag(zustand="laeuft"), eintrag()]
-    assert a.einfuegeposition(gestartet, 0) == 2
-    assert a.wartebereich_anfang(gestartet) == 2
+    assert a.einfuegeposition(bild(eintraege=gestartet), 0) == 2
+
+
+def test_u5_b8_einfuegebereich_kommt_aus_der_sitzung() -> None:
+    # Die Anzeige leitet den Bereich nicht selbst ab: maßgeblich ist bild.einfuegen_ab.
+    e = [eintrag(), eintrag(), eintrag()]
+    b = bild(eintraege=e, einfuegen_ab=2)
+    assert a.einfuegeposition(b, None) == 3
+    assert a.einfuegeposition(b, 0) == 2
+    k = a.bedienbarkeit(b, e[2].id)
+    assert not k["hoch"].aktiv  # Index 1 liegt vor einfuegen_ab
+    assert a.bedienbarkeit(b, e[1].id)["runter"].aktiv
 
 
 def test_ui_2_einfuegeort_text() -> None:

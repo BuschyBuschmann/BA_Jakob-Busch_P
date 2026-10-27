@@ -43,6 +43,15 @@ from ldv_automation.ablauf.fehlerstrategie import (
     Fehlerstrategie,
     PausierenUndNachfragen,
 )
+from ldv_automation.ablauf.geraetestand import (
+    UNBEKANNTER_GENERATOR,
+    DateiKennung,
+    EinstellungsKenntnis,
+    GeraeteStand,
+    Herkunft,
+    generator_aus_stand,
+    pfad_schluessel,
+)
 from ldv_automation.ablauf.uhr import Uhr
 from ldv_automation.domaene.eintraege import (
     Messung,
@@ -53,6 +62,7 @@ from ldv_automation.domaene.eintraege import (
 from ldv_automation.domaene.parameter import KATALOG, ParameterWert
 from ldv_automation.domaene.warteschlange import Warteschlange
 from ldv_automation.geraet.schnittstelle import (
+    EinstellungsStand,
     Fortschritt,
     GeraeteFehler,
     GeraeteInfo,
@@ -197,6 +207,17 @@ class DurchgangsAuftrag:
     messfreigabe : bool
         ``True``: Die Steuerung setzt zu Beginn die Messfreigabe des Geräts und entzieht
         sie am Ende. Ohne Freigabe verweigert das Gerät jeden Scan.
+    messen_bestaetigt : bool
+        Ausdrückliche Bestätigung des Durchgangs (Dialog 3.9); Pflicht für ``"messen"``.
+    startangaben : tuple of mapping
+        Angaben des Startdialogs je Messung (Messpunkte, Generator, Herkunft); stehen im
+        Ereignis ``durchgang_start`` (K-U5b).
+
+    Notes
+    -----
+    Die Steuerung startet nur, wenn ``betriebsart`` beim Ausführen im Geräte-Thread der
+    Betriebsart des dann aktiven Geräts entspricht (Korrektur K-U5): Ein Auftrag, der vor
+    einem noch ausstehenden Gerätetausch erstellt wurde, wird verworfen.
     """
 
     name: str
@@ -204,6 +225,8 @@ class DurchgangsAuftrag:
     betriebsart: str
     trockenlauf: bool
     messfreigabe: bool
+    messen_bestaetigt: bool = False
+    startangaben: tuple[Mapping[str, object], ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -275,6 +298,18 @@ class AblaufStand:
     trockenlauf_messung: Messung | None
     geraet_verloren: bool
     interner_fehler: str | None
+    durchgang_eintraege: tuple[UUID, ...] = ()
+    """IDs der Messungen, die der aktuelle bzw. letzte Durchgang beansprucht hat."""
+    durchgang_bilanz: tuple[UUID, ...] = ()
+    """Messungen des beendeten Durchgangs: beansprucht oder bei Ende noch wartend (B2)."""
+    standard_zeitlimit_s: float = 600.0
+    """Zeitlimit in s für Messungen ohne eigenes Limit."""
+    geraete_stand: GeraeteStand | None = None
+    """Zuletzt gelesener Gerätestand (Verbinden bzw. nach dem letzten Laden)."""
+    einstellungs_kenntnis: Mapping[str, EinstellungsKenntnis] = field(default_factory=dict)
+    geraete_herkunft: Herkunft | None = None
+    """Herkunft des aktuell verbundenen Geräts; ``None`` ohne Verbindung oder verloren."""
+    """Je Einstellungsdatei (Schlüssel :func:`pfad_schluessel`) das nach dem Laden Gelesene."""
 
 
 # --- Befehle -----------------------------------------------------------------------------
@@ -326,6 +361,7 @@ class _Aktiv:
     t_stop_s: float | None = None
     fehler: tuple[FehlerArt, str, BaseException | None] | None = None
     einstellungsdatei_sha256: str | None = None
+    einstellungsdatei_kennung: DateiKennung | None = None
     geaenderte: list[dict[str, object]] = field(default_factory=list)
     einstellungen_ist: dict[str, object] | None = None
     messpunkte: int | None = None
@@ -367,6 +403,9 @@ class Steuerung:
         Takt, Zeitlimit, Fristen.
     bei_ereignis : callable or None
         Wird für jedes Ereignis aufgerufen (im Thread, der ``schritt`` aufruft).
+    konfiguration_info : mapping or None
+        Herkunft und Werte der Konfigurationsdatei (K-U5); steht in jedem Messprotokoll
+        (Feld ``konfiguration``) und im Ereignis ``durchgang_start``.
     """
 
     def __init__(
@@ -380,7 +419,9 @@ class Steuerung:
         fehlerstrategie: Fehlerstrategie | None = None,
         konfiguration: AblaufKonfiguration | None = None,
         bei_ereignis: Callable[[AblaufEreignis], None] | None = None,
+        konfiguration_info: Mapping[str, object] | None = None,
     ) -> None:
+        self._konfig_info = dict(konfiguration_info) if konfiguration_info is not None else None
         self._ws = warteschlange
         self._geraet = geraet
         self._betriebsart = betriebsart
@@ -409,11 +450,15 @@ class Steuerung:
         self._ordner: Path | None = None
         self._ereignisprotokoll: Ereignisprotokoll | None = None
         self._nummern: dict[UUID, int] = {}
+        self._bilanz: tuple[UUID, ...] = ()
         self._punktdauer_s: float | None = None
         self._freigabe_gesetzt = False
         self._trockenlauf_messung: Messung | None = None
         self._erste_trockenmessung = True
         self._interner_fehler: str | None = None
+        self._geraete_stand: GeraeteStand | None = None
+        self._kenntnis: dict[str, EinstellungsKenntnis] = {}
+        self._geraet_nr = 0
         self._aufruf_haengt = False
         self._geraet_verloren = False
         self._durchgang_offen = False
@@ -449,6 +494,34 @@ class Steuerung:
         """Entzieht die Trockenlauf-Freischaltung (z. B. nach Laden einer Warteschlange)."""
         with self._sperre:
             self._trockenlauf_messung = None
+
+    @property
+    def standard_zeitlimit_s(self) -> float:
+        """Zeitlimit in s für Messungen ohne eigenes Limit."""
+        return self._konf.zeitlimit_s
+
+    def _herkunft(self) -> Herkunft | None:
+        """Herkunft des verbundenen, nicht verlorenen Geräts (unter der Sperre aufrufen)."""
+        if self._verbindung is None or self._geraet_verloren:
+            return None
+        return Herkunft(
+            geraet_nr=self._geraet_nr,
+            betriebsart=self._betriebsart,
+            lademaske=self._verbindung.lademaske,
+            psv_prozesse=self._verbindung.hardware.get("psv_prozesse"),
+        )
+
+    def setze_standard_zeitlimit(self, zeitlimit_s: float) -> None:
+        """Setzt das Standard-Zeitlimit (gilt ab der nächsten gestarteten Messung).
+
+        Raises
+        ------
+        ValueError
+            Wenn der Wert nicht endlich und > 0 ist.
+        """
+        neu = replace(self._konf, zeitlimit_s=zeitlimit_s)  # prüft in __post_init__
+        with self._sperre:
+            self._konf = neu
 
     @property
     def hat_geraet(self) -> bool:
@@ -509,6 +582,12 @@ class Steuerung:
                 trockenlauf_messung=self._trockenlauf_messung,
                 geraet_verloren=self._geraet_verloren,
                 interner_fehler=self._interner_fehler,
+                durchgang_eintraege=tuple(self._nummern),
+                durchgang_bilanz=self._bilanz,
+                standard_zeitlimit_s=self._konf.zeitlimit_s,
+                geraete_stand=self._geraete_stand,
+                einstellungs_kenntnis=dict(self._kenntnis),
+                geraete_herkunft=self._herkunft(),
             )
 
     # --- Befehle (aus jedem Thread) ----------------------------------------------------
@@ -911,12 +990,21 @@ class Steuerung:
             with self._sperre:
                 self._geraet = None
                 self._verbindung = None
+                self._geraete_stand = None
+                self._kenntnis = {}
+                self._geraet_nr += 1
             self._melde("fehler", f"Gerät nicht erzeugt ({befehl.betriebsart}): {fehler}")
             return
         with self._sperre:
             self._geraet = neu
             self._betriebsart = befehl.betriebsart
             self._verbindung = None
+            self._geraete_stand = None
+            if z is DurchgangZustand.GERAET_UNKLAR or self._geraet_verloren:
+                self._kenntnis = {}  # Zustand der PSV unklar: nichts übernehmen
+            # Sonst bleibt das Wissen mit seiner Herkunft erhalten; ob es für das neue
+            # Gerät gilt, entscheidet geraetestand.uebertragbar (K-U5b).
+            self._geraet_nr += 1
         self._aufruf_haengt = False
         self._geraet_verloren = False
         self._melde(
@@ -958,13 +1046,47 @@ class Steuerung:
                 self._verbindung = None
             self._melde("fehler", f"Verbinden fehlgeschlagen: {fehler.text}", art_fehler="geraet")
             return
+        try:
+            stand = self._aufruf("lies_einstellungsstand", self.geraet.lies_einstellungsstand)
+        except ZeitlimitFehler as fehler:
+            # Wie ein Hänger beim Verbinden: Gerät verloren (Nutzerentscheidung).
+            self._markiere_verloren(haengt=True)
+            with self._sperre:
+                self._verbindung = None
+                self._geraete_stand = None
+            self._melde(
+                "fehler",
+                f"Lesen des Gerätestands beim Verbinden hängt; Gerät verloren: {fehler.text}",
+                art_fehler=FehlerArt.GERAET_UNKLAR.value,
+            )
+            return
+        except GeraeteFehler as fehler:
+            geraete_stand = GeraeteStand(
+                messpunkte=None,
+                generator=UNBEKANNTER_GENERATOR,
+                quelle="beim Verbinden",
+                zeit=self._uhr.jetzt(),
+                fehler=fehler.text,
+            )
+            self._melde("fehler", f"Gerätestand beim Verbinden nicht lesbar: {fehler.text}")
+        else:
+            geraete_stand = self._geraete_stand_aus(stand, "beim Verbinden")
         with self._sperre:
             self._verbindung = info
+            self._geraete_stand = geraete_stand
         self._melde(
             "verbindung",
             f"Verbunden: {info.psv_version}",
             psv_version=info.psv_version,
             zustand=info.zustand.value,
+        )
+
+    def _geraete_stand_aus(self, stand: EinstellungsStand, quelle: str) -> GeraeteStand:
+        return GeraeteStand(
+            messpunkte=stand.messpunkte_anzahl,
+            generator=generator_aus_stand(stand),
+            quelle=quelle,
+            zeit=self._uhr.jetzt(),
         )
 
     def _trennen(self) -> None:
@@ -992,6 +1114,8 @@ class Steuerung:
                 self._melde("fehler", f"Trennen fehlgeschlagen: {fehler.text}")
         with self._sperre:
             self._verbindung = None
+            self._geraete_stand = None
+            self._kenntnis = {}  # nach erneutem Verbinden kann PSV anders eingestellt sein
         self._melde("verbindung", "Getrennt")
         if z is DurchgangZustand.GERAET_UNKLAR:
             self._verlasse_geraet_unklar()
@@ -1081,6 +1205,16 @@ class Steuerung:
         if self._verbindung is None:
             self._verwerfen("start", "keine Verbindung zum Gerät")
             return
+        if auftrag.betriebsart != self._betriebsart:
+            self._verwerfen(
+                "start",
+                f"Auftrag für Betriebsart {auftrag.betriebsart}, aktives Gerät ist "
+                f"{self._betriebsart}; bitte erneut starten",
+            )
+            return
+        if self._betriebsart == "messen" and not auftrag.messen_bestaetigt:
+            self._verwerfen("start", "MESSEN ohne ausdrückliche Bestätigung des Durchgangs")
+            return
         try:
             ordner = lege_durchgangsordner(
                 auftrag.messdaten_wurzel, auftrag.name, self._uhr.jetzt()
@@ -1094,6 +1228,7 @@ class Steuerung:
             self._ordner = ordner
             self._ergebnis = None
             self._nummern = {}
+            self._bilanz = ()
             self._punktdauer_s = None
             self._pause_vorgemerkt = False
             self._erste_trockenmessung = True
@@ -1109,6 +1244,8 @@ class Steuerung:
             git_hash=self._build.git_hash,
             git_dirty=self._build.git_dirty,
             fehlerstrategie=self._strategie.bezeichnung,
+            konfiguration=self._konfig_info,
+            startangaben=[dict(a) for a in auftrag.startangaben],
         )
         try:
             speichere_warteschlange(
@@ -1167,10 +1304,17 @@ class Steuerung:
                 self._melde("fehler", f"Messfreigabe nicht entzogen: {fehler.text}")
         self._freigabe_gesetzt = False
         self._durchgang_offen = False
+        bilanz = tuple(
+            e.id
+            for e in self._ws.eintraege()
+            if isinstance(e, Messung)
+            and (e.id in self._nummern or e.zustand is MessungZustand.WARTEND)
+        )
         with self._sperre:
             self._ergebnis = ergebnis
             self._fortschritt = None
             self._aktiv = None
+            self._bilanz = bilanz
         self._melde(
             "durchgang_beendet",
             f"Durchgang beendet ({ergebnis.value})",
@@ -1275,6 +1419,7 @@ class Steuerung:
             stand = self._aufruf("lies_einstellungsstand", self.geraet.lies_einstellungsstand)
             aktiv.einstellungen_ist = einstellungsstand_zu_dict(stand)
             aktiv.messpunkte = stand.messpunkte_anzahl
+            self._merke_einstellungsstand(aktiv, stand)
             if abweichung is not None:
                 self._messung_fehler(aktiv, FehlerArt.ABWEICHUNG, abweichung, None)
                 return
@@ -1312,6 +1457,21 @@ class Steuerung:
         except GeraeteFehler as fehler:
             self._messung_fehler(aktiv, FehlerArt.GERAET, fehler.text, fehler)
 
+    def _merke_einstellungsstand(self, aktiv: _Aktiv, stand: EinstellungsStand) -> None:
+        """Merkt den nach dem Laden gelesenen Stand je Einstellungsdatei (Dialog 3.9)."""
+        datei = aktiv.messung.einstellungsdatei
+        geraete_stand = self._geraete_stand_aus(stand, f"nach Laden von {datei}")
+        with self._sperre:
+            self._geraete_stand = geraete_stand
+            herkunft = self._herkunft()
+            if aktiv.einstellungsdatei_kennung is not None and herkunft is not None:
+                self._kenntnis[pfad_schluessel(datei)] = EinstellungsKenntnis(
+                    einstellungsdatei=datei,
+                    kennung=aktiv.einstellungsdatei_kennung,
+                    stand=geraete_stand,
+                    herkunft=herkunft,
+                )
+
     def _vorpruefung(self, aktiv: _Aktiv) -> str | None:
         """M1 ohne Gerätewirkung; Text des ersten Problems oder ``None``."""
         m = aktiv.messung
@@ -1321,9 +1481,15 @@ class Steuerung:
         if not einstellung.is_file():
             return f"Einstellungsdatei fehlt: {einstellung}"
         try:
+            st = einstellung.stat()
             aktiv.einstellungsdatei_sha256 = sha256_datei(einstellung)
         except OSError as fehler:
             return f"Einstellungsdatei nicht lesbar: {fehler}"
+        aktiv.einstellungsdatei_kennung = DateiKennung(
+            sha256=aktiv.einstellungsdatei_sha256,
+            groesse_b=st.st_size,
+            mtime_ns=st.st_mtime_ns,
+        )
         if aktiv.zielpfad.exists() or aktiv.protokollpfad.exists():
             return f"Zieldatei existiert bereits (nie überschreiben): {aktiv.zielpfad}"
         try:
@@ -1686,6 +1852,7 @@ class Steuerung:
             "meldungen_hinweis": MELDUNGEN_HINWEIS,
             "fortschritt_quelle": aktiv.fortschritt_quelle,
             "einschraenkungen": einschraenkungen,
+            "konfiguration": self._konfig_info,
         }
         try:
             schreibe_messprotokoll(aktiv.protokollpfad, daten)

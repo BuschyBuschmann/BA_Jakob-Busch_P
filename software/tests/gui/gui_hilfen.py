@@ -23,8 +23,10 @@ from ldv_automation.protokoll.version import BuildInfo
 from ldv_automation.sitzung import (
     Betriebsart,
     EintragBild,
+    GeneratorStand,
     Sitzung,
     SitzungsEreignis,
+    StartVorschau,
     Voraussetzung,
     Zustandsbild,
 )
@@ -89,6 +91,33 @@ VORAUSSETZUNGEN_ERFUELLT = tuple(
 )
 
 
+GENERATOR_AUS = GeneratorStand(generatoren_an=False, aktiv=False, amplitude_v=0.5, anzahl=1)
+GENERATOR_AN = GeneratorStand(generatoren_an=True, aktiv=True, amplitude_v=0.5, anzahl=1)
+
+
+def vorschau_zu(
+    eintraege: Any,
+    *,
+    messpunkte: int | None = None,
+    generator: GeneratorStand | None = None,
+) -> tuple[StartVorschau, ...]:
+    """Startvorschau wie die Sitzung sie für die wartenden Messungen liefert (Attrappe)."""
+    wartend = [e for e in eintraege if e.art == "messung" and e.zustand == "wartend"]
+    return tuple(
+        StartVorschau(
+            eintrag_id=e.id,
+            nummer=n,
+            name=e.name,
+            einstellungsdatei=e.einstellungsdatei or "",
+            zielpfad=f"/tmp/messdaten/<JJJJ-MM-TT_HHMMSS>_messen/{n:02d}_{e.name}.svd",
+            messpunkte=messpunkte,
+            generator=generator,
+            hinweis="Attrappe",
+        )
+        for n, e in enumerate(wartend, start=1)
+    )
+
+
 def bild(**felder: Any) -> Zustandsbild:
     """Ein Zustandsbild (Attrappe) mit Vorgaben: BEREIT, SIMULATOR, verbunden, leer."""
     werte: dict[str, Any] = {
@@ -117,7 +146,24 @@ def bild(**felder: Any) -> Zustandsbild:
     }
     werte.update(felder)
     werte["eintraege"] = tuple(werte["eintraege"])
+    _ableiten(werte, felder)
     return Zustandsbild(**werte)
+
+
+def _einfuegen_ab(eintraege: tuple[EintragBild, ...]) -> int:
+    anfang = 0
+    for i, e in enumerate(eintraege):
+        if e.zustand != "wartend":
+            anfang = i + 1
+    return anfang
+
+
+def _ableiten(werte: dict[str, Any], gesetzt: Mapping[str, Any]) -> None:
+    """Leitet Felder ab, die die echte Sitzung berechnet (wenn der Test sie nicht setzt)."""
+    if "einfuegen_ab" not in gesetzt:
+        werte["einfuegen_ab"] = _einfuegen_ab(werte["eintraege"])
+    if "durchgangsname" not in gesetzt:
+        werte["durchgangsname"] = werte["betriebsart"].value
 
 
 def fortschritt(
@@ -169,6 +215,7 @@ class AttrappenSitzung:
         self.voraussetzungen = VORAUSSETZUNGEN_ERFUELLT
         self.ladeergebnis: tuple[EintragBild, ...] = ()
         self.ladewarnungen: tuple[str, ...] = ()
+        self.letzter_start: tuple[Betriebsart | None, str | None] | None = None
 
     # Hilfen für Tests
     def setze(self, **felder: Any) -> Zustandsbild:
@@ -176,7 +223,10 @@ class AttrappenSitzung:
         felder.setdefault("revision", self.bild.revision + 1)
         if "eintraege" in felder:
             felder["eintraege"] = tuple(felder["eintraege"])
-        self.bild = dataclasses.replace(self.bild, **felder)
+        werte = {f.name: getattr(self.bild, f.name) for f in dataclasses.fields(self.bild)}
+        werte.update(felder)
+        _ableiten(werte, felder)
+        self.bild = Zustandsbild(**werte)
         return self.bild
 
     def _befehl(self, *befehl: Any) -> None:
@@ -262,8 +312,26 @@ class AttrappenSitzung:
     def trenne(self) -> None:
         self._befehl("trenne")
 
-    def starte(self, name: str, *, messen_bestaetigt: bool = False) -> None:
+    def starte(
+        self,
+        name: str,
+        *,
+        messen_bestaetigt: bool = False,
+        erwartete_betriebsart: Betriebsart | None = None,
+        erwartete_kennung: str | None = None,
+    ) -> None:
+        self.letzter_start = (erwartete_betriebsart, erwartete_kennung)
         self._befehl("starte", name, messen_bestaetigt)
+
+    def setze_einstellungen(self, messdaten_wurzel: Path, standard_zeitlimit_s: float) -> None:
+        self._befehl("einstellungen", messdaten_wurzel, standard_zeitlimit_s)
+        self.setze(
+            messdaten_wurzel=str(messdaten_wurzel), standard_zeitlimit_s=standard_zeitlimit_s
+        )
+
+    def setze_standard_zeitlimit(self, zeitlimit_s: float) -> None:
+        self._befehl("zeitlimit", zeitlimit_s)
+        self.setze(standard_zeitlimit_s=zeitlimit_s)
 
     def pausiere(self) -> None:
         self._befehl("pausiere")

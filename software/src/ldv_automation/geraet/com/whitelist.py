@@ -269,6 +269,11 @@ class ProxyKontext:
         with self._lock:
             return tuple(self._verweigerungen)
 
+    def anzahl_aufrufe(self) -> int:
+        """Anzahl der weitergereichten Zugriffe (ohne Kopie des Protokolls)."""
+        with self._lock:
+            return len(self._aufrufe)
+
     def _beginne(self) -> float:
         start = self.uhr()
         with self._lock:

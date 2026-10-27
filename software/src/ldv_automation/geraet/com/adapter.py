@@ -265,8 +265,9 @@ class PsvComGeraet:
 
     Notes
     -----
-    Alle Methoden außer :meth:`haengender_aufruf_seit_s`, :meth:`aufrufe` und
-    :meth:`verweigerungen` sind nur aus dem Geräte-Thread aufzurufen (ADR-008).
+    Alle Methoden außer :meth:`haengender_aufruf_seit_s`, :meth:`aufrufe`,
+    :meth:`verweigerungen`, :meth:`aufrufe_anzahl` und :meth:`verweigerungen_text` sind nur
+    aus dem Geräte-Thread aufzurufen (ADR-008).
     """
 
     def __init__(self, bindung: ComBindung, konfiguration: ComKonfiguration) -> None:
@@ -328,6 +329,14 @@ class PsvComGeraet:
     def verweigerungen(self) -> tuple[Verweigerung, ...]:
         """Alle verweigerten Zugriffsversuche (thread-sicher; am Gerät erwartet: leer)."""
         return self._kontext.verweigerungen()
+
+    def aufrufe_anzahl(self) -> int:
+        """Anzahl der weitergereichten COM-Zugriffe (thread-sicher; Diagnose der Sitzung)."""
+        return self._kontext.anzahl_aufrufe()
+
+    def verweigerungen_text(self) -> tuple[str, ...]:
+        """Verweigerte Zugriffe als Text ``Pfad (op): Grund`` (thread-sicher; Diagnose T1)."""
+        return tuple(f"{v.pfad} ({v.op}): {v.grund}" for v in self._kontext.verweigerungen())
 
     # --- interne Helfer ------------------------------------------------------------------
 

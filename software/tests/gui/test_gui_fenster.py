@@ -16,6 +16,8 @@ from typing import Any
 
 import pytest
 from gui_hilfen import (
+    GENERATOR_AN,
+    GENERATOR_AUS,
     INFO,
     VORAUSSETZUNGEN_ERFUELLT,
     AttrappenSitzung,
@@ -25,6 +27,7 @@ from gui_hilfen import (
     eintrag,
     fortschritt,
     set_datei,
+    vorschau_zu,
     zusammenfassung,
 )
 from PySide6.QtCore import Qt
@@ -54,7 +57,13 @@ from ldv_automation.gui.dialoge import (
     MessenFreischaltenDialog,
 )
 from ldv_automation.gui.hauptfenster import Hauptfenster
-from ldv_automation.sitzung import Betriebsart, Sitzung, SitzungsEreignis, Voraussetzung
+from ldv_automation.sitzung import (
+    Betriebsart,
+    EinstellungsFehler,
+    Sitzung,
+    SitzungsEreignis,
+    Voraussetzung,
+)
 
 pytestmark = pytest.mark.gui
 
@@ -765,7 +774,11 @@ def test_ui_14_fehler_der_sitzung_beim_wechsel(baue: Any) -> None:
 
 def test_ui_15_start_in_messen_mit_bestaetigung(baue: Any, qtbot: QtBot) -> None:
     m1, m2 = eintrag(name="A"), eintrag(name="B")
-    s = AttrappenSitzung(bild(betriebsart=Betriebsart.MESSEN, eintraege=[m1, m2]))
+    s = AttrappenSitzung(
+        bild(
+            betriebsart=Betriebsart.MESSEN, eintraege=[m1, m2], start_vorschau=vorschau_zu([m1, m2])
+        )
+    )
     w, dialoge = baue(s)
     gesehen: dict[str, Any] = {}
 
@@ -785,7 +798,7 @@ def test_ui_15_start_in_messen_mit_bestaetigung(baue: Any, qtbot: QtBot) -> None
     taste(qtbot, w, Qt.Key.Key_F5)
     assert gesehen["titel"] == "Durchgang starten: echte Messung"
     assert gesehen["zeilen"] == 2
-    assert gesehen["warnung"].startswith("✖ Generatorzustand unbekannt")
+    assert gesehen["warnung"].startswith("✖ Generatorzustand unbekannt")  # nicht gelesen
     assert gesehen["default"] and not gesehen["klein"] and gesehen["gross"]
     assert s.befehle == []
 
@@ -797,6 +810,47 @@ def test_ui_15_start_in_messen_mit_bestaetigung(baue: Any, qtbot: QtBot) -> None
     dialoge.aktionen.append(bestaetigen)
     QTest.mouseClick(w.btn_start, Qt.MouseButton.LeftButton)
     assert s.befehle == [("starte", "messen", True)]
+    assert s.letzter_start == (Betriebsart.MESSEN, s.bild.warteschlangen_kennung)
+
+
+def test_u5_b1_startdialog_zeigt_vorschau_und_warnt_nur_bei_bedarf(baue: Any, qtbot: QtBot) -> None:
+    m1, m2 = eintrag(name="A"), eintrag(name="B")
+    gesehen: dict[str, Any] = {}
+
+    def lies(d: QDialog) -> None:
+        assert isinstance(d, DurchgangStartenDialog)
+        tab = d.tabelle
+        gesehen["zeile"] = [tab.item(0, c).text() for c in range(tab.columnCount())]  # type: ignore[union-attr]
+        gesehen["anzahl"] = d.findChild(QLabel, "start_anzahl").text()  # type: ignore[union-attr]
+        gesehen["generator"] = d.findChild(QLabel, "start_generator").text()  # type: ignore[union-attr]
+        gesehen["warnung"] = d.warnung.text()
+        gesehen["warnung_sichtbar"] = not d.warnung.isHidden()
+        d.reject()
+
+    for generator, sichtbar, anfang in (
+        (GENERATOR_AUS, False, ""),
+        (GENERATOR_AN, True, "✖ Generator ist aktiv"),
+        (None, True, "✖ Generatorzustand unbekannt"),
+    ):
+        vorschau = vorschau_zu([m1, m2], messpunkte=9 if generator else None, generator=generator)
+        s = AttrappenSitzung(
+            bild(betriebsart=Betriebsart.MESSEN, eintraege=[m1, m2], start_vorschau=vorschau)
+        )
+        w, dialoge = baue(s)
+        dialoge.aktionen.append(lies)
+        QTest.mouseClick(w.btn_start, Qt.MouseButton.LeftButton)
+        assert gesehen["warnung_sichtbar"] is sichtbar
+        assert gesehen["warnung"].startswith(anfang)
+        assert gesehen["zeile"][0] == "01"
+        assert gesehen["zeile"][2].endswith("01_A.svd")
+        if generator is None:
+            assert gesehen["zeile"][3:] == ["unbekannt", "unbekannt"]
+            assert gesehen["anzahl"] == "2 Messungen, Messpunkte insgesamt: unbekannt"
+        else:
+            assert gesehen["zeile"][3] == "9"
+            assert gesehen["anzahl"].startswith("2 Messungen, 18 Messpunkte insgesamt")
+        assert gesehen["generator"].startswith("Generator (gelesen")
+        assert s.befehle == []
 
 
 def test_ui_15_simulator_ohne_trockenlauf_mit_dialog(baue: Any, qtbot: QtBot) -> None:
@@ -918,12 +972,9 @@ def test_ui_18_beendet_zusammenfassung_und_neustart(
     assert geoeffnet == ["/daten/2026-11-02_simulator"]
     QTest.mouseClick(w.hinweisband.knopf("schliessen"), Qt.MouseButton.LeftButton)
     assert w.hinweisband.property("fall") == "8"
-    # Start in BEENDET: erst quittieren, nach BEREIT starten
+    # Start in BEENDET: ein Startbefehl, das Quittieren übernimmt die Sitzung (U5/B7)
     QTest.mouseClick(w.btn_start, Qt.MouseButton.LeftButton)
-    assert s.namen() == ["quittiere"]
-    s.setze(durchgang=Z.BEREIT, ergebnis=None)
-    w.aktualisiere()
-    assert s.namen() == ["quittiere", "starte"]
+    assert s.namen() == ["starte"]
 
 
 def test_ui_18_start_in_beendet_mit_echter_sitzung(baue: Any, qtbot: QtBot, tmp_path: Path) -> None:
@@ -937,9 +988,7 @@ def test_ui_18_start_in_beendet_mit_echter_sitzung(baue: Any, qtbot: QtBot, tmp_
     assert w.hinweisband.text.text() == "✔ Durchgang beendet: 1 fertig."
     s.einfuegen(1, Messung(name="M2", einstellungsdatei=set_datei(tmp_path)))
     w.aktualisiere()
-    QTest.mouseClick(w.btn_start, Qt.MouseButton.LeftButton)  # quittiert
-    s.verarbeite()
-    w.aktualisiere()  # startet
+    QTest.mouseClick(w.btn_start, Qt.MouseButton.LeftButton)  # quittiert und startet (B7)
     s.verarbeite()
     w.aktualisiere()
     assert [zelle(w, r, 1) for r in range(2)] == ["✔ fertig", "✔ fertig"]
@@ -1211,6 +1260,8 @@ def test_ui_25_geraet_und_einstellungen(baue: Any, qtbot: QtBot, tmp_path: Path)
     assert werte["geraet_suppress"] == "ja"
     assert "frontend: SIM-FE" in werte["geraet_hardware"]
     assert "geraet_messpunkte" in werte and werte["geraet_modus"].startswith("Erfassung")
+    assert werte["geraet_messpunkte"] == "unbekannt"
+    assert werte["geraet_aufrufe"] == "nicht verfügbar (Simulator)"
     s.setze(verbindung=None)
     w.aktualisiere()
     QTest.mouseClick(w.btn_geraet, Qt.MouseButton.LeftButton)
@@ -1219,15 +1270,19 @@ def test_ui_25_geraet_und_einstellungen(baue: Any, qtbot: QtBot, tmp_path: Path)
 
     def einstellen(d: QDialog) -> None:
         assert isinstance(d, EinstellungenDialog)
-        assert not d.limit.isEnabled()
+        assert d.limit.isEnabled() and d.limit.value() == 600
+        d.limit.setValue(900)
         d.ordner_waehlen = lambda _s: str(tmp_path)
         d.findChild(QPushButton, "btn_ordner_waehlen").click()  # type: ignore[union-attr]
         d.btn_uebernehmen.click()
 
     dialoge.aktionen.append(einstellen)
     QTest.mouseClick(w.btn_einstellungen, Qt.MouseButton.LeftButton)
-    assert letzter(s) == ("wurzel", tmp_path)
-    s.fehler["wurzel"] = ValueError("Messdaten-Wurzel setzen ist im Zustand laeuft nicht möglich")
+    assert letzter(s) == ("einstellungen", tmp_path, 900.0)
+    assert w.bild.standard_zeitlimit_s == 900.0
+    s.fehler["einstellungen"] = ValueError(
+        "Einstellungen übernehmen ist im Zustand laeuft nicht möglich"
+    )
     gesehen: dict[str, str] = {}
 
     def fehlschlag(d: QDialog) -> None:
@@ -1242,7 +1297,7 @@ def test_ui_25_geraet_und_einstellungen(baue: Any, qtbot: QtBot, tmp_path: Path)
 
     dialoge.aktionen.append(fehlschlag)
     QTest.mouseClick(w.btn_einstellungen, Qt.MouseButton.LeftButton)
-    assert gesehen["fehler"].startswith("✖ Messdaten-Wurzel setzen ist im Zustand")
+    assert gesehen["fehler"].startswith("✖ Einstellungen übernehmen ist im Zustand")
     assert gesehen["sichtbar"] == "True"
     assert "Ordner angeben" in gesehen["leer"]
 
@@ -1465,10 +1520,12 @@ def test_k_u4_1_nr_ist_dateinummer_nach_abbruch_und_neuem_durchgang(
 
 def test_k_u4_1_startdialog_nummern_und_spalten(baue: Any, qtbot: QtBot) -> None:
     lang = "Platte_mit_einem_sehr_langen_Namen_fuer_die_Zieldatei_im_Startdialog"
+    eintraege = [eintrag(zustand="fertig", nummer=1), eintrag(name=lang), eintrag()]
     s = AttrappenSitzung(
         bild(
             betriebsart=Betriebsart.MESSEN,
-            eintraege=[eintrag(zustand="fertig", nummer=1), eintrag(name=lang), eintrag()],
+            eintraege=eintraege,
+            start_vorschau=vorschau_zu(eintraege),
         )
     )
     w, dialoge = baue(s)
@@ -1485,15 +1542,16 @@ def test_k_u4_1_startdialog_nummern_und_spalten(baue: Any, qtbot: QtBot) -> None
         ziel = tab.item(0, 2)
         assert ziel is not None
         gesehen["tip"] = ziel.toolTip()
-        gesehen["umbruch"] = tab.wordWrap() and tab.rowHeight(0) > 30
+        gesehen["zelle"] = ziel.text()
         d.reject()
 
     dialoge.aktionen.append(pruefen)
     QTest.mouseClick(w.btn_start, Qt.MouseButton.LeftButton)
     assert gesehen["nr"] == ["01", "02"]
     assert gesehen["breiten"][0] < 60 < gesehen["breiten"][1]
-    assert lang in gesehen["tip"]
-    assert gesehen["umbruch"]
+    # K-U5b: nur der Dateiname in der Zelle, voller Pfad (mit Platzhalter) im Tooltip
+    assert gesehen["zelle"] == f"01_{lang}.svd"
+    assert "<JJJJ-MM-TT_HHMMSS>" in gesehen["tip"] and lang in gesehen["tip"]
 
 
 def test_k_u4_2_befehlssperre_mit_revision_aus_der_sitzung(baue: Any, qtbot: QtBot) -> None:
@@ -1522,57 +1580,26 @@ def _beendet(**felder: Any) -> AttrappenSitzung:
     )
 
 
-def test_k_u4_3_ausstehender_start_sperrt_und_startet(baue: Any, qtbot: QtBot) -> None:
+def test_u5_b7_start_aus_beendet_ein_befehl_mit_schnappschuss(baue: Any, qtbot: QtBot) -> None:
     s = _beendet()
     w, _ = baue(s)
     QTest.mouseClick(w.btn_start, Qt.MouseButton.LeftButton)
-    assert s.namen() == ["quittiere"]
-    for b in (w.btn_betriebsart, w.btn_messung_neu, w.btn_pausenpunkt_neu, w.btn_laden):
-        assert not b.isEnabled(), b.objectName()
-    assert "Start wird vorbereitet" in w.act_messung_neu.toolTip()
-    s.setze(durchgang=Z.BEREIT, ergebnis=None)
-    w.aktualisiere()
-    assert s.namen() == ["quittiere", "starte"]
+    assert s.namen() == ["starte"]
+    assert s.letzter_start == (Betriebsart.SIMULATOR, s.bild.warteschlangen_kennung)
 
 
-def test_k_u4_3_ausstehender_start_verworfen_bei_aenderung(baue: Any, qtbot: QtBot) -> None:
+def test_u5_b7_start_verworfen_meldung_der_sitzung(baue: Any, qtbot: QtBot) -> None:
     s = _beendet()
+    s.fehler["starte"] = ValueError(
+        "Start verworfen: Warteschlange oder Messdaten-Ordner hat sich seit der Bestätigung "
+        "geändert"
+    )
     w, dialoge = baue(s)
     QTest.mouseClick(w.btn_start, Qt.MouseButton.LeftButton)
-    neu = [*s.bild.eintraege, eintrag(name="dazu")]
-    s.setze(durchgang=Z.BEREIT, ergebnis=None, eintraege=neu)
-    w.aktualisiere()
-    assert s.namen() == ["quittiere"]
-    assert dialoge.gesehen == []  # Meldung wird erst nach dem Aktualisierungspfad gezeigt
-    qtbot.waitUntil(lambda: bool(dialoge.gesehen), timeout=2000)
+    assert s.namen() == ["starte"]
     meldung = dialoge.gesehen[-1]
-    assert isinstance(meldung, QMessageBox) and meldung.windowTitle() == "Start verworfen"
-    assert "Warnung: Start verworfen. Betriebsart oder Warteschlange" in w.protokoll.toPlainText()
-    assert w.btn_messung_neu.isEnabled()  # Sperre aufgehoben
-    # gleiche Prüfung für die Betriebsart
-    s2 = _beendet()
-    w2, _ = baue(s2)
-    QTest.mouseClick(w2.btn_start, Qt.MouseButton.LeftButton)
-    s2.setze(durchgang=Z.BEREIT, ergebnis=None, betriebsart=Betriebsart.TROCKENLAUF)
-    w2.aktualisiere()
-    assert s2.namen() == ["quittiere"]
-
-
-def test_k_u4_3_ausstehender_start_verworfen_ohne_bereit(
-    baue: Any, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    import ldv_automation.gui.hauptfenster as hf
-
-    s = _beendet()
-    w, dialoge = baue(s)
-    QTest.mouseClick(w.btn_start, Qt.MouseButton.LeftButton)
-    monkeypatch.setattr(hf, "START_AUSSTEHEND_MAX_S", -1.0)
-    s.setze()
-    w.aktualisiere()
-    assert s.namen() == ["quittiere"]
-    assert "Start verworfen. Der Durchgang wurde nicht bereit." in w.protokoll.toPlainText()
-    qtbot.waitUntil(lambda: bool(dialoge.gesehen), timeout=2000)
-    assert isinstance(dialoge.gesehen[-1], QMessageBox)
+    assert isinstance(meldung, QMessageBox) and "Start verworfen" in meldung.text()
+    assert w.btn_messung_neu.isEnabled()  # keine Sperre bleibt zurück
 
 
 def test_k_u4_4_auswahlwechsel_fragt_bei_ungespeicherten_eingaben(baue: Any, qtbot: QtBot) -> None:
@@ -1766,25 +1793,96 @@ def test_k_u4b_n1_vorlaeufige_nummern_im_zweiten_durchgang(
     assert [zelle(w, r, 0) for r in (2, 3)] == ["01", "02"]
 
 
-def test_k_u4b_n2_meldung_nach_dem_aktualisierungspfad_mit_aktuellem_bild(
-    baue: Any, qtbot: QtBot
-) -> None:
-    s = _beendet()
-    w, dialoge = baue(s)
-    QTest.mouseClick(w.btn_start, Qt.MouseButton.LeftButton)
-    beim_dialog: dict[str, object] = {}
+# --- U5: B3 Standard-Zeitlimit im Editor, B1 Gerät-Dialog mit gelesenem Stand ---------------
 
-    def waehrend_dialog(d: QDialog) -> None:
-        beim_dialog["in_zeige"] = w._in_zeige
-        # Während die Meldung offen ist, ändert sich die Sitzung weiter
-        s.setze(durchgang=Z.LAEUFT, eintraege=[eintrag(zustand="laeuft", nummer=1)])
 
-    dialoge.aktionen.append(waehrend_dialog)
-    s.setze(durchgang=Z.BEREIT, ergebnis=None, betriebsart=Betriebsart.TROCKENLAUF)
+def test_u5_b3_editor_zeigt_standard_zeitlimit_der_sitzung(baue: Any, qtbot: QtBot) -> None:
+    s = AttrappenSitzung(bild())
+    w, _ = baue(s)
+    taste(qtbot, w, Qt.Key.Key_N, Qt.KeyboardModifier.ControlModifier)
+    assert w.editor.limit_hinweis.text() == "(Standard: 600 s)"
+    s.setze(standard_zeitlimit_s=120.0)
     w.aktualisiere()
-    assert dialoge.gesehen == []
-    qtbot.waitUntil(lambda: bool(dialoge.gesehen), timeout=2000)
-    assert beim_dialog["in_zeige"] is False
-    # Nach dem Schließen ist das aktuelle Bild gezeichnet, kein älteres
-    assert w.bild.revision == s.bild.revision
-    assert w.lbl_durchgang.volltext().startswith("Durchgang: Läuft")
+    assert w.editor.limit_hinweis.text() == "(Standard: 120 s)"
+    assert w.editor.limit.value() == 120
+    assert not w.editor.geaendert  # Übernahme des Standards ist keine Eingabe
+    w.editor.limit_eigen.setChecked(True)
+    assert w.editor.limit_hinweis.text() == "(Standard: 120 s)"
+    s.setze(standard_zeitlimit_s=60.0)
+    w.aktualisiere()
+    assert w.editor.limit.value() == 120  # eigenes Limit bleibt
+    assert w.editor.limit_hinweis.text() == "(Standard: 60 s)"
+
+
+def test_k_u5b_limit_hinweis_bei_1100x680_vollstaendig_sichtbar(baue: Any, qtbot: QtBot) -> None:
+    s = AttrappenSitzung(bild())
+    w, _ = baue(s)
+    w.resize(1100, 680)
+    w.show()
+    taste(qtbot, w, Qt.Key.Key_N, Qt.KeyboardModifier.ControlModifier)
+    QApplication.processEvents()
+    hinweis = w.editor.limit_hinweis
+    rollen = w.editor.findChild(QWidget, "editor_rollen")
+    assert rollen is not None
+    flaeche = rollen.viewport()
+    links = hinweis.mapTo(flaeche, hinweis.rect().topLeft())
+    rechts = hinweis.mapTo(flaeche, hinweis.rect().topRight())
+    assert links.x() >= 0 and rechts.x() <= flaeche.width()
+    assert hinweis.width() >= hinweis.fontMetrics().horizontalAdvance(hinweis.text())
+
+
+def test_u5_b1_geraet_dialog_mit_messpunkten_und_aufrufprotokoll(baue: Any, qtbot: QtBot) -> None:
+    from datetime import UTC, datetime
+
+    from ldv_automation.sitzung import GeraeteDiagnose, GeraeteStand
+
+    stand = GeraeteStand(
+        messpunkte=9, generator=GENERATOR_AUS, quelle="beim Verbinden", zeit=datetime.now(UTC)
+    )
+    s = AttrappenSitzung(
+        bild(
+            betriebsart=Betriebsart.NUR_LESEN,
+            geraete_stand=stand,
+            geraet_diagnose=GeraeteDiagnose(aufrufe_anzahl=40, verweigerungen=()),
+            konfiguration={"pfad": "D:/k.json", "sha256": "ab" * 32, "werte": {"x": 1}},
+        )
+    )
+    w, dialoge = baue(s)
+    QTest.mouseClick(w.btn_geraet, Qt.MouseButton.LeftButton)
+    d = dialoge.gesehen[-1]
+    werte = {x.objectName(): x.text() for x in d.findChildren(QLabel) if x.objectName()}
+    assert werte["geraet_messpunkte"] == "9 (gelesen beim Verbinden)"
+    assert werte["geraet_aufrufe"] == "40 Zugriffe, keine Verweigerung"
+    assert "GeneratorsOn: nein, Aktiv: nein" in werte["geraet_generator"]
+    assert werte["geraet_konfiguration"] == "Datei: D:/k.json (SHA-256 abababababab…)\nx: 1"
+
+
+def test_u5_b3_einstellungen_fehler_des_zeitlimits_unter_dem_feld(
+    baue: Any, qtbot: QtBot, tmp_path: Path
+) -> None:
+    s = AttrappenSitzung(bild(messdaten_wurzel_probleme=("Ordner existiert nicht: /x",)))
+    s.fehler["einstellungen"] = EinstellungsFehler(
+        ordner=None, zeitlimit="Standard-Zeitlimit muss endlich und > 0 s sein"
+    )
+    w, dialoge = baue(s)
+    gesehen: dict[str, str] = {}
+
+    def pruefen(d: QDialog) -> None:
+        assert isinstance(d, EinstellungenDialog)
+        gesehen["anfang"] = d.fehler.text()
+        d.ordner.setText(str(tmp_path))
+        d.limit.setValue(30)
+        d.btn_uebernehmen.click()
+        gesehen["limit"] = d.limit_fehler.text()
+        gesehen["ordner_fehler_sichtbar"] = str(not d.fehler.isHidden())
+        gesehen["breite"] = str(d.minimumWidth())
+        gesehen["offen"] = str(d.result())
+        d.reject()
+
+    dialoge.aktionen.append(pruefen)
+    QTest.mouseClick(w.btn_einstellungen, Qt.MouseButton.LeftButton)
+    assert gesehen["anfang"] == "✖ Ordner existiert nicht: /x"
+    assert gesehen["limit"].startswith("✖ Standard-Zeitlimit muss")
+    assert gesehen["ordner_fehler_sichtbar"] == "False"
+    assert int(gesehen["breite"]) >= 480
+    assert s.namen() == ["einstellungen"]

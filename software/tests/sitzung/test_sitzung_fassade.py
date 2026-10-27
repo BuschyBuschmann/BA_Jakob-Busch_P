@@ -150,7 +150,11 @@ def test_voraussetzungen_einzeln(tmp_path: Path) -> None:
         tmp_path,
         konfiguration=SimulatorKonfiguration(meldungen_unterdrueckt=False, fremde_messung=True),
     )
-    s.setze_messdaten_wurzel(tmp_path / "fehlt")
+    # U5/B4: Ein fehlender Ordner wird nicht mehr angenommen; hier verschwindet er danach.
+    weg = tmp_path / "fehlt"
+    weg.mkdir()
+    s.setze_messdaten_wurzel(weg)
+    weg.rmdir()
     status = {v.name: v.erfuellt for v in s.messen_voraussetzungen()}
     assert status == {
         "verbindung": True,

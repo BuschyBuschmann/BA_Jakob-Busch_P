@@ -27,9 +27,9 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☑ | P1 GUI-Technologie: PySide6/Qt (ADR-001) | – | – | `in_progress/entscheidungen/ADR-001_gui-technologie.md` |
 | ☑ | P2 Architekturplan Prototyp freigegeben, ADR-002 bis ADR-012 angelegt | – | – | `in_progress/planung/plaene/2026-10-26_P2_architektur-prototyp.md` |
 | ✔ | P3 GUI-Grunddesign und Design-Brief → Freigabe Jakob | ui-designer, Jakob | Mi 28.10. | Grunddesign und Design-Brief freigegeben 26.10. |
-| ◐ | P4 Umsetzung Prototyp in U1–U5 (U1–U4 committet; U4 mit Auflagen; U5 Integration folgt) | software-engineer | Fr 30.10. | Lastenheft R-010–R-031 |
-| ☐ | P5 Review und Design-Abnahme, Korrekturen | reviewer, ui-designer | Sa 31.10. | |
-| ☐ | P6 Montags-Paket: Installationsanleitung (Python 3.11, pywin32, uv), Ablaufplan vor Ort, Protokollvorlage | software-engineer, Orchestrator | So 01.11. | |
+| ◐ | P4 Umsetzung Prototyp in U1–U5 (U1–U5 fertig und committet) | software-engineer | Fr 30.10. | Lastenheft R-010–R-031 |
+| ✔ | P5 Review und Design-Abnahme, Korrekturen | reviewer, ui-designer | Sa 31.10. | U1–U5 reviewt und abgenommen (27.10.) |
+| ◐ | P6 Montags-Paket: Installationsanleitung (Python 3.11, pywin32, uv), Ablaufplan vor Ort, Protokollvorlage | software-engineer, Orchestrator | So 01.11. | Dokumente unter `in_progress/versuche/2026-11-02_prototyp/`, Durchsicht durch Jakob offen; Wheel nach letztem Commit bauen |
 | ☑ | Erkundungsskript (nur lesend) mit Prüfanleitung | – | – | `software/tools/erkundung/` |
 | ☐ | Vor Ort in PSV: kleine Test-Einstellungsdatei (.set, z. B. 3×3 Punkte, Generator aus) und Prüfling vorbereiten | Jakob | Mo 02.11. | Anleitung im Montags-Paket |
 | ☐ | Vor Ort: Python 3.11 + pywin32 installieren; Erkundung Stufe 0 → 1 → 1b; Prototyp testen (echte Messung nur nach Bestätigung) | Jakob | Mo 02.11. | Ergebnisse nach `in_progress/versuche/erkundung/`, danach `/laborbuch` |

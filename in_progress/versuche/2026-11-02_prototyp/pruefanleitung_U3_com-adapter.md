@@ -137,3 +137,48 @@ eine Messung läuft; den Zustand in PSV selbst prüfen.
 - Notizen zu den Tabellen oben (ok/nicht ok, Werte)
 
 Alles nach `in_progress/versuche/2026-11-02_prototyp/` kopieren; danach `/laborbuch`.
+
+## Ergänzung U5 (Integration): T0, T1 und Startdialog
+
+**Vorbereitung (Cloud/Entwicklungsrechner, vor Montag):** aus `software/` nur
+`uv build --wheel`. Der Build-Hook (`software/hatch_build.py`, K-U5) schreibt Git-Hash und
+Dirty-Flag beim Bau selbst ins Wheel (`ldv_automation/_build_info.json`); ohne Git bricht
+der Bau ab. Ohne Build-Info und ohne Git ist `MESSEN` am Messrechner gesperrt.
+
+**Konfiguration (K-U5):** Schalter aus der Erkundung (Validator-Rückfall S4, Lademaske,
+Aufrufgrenze, Wächterwarnung, Stop-Frist, Standard-Zeitlimit) in eine Kopie von
+`software/konfig/beispiel_messrechner.json` eintragen und mit `--konfig DATEI` übergeben
+(gui und selbsttest). Eine ungültige Datei bricht den Start mit Meldung ab. Pfad, SHA-256
+und Werte stehen in jedem Messprotokoll und im Dialog „Gerät“.
+
+**T0:** `python -m ldv_automation selbsttest` (und mit `--konfig DATEI`) muss mit „Selbsttest bestanden“ enden
+(Simulator, ohne pywin32, ohne Oberfläche). Mit `--ordner D:\Messdaten\selbsttest`
+bleiben die Ergebnisse zum Kopieren erhalten. Vorher in Linux geprüft, unter Windows
+**noch nicht**.
+
+**T1 (NUR_LESEN), zusätzlich:** Dialog „Gerät …“ prüfen:
+- „Aufrufprotokoll“ muss „N Zugriffe, keine Verweigerung“ zeigen. Jede Verweigerung:
+  stoppen, Text notieren.
+- „Messpunkte“ und „Generator“ (beim Verbinden gelesen) mit der PSV-Oberfläche
+  vergleichen (GeneratorsOn, Aktiv, Amplitude). Beim Verbinden wird dafür zusätzlich der
+  Einstellungsstand nur lesend abgefragt.
+- „Hardware“ enthält `psv_prozesse` (Treffer der Prozessprüfung), „Lademaske“ ist gesetzt.
+
+**Einstellungen:** Messdaten-Ordner und Standard-Zeitlimit werden gemeinsam übernommen
+oder gar nicht. Die Sitzung lehnt relative Pfade, Netzwerkpfade, Programm-, Daten- und
+Systemordner, Polytec-Ordner unter der Laufwerkswurzel und Git-Repositorys ab (Details
+unten).
+
+**Startdialog (T4):** Messpunkte und Generator je Messung werden aus dem Trockenlauf
+übernommen, wenn danach dasselbe PSV läuft (gleicher Prozess-Treffer), die Lademaske gleich
+und die `.set` unverändert ist (K-U5b). Die Spalte „Generator“ zeigt dann „(übernommen)“,
+der Tooltip „gelesen in Betriebsart TROCKENLAUF vom …“; dieselbe Angabe steht im
+Ereignisprotokoll des Durchgangs (`startangaben`). Werte aus dem Simulator gelten nie. Nach
+„Trennen“ oder bei geänderter `.set` steht „unbekannt“ mit roter Warnzeile. Werte mit der
+PSV-Oberfläche vergleichen; bei roter Zeile nur mit Freigabe von Shaker/Verstärker
+fortfahren.
+
+**Messdaten-Ordner (K-U5b):** Abgelehnt werden Ordner unter ProgramFiles, ProgramW6432,
+ProgramData und SystemRoot sowie Ordner „…Polytec…“ direkt unter einer Laufwerkswurzel;
+Pfade werden vorher aufgelöst (`..`, Junctions, Kurznamen). Ein Benutzerkonto wie
+`C:\Users\Polytec\…` ist erlaubt. Bitte notieren, wo PSV am Messrechner Daten ablegt.

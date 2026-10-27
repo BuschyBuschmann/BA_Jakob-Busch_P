@@ -7,6 +7,7 @@ Parameterzeilen entstehen aus dem Parameterkatalog. Die Prüfung der Eingaben st
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -39,6 +40,7 @@ from ldv_automation.gui.anzeige import (
     parameter_bezeichnung,
     pruefe_name,
     pruefe_pflichttext,
+    standard_limit_hinweis,
     wert_text,
     zeilenstatus,
     zieldatei_text,
@@ -49,6 +51,8 @@ from ldv_automation.sitzung import EintragBild
 AUS_SET = "(aus .set)"
 ZEITLIMIT_MAX_S = 864_000
 """Obergrenze des Zeitlimit-Felds (10 Tage); nur Eingabegrenze des Felds."""
+STANDARD_LIMIT_START_S = 600.0
+"""Anzeigewert bis zum ersten Zustandsbild (danach gilt der Wert der Sitzung)."""
 
 
 @dataclass(frozen=True)
@@ -238,23 +242,29 @@ class Editor(QFrame):
 
         self.limit_eigen = QCheckBox("eigenes Limit")
         self.limit_eigen.setObjectName("editor_limit_eigen")
+        self._standard_limit_s = STANDARD_LIMIT_START_S
         self.limit = QSpinBox()
         self.limit.setObjectName("editor_limit")
         self.limit.setRange(1, ZEITLIMIT_MAX_S)
-        self.limit.setValue(600)
+        self.limit.setValue(round(self._standard_limit_s))
         self.limit.setEnabled(False)
-        self.limit_hinweis = QLabel("s  (Standard-Zeitlimit der Sitzung)")
+        self.limit_hinweis = QLabel(standard_limit_hinweis(self._standard_limit_s))
         self.limit_hinweis.setProperty("art", "gedaempft")
         self.limit_hinweis.setWordWrap(True)
         self.limit_hinweis.setMinimumWidth(40)
         self.limit_eigen.toggled.connect(self._limit_umschalten)
         self.limit.valueChanged.connect(self._eingabe)
+        self.limit.setSuffix(" s")
+        # Kurzer, nicht umbrechender Hinweis in derselben Zeile: bei 1100 x 680 px vollständig
+        # sichtbar, ohne zusätzliche Höhe (K-U5b; Notiz bleibt bei 1366 x 768 ohne Scrollen).
+        self.limit_hinweis.setWordWrap(False)
         limit_zeile = QWidget()
         limit_layout = QHBoxLayout(limit_zeile)
         limit_layout.setContentsMargins(0, 0, 0, 0)
         limit_layout.addWidget(self.limit_eigen)
         limit_layout.addWidget(self.limit)
-        limit_layout.addWidget(self.limit_hinweis, 1)
+        limit_layout.addWidget(self.limit_hinweis)
+        limit_layout.addStretch(1)
 
         self.notiz = QPlainTextEdit()
         self.notiz.setObjectName("editor_notiz")
@@ -399,7 +409,7 @@ class Editor(QFrame):
         for pz in self.parameter:
             pz.setze(None)
         self.limit_eigen.setChecked(False)
-        self.limit.setValue(600)
+        self.limit.setValue(self._limit_feldwert())
         self.notiz.clear()
         self.text.clear()
 
@@ -535,10 +545,34 @@ class Editor(QFrame):
 
     # --- Eingaben --------------------------------------------------------------------------
 
+    def _limit_feldwert(self) -> int:
+        return min(max(round(self._standard_limit_s), 1), ZEITLIMIT_MAX_S)
+
+    def setze_standard_limit(self, standard_zeitlimit_s: float) -> None:
+        """Übernimmt das Standard-Zeitlimit der Sitzung in Hinweis und Feld (B3).
+
+        Ohne eigenes Limit zeigt das (gesperrte) Feld den Standardwert; Eingaben gelten
+        dadurch nicht als geändert.
+        """
+        if math.isclose(standard_zeitlimit_s, self._standard_limit_s):
+            return
+        self._standard_limit_s = standard_zeitlimit_s
+        if not self.limit_eigen.isChecked():
+            laedt, self._laedt = self._laedt, True
+            try:
+                self.limit.setValue(self._limit_feldwert())
+            finally:
+                self._laedt = laedt
+        self.limit_hinweis.setText(standard_limit_hinweis(standard_zeitlimit_s))
+        self.limit_hinweis.setToolTip(
+            f"Ohne eigenes Limit gilt das Standard-Zeitlimit der Sitzung "
+            f"({standard_zeitlimit_s:g} s, Einstellungen …)."
+        )
+
     def _limit_umschalten(self, an: bool) -> None:
         editierbar = self.modus in ("neu_messung", "neu_pausenpunkt", "bearbeiten")
         self.limit.setEnabled(an and editierbar)
-        self.limit_hinweis.setText("s" if an else "s  (Standard-Zeitlimit der Sitzung)")
+        self.limit_hinweis.setText(standard_limit_hinweis(self._standard_limit_s))
         self._eingabe()
 
     def _eingabe(self, *_args: object) -> None:

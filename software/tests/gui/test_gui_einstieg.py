@@ -38,9 +38,9 @@ def test_parser_simulator_und_psv_schliessen_sich_aus() -> None:
         einstieg.baue_parser().parse_args(["gui", "--simulator", "--psv"])
 
 
-def test_selbsttest_ist_platzhalter(capsys: pytest.CaptureFixture[str]) -> None:
-    assert einstieg.main(["selbsttest"]) == 2
-    assert "U5" in capsys.readouterr().err
+def test_selbsttest_ueber_main(capsys: pytest.CaptureFixture[str]) -> None:
+    assert einstieg.main(["selbsttest"]) == 0
+    assert "Selbsttest bestanden" in capsys.readouterr().out
 
 
 def test_fabrik_simulator_fuer_alle_betriebsarten() -> None:
@@ -107,6 +107,7 @@ def test_start_psv_verlangt_getipptes_ja(
         assert "nicht bestätigt" in capsys.readouterr().out.lower()
     wurzel = gesehen["messdaten_wurzel"]
     assert callable(wurzel) and wurzel() == tmp_path
+    (tmp_path / "neu").mkdir()  # U5/B4: die Sitzung nimmt nur vorhandene Ordner an
     s.setze_messdaten_wurzel(tmp_path / "neu")
     assert wurzel() == tmp_path / "neu"
 
