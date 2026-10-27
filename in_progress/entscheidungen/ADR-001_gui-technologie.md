@@ -21,3 +21,9 @@ Empfehlung des Architekturplans bzw. der Entscheidungsvorlage, vom Nutzer übern
 
 ## Konsequenzen
 Umsetzung in den Paketen U1–U5 des Plans P2; unbestätigte Annahmen erhalten Schalter bzw. Rückfallwege und werden am Messrechner geprüft.
+
+## Nachtrag 2026-10-27: Version 6.11.3 statt 6.12.0
+**Anlass:** In Paket U4 gemessen: Unter Python 3.11 senkt `pyside6-essentials==6.12.0` bei jedem Qt-Aufruf ohne Rückgabewert (z. B. `setText`, `setEnabled`) den Referenzzähler von `None` um 1; nach einigen tausend Aufrufen bricht Python mit `Fatal Python error: none_dealloc` ab. Messung je 100 `setText`: 6.12.0 −100 (100 000 Aufrufe: Absturz); 6.11.3, 6.11.0, 6.10.2, 6.9.3: 0. Unter Python 3.12 tritt der Fehler nicht auf (unsterbliches `None`), Python 3.12 ist nach KONVENTIONEN ausgeschlossen.
+**Alternativen:** 6.11.3 verwenden · auf eine reparierte 6.12.x warten.
+**Entscheidung des Nutzers (2026-10-27):** `pyside6-essentials==6.11.3`. Der Regressionstest `test_pyside_verliert_keine_referenzen_auf_none` bewacht den Fehler; jede neue PySide6-Version muss ihn bestehen.
+**Offen:** Verhalten des Windows-Wheels am Messrechner prüfen (Montag, T0).
