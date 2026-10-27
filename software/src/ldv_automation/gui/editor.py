@@ -82,10 +82,16 @@ class _ParameterZeile:
             feld.textChanged.connect(lambda _s: bei_aenderung())
             self.eingabe = feld
         self.eingabe.setObjectName(f"param_{spec.schluessel}")
+        self.eingabe.setMinimumWidth(60)
         einheit = f"{spec.einheit} · " if spec.einheit else ""
-        self.bereich = QLabel(f"{einheit}{spec.bereich_text()}")
-        self.bereich.setProperty("art", "gedaempft")
-        self.bereich.setWordWrap(True)
+        # Einheit und Bereich stehen verdichtet in der Beschriftung (K-U4, 5); bei Auswahllisten
+        # zeigt die Liste selbst die erlaubten Werte.
+        self.bereich_text = f"{einheit}{spec.bereich_text()}"
+        name = parameter_bezeichnung(spec)
+        self.beschriftung = (
+            name if spec.typ == "str" and spec.erlaubt else f"{name} ({self.bereich_text})"
+        )
+        self.eingabe.setToolTip(self.bereich_text)
         self.fehler = QLabel()
         self.fehler.setObjectName(f"param_fehler_{spec.schluessel}")
         self.fehler.setProperty("art", "fehler")
@@ -160,7 +166,7 @@ class Editor(QFrame):
         self.datei_waehlen: Callable[[str], str | None] = self._datei_dialog
 
         aussen = QVBoxLayout(self)
-        aussen.setContentsMargins(12, 8, 12, 8)
+        aussen.setContentsMargins(12, 4, 12, 4)
         self.titel = QLabel()
         self.titel.setObjectName("editor_titel")
         self.titel.setFont(schrift(t.SCHRIFT_PT_TITEL, fett=True))
@@ -198,6 +204,7 @@ class Editor(QFrame):
         form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         form.setContentsMargins(0, 0, 0, 0)
+        form.setVerticalSpacing(1)
         self._form = form
 
         # Messung
@@ -212,6 +219,7 @@ class Editor(QFrame):
         self.set_feld = QLineEdit()
         self.set_feld.setObjectName("editor_set")
         self.set_feld.setReadOnly(True)
+        self.set_feld.setMinimumWidth(60)
         self.set_feld.setFont(schrift(t.SCHRIFT_PT_MONO, mono=True))
         self.set_feld.textChanged.connect(self._eingabe)
         self.btn_set = QPushButton("Wählen …")
@@ -237,6 +245,8 @@ class Editor(QFrame):
         self.limit.setEnabled(False)
         self.limit_hinweis = QLabel("s  (Standard-Zeitlimit der Sitzung)")
         self.limit_hinweis.setProperty("art", "gedaempft")
+        self.limit_hinweis.setWordWrap(True)
+        self.limit_hinweis.setMinimumWidth(40)
         self.limit_eigen.toggled.connect(self._limit_umschalten)
         self.limit.valueChanged.connect(self._eingabe)
         limit_zeile = QWidget()
@@ -280,9 +290,8 @@ class Editor(QFrame):
             p_layout.addWidget(pz.eingabe, 1)
             self._zeile(
                 self._zeilen_messung,
-                parameter_bezeichnung(pz.spec),
+                pz.beschriftung,
                 p_zeile,
-                pz.bereich,
                 pz.fehler,
                 buddy=pz.aendern,
             )
@@ -352,7 +361,7 @@ class Editor(QFrame):
         behaelter = QWidget()
         layout = QVBoxLayout(behaelter)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
+        layout.setSpacing(0)
         layout.addWidget(feld)
         for z in zusatz:
             layout.addWidget(z)
@@ -441,12 +450,12 @@ class Editor(QFrame):
             self._laedt = False
         self._pruefe()
 
-    def _titel_fuer(self, e: EintragBild, nr: int | None, zusatz: str) -> str:
+    def _titel_fuer(self, e: EintragBild, nr: str | None, zusatz: str) -> str:
         if e.art == "pausenpunkt":
             return f"Pausenpunkt{zusatz}"
         return f"Messung {nr}{zusatz}" if nr is not None else f"Messung{zusatz}"
 
-    def bearbeite(self, e: EintragBild, nr: int | None) -> None:
+    def bearbeite(self, e: EintragBild, nr: str | None) -> None:
         """Modus „Bearbeiten“ für einen wartenden Eintrag."""
         self._laedt = True
         try:
@@ -460,7 +469,7 @@ class Editor(QFrame):
             self._laedt = False
         self._pruefe()
 
-    def zeige_an(self, e: EintragBild, nr: int | None) -> None:
+    def zeige_an(self, e: EintragBild, nr: str | None) -> None:
         """Modus „Anzeigen“ (schreibgeschützt) für einen nicht mehr wartenden Eintrag."""
         status = zeilenstatus(e).text.split(" ", 1)[-1]
         self._laedt = True
@@ -476,7 +485,7 @@ class Editor(QFrame):
             self._laedt = False
         self._pruefe()
 
-    def aktualisiere_anzeige(self, e: EintragBild, nr: int | None) -> None:
+    def aktualisiere_anzeige(self, e: EintragBild, nr: str | None) -> None:
         """Erneuert den Anzeigemodus mit neuen Laufdaten (Status, Zeiten, Datei)."""
         if self.modus == "anzeigen" and self._eintrag != e:
             konflikt = not self.konflikt.isHidden()

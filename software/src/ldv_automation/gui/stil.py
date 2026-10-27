@@ -29,7 +29,7 @@ def palette() -> QPalette:
     p.setColor(QPalette.ColorRole.Text, QColor(t.C_TEXT))
     p.setColor(QPalette.ColorRole.Button, QColor(t.C_FLAECHE))
     p.setColor(QPalette.ColorRole.ButtonText, QColor(t.C_TEXT))
-    p.setColor(QPalette.ColorRole.Highlight, QColor(t.C_AKTIV_BG))
+    p.setColor(QPalette.ColorRole.Highlight, QColor(t.C_AUSWAHL_BG))
     p.setColor(QPalette.ColorRole.HighlightedText, QColor(t.C_TEXT))
     p.setColor(QPalette.ColorRole.ToolTipBase, QColor(t.C_FLAECHE))
     p.setColor(QPalette.ColorRole.ToolTipText, QColor(t.C_TEXT))
@@ -85,7 +85,7 @@ QPlainTextEdit:focus, QCheckBox:focus, QTableWidget:focus {{
 QTableWidget {{
     background: {t.C_FLAECHE}; gridline-color: {t.C_LINIE_ZEILE};
     border: 1px solid {t.C_LINIE};
-    selection-background-color: {t.C_AKTIV_BG}; selection-color: {t.C_TEXT};
+    selection-background-color: {t.C_AUSWAHL_BG}; selection-color: {t.C_TEXT};
 }}
 QHeaderView::section {{
     background: {t.C_LEISTE}; border: none; border-bottom: 1px solid {t.C_LINIE};

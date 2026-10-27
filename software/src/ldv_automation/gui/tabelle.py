@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from ldv_automation.gui import tokens as t
-from ldv_automation.gui.anzeige import LEER_TEXT, Zeile
+from ldv_automation.gui.anzeige import LEER_TEXT, NR_VORLAEUFIG_TOOLTIP, Zeile
 from ldv_automation.gui.stil import schrift
 
 SPALTEN = ("Nr", "Status", "Name", "Einstellungsdatei", "Änderungen", "Limit")
@@ -223,6 +223,13 @@ class Warteschlangentabelle(QTableWidget):
         status.setFont(schrift(fett=z.status.stil in ("laeuft", "warn")))
         if z.laeuft:
             self._item(r, SP_NAME).setFont(schrift(fett=True))
+        if z.nr_vorlaeufig:
+            nr = self._item(r, SP_NR)
+            nr.setForeground(QBrush(QColor(t.C_TEXT_GEDAEMPFT)))
+            kursiv = schrift()
+            kursiv.setItalic(True)
+            nr.setFont(kursiv)
+            nr.setToolTip(NR_VORLAEUFIG_TOOLTIP)
         if z.pausenpunkt:
             self.setSpan(r, SP_NAME, 1, len(SPALTEN) - SP_NAME)
 

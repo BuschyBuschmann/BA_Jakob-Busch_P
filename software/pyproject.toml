@@ -5,9 +5,9 @@ description = "Automatisierung von Strukturtests mit einem 3D-Laser-Doppler-Vibr
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = [
-    # ADR-001 nennt 6.12.0. 6.12.0 verliert unter Python 3.11 bei jedem Qt-Aufruf ohne
-    # Rückgabewert eine Referenz auf None (Absturz „none_dealloc“ nach einigen tausend
-    # Aufrufen, Nachweis U4). Deshalb vorläufig 6.11.3; Entscheidung des Nutzers offen.
+    # 6.11.3 statt 6.12.0 nach ADR-001 (Nachtrag, Nutzerentscheidung 2026-10-27):
+    # 6.12.0 verliert unter Python 3.11 bei jedem Qt-Aufruf ohne Rückgabewert eine
+    # Referenz auf None (Absturz „none_dealloc“). Regressionstest in tests/gui.
     "pyside6-essentials==6.11.3",
 ]
 

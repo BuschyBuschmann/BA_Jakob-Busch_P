@@ -97,13 +97,72 @@ WARTEND = "wartend"
 # --- Hilfen über die Einträge ----------------------------------------------------------------
 
 
-def messungsnummern(eintraege: Sequence[EintragBild]) -> dict[UUID, int]:
-    """Laufende Nummer jeder Messung in der Tabelle (ab 1); Pausenpunkte zählen nicht."""
-    nummern: dict[UUID, int] = {}
+@dataclass(frozen=True)
+class Nr:
+    """Anzeige der Nummer einer Messung (= Präfix ``<nn>`` des Dateinamens).
+
+    ``endgueltig`` ist ``True``, wenn die Sitzung die Nummer vergeben hat
+    (``EintragBild.nummer``); sonst ist ``wert`` eine vorläufige Schätzung.
+    """
+
+    wert: int
+    endgueltig: bool
+
+    @property
+    def kurz(self) -> str:
+        """Tabellenspalte: „01“ bzw. vorläufig „(02)“."""
+        return f"{self.wert:02d}" if self.endgueltig else f"({self.wert:02d})"
+
+    @property
+    def lang(self) -> str:
+        """Fließtext: „01“ bzw. vorläufig „02 (vorl.)“."""
+        return f"{self.wert:02d}" if self.endgueltig else f"{self.wert:02d} (vorl.)"
+
+
+def nummern_bild(bild: Zustandsbild) -> dict[UUID, Nr]:
+    """:func:`nummern` für ein Zustandsbild (Schätzung abhängig vom Durchgangszustand)."""
+    return nummern(bild.eintraege, durchgang_aktiv=bild.durchgang not in RUHE_ZUSTAENDE)
+
+
+NR_VORLAEUFIG_TOOLTIP = (
+    "Vorläufige Nummer. Die Dateinummer vergibt der Durchgang, wenn er die Messung startet."
+)
+
+
+def nummern(eintraege: Sequence[EintragBild], *, durchgang_aktiv: bool = False) -> dict[UUID, Nr]:
+    """Nummer jeder Messung; Pausenpunkte zählen nicht.
+
+    Endgültig ist die von der Sitzung vergebene Dateinummer (``EintragBild.nummer``) eines
+    gestarteten Eintrags. Vor der Vergabe wird geschätzt: Rang unter den wartenden Messungen.
+    Ohne laufenden Durchgang ist das exakt (ein neuer Durchgang zählt ab 01). Während eines
+    Durchgangs wird ab der Nummer der zuletzt gestarteten Messung weitergezählt; diese kann
+    aus einem früheren Durchgang stammen, deshalb ist der Wert als vorläufig gekennzeichnet.
+    """
+    basis = 0
+    gestartet = [
+        e for e in eintraege if e.art == "messung" and e.nummer is not None and e.zustand != WARTEND
+    ]
+    if durchgang_aktiv and gestartet:
+        lauf = [e for e in gestartet if e.zustand == "laeuft"]
+        mit_zeit = [e for e in gestartet if e.zeit_start is not None]
+        if lauf:
+            juengste = lauf[0]
+        elif mit_zeit:
+            juengste = max(mit_zeit, key=lambda e: e.zeit_start)  # type: ignore[arg-type,return-value]
+        else:
+            juengste = max(gestartet, key=lambda e: e.nummer or 0)
+        basis = juengste.nummer or 0
+    ergebnis: dict[UUID, Nr] = {}
+    rang = 0
     for e in eintraege:
-        if e.art == "messung":
-            nummern[e.id] = len(nummern) + 1
-    return nummern
+        if e.art != "messung":
+            continue
+        if e.nummer is not None and e.zustand != WARTEND:
+            ergebnis[e.id] = Nr(e.nummer, True)
+        else:
+            rang += 1
+            ergebnis[e.id] = Nr(basis + rang, False)
+    return ergebnis
 
 
 def finde(eintraege: Sequence[EintragBild], eintrag_id: UUID | None) -> EintragBild | None:
@@ -145,7 +204,9 @@ def einfuegeposition(eintraege: Sequence[EintragBild], auswahl_index: int | None
     return max(wunsch, wartebereich_anfang(eintraege))
 
 
-def einfuegeort_text(eintraege: Sequence[EintragBild], position: int) -> str:
+def einfuegeort_text(
+    eintraege: Sequence[EintragBild], position: int, *, durchgang_aktiv: bool = False
+) -> str:
     """Zeile im Editor-Modus „Neu“: „wird eingefügt nach Nr 2“, „am Anfang“, „am Ende“."""
     if position <= 0 or not eintraege:
         return "wird eingefügt am Anfang"
@@ -153,7 +214,8 @@ def einfuegeort_text(eintraege: Sequence[EintragBild], position: int) -> str:
         return "wird eingefügt am Ende"
     vorher = eintraege[position - 1]
     if vorher.art == "messung":
-        return f"wird eingefügt nach Nr {messungsnummern(eintraege)[vorher.id]}"
+        nr = nummern(eintraege, durchgang_aktiv=durchgang_aktiv)[vorher.id]
+        return f"wird eingefügt nach Nr {nr.lang}"
     return f"wird eingefügt nach dem Pausenpunkt „{vorher.text}“"
 
 
@@ -177,11 +239,11 @@ def durchgang_text(bild: Zustandsbild) -> str:
         lauf = laufende_messung(bild)
         if lauf is None:
             return "Läuft" if z is Z.LAEUFT else "Pause angefordert"
-        nummern = messungsnummern(bild.eintraege)
-        nr = nummern[lauf.id]
+        nr = nummern_bild(bild)[lauf.id]
         if z is Z.LAEUFT:
-            return f"Läuft · Messung {nr} von {len(nummern)}"
-        return f"Pause angefordert · Messung {nr} läuft zu Ende"
+            gesamt = nr.wert + len(wartende_messungen(bild))
+            return f"Läuft · Messung {nr.lang} von {gesamt:02d}"
+        return f"Pause angefordert · Messung {nr.lang} läuft zu Ende"
     if z is Z.BEENDET:
         if bild.ergebnis is DurchgangErgebnis.ABGEBROCHEN:
             return "Beendet (abgebrochen)"
@@ -377,7 +439,11 @@ def bedienbarkeit(bild: Zustandsbild, auswahl: UUID | None) -> dict[str, Knopf]:
             "" if ruhe else "Während eines Durchgangs nicht möglich.",
             "Trennen" if bild.verbunden else "Verbinden",
         )
-    k["geraet"] = Knopf(True)
+    k["geraet"] = (
+        Knopf(False, "Gerätezustand unklar: zuerst die Verbindung trennen.")
+        if z is Z.GERAET_UNKLAR
+        else Knopf(True)
+    )
     k["einstellungen"] = Knopf(ruhe, "" if ruhe else "Während eines Durchgangs nicht möglich.")
     return k
 
@@ -501,11 +567,12 @@ class Zeile:
     limit: str
     pausenpunkt: bool
     laeuft: bool
+    nr_vorlaeufig: bool = False
 
 
 def zeilen(bild: Zustandsbild, katalog: Parameterkatalog = KATALOG) -> list[Zeile]:
     """Alle Tabellenzeilen in Warteschlangenreihenfolge (Brief 1, Zone D)."""
-    nummern = messungsnummern(bild.eintraege)
+    nrn = nummern_bild(bild)
     ergebnis: list[Zeile] = []
     for e in bild.eintraege:
         status = zeilenstatus(e)
@@ -535,7 +602,7 @@ def zeilen(bild: Zustandsbild, katalog: Parameterkatalog = KATALOG) -> list[Zeil
         kurz, voll = aenderungen_text(e.parameter, katalog)
         ergebnis.append(
             Zeile(
-                nr=str(nummern[e.id]),
+                nr=nrn[e.id].kurz,
                 status=status,
                 name=e.name,
                 einstellungsdatei=datei_text,
@@ -545,6 +612,7 @@ def zeilen(bild: Zustandsbild, katalog: Parameterkatalog = KATALOG) -> list[Zeil
                 limit=limit_text(e.zeitlimit_s),
                 pausenpunkt=False,
                 laeuft=e.zustand == "laeuft",
+                nr_vorlaeufig=not nrn[e.id].endgueltig,
             )
         )
     return ergebnis
@@ -663,7 +731,7 @@ def hinweis(bild: Zustandsbild, *, beendet_quittiert: bool = False) -> Hinweis |
         ``True``, wenn der Nutzer den Fall 7 dieses Durchgangs mit „Schließen“ ausgeblendet hat.
     """
     z = bild.durchgang
-    nummern = messungsnummern(bild.eintraege)
+    nrn = nummern_bild(bild)
     if z is Z.GERAET_UNKLAR:
         return Hinweis(
             "1",
@@ -689,11 +757,7 @@ def hinweis(bild: Zustandsbild, *, beendet_quittiert: bool = False) -> Hinweis |
     if z is Z.WARTET_AUF_ENTSCHEIDUNG:
         e = finde(bild.eintraege, bild.fehler_eintrag_id)
         fehlertext = bild.fehlertext or (e.fehlertext if e else None) or "unbekannter Fehler"
-        wer = (
-            f"Messung {nummern[e.id]} „{e.name}“"
-            if e is not None and e.id in nummern
-            else "Messung"
-        )
+        wer = f"Messung {nrn[e.id].lang} „{e.name}“" if e is not None and e.id in nrn else "Messung"
         return Hinweis(
             "4",
             f"{symbol('fehler')} {wer} fehlgeschlagen: {fehlertext}. "
@@ -719,7 +783,7 @@ def hinweis(bild: Zustandsbild, *, beendet_quittiert: bool = False) -> Hinweis |
         )
     if z is Z.PAUSE_ANGEFORDERT:
         lauf = laufende_messung(bild)
-        wer = f"Messung {nummern[lauf.id]}" if lauf is not None else "Die laufende Messung"
+        wer = f"Messung {nrn[lauf.id].lang}" if lauf is not None else "Die laufende Messung"
         return Hinweis(
             "6a",
             f"{symbol('pause')} Pause angefordert. {wer} läuft zu Ende, danach startet keine neue.",
@@ -729,7 +793,7 @@ def hinweis(bild: Zustandsbild, *, beendet_quittiert: bool = False) -> Hinweis |
         wartend = wartende_messungen(bild)
         if wartend:
             n = wartend[0]
-            naechste = f"Nächste wartende Messung: Nr {nummern[n.id]} „{n.name}“."
+            naechste = f"Nächste wartende Messung: Nr {nrn[n.id].lang} „{n.name}“."
         else:
             naechste = "Keine wartende Messung mehr."
         return Hinweis(
@@ -805,7 +869,7 @@ def uhr_text(sekunden: float) -> str:
 def fortschritt_anzeige(bild: Zustandsbild) -> FortschrittAnzeige:
     """Anzeigewerte der Zone F nach Tabelle 3.6."""
     z = bild.durchgang
-    nummern = messungsnummern(bild.eintraege)
+    nrn = nummern_bild(bild)
     if z in RUHE_ZUSTAENDE:
         return FortschrittAnzeige("", 0, False, "Kein Durchgang läuft.", False)
     if z is Z.GERAET_UNKLAR:
@@ -814,7 +878,7 @@ def fortschritt_anzeige(bild: Zustandsbild) -> FortschrittAnzeige:
         return FortschrittAnzeige("", None, False, "Zwischen den Messungen.", False)
     f = bild.fortschritt
     lauf = finde(bild.eintraege, f.messung_id) if f is not None else laufende_messung(bild)
-    beschriftung = f"Messung {nummern[lauf.id]}:" if lauf is not None and lauf.id in nummern else ""
+    beschriftung = f"Messung {nrn[lauf.id].lang}:" if lauf is not None and lauf.id in nrn else ""
     if f is None:
         if lauf is not None and lauf.zustand == "laeuft":
             return FortschrittAnzeige(beschriftung, None, True, "Messung wird vorbereitet.", True)
@@ -825,7 +889,7 @@ def fortschritt_anzeige(bild: Zustandsbild) -> FortschrittAnzeige:
             default=None,
         )
         if letzte is not None:
-            nr = nummern[letzte.id]
+            nr = nrn[letzte.id].lang
             return FortschrittAnzeige(f"Messung {nr}:", 100, False, f"Messung {nr} fertig.", True)
         return FortschrittAnzeige("", None, False, "Zwischen den Messungen.", True)
     limit = f" · Zeitlimit in {uhr_text(f.zeitlimit_rest_s)}"
@@ -1040,7 +1104,9 @@ _FEHLER_ARTEN = frozenset({"fehler", "interner_fehler", "waechter_fehler"})
 _WARN_ARTEN = frozenset(
     {"waechter", "befehl_verworfen", "trockenlauf_verworfen", "uebersprungen_nach_fehler"}
 )
-_EIGENE_ZEILE = frozenset({"warteschlange_gespeichert", "warteschlange_geladen"})
+_EIGENE_ZEILE = frozenset(
+    {"warteschlange_gespeichert", "warteschlange_geladen", "warteschlange_zurueckgesetzt"}
+)
 """Diese Ereignisse protokolliert die Oberfläche selbst im Wortlaut des Briefs (3.7)."""
 
 

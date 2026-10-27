@@ -30,7 +30,7 @@ Ergebnis je Zeile: ✔ = wie erwartet, ✖ = abweichend (Beobachtung notieren).
 |---|---|---|---|---|
 | B1 | `Strg+N` | Editor rechts „Neue Messung“, „wird eingefügt am Anfang“, Cursor im Feld Name. | UI-2, R-012 | |
 | B2 | Name `Platte/1` eintippen | Rote Meldung „✖ Name: unzulässige Zeichen /“; `Übernehmen` grau. | UI-5 | |
-| B3 | Name `M1`, `Wählen …` → `basis.set`; `Übernehmen` | Zeile 1 „○ wartend“, Name M1, Datei basis.set, Änderungen „–“, Limit „Std.“; Zeile ist gewählt. | UI-2, R-011, R-012 | |
+| B3 | Name `M1`, `Wählen …` → `basis.set`; `Übernehmen` | Zeile 1 Nr „(01)“ grau/kursiv (vorläufig, Tooltip), „○ wartend“, Name M1, Datei basis.set, Änderungen „–“, Limit „Std.“; Zeile ist gewählt. | UI-2, R-011, R-012 | |
 | B4 | `+ Messung` → `M2`, `.set` wählen; bei „Mittelung Anzahl“ `ändern` anhaken und `2` eintippen | Sofort „✖ Mittelung Anzahl: 2 liegt außerhalb 3 … 10000.“; `Übernehmen` grau. | UI-5 | |
 | B5 | `2` durch `10` ersetzen, `Strg+Enter` | Zeile 2 M2, Änderungen „Mittelung Anzahl 10“. | UI-5, R-011 | |
 | B6 | `+ Messung` → `M3`, `.set`, „eigenes Limit“ anhaken, 120 → `Übernehmen` | Zeile 3 M3, Limit „120 s“. | R-012 | |
@@ -40,12 +40,13 @@ Ergebnis je Zeile: ✔ = wie erwartet, ✖ = abweichend (Beobachtung notieren).
 | B10 | M3 wählen, `Alt+↓` (Fokus in der Tabelle) | M3 eine Zeile tiefer. | UI-3, UI-21 | |
 | B11 | M2 wählen, Name im Editor zu `M2b` ändern, `Übernehmen` | Tabellenzeile zeigt M2b. | UI-4, R-014 | |
 | B12 | Messung `M5` anlegen, wählen, `Entf` | M5 ist entfernt (ohne Rückfrage). | UI-3, R-013 | |
+| B13 | M1 wählen, Namen im Editor ändern (nicht übernehmen), dann andere Zeile anklicken | Rückfrage „Änderungen verwerfen?“, Standard „Zurück zum Editor“: Auswahl springt zurück, Eingabe bleibt. Mit „Verwerfen“ wird die andere Zeile geladen. | K-U4 | |
 
 ## C Durchgang (R-010, R-016 bis R-018, R-031)
 
 | Nr | Schritt | Erwartet | Bezug | Ergebnis |
 |---|---|---|---|---|
-| C1 | `Start` (oder `F5`) | Kein Dialog (Simulator). Statuszeile „Läuft · Messung 1 von 3“; erste Zeile „▶ läuft“ mit farbigem Balken links; Fortschritt „ca. … % (geschätzt) · noch ca. … · Zeitlimit in …“. | UI-8, UI-15, R-010, R-031 | |
+| C1 | `Start` (oder `F5`) | Kein Dialog (Simulator). Statuszeile „Läuft · Messung 01 von 03“; Nr der laufenden Zeile „01“ (Dateinummer, nicht mehr vorläufig); erste Zeile „▶ läuft“ mit farbigem Balken links; Fortschritt „ca. … % (geschätzt) · noch ca. … · Zeitlimit in …“. | UI-8, UI-15, R-010, R-031 | |
 | C2 | Während M1 läuft: M2b wählen, Name zu `M2c` ändern und übernehmen; eine neue Messung `M6` ans Ende anlegen | Beides klappt im Lauf; laufende Zeile ist im Editor nur anzeigbar („Dieser Eintrag ist nicht mehr änderbar.“). | UI-4, R-016 | |
 | C3 | Laufende Zeile wählen | Editor „Messung 1 (läuft)“, alle Felder grau. `Entfernen`, `▲`, `▼` grau mit Tooltip „Eintrag läuft bereits.“ | UI-3, UI-4 | |
 | C4 | Warten bis Pausenpunkt | Band gelb mit Rand: „⏸ Pausenpunkt erreicht: Sensorkopf umsetzen. …“, Knopf `Bestätigen (F7)`; Zeile „⏸ wartet auf Bestätigung“; Fokus bleibt, wo er war. | UI-11, R-017 | |

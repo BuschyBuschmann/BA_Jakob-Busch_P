@@ -33,6 +33,8 @@ C_AKZENT = "#0B5C73"
 """Primäraktion, laufende Zeile, Fokus, Fortschritt."""
 C_AKTIV_BG = "#DCEBF0"
 """Hintergrund der laufenden Zeile."""
+C_AUSWAHL_BG = "#DDDAD2"
+"""Hintergrund der gewählten Tabellenzeile (neutral, klar verschieden von ``C_AKTIV_BG``)."""
 C_OK = "#1F6B3A"
 """Text „fertig“."""
 C_WARN_BG = "#FFF1CC"
@@ -61,6 +63,8 @@ KONTRAST_PAARE: tuple[tuple[str, str, str], ...] = (
     ("fehler/fehler_bg", C_FEHLER, C_FEHLER_BG),
     ("ok/flaeche", C_OK, C_FLAECHE),
     ("text/warn_bg", C_TEXT, C_WARN_BG),
+    ("text/auswahl_bg", C_TEXT, C_AUSWAHL_BG),
+    ("akzent/auswahl_bg", C_AKZENT, C_AUSWAHL_BG),
     ("weiss/statuszeile", C_STATUSZEILE_TEXT, C_STATUSZEILE),
     ("weiss/akzent", C_STATUSZEILE_TEXT, C_AKZENT),
 )

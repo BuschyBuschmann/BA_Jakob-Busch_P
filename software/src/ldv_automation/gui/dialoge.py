@@ -180,7 +180,7 @@ class DurchgangStartenDialog(QDialog):
 
     def __init__(
         self,
-        messungen: Sequence[tuple[int, EintragBild]],
+        messungen: Sequence[tuple[str, EintragBild]],
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -202,10 +202,16 @@ class DurchgangStartenDialog(QDialog):
         tabelle.setHorizontalHeaderLabels(["Nr", "Einstellungsdatei", "Zieldatei", "Messpunkte"])
         tabelle.verticalHeader().setVisible(False)
         tabelle.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        tabelle.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        kopf = tabelle.horizontalHeader()
+        kopf.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        kopf.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        kopf.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        kopf.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        tabelle.setWordWrap(True)
+        tabelle.setTextElideMode(Qt.TextElideMode.ElideNone)
         for r, (nr, e) in enumerate(messungen):
             werte = (
-                str(nr),
+                nr,
                 e.einstellungsdatei or "",
                 zieldatei_text(e, e.name).removeprefix("Zieldatei: "),
                 "unbekannt",
@@ -214,6 +220,8 @@ class DurchgangStartenDialog(QDialog):
                 item = QTableWidgetItem(w)
                 item.setToolTip(w)
                 tabelle.setItem(r, s, item)
+        tabelle.resizeRowsToContents()
+        self.tabelle = tabelle
         layout.addWidget(tabelle, 1)
         generator = QLabel(
             "Generator (gelesen): nicht verfügbar – die Sitzung liefert GeneratorsOn, Aktiv "
