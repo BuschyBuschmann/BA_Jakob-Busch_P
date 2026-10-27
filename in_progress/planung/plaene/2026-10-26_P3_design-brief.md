@@ -369,3 +369,37 @@ Priorität: M = muss für Montag, S = soll, K = kann. Alle gegen den `SIMULATOR`
 ### 12 Nicht enthalten
 
 Dark Mode, Mehrsprachigkeit, Duplizieren von Einträgen, Mehrfachauswahl, Anfügen beim Laden, Rückgängig/Wiederholen, grafische Darstellung der Messdaten oder Spektren, Live-Anzeige einzelner Messpunkte, Erkundungs-/Konfigurationsoberfläche für COM-Schalter (Validator, Lademaske), Anzeige des Messprotokolls im Programm (nur Pfad), Benachrichtigungen per Ton, eigene Icons, Menüleiste.
+
+---
+
+## Nachtrag 2026-10-27: Zurücksetzen der Warteschlange
+
+Ergänzt Abschnitte 3.3, 3.5 und 9. Bestehende Abschnitte bleiben unverändert. Grundlage: `Sitzung.zuruecksetzen()` und `Zustandsbild.zuruecksetzen_moeglich` (Entscheidung des Nutzers: Knopf im Hinweisband nach Durchgangsende und in Bereit).
+
+**Zweck:** Nach einem Trockenlauf stehen alle Einträge auf „✔ fertig (Trockenlauf)“. Um dieselben Einträge echt zu messen, setzt der Nutzer sie auf wartend zurück.
+
+**Beschriftung und Ort:**
+- Knopf `Zurücksetzen` (Sekundärstil), im Hinweisband.
+- In Fall 7 (Durchgang beendet) steht er links vor `Ordner öffnen` und `Schließen`.
+- Neuer Fall 7b für Durchgangszustand `BEREIT`, Priorität wie Fall 7, **über** Fall 8. Das Band ist neutral. Text: „Einträge sind bereits ausgeführt (fertig, Fehler oder abgebrochen). Zum erneuten Ausführen auf wartend zurücksetzen.“ Knopf: `Zurücksetzen`. Der Trockenlauf-Hinweis aus Fall 8 entfällt, solange Fall 7b steht.
+- Tooltip: „Alle Einträge wieder auf wartend setzen. Messdateien und Protokolle bleiben erhalten.“
+
+**Aktivierungsregel:** Der Knopf ist **nur sichtbar, wenn `zuruecksetzen_moeglich` wahr ist**. Er ist nie deaktiviert zu sehen. Fall 7b erscheint nur dann. Sonst gilt die bisherige Bandauswahl. In allen anderen Durchgangszuständen gibt es keinen Knopf. Ein zusätzlicher Knopf in der Werkzeugleiste ist nicht vorgesehen.
+
+**Bestätigung (Entscheidung):**
+- **Keine Rückfrage**, wenn jeder Eintrag, der sich ändert, ein Trockenlauf-Ergebnis, ein Fehler oder wartend ist. Begründung: Es gehen keine Daten verloren, Dateien und Protokolle bleiben, und der Vorgang ist der gewollte Normalfall nach dem Trockenlauf.
+- **Rückfrage**, wenn mindestens ein Eintrag echt `fertig` oder `abgebrochen` ist (nicht Trockenlauf). Begründung: Schutz vor versehentlichem doppeltem Messen einer bereits fertigen Messserie. Daten gehen nicht verloren: Jeder neue Durchgang legt einen eigenen Durchgangsordner an, vorhandene Dateien bleiben unverändert (Korrektur durch den Orchestrator, vom Nutzer am 2026-10-27 freigegeben).
+- Dialog: Titel „Warteschlange zurücksetzen?“. Text: „n Einträge wurden bereits gemessen. Nach dem Zurücksetzen werden sie beim nächsten Start erneut gemessen, in einem neuen Durchgangsordner. Vorhandene Messdateien und Protokolle bleiben unverändert.“ Knöpfe `Zurücksetzen` und `Abbrechen` (Standard und Fokus). Esc sendet nichts.
+
+**Tastenkürzel:** keines. Die Aktion ist selten, und ein Kürzel würde Fehlbedienung riskieren. Sie ist per Tab erreichbar, weil das Band in der Reihenfolge nach der Werkzeugleiste liegt (Abschnitt 5).
+
+**Danach:**
+- Alle Zeilen zeigen `○ wartend` (Versuch 1), Auswahl und Scrollposition bleiben, das Band zeigt den normalen Fall für `BEREIT` (Fall 8 oder leer).
+- `Start` ist wieder aktiv.
+- Protokollzeile: „Warteschlange zurückgesetzt: n Einträge wartend.“
+- Der Befehl wird genau einmal abgesetzt, der Knopf ist bis zum nächsten `Zustandsbild` deaktiviert. Scheitert er (`ValueError`), erscheint `QMessageBox.warning` mit dem Text der Sitzung.
+- Die Freischaltung von `MESSEN` ist nicht betroffen. Die GUI zeigt dazu nichts Zusätzliches.
+
+**UI-Akzeptanzkriterien:**
+- **UI-29 (M):** `Zurücksetzen` ist in den Bandfällen 7 und 7b sichtbar, **genau dann**, wenn `zuruecksetzen_moeglich` wahr ist, und sonst in keinem Durchgangszustand vorhanden. In `BEREIT` mit wahrem Feld steht Fall 7b über Fall 8. Ein Klick (ohne Rückfrage nach der Regel oben) sendet genau einen `zuruecksetzen`-Befehl. Nach dem nächsten `Zustandsbild` mit lauter wartenden Einträgen sind alle Zeilen `○ wartend`, Auswahl und Scrollposition unverändert, `btn_start` aktiv, und das Protokoll enthält die Zeile „Warteschlange zurückgesetzt: n Einträge wartend.“
+- **UI-30 (M):** Ist mindestens ein Eintrag echt `fertig` oder `abgebrochen`, erscheint vor dem Befehl der Dialog „Warteschlange zurücksetzen?“ mit Standardfokus auf `Abbrechen`; `Esc` und `Abbrechen` senden nichts. Bestehen die Änderungen nur aus Trockenlauf-Ergebnissen, Fehlern oder wartenden Einträgen, erscheint kein Dialog.
