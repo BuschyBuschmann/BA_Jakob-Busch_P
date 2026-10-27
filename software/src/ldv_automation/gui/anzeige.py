@@ -15,6 +15,7 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import PurePath
 from uuid import UUID
 
 from ldv_automation.domaene import KATALOG, Parameterkatalog, ParameterSpec, ParameterWert
@@ -121,7 +122,11 @@ class Nr:
 
 def nummern_bild(bild: Zustandsbild) -> dict[UUID, Nr]:
     """:func:`nummern` für ein Zustandsbild (Schätzung abhängig vom Durchgangszustand)."""
-    return nummern(bild.eintraege, durchgang_aktiv=bild.durchgang not in RUHE_ZUSTAENDE)
+    return nummern(
+        bild.eintraege,
+        durchgang_aktiv=bild.durchgang not in RUHE_ZUSTAENDE,
+        durchgangsordner=bild.durchgangsordner,
+    )
 
 
 NR_VORLAEUFIG_TOOLTIP = (
@@ -129,29 +134,40 @@ NR_VORLAEUFIG_TOOLTIP = (
 )
 
 
-def nummern(eintraege: Sequence[EintragBild], *, durchgang_aktiv: bool = False) -> dict[UUID, Nr]:
+def _im_ordner(datei: str | None, ordner: str | None) -> bool:
+    """Prüft, ob ``datei`` im Ordner ``ordner`` liegt (Durchgangsordner, Plan 4.2)."""
+    if not datei or not ordner:
+        return False
+    return PurePath(datei).is_relative_to(PurePath(ordner))
+
+
+def nummern(
+    eintraege: Sequence[EintragBild],
+    *,
+    durchgang_aktiv: bool = False,
+    durchgangsordner: str | None = None,
+) -> dict[UUID, Nr]:
     """Nummer jeder Messung; Pausenpunkte zählen nicht.
 
     Endgültig ist die von der Sitzung vergebene Dateinummer (``EintragBild.nummer``) eines
-    gestarteten Eintrags. Vor der Vergabe wird geschätzt: Rang unter den wartenden Messungen.
-    Ohne laufenden Durchgang ist das exakt (ein neuer Durchgang zählt ab 01). Während eines
-    Durchgangs wird ab der Nummer der zuletzt gestarteten Messung weitergezählt; diese kann
-    aus einem früheren Durchgang stammen, deshalb ist der Wert als vorläufig gekennzeichnet.
+    gestarteten Eintrags. Vor der Vergabe wird geschätzt: Rang unter den wartenden Messungen,
+    fortgezählt ab der höchsten Nummer des **aktuellen** Durchgangs. Zum aktuellen Durchgang
+    gehören die laufende Messung und Messungen, deren Messdatei im Durchgangsordner liegt;
+    Nummern früherer Durchgänge zählen nicht (die Sitzung zählt je Durchgang ab 01). Ohne
+    laufenden Durchgang ist die Basis 0. Der Wert bleibt als vorläufig gekennzeichnet, weil
+    sich die Warteschlange bis zum Start noch ändern kann.
     """
     basis = 0
-    gestartet = [
-        e for e in eintraege if e.art == "messung" and e.nummer is not None and e.zustand != WARTEND
-    ]
-    if durchgang_aktiv and gestartet:
-        lauf = [e for e in gestartet if e.zustand == "laeuft"]
-        mit_zeit = [e for e in gestartet if e.zeit_start is not None]
-        if lauf:
-            juengste = lauf[0]
-        elif mit_zeit:
-            juengste = max(mit_zeit, key=lambda e: e.zeit_start)  # type: ignore[arg-type,return-value]
-        else:
-            juengste = max(gestartet, key=lambda e: e.nummer or 0)
-        basis = juengste.nummer or 0
+    if durchgang_aktiv:
+        aktuell = [
+            e.nummer
+            for e in eintraege
+            if e.art == "messung"
+            and e.nummer is not None
+            and e.zustand != WARTEND
+            and (e.zustand == "laeuft" or _im_ordner(e.messdatei, durchgangsordner))
+        ]
+        basis = max(aktuell, default=0)
     ergebnis: dict[UUID, Nr] = {}
     rang = 0
     for e in eintraege:
@@ -205,7 +221,11 @@ def einfuegeposition(eintraege: Sequence[EintragBild], auswahl_index: int | None
 
 
 def einfuegeort_text(
-    eintraege: Sequence[EintragBild], position: int, *, durchgang_aktiv: bool = False
+    eintraege: Sequence[EintragBild],
+    position: int,
+    *,
+    durchgang_aktiv: bool = False,
+    ordner: str | None = None,
 ) -> str:
     """Zeile im Editor-Modus „Neu“: „wird eingefügt nach Nr 2“, „am Anfang“, „am Ende“."""
     if position <= 0 or not eintraege:
@@ -214,7 +234,7 @@ def einfuegeort_text(
         return "wird eingefügt am Ende"
     vorher = eintraege[position - 1]
     if vorher.art == "messung":
-        nr = nummern(eintraege, durchgang_aktiv=durchgang_aktiv)[vorher.id]
+        nr = nummern(eintraege, durchgang_aktiv=durchgang_aktiv, durchgangsordner=ordner)[vorher.id]
         return f"wird eingefügt nach Nr {nr.lang}"
     return f"wird eingefügt nach dem Pausenpunkt „{vorher.text}“"
 

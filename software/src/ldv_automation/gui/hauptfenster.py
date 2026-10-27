@@ -199,6 +199,7 @@ class Hauptfenster(QMainWindow):
         self._neu_anker: UUID | None = None
         self._neu_am_anfang = False
         self._auswahl_ruecksprung = False
+        self._in_zeige = False
         self._letzte_auswahl: UUID | None = None
         self._dateiname: str | None = None
 
@@ -495,9 +496,22 @@ class Hauptfenster(QMainWindow):
         QDesktopServices.openUrl(QUrl.fromLocalFile(ordner))
 
     def _meldung(self, symbol: QMessageBox.Icon, titel: str, text: str) -> None:
+        """Zeigt eine Meldung modal.
+
+        Während :meth:`_zeige` läuft, wird sie nach dessen Ende nachgeholt (``QTimer``), damit
+        der Aktualisierungspfad nicht mitten im Schreiben modal unterbrochen wird. Nach einer
+        nachgeholten Meldung wird mit dem dann aktuellen Zustandsbild neu gezeichnet.
+        """
+        if self._in_zeige:
+            QTimer.singleShot(0, lambda: self._meldung_nachgeholt(symbol, titel, text))
+            return
         box = QMessageBox(symbol, titel, text, QMessageBox.StandardButton.Ok, self)
         box.setObjectName("meldung")
         self._fuehre_aus(box)
+
+    def _meldung_nachgeholt(self, symbol: QMessageBox.Icon, titel: str, text: str) -> None:
+        self._meldung(symbol, titel, text)
+        self.aktualisiere()
 
     def _warnung(self, text: str) -> None:
         self._meldung(QMessageBox.Icon.Warning, "Nicht möglich", text)
@@ -594,6 +608,15 @@ class Hauptfenster(QMainWindow):
         self._meldung(QMessageBox.Icon.Warning, "Start verworfen", f"Start verworfen. {grund}")
 
     def _zeige(self, bild: Zustandsbild) -> None:
+        aussen = not self._in_zeige
+        self._in_zeige = True
+        try:
+            self._zeige_bild(bild)
+        finally:
+            if aussen:
+                self._in_zeige = False
+
+    def _zeige_bild(self, bild: Zustandsbild) -> None:
         self._bild = bild
         if self._automatik(bild):
             return  # Anzeige wurde im Befehl bereits mit dem neueren Bild geschrieben
@@ -817,7 +840,10 @@ class Hauptfenster(QMainWindow):
         self._neu_am_anfang = position == 0
         self._neu_anker = bild.eintraege[position - 1].id if position > 0 else None
         ort = einfuegeort_text(
-            bild.eintraege, position, durchgang_aktiv=bild.durchgang not in RUHE_ZUSTAENDE
+            bild.eintraege,
+            position,
+            durchgang_aktiv=bild.durchgang not in RUHE_ZUSTAENDE,
+            ordner=bild.durchgangsordner,
         )
         if pausenpunkt:
             self.editor.neu_pausenpunkt(ort)

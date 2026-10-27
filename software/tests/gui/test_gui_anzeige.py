@@ -414,7 +414,11 @@ def test_ui_13_pause_texte() -> None:
     m2f = eintrag(zustand="fertig", nummer=2)
     h = a.hinweis(bild(durchgang=Z.PAUSIERT, eintraege=[m1, m2f, m3]))
     assert h is not None and h.fall == "6b"
-    # Vorläufig: im Durchgang fortgezählt ab der zuletzt gestarteten Messung (02).
+    # Vorläufig: ohne Messdatei im Durchgangsordner zählen m1/m2f nicht zum Durchgang.
+    assert h.text == "⏸ Durchgang pausiert. Nächste wartende Messung: Nr 01 (vorl.) „Platte_Rand“."
+    m2d = eintrag(zustand="fertig", nummer=2, messdatei="/d/lauf1/02_M.svd")
+    h = a.hinweis(bild(durchgang=Z.PAUSIERT, durchgangsordner="/d/lauf1", eintraege=[m1, m2d, m3]))
+    assert h is not None
     assert h.text == "⏸ Durchgang pausiert. Nächste wartende Messung: Nr 03 (vorl.) „Platte_Rand“."
     assert [k.schluessel for k in h.knoepfe] == ["fortsetzen"]
     h = a.hinweis(bild(durchgang=Z.PAUSIERT))
@@ -714,13 +718,15 @@ def test_k_u4_nr_endgueltig_und_vorlaeufig() -> None:
     # Ohne Durchgang: neuer Durchgang zählt ab 01
     n = a.nummern([lauf, w1, w2])
     assert (n[w1.id].wert, n[w2.id].wert) == (1, 2)
-    # Im Durchgang ohne laufende Messung: ab der zuletzt gestarteten (nach zeit_start)
-    t0 = datetime(2026, 11, 2, 10, 0, tzinfo=UTC)
-    t1 = datetime(2026, 11, 2, 11, 0, tzinfo=UTC)
-    alt = eintrag(zustand="fertig", nummer=5, zeit_start=t0)
-    neu = eintrag(zustand="fertig", nummer=1, zeit_start=t1)
-    n = a.nummern([alt, neu, w1], durchgang_aktiv=True)
+    # Im Durchgang ohne laufende Messung: nur Einträge des aktuellen Durchgangsordners zählen
+    alt = eintrag(zustand="fertig", nummer=5, messdatei="/d/lauf1/05_A.svd")
+    neu = eintrag(zustand="fertig", nummer=1, messdatei="/d/lauf2/01_B.svd")
+    n = a.nummern([alt, neu, w1], durchgang_aktiv=True, durchgangsordner="/d/lauf2")
     assert n[w1.id] == a.Nr(2, False)
+    n = a.nummern([alt, w1], durchgang_aktiv=True, durchgangsordner="/d/lauf2")
+    assert n[w1.id] == a.Nr(1, False)
+    n = a.nummern([alt, w1], durchgang_aktiv=True, durchgangsordner=None)
+    assert n[w1.id] == a.Nr(1, False)
     # Wartender Eintrag mit Nummer (nach „Wiederholen“) bleibt vorläufig gezählt
     n = a.nummern([eintrag(nummer=7)])
     assert not next(iter(n.values())).endgueltig

@@ -693,7 +693,7 @@ def test_ui_13_pause_angefordert_und_pausiert(baue: Any, qtbot: QtBot) -> None:
     )
     w.aktualisiere()
     assert w.hinweisband.property("fall") == "6b"
-    assert "Nächste wartende Messung: Nr 02 (vorl.) „Platte_Rand“." in w.hinweisband.text.text()
+    assert "Nächste wartende Messung: Nr 01 (vorl.) „Platte_Rand“." in w.hinweisband.text.text()
     QTest.mouseClick(w.hinweisband.knopf("fortsetzen"), Qt.MouseButton.LeftButton)
     assert s.namen() == ["setze_fort"]
 
@@ -1543,6 +1543,8 @@ def test_k_u4_3_ausstehender_start_verworfen_bei_aenderung(baue: Any, qtbot: QtB
     s.setze(durchgang=Z.BEREIT, ergebnis=None, eintraege=neu)
     w.aktualisiere()
     assert s.namen() == ["quittiere"]
+    assert dialoge.gesehen == []  # Meldung wird erst nach dem Aktualisierungspfad gezeigt
+    qtbot.waitUntil(lambda: bool(dialoge.gesehen), timeout=2000)
     meldung = dialoge.gesehen[-1]
     assert isinstance(meldung, QMessageBox) and meldung.windowTitle() == "Start verworfen"
     assert "Warnung: Start verworfen. Betriebsart oder Warteschlange" in w.protokoll.toPlainText()
@@ -1569,6 +1571,7 @@ def test_k_u4_3_ausstehender_start_verworfen_ohne_bereit(
     w.aktualisiere()
     assert s.namen() == ["quittiere"]
     assert "Start verworfen. Der Durchgang wurde nicht bereit." in w.protokoll.toPlainText()
+    qtbot.waitUntil(lambda: bool(dialoge.gesehen), timeout=2000)
     assert isinstance(dialoge.gesehen[-1], QMessageBox)
 
 
@@ -1701,3 +1704,87 @@ def test_k_u4_6_zuruecksetzen_nur_eine_protokollzeile(baue: Any, tmp_path: Path)
     assert len(zeilen) == 1 and zeilen[0].endswith(
         "Warteschlange zurückgesetzt: 1 Einträge wartend."
     )
+
+
+# --- K-U4b ------------------------------------------------------------------------------------
+
+
+def test_k_u4b_n1_vorlaeufige_nummern_im_zweiten_durchgang(
+    baue: Any, qtbot: QtBot, tmp_path: Path
+) -> None:
+    import dataclasses
+
+    from ldv_automation.gui import anzeige
+
+    s, _f, _u = echte_sitzung(tmp_path)
+    datei = set_datei(tmp_path)
+    folge: tuple[Messung | Pausenpunkt, ...] = (
+        Messung(name="A", einstellungsdatei=datei),
+        Pausenpunkt(text="Umbau"),
+        Messung(name="B", einstellungsdatei=datei),
+        Messung(name="C", einstellungsdatei=datei),
+    )
+    for i, e in enumerate(folge):
+        s.einfuegen(i, e)
+    w, dialoge = baue(s)
+    taste(qtbot, w, Qt.Key.Key_F5)
+    s.verarbeite()
+    w.aktualisiere()
+    dialoge.aktionen.append(klicke("Durchgang abbrechen"))
+    taste(qtbot, w, Qt.Key.Key_F8)
+    s.verarbeite()
+    w.aktualisiere()
+    taste(qtbot, w, Qt.Key.Key_F5)  # quittiert
+    s.verarbeite()
+    w.aktualisiere()  # startet den zweiten Durchgang
+    s.verarbeite()
+    w.aktualisiere()
+    bild_ = w.bild
+    assert bild_.durchgang is Z.WARTET_AUF_BESTAETIGUNG
+    # Zwischenstand am Pausenpunkt im zweiten Durchgang: A trägt 01 aus Durchgang 1
+    assert [zelle(w, r, 0) for r in range(4)] == ["01", "–", "(01)", "(02)"]
+    b_id, c_id = bild_.eintraege[2].id, bild_.eintraege[3].id
+    pausiert = dataclasses.replace(bild_, durchgang=Z.PAUSIERT)
+    h = anzeige.hinweis(pausiert)
+    assert h is not None and h.fall == "6b"
+    assert h.text == "⏸ Durchgang pausiert. Nächste wartende Messung: Nr 01 (vorl.) „B“."
+    # B laufend gedacht: „Messung 01 von 02“, C folgt als 02
+    b_laeuft = dataclasses.replace(bild_.eintraege[2], zustand="laeuft", nummer=1)
+    laeuft = dataclasses.replace(
+        bild_,
+        durchgang=Z.LAEUFT,
+        eintraege=(*bild_.eintraege[:2], b_laeuft, bild_.eintraege[3]),
+    )
+    assert anzeige.durchgang_text(laeuft) == "Läuft · Messung 01 von 02"
+    assert anzeige.nummern_bild(laeuft)[c_id] == anzeige.Nr(2, False)
+    # Nachweis am Ende: tatsächliche Dateinamen 01_B und 02_C
+    taste(qtbot, w, Qt.Key.Key_F7)
+    s.verarbeite()
+    w.aktualisiere()
+    namen = {e.id: Path(e.messdatei or "").name for e in w.bild.eintraege}
+    assert namen[b_id].startswith("01_B") and namen[c_id].startswith("02_C")
+    assert [zelle(w, r, 0) for r in (2, 3)] == ["01", "02"]
+
+
+def test_k_u4b_n2_meldung_nach_dem_aktualisierungspfad_mit_aktuellem_bild(
+    baue: Any, qtbot: QtBot
+) -> None:
+    s = _beendet()
+    w, dialoge = baue(s)
+    QTest.mouseClick(w.btn_start, Qt.MouseButton.LeftButton)
+    beim_dialog: dict[str, object] = {}
+
+    def waehrend_dialog(d: QDialog) -> None:
+        beim_dialog["in_zeige"] = w._in_zeige
+        # Während die Meldung offen ist, ändert sich die Sitzung weiter
+        s.setze(durchgang=Z.LAEUFT, eintraege=[eintrag(zustand="laeuft", nummer=1)])
+
+    dialoge.aktionen.append(waehrend_dialog)
+    s.setze(durchgang=Z.BEREIT, ergebnis=None, betriebsart=Betriebsart.TROCKENLAUF)
+    w.aktualisiere()
+    assert dialoge.gesehen == []
+    qtbot.waitUntil(lambda: bool(dialoge.gesehen), timeout=2000)
+    assert beim_dialog["in_zeige"] is False
+    # Nach dem Schließen ist das aktuelle Bild gezeichnet, kein älteres
+    assert w.bild.revision == s.bild.revision
+    assert w.lbl_durchgang.volltext().startswith("Durchgang: Läuft")
