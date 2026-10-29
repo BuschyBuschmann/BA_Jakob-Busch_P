@@ -76,7 +76,23 @@ Anhang (Vorschlag): Bedienungsanleitung, Lastenheft, Versuchsprotokolle.
 
 ## 4 Erste Quellensammlung
 - Grundlage: `in_progress/literatur/literatur.bib`, `in_progress/literatur/leseliste.md` (Paket L1).
+- Für das Exposé (Nutzer, 2026-10-29): die 12 empfohlenen Quellen der Leseliste, als vorläufig gekennzeichnet (Existenz über Suchtreffer geprüft, Volltexte noch nicht gelesen).
+- Volltexte Priorität A besorgt der Nutzer (Rothberg 2017, Ewins, Bendat/Piersol, Göge 2007) → `Input/literatur/`.
+- Ergänzende Recherche (Nutzer): (a) Prüfstands-/Messautomatisierung; (b) wie Strukturtests bisher und in der Vergangenheit durchgeführt wurden (historische Entwicklung, klassische Verfahren) – Inhalt soll in der Arbeit behandelt werden (passt zu 2.1).
 
 ## 5 Zeitplan
+Phasen ohne Dauer (Nutzer, 2026-10-29: Bearbeitungszeit hängt vom Antrag an den Prüfungsausschuss ab). Reihenfolge nach dem Lösungsweg; Phasen überlappen teilweise.
+
+| Phase | Inhalt | Meilenstein |
+|---|---|---|
+| 0 Einarbeitung (vor Anmeldung) | Ausschreibung, PSV-System, COM-Dokumentation, Anforderungen, Prototyp Mess-Warteschlange | Exposé mit Betreuern abgestimmt → Anmeldung |
+| 1 Analyse der Schnittstelle | Erkundung am Messrechner (ab Mo 2026-11-02), Abgleich mit der Dokumentation | Zugriff aus Python am Gerät nachgewiesen |
+| 2 Anforderungen und Konzept | Lastenheft mit Daniel und Florian abstimmen, offene Fragen (u. a. Fehlerverhalten), Festlegung der individuellen Auswertungen | Lastenheft abgestimmt |
+| 3 Iterative Entwicklung | Ansteuerung, Mess-Warteschlange, Oberfläche, Datenübernahme und Auswertung; Tests gegen Simulator | Softwarestand für Strukturtests |
+| 4 Erprobung und Validierung | Strukturtests am Prüfling, Vergleich mit PSV-Auswertung und Referenzfällen, Vergleich des Zeitaufwands manuell vs. automatisiert | Ergebnisse ausgewertet |
+| 5 Ausarbeitung | Thesis nach SLA-Vorlage (laufend begleitet durch Laborbuch), Erstversion an Daniel | Erstversion spätestens 2, besser 3 Wochen vor Abgabefrist (Vorgabe Betreuer) |
+| 6 Abschluss | Einarbeitung der Korrektur, Abgabe über RWTHOnline, Archivordner, Vortrag (max. 20 min + ca. 10 min Diskussion, Probevortrag möglich) | Abgabe, Vortrag |
+
+Laufend: wöchentliche Treffen mit Fortschrittsbericht und kurzem Protokoll (Vorgabe Betreuer).
 
 ## Offene Fragen an den Betreuer
