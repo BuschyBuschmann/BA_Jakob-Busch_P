@@ -25,6 +25,17 @@ dev = [
     "pytest-qt==4.5.0",
     "ruff>=0.5",
 ]
+# Werkzeuge außerhalb des Hauptpakets (tools/svd_analyse, Paket W2): OLE-Zugriff auf
+# PSV-Messdateien, Arrays und Kontrollplots. Über [tool.uv] default-groups immer installiert,
+# damit die Standard-Prüfung die Werkzeuge mit testet.
+werkzeuge = [
+    "matplotlib>=3.11.2",
+    "numpy>=2.4.6",
+    "olefile>=0.47",
+]
+
+[tool.uv]
+default-groups = ["dev", "werkzeuge"]
 
 [build-system]
 requires = ["hatchling"]
@@ -64,12 +75,12 @@ convention = "numpy"
 [tool.mypy]
 python_version = "3.11"
 strict = true
-mypy_path = ["src", "tools/erkundung", "tools/build_info"]
+mypy_path = ["src", "tools/erkundung", "tools/build_info", "tools/svd_analyse"]
 exclude = ["^\\.venv/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "tools/erkundung", "tools/build_info"]
+pythonpath = ["src", "tools/erkundung", "tools/build_info", "tools/svd_analyse"]
 addopts = "-ra --strict-markers -m 'not hardware and not gui'"
 markers = [
     "hardware: braucht echte Hardware bzw. den Messrechner (standardmäßig abgewählt; `pytest -m hardware`)",
@@ -78,7 +89,7 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = ["src/ldv_automation", "tools/erkundung", "tools/build_info"]
+source = ["src/ldv_automation", "tools/erkundung", "tools/build_info", "tools/svd_analyse"]
 
 # Qt-Widget-Module der Oberfläche: Sie laufen nur in den GUI-Tests (`pytest -m gui`, offscreen,
 # Qt-Systembibliotheken nötig), die standardmäßig abgewählt sind (KONVENTIONEN: Oberflächentests
@@ -103,4 +114,9 @@ skip_covered = false
 [[tool.mypy.overrides]]
 # pywin32 und winreg gibt es nur unter Windows und sie liefern keine Typen mit.
 module = ["win32com", "win32com.*", "pythoncom", "winreg"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# olefile (Werkzeug svd_analyse) liefert keine Typinformationen mit.
+module = ["olefile", "olefile.*"]
 ignore_missing_imports = true
