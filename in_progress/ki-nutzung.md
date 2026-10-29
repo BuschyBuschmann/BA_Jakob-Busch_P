@@ -44,3 +44,4 @@ Nutzer hat das Ergebnis geprüft und verantwortet es.
 | 2026-10-29 | `in_progress/analysen/2026-10-29_W3_verbesserungen-auswertung.md` | Fachanalyse: Verbesserungsmöglichkeiten der Auswertung, Prüfung der .svd-Deutung | strukturdynamik-experte (opus) | offen (Auswahl A-1…A-8, B-1…B-10 durch den Nutzer am 2026-10-29) |
 | 2026-10-29 | `software/tools/svd_analyse/`, Tests, `in_progress/analysen/2026-10-29_W2_svd-format.md` | Reverse Engineering und Leser für .svd, Korrekturen K-W2 | software-engineer (opus) | offen (Gegenprobe am Messrechner ausstehend) |
 | 2026-10-29 | Review R-W2, Re-Review RR-W2 | Code-Review Leser | reviewer (opus) | Befundauswahl durch den Nutzer |
+| 2026-10-29 | `in_progress/fachgrundlagen/FG-02_auswertung-stufe1.md` | Fachgrundlage Auswertung Stufe 1 (Formeln, Referenzfälle, Toleranzen) | strukturdynamik-experte (opus) | vom Nutzer freigegeben (2026-10-29) |
