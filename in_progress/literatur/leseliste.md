@@ -182,3 +182,24 @@ Prüfstand weiterhin **`metadaten`** (Websuche; Verlags-/Katalogseiten nicht dir
 | B | ewins2016exciting, allemang1986survey, peeters2009modern | Entwicklung und moderne GVT |
 | B | weber2021pymodaq, starkey2013labscript, sandve2013tenrules | Python-Messsteuerung, Reproduzierbarkeit |
 | C | peng2011reproducible | ergänzend |
+
+---
+
+# W1 Auswertung (Paket W1, Stand 2026-10-29)
+
+Bericht: `in_progress/analysen/2026-10-29_W1_auswertung-heute.md`. Neu in `literatur.bib`: 15 Einträge (53 insgesamt). Prüfstand: Polytec-Dokumente im Repo `volltext` (nur Text, teilweise), alle übrigen neuen Einträge `metadaten` (nur Suchtreffer bzw. GitHub-Seite), keine inhaltlich gelesen. polytec.com, readthedocs.io und community.sw.siemens.com waren in der Cloud-Sitzung nicht abrufbar.
+
+| Kürzel | Quelle | Typ | Relevanz | Zugang | Volltext |
+|---|---|---|---|---|---|
+| polytec2022psvhandbuch, polytec2022psvdesktop | Polytec Software-Handbücher PSV 10.1 (DE) | Herstellerdok. | PSV-Auswerteablauf, Band-Cursor, Export | Repo | im Repo; Auswertung-Handbuch (41596) nur teilweise gelesen |
+| polytec2023psvauswertung, polytec2021signalprozessor, polytec2021fileaccessmatlab | Schulungsfolien 11, 11.1, 11.2 | Herstellerfolien (graue Lit.) | Auswerteablauf, Band-RMS-Rechenweg, PFA-Matlab | Repo | im Repo |
+| polytecbem, polytecpfa | CHM: Basic Engine Manual, PFA Object Model Reference | Herstellerdok. | Datenzugriff, PeakFit/SignalProcessing | Repo | im Repo; Version/Jahr fehlen in der CHM |
+| schwarz1999ods | Schwarz, Richardson 1999, Introduction to Operating Deflection Shapes | Konferenzvortrag (graue Lit.) | ODS vs. Mode Shape | Issuu-Kopie, Herkunft unklar | benötigt (B); Metadaten am Original klären |
+| imecpolytec | GitHub imec-int/PolytecController | Software | Beispiel für .svd-Lesen über PFA in Python | frei (MIT) | Quellcode nicht geprüft (C) |
+| pyuff, sdypyema | pyuff, pyEMA/sdypy-EMA | Software | UFF lesen, Modalanalyse in Python | frei (PyPI) | Dokumentation der festgelegten Version lesen (B) |
+| scipycoherence, mathworksmodalfit, mathworkstfestimate | SciPy- und MathWorks-Dokumentation | Softwaredok. | Kohärenz, H1/H2, Modalfit | frei | Seitentext der verwendeten Version lesen (B) |
+| siemenstestlabpolytec | Siemens KB-Artikel Testlab und Polytec | Herstellerangabe | Testlab-Anbindung scannender Vibrometer | frei | Original lesen (C) |
+
+**Volltext benötigt (W1):** polytec.com-Seiten (PSV-Software, Polytec Update/File Access, Release Notes PFA, Lizenzbedingungen) als PDF/Screenshots (Priorität A für die .svd/PFA-Frage); Theory Manual Gleichungsseiten sind als Bild vorhanden und müssen visuell gelesen werden (B); bestehende Prioritäten A (bendat2010random, ewins2000modal) tragen H1/H2 und Halbwertsmethode.
+
+**Lücken (W1):** siehe Bericht Abschnitt 6.
