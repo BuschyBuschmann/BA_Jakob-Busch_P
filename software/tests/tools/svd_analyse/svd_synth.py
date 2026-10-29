@@ -24,6 +24,11 @@ def zk(text: str) -> bytes:
     return struct.pack("<i", len(roh)) + roh
 
 
+def kennwert(punkt: int) -> float:
+    """Synthetisches Kennfeld je Punkt (paarweise verschieden, in float32 exakt)."""
+    return float(np.float32(1e-9 * (punkt + 1) * 1.37))
+
+
 def signal_info(n: int, nbytes: int, version: int = 1) -> bytes:
     return struct.pack("<3i", version, n, nbytes)
 
@@ -59,6 +64,7 @@ def punktdaten(
         t = filetime0 + plaetze[p] * 10_000_000
         struct.pack_into("<QQ", daten, b + sl.SATZ_ZEIT_A, t, t + 1_000_000)
         struct.pack_into("<d", daten, b + sl.SATZ_BLOCKDAUER, blockdauer_s)
+        struct.pack_into("<d", daten, b + sl.SATZ_KENNFELD, kennwert(p))
         struct.pack_into("<i", daten, b + sl.SATZ_NUTZLAENGE, nbytes)
         daten[b + sl.SATZ_DATEN : b + sl.SATZ_DATEN + nbytes] = zeilen[p].astype("<f4").tobytes()
     return bytes(daten)
@@ -81,6 +87,7 @@ def messpunkte(labels: Sequence[int], xyz: npt.NDArray[np.float64]) -> bytes:
     saetze["label"] = labels
     saetze["xyz"] = xyz
     saetze["geometrie_status"] = 8193
+    saetze["feld_08"] = [kennwert(p) for p in range(len(labels))]
     return bytes(kopf) + saetze.tobytes()
 
 
@@ -142,14 +149,41 @@ def f32(a: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     return np.asarray(a, dtype=np.float32).astype(np.float64)
 
 
+def raster_scan(zeilen: int, spalten: int) -> tuple[list[int], npt.NDArray[np.float64]]:
+    """Raster mit Index zeilenweise, Scan spaltenweise im Zickzack (wie in PSV-Dateien
+    weicht die Scanreihenfolge von der Indexreihenfolge ab). Abstand 0,03 m.
+
+    Returns ``(plaetze, xyz)``: Ablageplatz je Punktindex und Koordinaten.
+    """
+    folge: list[int] = []
+    for sp in range(spalten):
+        zeilen_folge = range(zeilen) if sp % 2 == 0 else reversed(range(zeilen))
+        folge.extend(z * spalten + sp for z in zeilen_folge)
+    plaetze = [0] * (zeilen * spalten)
+    for platz, punkt in enumerate(folge):
+        plaetze[punkt] = platz
+    idx = np.arange(zeilen * spalten)
+    xyz = np.column_stack([idx % spalten, idx // spalten, np.zeros(idx.size)]).astype(np.float64)
+    return plaetze, xyz * 0.03
+
+
 def messung_stroeme(
-    n: int = 3, linien: int = 4, bloecke: int = 5, seed: int = 7
+    n: int = 3,
+    linien: int = 4,
+    bloecke: int = 5,
+    seed: int = 7,
+    raster: tuple[int, int] | None = None,
 ) -> tuple[dict[str, bytes], dict[str, npt.NDArray[np.float64] | npt.NDArray[np.complex128]]]:
     """Baut eine vollständige kleine Messung aus zufälligen Blockspektren.
+
+    Mit ``raster=(zeilen, spalten)`` liegen die Punkte auf einem Raster mit
+    Zickzack-Scan (:func:`raster_scan`); ``n`` wird dann ``zeilen · spalten``.
 
     Die gemittelten Größen werden aus denselben Blöcken gebildet, damit alle
     Ungleichungen der Plausibilitätsprüfung erfüllt sind.
     """
+    if raster is not None:
+        n = raster[0] * raster[1]
     rng = np.random.default_rng(seed)
     form = (bloecke, n, linien)
     r = 1.0 + 0.1 * (rng.normal(size=form) + 1j * rng.normal(size=form))
@@ -172,14 +206,13 @@ def messung_stroeme(
         return aus
 
     plaetze = list(reversed(range(n)))
+    xyz = np.column_stack([np.arange(n) / 10, np.zeros(n), np.zeros(n)])
+    if raster is not None:
+        plaetze, xyz = raster_scan(*raster)
     st: dict[str, bytes] = {
         "Info/DAQ_Settings_Fft/Fft": fft(10.0 * linien, linien, int(2.5 * linien)),
-        # Punkte auf einer Linie, 0,1 m Abstand; Scanreihenfolge = umgekehrte Indexfolge,
-        # also räumlich benachbart (Gegenprobe der Punktzuordnung).
-        "Info/Geometry/MeasPoints": messpunkte(
-            [100 + 3 * i for i in range(n)],
-            np.column_stack([np.arange(n) / 10, np.zeros(n), np.zeros(n)]),
-        ),
+        # Ohne Raster: Punkte auf einer Linie, 0,1 m Abstand, Scan in umgekehrter Folge.
+        "Info/Geometry/MeasPoints": messpunkte([100 + 3 * i for i in range(n)], xyz),
         "Info/Geometry/Elements": elemente([tuple(range(n))]),
         "Info/DAQ_Settings_Fft/VibrometerControllers": struct.pack("<3i", 2, 2, 4)
         + zk("<ControllerSettings><Range>50 mm/s</Range></ControllerSettings>"),

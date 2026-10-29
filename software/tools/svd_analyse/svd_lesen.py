@@ -35,7 +35,7 @@ import re
 import struct
 import sys
 import zlib
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
@@ -84,6 +84,9 @@ SATZ_ZEIT_A = 0x6C
 SATZ_ZEIT_B = 0x74
 #: Blockdauer ``float64`` in s (beobachtet 0,64 s = 1/Δf).
 SATZ_BLOCKDAUER = 0x34
+#: ``float64`` je Punkt (Bedeutung offen). Als float32 bitgleich mit dem Messpunktfeld
+#: +0x08 desselben Punkts; dient als Anker der Punktzuordnung (``svd_pruefung``).
+SATZ_KENNFELD = 0x8C
 SATZ_NUTZLAENGE = 0xF4
 SATZ_DATEN = 0xF8
 #: Nachspann nach den Nutzdaten in Byte.
@@ -285,6 +288,8 @@ class Punktdaten:
         Blockdauer laut Datensatzkopf in s (in allen Sätzen gleich).
     platz : tuple of int
         Ablageplatz (Scanreihenfolge) je Punktindex.
+    kennfeld : numpy.ndarray
+        ``float64`` aus Satz +0x8C je Punktindex (Bedeutung offen, Zuordnungsanker).
     """
 
     werte: FloatArray
@@ -293,6 +298,7 @@ class Punktdaten:
     zeit_b: list[dt.datetime]
     blockdauer_s: float
     platz: tuple[int, ...]
+    kennfeld: FloatArray
 
 
 def dekodiere_punktdaten(daten: bytes, info: StromInfo, sig: SignalInfo) -> Punktdaten:
@@ -314,6 +320,7 @@ def dekodiere_punktdaten(daten: bytes, info: StromInfo, sig: SignalInfo) -> Punk
     zeit_b: list[dt.datetime | None] = [None] * n
     linien: int | None = None
     blockdauer: float | None = None
+    kennfeld = np.full(n, np.nan, dtype=np.float64)
     for platz in range(n):
         basis = DATENSTROM_KOPF + platz * info.satzlaenge
         if _i32(daten, basis + SATZ_VERSION) != 2:
@@ -337,6 +344,7 @@ def dekodiere_punktdaten(daten: bytes, info: StromInfo, sig: SignalInfo) -> Punk
             raise SvdFormatFehler(f"Punkt {punkt}: Platz {platz} widerspricht ManyStreamsInfo")
         roh = np.frombuffer(daten, dtype="<f4", count=n_float, offset=basis + SATZ_DATEN)
         werte[punkt] = roh.astype(np.float64)
+        kennfeld[punkt] = _f64(daten, basis + SATZ_KENNFELD)
         ta, tb = struct.unpack_from("<QQ", daten, basis + SATZ_ZEIT_A)
         zeit_a[punkt] = filetime_zu_datetime(ta)
         zeit_b[punkt] = filetime_zu_datetime(tb)
@@ -348,6 +356,7 @@ def dekodiere_punktdaten(daten: bytes, info: StromInfo, sig: SignalInfo) -> Punk
         [z for z in zeit_b if z is not None],
         blockdauer,
         info.platz_je_punkt,
+        kennfeld,
     )
 
 
@@ -406,21 +415,73 @@ def _kanal_schluessel(argument: str) -> tuple[int, str | None]:
     return int(treffer.group(2)), treffer.group(1)
 
 
-def rollen_aus_formel(formel: str, kanaele: Sequence[str]) -> tuple[str, ...]:
-    """Ordnet die Static_Info-Kanäle nach Rolle (Antwort zuerst) anhand der Formel.
+def kanalanker_aus_einstellungen(daten: bytes) -> dict[str, int]:
+    """Zeitkanalnummer ``T[i]`` je Kanalkurzname aus ``Info/DAQ_Settings_Fft/Channels``.
+
+    Der Stream nennt die Kanäle in Kanalreihenfolge als Paare (Kurzname, Langname), z. B.
+    ``Vib 3D``, ``Vibrometer 3D``, ``Ref1``, ``Reference 1`` … Ein 3D-Kanal belegt drei
+    Zeitkanäle (``Vib X``, ``Vib Y``, ``Vib Z``), jeder andere einen. An der Beispieldatei
+    ergibt das ``Vib X/Y/Z`` = 0/1/2, ``Ref1`` = 3, ``Ref2`` = 4, passend zu allen Formeln
+    (plausibel).
+
+    Raises
+    ------
+    SvdFormatFehler
+        Wenn die Texte nicht paarweise vorliegen oder ein Name doppelt vorkommt.
+    """
+    texte = [t for _, t in utf16_zeichenketten(daten)]
+    if not texte or len(texte) % 2:
+        raise SvdFormatFehler(f"Channels: Kanalnamen nicht paarweise: {texte}")
+    anker: dict[str, int] = {}
+    nummer = 0
+    for kurz in texte[0::2]:
+        namen = [f"{kurz[:-3]} {a}" for a in "XYZ"] if kurz.endswith(" 3D") else [kurz]
+        for name in namen:
+            if name in anker:
+                raise SvdFormatFehler(f"Channels: Kanalname doppelt: {name!r}")
+            anker[name] = nummer
+            nummer += 1
+    return anker
+
+
+_NAME_REF = re.compile(r"^Ref(\d+)$")
+_NAME_VIB = re.compile(r"^Vib ([XYZ])$")
+
+
+def _namensschluessel(name: str) -> tuple[int, int] | None:
+    """Ordnungsschlüssel aus dem Namen: Vib X < Vib Y < Vib Z < Ref1 < Ref2 < usw."""
+    if (t := _NAME_VIB.match(name)) is not None:
+        return (0, "XYZ".index(t.group(1)))
+    if (t := _NAME_REF.match(name)) is not None:
+        return (1, int(t.group(1)))
+    return None
+
+
+def rollen_aus_formel(
+    formel: str, kanaele: Sequence[str], anker: Mapping[str, int] | None = None
+) -> tuple[str, ...]:
+    """Ordnet die Kanäle nach Rolle (Antwort zuerst) anhand der Formel.
 
     Rollen laut Formel: ``CP[Antwort, Referenz]``, ``CPH[S[Antwort], CP[Antwort,
-    Referenz]]``, ``AP[Kanal]``, ``ABS[Kanal]``. Static_Info nennt die Kanäle nach
-    aufsteigender Zeitkanalnummer ``T[i]`` (an der Beispieldatei beobachtet, plausibel);
-    darüber werden Kanalnamen den Argumenten zugeordnet. 3D-Komponenten müssen im Namen
-    auf ihre Achse enden (``Vib X`` zu ``3DX``), sonst ``SvdFormatFehler``.
+    Referenz]]``, ``AP[Kanal]``, ``ABS[Kanal]``. Die Formel nennt Zeitkanalnummern
+    ``T[i]``; die Zuordnung Nummer ↔ Name stützt sich **nicht** auf die
+    Static_Info-Reihenfolge, sondern auf unabhängige Anker:
+
+    * ``anker`` aus :func:`kanalanker_aus_einstellungen` (absolute Nummer je Name) und
+    * die Namensordnung ``Vib X < Vib Y < Vib Z < Ref1 < Ref2 …`` (relative Ordnung).
+
+    Liegen beide vor, müssen sie übereinstimmen. Fehlt jeder Anker oder widersprechen sie
+    sich, folgt ``SvdFormatFehler`` (kein stilles Raten). 3D-Komponenten müssen zum Namen
+    passen (``Vib X`` zu ``3DX``).
 
     Parameters
     ----------
     formel : str
         Formel aus Static_Info, z. B. ``"AVG[CP[S[T[4]],S[T[3]]]]"``.
     kanaele : sequence of str
-        Kurznamen in Static_Info-Reihenfolge.
+        Kurznamen der beteiligten Kanäle (Static_Info, Reihenfolge ohne Bedeutung).
+    anker : mapping of str to int, optional
+        Zeitkanalnummer je Kurzname aus den Kanaleinstellungen.
 
     Returns
     -------
@@ -444,9 +505,25 @@ def rollen_aus_formel(formel: str, kanaele: Sequence[str]) -> tuple[str, ...]:
         raise SvdFormatFehler(f"Signalart nicht unterstützt: {formel!r}")
     schluessel = [_kanal_schluessel(a) for a in rollen]
     nummern = sorted({k[0] for k in schluessel})
-    if len(nummern) != len(schluessel) or len(nummern) != len(kanaele):
+    if len(nummern) != len(schluessel) or len(nummern) != len(set(kanaele)):
         raise SvdFormatFehler(f"Kanalzahl passt nicht: {formel!r} gegen {list(kanaele)}")
-    name_je_nummer = dict(zip(nummern, kanaele, strict=True))
+    zuordnungen: list[dict[int, str]] = []
+    if anker is not None:
+        fehlt = [k for k in kanaele if k not in anker]
+        if fehlt:
+            raise SvdFormatFehler(f"Kanal ohne Anker in den Kanaleinstellungen: {fehlt}")
+        zuordnungen.append({anker[k]: k for k in kanaele})
+    namens_schluessel = [_namensschluessel(k) for k in kanaele]
+    if all(ns is not None for ns in namens_schluessel):
+        sortiert = [k for _, k in sorted(zip(namens_schluessel, kanaele, strict=True))]
+        zuordnungen.append(dict(zip(nummern, sortiert, strict=True)))
+    if not zuordnungen:
+        raise SvdFormatFehler(f"Kein Anker für die Kanalzuordnung: {list(kanaele)}")
+    if any(z != zuordnungen[0] for z in zuordnungen[1:]):
+        raise SvdFormatFehler(f"Kanalanker widersprechen sich: {zuordnungen}")
+    name_je_nummer = zuordnungen[0]
+    if set(name_je_nummer) != set(nummern):
+        raise SvdFormatFehler(f"Kanalnummern {nummern} passen nicht zum Anker {name_je_nummer}")
     ergebnis = []
     for nummer, achse in schluessel:
         name = name_je_nummer[nummer]
@@ -794,6 +871,8 @@ class SvdMessung:
         Texte aus ``HardwareConfig2`` und ``ScanHead`` (Seriennummern, Typen, Firmware).
     scan_platz : tuple of int
         Ablageplatz (Scanreihenfolge) je Punktindex, in allen Signalen gleich.
+    satz_kennfeld : numpy.ndarray
+        Satzfeld +0x8C je Punktindex, in allen Signalen gleich (Bedeutung offen).
     """
 
     pfad: Path
@@ -807,6 +886,7 @@ class SvdMessung:
     kanalgeraete_xml: str | None
     hardware_texte: tuple[str, ...]
     scan_platz: tuple[int, ...] = ()
+    satz_kennfeld: FloatArray = field(default_factory=lambda: np.zeros(0, dtype=np.float64))
 
 
 def _strom(ole: Any, pfad: str) -> bytes:
@@ -884,7 +964,14 @@ def lese_container(ole: Any, pfad: Path) -> SvdMessung:
         if "/".join(e[:-1]) == band_wurzel and re.fullmatch(r"S\d+-0", e[-1]):
             baender[e[-1][:-2]] = dekodiere_band(ole.openstream(e).read(), n)
     signale: dict[str, Signal] = {}
+    pfad_kanaele = "Info/DAQ_Settings_Fft/Channels"
+    anker = (
+        kanalanker_aus_einstellungen(_strom(ole, pfad_kanaele))
+        if ole.exists(pfad_kanaele)
+        else None
+    )
     scan_platz: tuple[int, ...] | None = None
+    kennfeld: FloatArray = np.zeros(0, dtype=np.float64)
     for nr in _nummerierte_storages(ole, "Polytec_Data"):
         basis = f"Polytec_Data/M{nr}"
         sig = dekodiere_signal_info(_strom(ole, f"{basis}/Signal_Info"))
@@ -898,8 +985,11 @@ def lese_container(ole: Any, pfad: Path) -> SvdMessung:
             )
         if scan_platz is None:
             scan_platz = daten.platz
+            kennfeld = daten.kennfeld
         elif daten.platz != scan_platz:
             raise SvdFormatFehler(f"M{nr}: Scanreihenfolge weicht von M0 ab")
+        elif not np.array_equal(daten.kennfeld, kennfeld, equal_nan=True):
+            raise SvdFormatFehler(f"M{nr}: Satzfeld +0x8C weicht von M0 ab")
         stat = dekodiere_statische_info(_strom(ole, f"{basis}/Static_Info"))
         art = signalart(stat.formel)
         if daten.linien != fft.linien or sig.anzahl_punkte != n:
@@ -913,7 +1003,7 @@ def lese_container(ole: Any, pfad: Path) -> SvdMessung:
             verschraenkt_zu_komplex(daten.werte) if komplex else daten.werte
         )
         # Rolle (Antwort zuerst) aus der Formel; Banddaten gleicher Nummer nur als Gegenprobe.
-        kanaele = rollen_aus_formel(stat.formel, stat.kanaele)
+        kanaele = rollen_aus_formel(stat.formel, stat.kanaele, anker)
         band = baender.get(f"S{nr}")
         if band is not None:
             pruefe_band_gegen_signal(band, art, kanaele, f"M{nr}")
@@ -956,6 +1046,7 @@ def lese_container(ole: Any, pfad: Path) -> SvdMessung:
         xml,
         tuple(hw),
         scan_platz or (),
+        kennfeld,
     )
 
 

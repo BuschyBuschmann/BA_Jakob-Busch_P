@@ -38,8 +38,11 @@ assert all(e.bestanden for e in pruefe(m))
 - `float64`/`complex128` an der Grenze, Punktindex 0-basiert; `m.punkte.label` ist die in
   PSV angezeigte Punktnummer (getrennt vom Index). Phasen nur als komplexe Werte;
   `numpy.angle` liefert rad. **Das Vorzeichen der Kreuzspektren-Phase ist offen.**
-- Rolle Antwort/Referenz kommt aus der Signalformel; Banddaten dienen nur als Gegenprobe
-  (Widerspruch → `SvdFormatFehler`). Zeitstempel sind naive `datetime` (Zeitzone offen).
+- Rolle Antwort/Referenz kommt aus der Signalformel; Kanalnamen werden über die
+  Kanaleinstellungen und die Namensordnung (Vib X < … < Ref1 < Ref2) zugeordnet, Banddaten
+  dienen nur als Gegenprobe (Widerspruch oder fehlender Anker → `SvdFormatFehler`).
+- Die Punktzuordnung belegt das Satzfeld +0x8C (bitgleich mit MeasPoints +0x08); die
+  Geometrieprüfung ist nur Gegenprobe und erkennt einzelne Vertauschungen nicht. Zeitstempel sind naive `datetime` (Zeitzone offen).
 - Gespeichert sind keine FRF/Kohärenz, sondern gemittelte Kreuz- und Autospektren je Punkt
   (`CP`, `AP`, `ABS`, `CPH`). PSV bildet H1, H2 und Kohärenz daraus beim Anzeigen.
 - Unbekanntes Layout führt zu `SvdFormatFehler` statt zu stillen Ersatzwerten. Felder ohne

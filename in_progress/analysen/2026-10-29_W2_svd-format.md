@@ -20,6 +20,10 @@ Einstellungsfelder.
 > Prüfung belegt (2.4); Prüfungsanzahl und -zusammensetzung korrigiert (72); Jensen-Prüfung
 > implementiert; Skalierungsfolgerung eingeschränkt; Blockdauer-Abgleich (2.2); Zeitstempel
 > naiv (Zeitzone offen).
+>
+> **Zweite Korrekturrunde (K-W2b):** Kanalzuordnung über unabhängige Anker statt
+> Static_Info-Reihenfolge (2.1); Punktzuordnung über das Satzfeld +0x8C als Anker, die
+> Geometrieprüfung ist nur noch Gegenprobe, ihre Grenzen sind benannt (2.4); 73 Prüfungen.
 
 **Sicherheitsgrade.**
 - **gesichert:** mindestens zwei unabhängige Belege an der echten Datei.
@@ -99,10 +103,21 @@ Die Polytec-Doku (I5, CHM-Textfassung) dient nur als Hinweis, nicht als Formatsp
 aufsteigender Zeitkanalnummer, **nicht nach Rolle** (M6/M7: „Ref1, Ref2“, Formel
 `CP[S[T[4]],S[T[3]]]`, also Antwort Ref2). Der Leser leitet die Rolle deshalb aus der Formel
 ab: `CP[Antwort, Referenz]`, `CPH[S[Antwort], CP[Antwort, Referenz]]`, `AP[Kanal]`,
-`ABS[Kanal]`; die Namen ordnet er über die aufsteigende Nummer `T[i]` zu und prüft, dass
-3D-Komponenten zum Namen passen („Vib X“ zu `3DX`). Die Annahme „Static_Info sortiert nach
-`T[i]`“ trifft auf alle 17 Signale der Datei zu (plausibel). Ohne Banddaten bleibt die Rolle
-gültig (Test an einer In-Memory-Kopie ohne `Band_Data`: M6/M7 = Ref2, Ref1).
+`ABS[Kanal]`. Die Zuordnung Zeitkanalnummer `T[i]` ↔ Kanalname stützt sich **nicht** auf die
+Static_Info-Reihenfolge, sondern auf zwei unabhängige Anker:
+
+1. **Kanaleinstellungen** `Info/DAQ_Settings_Fft/Channels`: Kanäle in Kanalreihenfolge als
+   Paare (Kurz-, Langname); ein 3D-Kanal belegt drei Zeitkanäle. Ergebnis an der Datei:
+   Vib X/Y/Z = 0/1/2, Ref1 = 3, Ref2 = 4 (Ref3…Ref8 = 5…10), passend zu allen 17 Formeln
+   (plausibel).
+2. **Namensordnung** Vib X < Vib Y < Vib Z < Ref1 < Ref2 < … (relative Ordnung).
+
+Liegen beide vor, müssen sie übereinstimmen, sonst `SvdFormatFehler`; fehlt jeder Anker
+(z. B. Kanalnamen ohne Nummer und ohne Kanaleinstellungen), ebenfalls `SvdFormatFehler`.
+Zusätzlich müssen 3D-Komponenten zum Namen passen („Vib X“ zu `3DX`). Tests: vertauschte
+Static_Info-Reihenfolge (Ref2 vor Ref1) ohne Banddaten liefert M6/M7 = (Ref2, Ref1); ein
+widersprüchlicher Kanalanker (Ref2 vor Ref1 in `Channels`) bricht ab; die echte Datei wird
+unverändert gelesen.
 
 **Kanäle und Einheiten.** Ref1 ist eine Kraft (N), Ref2 eine Beschleunigung (m/s²), die
 Vibrometerkomponenten Geschwindigkeiten (m/s). Quelle sind die deutschen Klartexte in den
@@ -131,11 +146,11 @@ angezeigten „Geschwindigkeit“-Spektrum eines Vib-Kanals.
 | Satz +0x00 | `int32` 2 (Version) | alle Sätze | plausibel |
 | Satz +0x04 | `int32` 3 | `PTCDomainType` Spectrum = 3 | offen (Hinweis) |
 | Satz +0x08 | `int32` 1600 = Linien | = `Fft`-Linien, = Nutzbytes/4 bzw. /8 | gesichert |
-| Satz +0x20 | `int32` Punktindex 0…134 | Permutation; Umkehrung der Ablageplätze in `ManyStreamsInfo`; Bandwerte je Punkt passen (2.4); Zuordnung zur MeasPoints-Zeile durch Geometrie- und Zeitprüfung (2.4) | gesichert |
+| Satz +0x20 | `int32` Punktindex 0…134 | Permutation; Umkehrung der Ablageplätze in `ManyStreamsInfo`; Bandwerte je Punkt passen (2.4); Zuordnung zur MeasPoints-Zeile über das Kennfeld +0x8C (2.4) | gesichert |
 | Satz +0x34 | `float64` 0,64 = Blockdauer in s | = 1/Δf = 4000/(2,5 · 2500 Hz); in allen Sätzen bitgleich. Der Leser gleicht es gegen die Bandbreite ab (rtol 10⁻⁹), Widerspruch → `SvdFormatFehler` | plausibel |
 | Satz +0x3C…0x5C | `float64` 0,04962 / 1,0 / 0,02481 / 1,590 / 1,766 (bei M8: 0,002481 statt 0,04962) | – | offen (Skalier- oder Kalibrierwerte?) |
 | Satz +0x6C, +0x74 | zwei FILETIME; Differenz stets genau 0,64 s | erster Punkt 2026-10-12 09:33:06, letzter 10:12:42; Abstand ≈ 17,7 s | plausibel (Bedeutung offen); Zeitzone offen, der Leser liefert **naive** `datetime` |
-| Satz +0x8C | `float64` ≈ 10⁻¹⁰…10⁻⁸, je Punkt verschieden; für Punkt 0 gleich dem Messpunktfeld +0x08 (5,5637·10⁻¹⁰) | – | offen |
+| Satz +0x8C | `float64` ≈ 10⁻¹⁰…10⁻⁸, je Punkt verschieden (135 verschiedene Werte), in allen 17 Signalen gleich | als `float32` **bitgleich** mit dem Messpunktfeld +0x08 desselben Punktindex, für alle 135 Punkte; bei Versatz um einen Index stimmt kein Punkt | Gleichheit gesichert, Bedeutung offen; dient als Zuordnungsanker |
 | Satz +0xF4 | `int32` Nutzbytes | = `Signal_Info` | gesichert |
 | Satz +0xF8 | Nutzdaten `float32` LE; komplex **verschränkt** Re₀, Im₀, Re₁, Im₁ … | siehe 2.4 | gesichert |
 | Satz-Ende | 128 Byte Nachspann (wiederholt Kopffelder) | Satzlänge = 0xF8 + Nutzbytes + 128 | gesichert (Länge), Inhalt offen |
@@ -168,11 +183,12 @@ Quotienten und Summen wenige 10⁻⁷; ein Lese- oder Zuordnungsfehler läge bei
 | Band (CP, AP) = Σ\|X\|/2 je Punkt | max. rel. Abweichung 5,8·10⁻⁸ (12 Signale: 7 CP, 5 AP) | Werte; Punktindex der Datensätze = Punktindex der Banddaten |
 | Band (ABS, CPH) = √(Σ\|A\|²/2) je Punkt | max. 5,6·10⁻⁸ (5 Signale: 1 ABS, 4 CPH) | Werte; Skalierung siehe unten |
 | Punktmittel = Mittel über alle 135 Punkte von \|Signal\|, \|H1\| = \|CP/AP_Ref\|, \|H2\| = \|AP_Antwort/CP*\|, COH = \|CP\|²/(AP·AP) (35 Signale) | max. 9,3·10⁻⁷ | Signal- und Formelsemantik, H1/H2/Kohärenz-Definition wie in PSV, keine Punkte ausgeschlossen |
-| Punktzuordnung Geometrie: Median der Schrittweite zwischen in Scanreihenfolge aufeinanderfolgenden Punkten ÷ kleinster Median über 200 zufällige Reihenfolgen (Seed 0) | 0,164 (24 mm gegen ≥ 148 mm); Grenze 0,5 | Datensatz-Punktindex i gehört zur MeasPoints-Zeile i |
-| Punktzuordnung Zeit: `zeit_a` in Scanreihenfolge streng steigend | 0 nicht steigende Schritte | Scanreihenfolge aus `ManyStreamsInfo` stimmt mit den Zeitstempeln |
+| Punktzuordnung Kennfeld: float32(Satz +0x8C) = MeasPoints +0x08 je Punktindex | 0 abweichende Punkte von 135; Grenze 0 | Datensatz-Punktindex i gehört zur MeasPoints-Zeile i; erkennt Versatz ±1/±9 (135 Abweichungen) und einzelne Vertauschungen (2 Abweichungen) |
+| Punktzuordnung Geometrie (Gegenprobe): mittlere Schrittweite in Scanreihenfolge ÷ kleinste mittlere Schrittweite über 200 zufällige Reihenfolgen (Seed 0) | 0,147 (26 mm gegen ≥ 179 mm); Grenze 0,5 | grobe Fehlzuordnungen; **nicht** einzelne Vertauschungen und **nicht sicher** einen Versatz um einen Index |
+| Punktzuordnung Zeit: `zeit_a` in Scanreihenfolge streng steigend | 0 nicht steigende Schritte | **nur** die Scanreihenfolge der Datensätze, nicht den Geometriebezug |
 
-Insgesamt **72 Prüfungen** (6 ≥ 0 + 7 CP + 4 CPH + 1 Jensen + 17 Band + 35 Punktmittel
-+ 2 Punktzuordnung), alle durchgeführt und bestanden. Nicht durchführbare Prüfungen (etwa bei
+Insgesamt **73 Prüfungen** (6 ≥ 0 + 7 CP + 4 CPH + 1 Jensen + 17 Band + 35 Punktmittel
++ 3 Punktzuordnung), alle durchgeführt und bestanden. Nicht durchführbare Prüfungen (etwa bei
 fehlenden Banddaten) meldet `pruefe` als Eintrag „nicht durchführbar: …“ mit Grund; sie gelten
 als nicht bestanden.
 
@@ -180,8 +196,21 @@ als nicht bestanden.
 der Punkte unempfindlich; sie belegen Werte, Datentyp, Verschränkung und die Definitionen von
 H1, H2 und Kohärenz, **nicht** die Punktzuordnung. Die Bandprüfung vergleicht je Punkt und
 belegt, dass Datensätze und Banddaten denselben Punktindex verwenden. Die Zuordnung zur
-Geometrie (MeasPoints-Zeile) belegen erst die beiden Punktzuordnungsprüfungen; ein Test mit
-vertauschten MeasPoints-Sätzen lässt die Geometrieprüfung scheitern.
+Geometrie (MeasPoints-Zeile) belegt das **Kennfeld** (+0x8C ↔ +0x08): Es ist
+permutationsempfindlich bis zur einzelnen Vertauschung, seine Bedeutung ist aber offen; es
+belegt die Zuordnung nur, solange die Werte je Punkt verschieden sind (in der Datei: 135
+verschiedene Werte).
+
+Die Geometrieprüfung ist nur Gegenprobe. Ihre Grenzen: Zwei vertauschte Punkte ändern die
+mittlere Schrittweite kaum (Reviewer-Beleg: 0,165 statt 0,164, bestanden). Ein Versatz um
+einen Index ist geometrisch nur dann auffällig, wenn die Scanreihenfolge quer zur
+Indexreihenfolge springt; in der Beispieldatei wäre er erkennbar (Mittelwert 26 mm gegen
+70 mm), bei einem Raster mit spaltenweisem Zickzack-Scan und zeilenweisem Index dagegen kaum
+(synthetischer Test). Ein eigener Versatzvergleich wurde deshalb nicht als Prüfung
+aufgenommen; ein solches Kriterium hätte bei korrekten Dateien mit anderem Scanmuster falsch
+angeschlagen. Die Zeitprüfung belegt nur die Scanreihenfolge der Datensätze. Tests: Versatz
+±1 und ±9 sowie einzelne Vertauschung → Kennfeldprüfung schlägt an; zufällige Permutation →
+Kennfeld- und Geometrieprüfung schlagen an; umgekehrte Zeitstempel → Zeitprüfung schlägt an.
 
 **Skalierung (plausibel unter Annahme).** Unter der Annahme, dass der PSV-Bandwert
 „Entire Bandwidth“ für Amplitudenspektren der Effektivwert ist, folgt aus
@@ -220,7 +249,7 @@ Der Leser liefert die Achse nach KONVENTIONEN (k = 1 … n) und kennzeichnet sie
   Kanten nur Nachbarpunkte (plausibel).
 - **Punktsatz 64 Byte:** Label, `int32` (1 bei 18 Punkten, 3 bei 117 Punkten; Hypothese
   Scanstatus Valid bzw. Valid | Optimal, „Optimal“ gibt es nur mit Signal Enhancement,
-  I5 4.5), `float32` klein, `uint32` 8193 (Hypothese Geometriestatus Valid | VideoTriangulated),
+  I5 4.5), `float32` klein (bitgleich mit Satzfeld +0x8C, Zuordnungsanker, Bedeutung offen), `uint32` 8193 (Hypothese Geometriestatus Valid | VideoTriangulated),
   xyz, zwei Videokoordinaten (0,61…0,69 / 0,34…0,60), `uint32` 129 (Hypothese Fokusstatus
   Valid | Auto), drei Fokuswerte 6441…7175 (Grenze laut XML 0…8000), 0, `float32`,
   `uint32` 7…25 (7 bei 102 Punkten; Hypothese Anzahl Mittelungen). **Alle Statusdeutungen
@@ -270,7 +299,7 @@ Der Leser liefert die Achse nach KONVENTIONEN (k = 1 … n) und kennzeichnet sie
 ## 5 Prototyp-Leser (A2)
 
 `software/tools/svd_analyse/`: `svd_lesen.py` (Dekodierung, `lese_svd`, Übersicht),
-`svd_pruefung.py` (72 Plausibilitätsprüfungen), `kontrollplots.py` (Bilder), `README.md`.
+`svd_pruefung.py` (73 Plausibilitätsprüfungen), `kontrollplots.py` (Bilder), `README.md`.
 Abhängigkeiten in der neuen uv-Gruppe `werkzeuge` (numpy, olefile, matplotlib).
 Abweichungen vom Layout führen zu `SvdFormatFehler`. Ausgabe der Übersicht siehe Rückmeldung.
 

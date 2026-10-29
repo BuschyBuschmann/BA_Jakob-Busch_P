@@ -340,12 +340,12 @@ def test_pruefung_synthetisch_bestanden_und_meldet_fehlendes() -> None:
     ergebnisse = sp.pruefe(m)
     durch = [e for e in ergebnisse if e.durchgefuehrt]
     nicht = {e.name: e.grund for e in ergebnisse if not e.durchgefuehrt}
-    # 3 (>=0) + 1 CP + 1 CPH + 1 Jensen + 4 Band + 5 Punktmittel
-    assert len(durch) == 15
+    # 3 (>=0) + 1 CP + 1 CPH + 1 Jensen + 4 Band + 5 Punktmittel + 1 Kennfeld
+    assert len(durch) == 16
     assert all(e.bestanden for e in durch), [e for e in durch if not e.bestanden]
     # sichtbar statt still weggelassen: Band S3 fehlt, 3 Punkte reichen nicht für Zuordnung
     assert nicht["nicht durchführbar: M3 Band = Σ|X|/2"] == "Banddaten S3 fehlen"
-    assert "nicht durchführbar: Punktzuordnung Geometrie" in nicht
+    assert any(k.startswith("nicht durchführbar: Punktzuordnung Geometrie") for k in nicht)
     assert not any(e.bestanden for e in ergebnisse if not e.durchgefuehrt)
 
 
@@ -373,20 +373,73 @@ def test_pruefung_erkennt_blockablage_statt_verschraenkung() -> None:
     assert erg["M0 |CP|²/(AP·AP) <= 1"].wert > 1.0
 
 
-def test_punktzuordnung_erkennt_vertauschte_messpunkte() -> None:
-    st, _ = syn.messung_stroeme(n=30)
-    m = sl.lese_container(syn.FakeOle(st), Path("x"))
-    ok = {e.name: e for e in sp.pruefe_punktzuordnung(m)}
-    assert all(e.bestanden for e in ok.values()), ok
-    rng = np.random.default_rng(3)
-    perm = rng.permutation(30)
-    punkte = replace(m.punkte, koordinaten_m=m.punkte.koordinaten_m[perm])
-    fehl = sp.pruefe_punktzuordnung(replace(m, punkte=punkte))
-    assert not fehl[0].bestanden and fehl[1].bestanden  # Geometrie schlägt an, Zeit nicht
-    zeiten = list(reversed(m.signale["M0"].zeit_a))
+def _raster_messung() -> sl.SvdMessung:
+    st, _ = syn.messung_stroeme(raster=(6, 8))  # 48 Punkte, Zickzack-Scan spaltenweise
+    return sl.lese_container(syn.FakeOle(st), Path("x"))
+
+
+def _messpunkte_umgeordnet(m: sl.SvdMessung, zeilen: np.ndarray) -> sl.SvdMessung:
+    """MeasPoints-Zeilen (alle Felder) umordnen; Datensätze bleiben unverändert."""
+    mp = m.punkte
+    punkte = replace(
+        mp,
+        label=mp.label[zeilen],
+        koordinaten_m=mp.koordinaten_m[zeilen],
+        statusfelder={k: v[zeilen] for k, v in mp.statusfelder.items()},
+    )
+    return replace(m, punkte=punkte)
+
+
+def test_punktzuordnung_richtig_bestanden() -> None:
+    erg = sp.pruefe_punktzuordnung(_raster_messung())
+    assert len(erg) == 3 and all(e.bestanden for e in erg), erg
+
+
+@pytest.mark.parametrize("versatz", [1, -1, 9, -9])
+def test_punktzuordnung_erkennt_versatz(versatz: int) -> None:
+    m = _raster_messung()
+    n = len(m.punkte.index)
+    kenn, _, zeit = sp.pruefe_punktzuordnung(
+        _messpunkte_umgeordnet(m, np.roll(np.arange(n), versatz))
+    )
+    assert not kenn.bestanden and kenn.wert == n
+    assert zeit.bestanden  # die Zeitprüfung sieht den Geometriebezug nicht
+
+
+def test_punktzuordnung_erkennt_einzelne_vertauschung_nur_ueber_kennfeld() -> None:
+    m = _raster_messung()
+    zeilen = np.arange(len(m.punkte.index))
+    zeilen[[0, 1]] = [1, 0]
+    kenn, geo, _ = sp.pruefe_punktzuordnung(_messpunkte_umgeordnet(m, zeilen))
+    assert not kenn.bestanden and kenn.wert == 2
+    assert geo.bestanden  # dokumentierte Grenze der Geometrie-Gegenprobe
+
+
+def test_punktzuordnung_erkennt_permutation_und_zeitfehler() -> None:
+    m = _raster_messung()
+    perm = np.random.default_rng(3).permutation(len(m.punkte.index))
+    kenn, geo, _ = sp.pruefe_punktzuordnung(_messpunkte_umgeordnet(m, perm))
+    assert not kenn.bestanden and not geo.bestanden
     signale = dict(m.signale)
-    signale["M0"] = replace(m.signale["M0"], zeit_a=zeiten)
-    assert not sp.pruefe_punktzuordnung(replace(m, signale=signale))[1].bestanden
+    signale["M0"] = replace(m.signale["M0"], zeit_a=list(reversed(m.signale["M0"].zeit_a)))
+    assert not sp.pruefe_punktzuordnung(replace(m, signale=signale))[2].bestanden
+
+
+def test_punktzuordnung_fehlende_daten_nicht_durchfuehrbar() -> None:
+    m = _raster_messung()
+    erg = sp.pruefe_punktzuordnung(replace(m, signale={}))
+    assert erg[2].grund == "Zeitstempel fehlen" and erg[1].durchgefuehrt
+    ohne_feld = replace(m, punkte=replace(m.punkte, statusfelder={}))
+    assert sp.pruefe_punktzuordnung(ohne_feld)[0].grund == "Kennfelder fehlen"
+
+
+def test_kennfeld_muss_in_allen_signalen_gleich_sein() -> None:
+    st, _ = syn.messung_stroeme()
+    daten = bytearray(st["Polytec_Data/M2/ManyStreamsData-0"])
+    struct.pack_into("<d", daten, sl.DATENSTROM_KOPF + sl.SATZ_KENNFELD, 1.0)
+    st["Polytec_Data/M2/ManyStreamsData-0"] = bytes(daten)
+    with pytest.raises(sl.SvdFormatFehler, match="0x8C"):
+        sl.lese_container(syn.FakeOle(st), Path("x"))
 
 
 def test_pruefung_erkennt_vertauschte_punkte() -> None:
@@ -480,8 +533,8 @@ def test_echte_datei_plausibel_und_unveraendert() -> None:
     assert m.signale["M0"].kanaele == ("Vib X", "Ref1")
     assert m.signale["M0"].zeit_a[0].tzinfo is None
     erg = sp.pruefe(m)
-    # 6 (>=0) + 7 CP + 4 CPH + 1 Jensen + 17 Band + 35 Punktmittel + 2 Punktzuordnung
-    assert len(erg) == 72
+    # 6 (>=0) + 7 CP + 4 CPH + 1 Jensen + 17 Band + 35 Punktmittel + 3 Punktzuordnung
+    assert len(erg) == 73
     fehl = [e for e in erg if not e.bestanden]
     assert not fehl, fehl
 
@@ -623,3 +676,62 @@ def test_scanreihenfolge_muss_in_allen_signalen_gleich_sein() -> None:
     st["Polytec_Data/M2/ManyStreamsData-0"] = syn.punktdaten(zeilen, 4, [0, 1, 2], 0)
     with pytest.raises(sl.SvdFormatFehler, match="Scanreihenfolge"):
         sl.lese_container(syn.FakeOle(st), Path("x"))
+
+
+# --- Kanalanker (K-W2b, MINOR B) ---------------------------------------------------------
+
+
+def _channels(*kurz: str) -> bytes:
+    return struct.pack("<3i", 10, 9, 11) + b"".join(syn.zk(k) + syn.zk(f"lang {k}") for k in kurz)
+
+
+def test_kanalanker_aus_einstellungen() -> None:
+    anker = sl.kanalanker_aus_einstellungen(_channels("Vib 3D", "Ref1", "Ref2"))
+    assert anker == {"Vib X": 0, "Vib Y": 1, "Vib Z": 2, "Ref1": 3, "Ref2": 4}
+    for falsch in (syn.zk("Ref1"), _channels("Ref1", "Ref1"), b""):
+        with pytest.raises(sl.SvdFormatFehler):
+            sl.kanalanker_aus_einstellungen(falsch)
+
+
+def test_rollen_static_reihenfolge_ohne_bedeutung() -> None:
+    # Reviewer-Fall: Static_Info-Reihenfolge vertauscht -> Rolle trotzdem richtig.
+    f = "AVG[CP[S[T[4]],S[T[3]]]]"
+    assert sl.rollen_aus_formel(f, ("Ref2", "Ref1")) == ("Ref2", "Ref1")
+    anker = {"Ref1": 3, "Ref2": 4}
+    assert sl.rollen_aus_formel(f, ("Ref2", "Ref1"), anker) == ("Ref2", "Ref1")
+
+
+def test_rollen_anker_fehlt_oder_widerspricht() -> None:
+    f = "AVG[CP[S[T[4]],S[T[3]]]]"
+    with pytest.raises(sl.SvdFormatFehler, match="widersprechen"):
+        sl.rollen_aus_formel(f, ("Ref1", "Ref2"), {"Ref1": 4, "Ref2": 3})
+    with pytest.raises(sl.SvdFormatFehler, match="Kein Anker"):
+        sl.rollen_aus_formel(f, ("Kraft", "Beschl"))
+    with pytest.raises(sl.SvdFormatFehler, match="ohne Anker"):
+        sl.rollen_aus_formel(f, ("Ref1", "Ref2"), {"Ref1": 3})
+    with pytest.raises(sl.SvdFormatFehler, match="passen nicht"):
+        sl.rollen_aus_formel(f, ("Kraft", "Beschl"), {"Kraft": 3, "Beschl": 5})
+    # nur Anker aus den Einstellungen (Namen ohne Ordnung) genügt
+    assert sl.rollen_aus_formel(f, ("Kraft", "Beschl"), {"Kraft": 3, "Beschl": 4}) == (
+        "Beschl",
+        "Kraft",
+    )
+
+
+def test_echte_kopie_static_vertauscht_ohne_banddaten(echte_stroeme: dict[str, bytes]) -> None:
+    st = {k: v for k, v in echte_stroeme.items() if not k.startswith("Band_Data/")}
+    for nr in (6, 7):  # Static_Info mit vertauschter Kanalreihenfolge (Ref2 vor Ref1)
+        alt = sl.dekodiere_statische_info(st[f"Polytec_Data/M{nr}/Static_Info"])
+        st[f"Polytec_Data/M{nr}/Static_Info"] = syn.static_info(
+            [("Reference 2", "Ref2"), ("Reference 1", "Ref1")], alt.formel
+        )
+    m = sl.lese_container(syn.FakeOle(st), ECHTE_DATEI)
+    assert m.signale["M6"].kanaele == ("Ref2", "Ref1")
+    assert m.signale["M7"].kanaele == ("Ref2", "Ref1")
+
+
+def test_echte_kopie_widerspruechlicher_kanalanker(echte_stroeme: dict[str, bytes]) -> None:
+    st = dict(echte_stroeme)
+    st["Info/DAQ_Settings_Fft/Channels"] = _channels("Vib 3D", "Ref2", "Ref1")
+    with pytest.raises(sl.SvdFormatFehler, match="widersprechen"):
+        sl.lese_container(syn.FakeOle(st), ECHTE_DATEI)

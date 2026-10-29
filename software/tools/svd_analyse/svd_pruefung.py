@@ -137,49 +137,72 @@ def _rel_abweichung(ist: FloatArray, soll: FloatArray) -> float:
 
 #: Anzahl zufälliger Permutationen für die Geometrie-Gegenprobe der Punktzuordnung.
 PERMUTATIONEN = 200
-#: Grenze Verhältnis Median-Schrittweite (Scanreihenfolge) / kleinster Permutations-Median.
-#: An der Beispieldatei 24 mm gegen ≥ 148 mm (≈ 0,16); 0,5 trennt sicher.
+#: Grenze Verhältnis mittlere Schrittweite (Scanreihenfolge) / kleinste mittlere
+#: Schrittweite über zufällige Reihenfolgen. Beispieldatei 0,15 (26 mm gegen ≥ 179 mm);
+#: 0,5 verlangt mindestens halb so lange Wege wie jede Zufallsreihenfolge.
 GEOMETRIE_GRENZE = 0.5
 
 
-def _median_schritt(xyz: FloatArray, reihenfolge: npt.NDArray[np.int64]) -> float:
-    return float(np.median(np.linalg.norm(np.diff(xyz[reihenfolge], axis=0), axis=1)))
+def _mittlerer_schritt(xyz: FloatArray, reihenfolge: npt.NDArray[np.int64]) -> float:
+    """Mittlere Schrittweite zwischen in ``reihenfolge`` aufeinanderfolgenden Punkten."""
+    return float(np.mean(np.linalg.norm(np.diff(xyz[reihenfolge], axis=0), axis=1)))
 
 
 def pruefe_punktzuordnung(messung: SvdMessung, seed: int = 0) -> list[Pruefergebnis]:
     """Belegt die Zuordnung Datensatz-Punktindex ↔ MeasPoints-Zeile.
 
     Punktmittel und Ungleichungen sind gegen eine Permutation der Punkte unempfindlich;
-    diese Prüfung nicht. (1) In Scanreihenfolge (``scan_platz``) liegen aufeinanderfolgende
-    Punkte räumlich nah: Median der Schrittweite verglichen mit dem kleinsten Median über
-    ``PERMUTATIONEN`` zufällige Reihenfolgen (Seed fest, reproduzierbar). (2) Die
-    Zeitstempel ``zeit_a`` steigen in Scanreihenfolge streng monoton (Kennwert: Anzahl
-    nicht steigender Schritte).
+    diese drei Prüfungen nicht vollständig:
+
+    1. **Kennfeld (Anker):** Das Satzfeld +0x8C (``float64``) ist als ``float32``
+       bitgleich mit dem Messpunktfeld +0x08 desselben Punkts; die 135 Werte der
+       Beispieldatei sind paarweise verschieden. Kennwert: Anzahl Punkte ohne
+       Übereinstimmung (Grenze 0). Erkennt jeden Versatz und jede Vertauschung, solange
+       die Werte verschieden sind; die Bedeutung des Felds ist offen.
+    2. **Geometrie (Gegenprobe):** Mittlere Schrittweite in Scanreihenfolge gegen die
+       kleinste über ``PERMUTATIONEN`` zufällige Reihenfolgen (Seed fest). Erkennt grobe
+       Fehlzuordnungen, aber weder einzelne Vertauschungen noch sicher einen Versatz um
+       einen Index (verläuft der Scan quer zur Indexrichtung, bleibt ein Versatz
+       geometrisch fast glatt).
+    3. **Zeit:** ``zeit_a`` steigt in Scanreihenfolge streng monoton. Belegt nur die
+       Scanreihenfolge der Datensätze, nicht den Bezug zur Geometrie.
     """
+    namen = (
+        "Punktzuordnung Kennfeld: Satz +0x8C ≠ MeasPoints +0x08 (Punkte)",
+        "Punktzuordnung Geometrie: Schritt(Datei)/min Schritt(Permutation)",
+        "Punktzuordnung Zeit: nicht steigende Schritte",
+    )
     n = len(messung.punkte.index)
-    if len(messung.scan_platz) != n or n < 4 or not messung.signale:
+    ergebnisse: list[Pruefergebnis] = []
+    feld = messung.punkte.statusfelder.get("feld_08")
+    if feld is None or messung.satz_kennfeld.shape != (n,):
+        ergebnisse.append(_nicht_durchfuehrbar(namen[0], "Kennfelder fehlen"))
+    else:
+        satz32 = messung.satz_kennfeld.astype(np.float32).astype(np.float64)
+        ergebnisse.append(Pruefergebnis(namen[0], float(np.sum(satz32 != feld)), 0.0))
+    if len(messung.scan_platz) != n or n < 4:
+        grund = "Scanreihenfolge fehlt oder < 4 Punkte"
         return [
-            _nicht_durchfuehrbar(
-                "Punktzuordnung Geometrie", "Scanreihenfolge fehlt oder < 4 Punkte"
-            ),
-            _nicht_durchfuehrbar("Punktzuordnung Zeit", "Scanreihenfolge fehlt oder < 4 Punkte"),
+            *ergebnisse,
+            _nicht_durchfuehrbar(namen[1], grund),
+            _nicht_durchfuehrbar(namen[2], grund),
         ]
     reihenfolge = np.argsort(np.asarray(messung.scan_platz, dtype=np.int64))
     xyz = messung.punkte.koordinaten_m
     rng = np.random.default_rng(seed)
-    zufall = min(_median_schritt(xyz, rng.permutation(n)) for _ in range(PERMUTATIONEN))
-    verhaeltnis = _median_schritt(xyz, reihenfolge) / zufall if zufall > 0 else float("inf")
-    zeiten = next(iter(messung.signale.values())).zeit_a
-    sortiert = [zeiten[i] for i in reihenfolge]
-    fehlschritte = sum(1 for a, b in pairwise(sortiert) if b <= a)
-    return [
-        Pruefergebnis(
-            "Punktzuordnung Geometrie: Schritt(Scan)/min Schritt(Permutation)",
-            verhaeltnis,
-            GEOMETRIE_GRENZE,
-        ),
-        Pruefergebnis("Punktzuordnung Zeit: nicht steigende Schritte", float(fehlschritte), 0.0),
-    ]
+    zufall = min(_mittlerer_schritt(xyz, rng.permutation(n)) for _ in range(PERMUTATIONEN))
+    datei = _mittlerer_schritt(xyz, reihenfolge)
+    ergebnisse.append(
+        Pruefergebnis(namen[1], datei / zufall if zufall > 0 else float("inf"), GEOMETRIE_GRENZE)
+    )
+    zeiten = next(iter(messung.signale.values())).zeit_a if messung.signale else []
+    if len(zeiten) != n:
+        ergebnisse.append(_nicht_durchfuehrbar(namen[2], "Zeitstempel fehlen"))
+    else:
+        sortiert = [zeiten[i] for i in reihenfolge]
+        fehlschritte = sum(1 for a, b in pairwise(sortiert) if b <= a)
+        ergebnisse.append(Pruefergebnis(namen[2], float(fehlschritte), 0.0))
+    return ergebnisse
 
 
 def pruefe(messung: SvdMessung) -> list[Pruefergebnis]:
