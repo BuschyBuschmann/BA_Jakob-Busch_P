@@ -38,3 +38,5 @@ Nutzer hat das Ergebnis geprüft und verantwortet es.
 | 2026-10-27 | `in_progress/versuche/2026-11-02_prototyp/` (README, Installation, Ablaufplan, Protokollvorlage, Anleitung Test-.set), `software/tools/wheelhouse/` | Montagspaket P6 | software-engineer (sonnet) | offen (Durchsicht durch den Nutzer vor Montag) |
 | 2026-10-27 | Review R-U5, Re-Review RR-U5, Design-Abnahme A-U5 | Prüfung U5 | reviewer (opus), ui-designer (sonnet) | Befundauswahl durch den Nutzer |
 | 2026-10-28 | `in_progress/literatur/literatur.bib`, `leseliste.md` | Erste Quellensammlung für das Exposé (Paket L1) | literatur-rechercheur (sonnet) | offen (Existenz über Suchtreffer geprüft; Volltexte und Prüfung durch den Nutzer ausstehend) |
+| 2026-10-29 | `in_progress/literatur/literatur.bib`, `leseliste.md` (Ergänzung L2) | Recherche Messautomatisierung und Geschichte der Strukturtests | literatur-rechercheur (sonnet) | offen (Metadaten teils unbestätigt; Volltexte ausstehend) |
+| 2026-10-29 | `in_progress/planung/expose.md`, Rohfassung Kurzfassung | Rohfassung Fließtext aus den Interview-Antworten | wissenschaftlicher-autor (sonnet) | offen (Überarbeitung durch den Nutzer) |

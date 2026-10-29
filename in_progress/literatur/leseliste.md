@@ -119,3 +119,66 @@ Ergänzend nicht gezählt: harris2020numpy, virtanen2020scipy, hunter2007matplot
 3. Luftfahrt-Norm oder Richtlinie zum Ground Vibration Test (außer Konferenzbeitrag Göge et al.).
 4. Polytec-Spezifikation PSV QTec 3D (Verfügbarkeit beim Betreuer/Polytec erfragen).
 5. Direkter Abruf der Verlagsseiten/DOI-Auflösung nicht möglich; DOI bei Castellini 2006, Rothberg/Tirabassi 2012, Chen/Zhu 2021 offen.
+
+---
+
+# Ergänzung Paket L2 (Stand 2026-10-29)
+
+Prüfstand weiterhin **`metadaten`** (Websuche; Verlags-/Katalogseiten nicht direkt abrufbar, siehe Grenzen oben). Neu in `literatur.bib`: 10 Einträge (38 insgesamt).
+
+## Feld A: Automatisierung von Mess- und Prüfabläufen
+
+| Kürzel (`bibkey`) | Quelle | Typ | Relevanz / Kapitel | Zugang | Volltext |
+|---|---|---|---|---|---|
+| starkey2013labscript | Starkey et al. 2013, Rev. Sci. Instrum. 84(8), 085111 | Artikel | Skriptgesteuerte Experimentautomatisierung in Python (Atomphysik; Prinzipbeispiel, nicht Strukturdynamik) | RWTH; arXiv 1303.0080 frei | benötigt (B) |
+| weber2021pymodaq | Weber 2021, Rev. Sci. Instrum. 92(4), 045104 | Artikel | Modulare Messdatenerfassung/Instrumentensteuerung in Python; vergleichbare Architektur (Plugins je Gerät) | RWTH; HAL-Kopie hal-03331919 | benötigt (B) |
+| sandve2013tenrules | Sandve et al. 2013, PLOS Comput. Biol. 9(10), e1003285 | Artikel | Reproduzierbarkeit der Auswertung (Skripte, Versionen, Seeds, Rohdaten) | frei (Open Access) | benötigt (B) |
+| peng2011reproducible | Peng 2011, Science 334, 1226-1227 | Perspektive-Artikel | Reproduzierbarkeit als Mindeststandard | RWTH | benötigt (C) |
+| wilson2017goodenough (aus L1) | siehe Feld 4 oben | Artikel | wie oben | frei | siehe oben |
+| (ohne Eintrag) | Steinbauer, „Mechatronic modal hammer“ (Prag, PDF im ZČU-Repositorium dspace5old.zcu.cz/…/Steinbauer.pdf) | Konferenz-/Hochschulbeitrag (vermutet) | Automatischer Modalhammer mit 3D-LDV, 17 h Dauerbetrieb; Automatisierung des Anregungsteils | frei (laut Suche) | **nicht in .bib**: Jahr, Venue, Affiliation (CTU Prag laut Kopfzeile) unbestätigt; (B) |
+| (ohne Eintrag) | Titel „Application of a 3D Scanning Laser Doppler Vibrometer on the Automatization of Modal Testing of Turbine Blades“ | unklar (vermutl. Konferenz) | Fast deckungsgleich mit dem Thema (3D-SLDV und Automatisierung, wenige Zeilen Skript für Hammerfolge) | ResearchGate-Eintrag (nicht abrufbar) | **nicht in .bib**: Autoren/Venue/Jahr nicht ermittelt (Suchtreffer ohne Metadaten); im Katalog der UB suchen; (A) |
+| (ohne Eintrag) | Martarelli, Revel, Santolini 2001, MSSP 15(3), ab S. 581 | Artikel | Automatisierte Modalanalyse mit SLDV; Scanner-Kalibrierung | RWTH | siehe Feld 1; (C) |
+| (nur Hinweis, graue Lit.) | Polytec: RoboVib (3D-SLDV + Industrieroboter), RotoVib, Scalable Automatic Modal Hammer SAM; PSV-Software mit „Open interface“/Polytec File Access und Visual-Basic-Makros | Herstellerwerbung/Produktseiten | Kommerzielle Referenz für automatisierte Modaltests; Marketingaussagen, nicht als Fachbeleg | frei (polytec.com) | nicht zitierfähig als Fachquelle; höchstens mit Vermerk |
+| (nur Hinweis, graue Lit.) | PyVISA, PyMeasure, pyEMA, ladisk/sdypy (Python) | Software-/Paketdokumentation | Beispiele für Instrumentensteuerung bzw. Modalanalyse in Python | frei (readthedocs/PyPI) | **keine** begutachtete Publikation gefunden; nur als Softwarehinweis mit Version |
+
+**Einschätzung:** Für „Automatisierte Schwingungs-/Modaltests“ fand ich **keine** begutachtete Übersichtsarbeit; belastbar sind bisher nur Python-Messsteuerung (Starkey, Weber) und Reproduzierbarkeit (Sandve, Peng, Wilson). Das Turbinenschaufel-Paper und Steinbauer müssen erst beschafft/identifiziert werden.
+
+**Empfehlung Exposé (Feld A, 4 Quellen):** weber2021pymodaq, starkey2013labscript, sandve2013tenrules, wilson2017goodenough (Python-Messsteuerung und Reproduzierbarkeit). Die thematisch nächste Quelle (Automatisierung Modaltest mit 3D-SLDV) erst nach Identifikation aufnehmen.
+
+## Feld B: Strukturtests früher und heute (Luft- und Raumfahrt), Kapitel 2.1
+
+| Kürzel | Quelle | Typ | Relevanz / Kapitel | Zugang | Volltext |
+|---|---|---|---|---|---|
+| ewins2000modal (aus L1) | Ewins, *Modal Testing*, 2. Aufl. | Fachbuch | Standardwerk; Entwicklung von Phasenresonanz- zu FRF-Verfahren | Bibliothek | benötigt (A) |
+| irretier2001history | Irretier 2001, „History and development of experimental modal analysis“ (Journal-Angabe unsicher) | Übersichtsartikel | Historische Entwicklung der EMA (inkl. früher Verfahren) | Kasseler Portal/Bibliothek | benötigt (A); Venue klären |
+| brown2007modernera | Brown, Allemang, „The modern era of experimental modal analysis: one historical perspective“ (Sound and Vibration, ca. 2007, unsicher) | Übersichtsartikel | Entwicklung von Analogtechnik zu FFT-Analysatoren, MIMO; moderne EMA seit 1970ern | Zeitschrift (sandv.com) / Scribd-Kopie nicht verwenden | benötigt (A); Quellenangaben am Original klären |
+| allemang1986survey | Allemang, Brown 1986, IJAEMA 1(1), 37-44 | Übersichtsartikel | Einteilung der Verfahren (u. a. Forced-Normal-Mode, d. h. Phasenresonanz, und FRF-basierte Verfahren) | VT-Archiv (Abstract-Seite); Volltext nicht geprüft | benötigt (B) |
+| ewins2016exciting | Ewins 2016, Meccanica 51, 3241-3258 | Übersichtsartikel (Positionspapier) | Rolle des Versuchs vs. Berechnung, aktuelle Herausforderungen (Nichtlinearität, Fügestellen) | frei (Open Access) | benötigt (B) |
+| goege2006overview | Göge 2006, „Ground Vibration Testing of Large Aircraft - An Overview of DLR Activities“ | Konferenz-/Vortragsbeitrag | Phasenresonanz vs. Phasentrennung beim GVT (Airbus A380) | DLR elib: kein Volltext; Autor/DLR anfragen | benötigt (A); Venue klären |
+| goege2007gvt (aus L1) | Göge et al. 2007, IMAC XXV | Konferenzbeitrag | GVT-Stand der Technik, Verkürzung durch Kombination der Verfahren | siehe L1 | benötigt (A) |
+| peeters2009modern | Peeters, Debille, Climent 2008/2009, SAE 2008-01-2270 / SAE Int. J. Aerosp. 1(1) | Artikel | Moderne GVT-Hard-/Software, Kanalzahlen >1000, kurze Testzeiten | SAE (kostenpflichtig; RWTH prüfen) | benötigt (B) |
+| rothberg2017ldvreview, castellini2006ldv (aus L1) | siehe Feld 1 | Review/Artikel | Übergang von Kontaktsensorik zur berührungslosen Messung mit LDV | siehe L1 | siehe L1 |
+| allemang2003mac (aus L1) | siehe Feld 2 | Artikel | Kennzahl für Modenvergleich, historische Entwicklung (20 Jahre MAC) | siehe L1 | siehe L1 |
+
+**Inhaltlich aus den Suchtreffern nur als Hinweis (nicht belegt, Volltext nötig):** Phasenresonanzverfahren = Anregung zur Isolierung einzelner Moden, zeitaufwändig, aber für zertifizierungsrelevante Moden eingesetzt; Phasentrennungsverfahren = breitbandige FRF-Auswertung, Standard bei großen Luft- und Raumfahrtstrukturen, spart Zeit; kombiniert beim A350 XWB. Quellen der Zusammenfassungen: DLR-elib-Abstracts (Göge 2006, 2007), ONERA-Folien „GVT Ground Vibration Testing Methods“ (graue Literatur, nicht aufgenommen).
+
+**Empfehlung Exposé (Feld B, 4 Quellen):** ewins2000modal (bereits in L1), irretier2001history oder brown2007modernera (nach Klärung der Angaben), goege2006overview bzw. goege2007gvt, ewins2016exciting. Hinweis: Für „Stimmgabel“/frühe Verfahren (Resonanzprüfung vor den FFT-Analysatoren) habe ich **keine** eigene verifizierte Quelle; sie steht höchstens in den Historienartikeln (Irretier, Brown/Allemang) und ist dort zu lesen.
+
+## Lücken (L2)
+
+1. Keine begutachtete Quelle zu automatisierten Modaltests mit LDV (Turbinenschaufel-Paper und Steinbauer nicht identifiziert).
+2. Keine verifizierte Quelle zu historischer Kontaktsensorik/Beschleunigungsaufnehmer und zur Einführung der LDV im Modaltest (außer Rothberg 2017 und Historienartikel).
+3. Angaben zu Irretier (Zeitschrift/Band) und Brown/Allemang (Zeitschrift/Jahr/Seiten) sowie Göge 2006 (Venue) unbestätigt.
+4. Keine GVT-Norm/Richtlinie gefunden (wie L1).
+5. Vornamen bei Peeters/Debille/Climent unbestätigt.
+
+## Volltext benötigt (L2, Ergänzung)
+
+| Priorität | bibkey | Grund |
+|---|---|---|
+| A | irretier2001history, brown2007modernera | Historische Entwicklung der Modalprüfung (Kapitel 2.1); Metadaten erst am Original klärbar |
+| A | goege2006overview | Phasenresonanz vs. Phasentrennung beim GVT; Venue/Volltext über Betreuer bzw. DLR |
+| A | (Turbinenschaufel-Paper 3D-SLDV und Automatisierung, Titel siehe oben) | thematisch nächste Quelle zum Paket; erst Bibliografie klären |
+| B | ewins2016exciting, allemang1986survey, peeters2009modern | Entwicklung und moderne GVT |
+| B | weber2021pymodaq, starkey2013labscript, sandve2013tenrules | Python-Messsteuerung, Reproduzierbarkeit |
+| C | peng2011reproducible | ergänzend |
