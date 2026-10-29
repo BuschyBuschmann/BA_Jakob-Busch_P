@@ -13,6 +13,16 @@
 - Zurückgestellt (Nutzer, 2026-10-29: „Titel lassen wir bitte erstmal weg“). Vorschläge A–C aus dem Interview liegen vor, nicht ausgewählt.
 
 ## 2 Kurzfassung
+### Rohfassung Fließtext (KI, zu überarbeiten)
+<!-- ROHFASSUNG (KI-unterstützt) – vom Verfasser zu überarbeiten -->
+<!-- Unterlagen: ausschließlich die Interview-Antworten in den Stichpunkt-Abschnitten darunter (Motivation, Ziel, Lösungsweg); Stil nach Analysebericht I3 / KONVENTIONEN.md. Keine Literaturhinweise (Kurzfassung ohne Zitate). -->
+
+Am Institut für Strukturmechanik und Leichtbau werden Strukturtests an Luft- und Raumfahrtstrukturen mit einem Laser-Doppler-Vibrometer (LDV) und der zugehörigen PSV-Software von Polytec durchgeführt. Eine Messung läuft nach derzeitigem Stand so ab: Der Messpunkt wird eingegeben, Kameras und Laser werden auf ihn ausgerichtet, die Struktur wird angeregt und die Messung wird gestartet. Die Bedienung ist an die Software am Messrechner gebunden, und die Messungen werden manuell eingegeben. Messungen können nicht automatisch hintereinander ausgeführt werden. Jede Messung muss einzeln eingegeben und gestartet werden, wofür Anwesenheit am Messrechner nötig ist. Weitere Themen sind die Reproduzierbarkeit und die Dokumentation der verwendeten Einstellungen und Dateien. Die Auswertung erfolgt über die vorgegebenen Auswertungen der PSV-Software. Diese sind nicht für alle Fälle ideal geeignet. Eine Weiterverarbeitung der Daten in Python ist wünschenswert. Automatisierte, unbeaufsichtigte Messreihen sind für Strukturtests am Institut und für die Weiterverwendung in Forschungsprojekten von Bedeutung. Künftig betrifft dies auch Messungen für die Luft- und Raumfahrtindustrie.
+
+Ziel der Arbeit ist die Entwicklung eines Softwarepakets in Python, das Strukturtests mit dem LDV automatisiert. Es führt Messungen über eine Warteschlange automatisch nacheinander aus. Eine Oberfläche dient vor allem der Verwaltung der Warteschlange und der Auswertungen und ist intuitiver bedienbar als die bisherige Bedienung. Das Softwarepaket unterstützt die Reproduzierbarkeit und die Dokumentation der Messungen und stellt eigene Auswertungen in Python bereit. Seine Eignung wird an einem realen Strukturtest nachgewiesen. Die PSV-Software wird dabei nicht ersetzt. Die Arbeit greift über die vorhandene Schnittstelle, das Component Object Model (COM), auf sie zu. Einrichtung, Geometrie und Ausrichtung bleiben in der PSV-Software. Eine vollständige Modalanalyse sowie die Ansteuerung weiterer Hardware sind nicht Teil der Arbeit.
+
+Die Arbeit geht in vier Schritten vor. Zunächst wird die COM-Schnittstelle der PSV-Software anhand der Dokumentation und anschließend lesend am Messrechner untersucht. Dabei wird auch der heutige Ablauf einer Messung präzisiert. Danach werden die Anforderungen an das Softwarepaket mit den Betreuern in einem Lastenheft festgelegt und gegeneinander abgegrenzt. Dabei wird ermittelt, welche Schwächen der bisherigen Bedienung die Oberfläche adressiert und welche individuellen Auswertungen benötigt werden. Anschließend wird das Softwarepaket iterativ entwickelt: Architektur, Prototyp mit Warteschlange und Oberfläche, Tests ohne Gerät gegen einen Simulator der Schnittstelle sowie Reviews. Schließlich wird das Softwarepaket am Messrechner und in Strukturtests an einem Prüfling erprobt. Die eigenen Auswertungen werden mit der Auswertung der PSV-Software und mit analytischen Referenzfällen verglichen. Zusätzlich wird der Zeitaufwand verglichen: Dieselbe Messreihe wird einmal manuell und einmal mit dem Softwarepaket durchgeführt. Als theoretische Grundlagen dienen die Laser-Doppler-Vibrometrie einschließlich Scanning- und 3D-Vibrometern, die Strukturdynamik und der Modaltest, die Signalverarbeitung (Fourier-Transformation, Fensterung, Mittelung, Frequenzgangschätzung und Kohärenz) sowie die Softwaretechnik und Automatisierung (COM, Architektur, Teststrategie mit Simulator, Reproduzierbarkeit).
+
 ### Motivation
 - Heutiger Ablauf (Nutzer, 2026-10-29, ausdrücklich noch ungenau; Präzisierung am Messrechner Mo 2026-11-02): Messpunkt eingeben → Kameras/Laser auf den Messpunkt ausrichten → Blech anregen → Messung starten.
 - Problemkern (Nutzer, 2026-10-29): Bindung an die Software am Messrechner und manuelle Eingabe der Messungen; Messungen können nicht automatisch hintereinander ausgeführt werden.
@@ -96,3 +106,12 @@ Phasen ohne Dauer (Nutzer, 2026-10-29: Bearbeitungszeit hängt vom Antrag an den
 Laufend: wöchentliche Treffen mit Fortschrittsbericht und kurzem Protokoll (Vorgabe Betreuer).
 
 ## Offene Fragen an den Betreuer
+Gesammelt aus Interview und Recherche (nicht Teil des Exposé-Textes; Auswahl durch den Nutzer):
+1. Bearbeitungszeit und Abgabetermin nach Entscheidung über den Antrag (F1).
+2. Gewichtung der vier Bereiche im Bewertungsraster (F3).
+3. Fehlerverhalten der Mess-Warteschlange (F20, WICHTIG).
+4. Welche individuellen Auswertungen werden benötigt (mit Daniel und Florian)?
+5. Gibt es SLA-Hausreferenzen zu Ground Vibration Test, 3D-LDV und Automatisierung von Modaltests? Volltext DLR-Übersicht (Göge 2006)?
+6. Datenblatt des PSV QTec 3D (Messbereiche, Bandbreite, Rauschen) (F8).
+7. Langform bzw. korrekte Bezeichnung „PSV“ (Polytec-Produktname) für den Text.
+8. Weiterverwendung der Software am Institut (F18).
