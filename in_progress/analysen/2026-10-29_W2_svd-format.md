@@ -199,7 +199,8 @@ belegt, dass Datensätze und Banddaten denselben Punktindex verwenden. Die Zuord
 Geometrie (MeasPoints-Zeile) belegt das **Kennfeld** (+0x8C ↔ +0x08): Es ist
 permutationsempfindlich bis zur einzelnen Vertauschung, seine Bedeutung ist aber offen; es
 belegt die Zuordnung nur, solange die Werte je Punkt verschieden sind (in der Datei: 135
-verschiedene Werte).
+verschiedene Werte). Sind sie es nicht, meldet die Prüfung „nicht trennscharf“ (nicht
+durchführbar, nicht bestanden) statt eines Belegs (K-W2c).
 
 Die Geometrieprüfung ist nur Gegenprobe. Ihre Grenzen: Zwei vertauschte Punkte ändern die
 mittlere Schrittweite kaum (Reviewer-Beleg: 0,165 statt 0,164, bestanden). Ein Versatz um

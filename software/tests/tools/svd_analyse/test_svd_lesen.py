@@ -735,3 +735,18 @@ def test_echte_kopie_widerspruechlicher_kanalanker(echte_stroeme: dict[str, byte
     st["Info/DAQ_Settings_Fft/Channels"] = _channels("Vib 3D", "Ref2", "Ref1")
     with pytest.raises(sl.SvdFormatFehler, match="widersprechen"):
         sl.lese_container(syn.FakeOle(st), ECHTE_DATEI)
+
+
+def test_kennfeld_nicht_trennscharf_bei_gleichen_werten() -> None:
+    # Reviewer-Fall: alle Kennfeldwerte 0, Koordinaten um einen Index versetzt.
+    m = _messpunkte_umgeordnet(_raster_messung(), np.roll(np.arange(48), 1))
+    statusfelder = dict(m.punkte.statusfelder)
+    statusfelder["feld_08"] = np.zeros(48)
+    m = replace(
+        m,
+        punkte=replace(m.punkte, statusfelder=statusfelder),
+        satz_kennfeld=np.zeros(48),
+    )
+    kenn = sp.pruefe_punktzuordnung(m)[0]
+    assert not kenn.durchgefuehrt and not kenn.bestanden
+    assert kenn.grund is not None and "nicht trennscharf" in kenn.grund

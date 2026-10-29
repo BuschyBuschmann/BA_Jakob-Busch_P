@@ -158,7 +158,8 @@ def pruefe_punktzuordnung(messung: SvdMessung, seed: int = 0) -> list[Pruefergeb
        bitgleich mit dem Messpunktfeld +0x08 desselben Punkts; die 135 Werte der
        Beispieldatei sind paarweise verschieden. Kennwert: Anzahl Punkte ohne
        Übereinstimmung (Grenze 0). Erkennt jeden Versatz und jede Vertauschung, solange
-       die Werte verschieden sind; die Bedeutung des Felds ist offen.
+       die Werte verschieden sind; sonst meldet sie „nicht trennscharf“ (nicht
+       durchführbar, nicht bestanden). Die Bedeutung des Felds ist offen.
     2. **Geometrie (Gegenprobe):** Mittlere Schrittweite in Scanreihenfolge gegen die
        kleinste über ``PERMUTATIONEN`` zufällige Reihenfolgen (Seed fest). Erkennt grobe
        Fehlzuordnungen, aber weder einzelne Vertauschungen noch sicher einen Versatz um
@@ -177,6 +178,14 @@ def pruefe_punktzuordnung(messung: SvdMessung, seed: int = 0) -> list[Pruefergeb
     feld = messung.punkte.statusfelder.get("feld_08")
     if feld is None or messung.satz_kennfeld.shape != (n,):
         ergebnisse.append(_nicht_durchfuehrbar(namen[0], "Kennfelder fehlen"))
+    elif np.unique(feld).size != n:
+        # Gleiche Werte bei mehreren Punkten: Vertauschungen zwischen ihnen blieben
+        # unsichtbar, die Prüfung belegt die Zuordnung dann nicht.
+        ergebnisse.append(
+            _nicht_durchfuehrbar(
+                namen[0], "nicht trennscharf: Kennfeldwerte nicht paarweise verschieden"
+            )
+        )
     else:
         satz32 = messung.satz_kennfeld.astype(np.float32).astype(np.float64)
         ergebnisse.append(Pruefergebnis(namen[0], float(np.sum(satz32 != feld)), 0.0))
