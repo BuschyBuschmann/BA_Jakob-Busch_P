@@ -10,7 +10,7 @@
 - Bearbeitungszeit und Abgabetermin hängen vom Ausgang des Antrags ab → Zeitplan relativ in Wochen ab Anmeldung; offener Punkt F1.
 
 ## 1 Titel
-- Offen: wird nach Motivation und Ziel gemeinsam erarbeitet (Ausschreibungstitel als Ausgangspunkt).
+- Zurückgestellt (Nutzer, 2026-10-29: „Titel lassen wir bitte erstmal weg“). Vorschläge A–C aus dem Interview liegen vor, nicht ausgewählt.
 
 ## 2 Kurzfassung
 ### Motivation
@@ -28,8 +28,51 @@
   - Keine Ansteuerung weiterer Hardware (Shaker, externer Signalgenerator, Positioniereinheit).
   - KI-Assistent für Warteschlangen nur optional (R-040, Kann).
 ### Lösungsweg
+- Vorgehen (Nutzer, 2026-10-29, Reihenfolge wie Vorschlag):
+  1. Analyse der Schnittstelle: COM-Schnittstelle und Objektmodell der PSV-Software aus der Dokumentation, danach lesende Erkundung am Messrechner.
+  2. Anforderungen: Lastenheft mit den Betreuern (Muss/Soll/Kann), Abgrenzung.
+  3. Iterative Entwicklung: Architektur, Prototyp mit Warteschlange und Oberfläche, Tests ohne Gerät gegen einen Simulator, Reviews.
+  4. Erprobung und Validierung: Tests am Messrechner, Strukturtests am Prüfling, Vergleich eigener Auswertungen mit der PSV-Auswertung bzw. analytischen Referenzfällen.
+- Theoretische Grundlagen (Nutzer, 2026-10-29): Laser-Doppler-Vibrometrie (Messprinzip, Scanning- und 3D-LDV); Strukturdynamik und Modaltest (inkl. Strukturtests in der Luft- und Raumfahrt); Signalverarbeitung (FFT, Fensterung, Mittelung, H1/H2, Kohärenz); Softwaretechnik und Automatisierung (COM, Architektur, Teststrategie mit Simulator, Reproduzierbarkeit). Quellen: siehe Abschnitt 4.
 
 ## 3 Gliederung
+Vom Nutzer am 2026-10-29 übernommen (Vorschlag des Orchestrators nach SLA-Vorlage, Kapitel 1–6; höchstens drei Ebenen).
+
+1 Einleitung
+- 1.1 Motivation
+- 1.2 Zielsetzung und Abgrenzung
+- 1.3 Aufbau der Arbeit
+
+2 Stand der Technik
+- 2.1 Strukturtests in der Luft- und Raumfahrt
+- 2.2 Laser-Doppler-Vibrometrie in der Strukturdynamik (3D-Scanning-Vibrometer, Polytec PSV)
+- 2.3 Automatisierung von Messabläufen über Softwareschnittstellen
+- 2.4 Handlungsbedarf
+
+3 Methodik
+- 3.1 Grundlagen der Signalverarbeitung für Schwingungsmessungen
+- 3.2 Betriebsschwingformen und Grundlagen der Modalanalyse
+- 3.3 Anforderungen an das Softwarepaket
+- 3.4 Softwarekonzept
+
+4 Umsetzung
+- 4.1 Analyse der COM-Schnittstelle
+- 4.2 Ansteuerung und Mess-Warteschlange
+- 4.3 Benutzeroberfläche
+- 4.4 Datenübernahme und Auswertung in Python
+- 4.5 Versuchsaufbau und Durchführung der Strukturtests
+
+5 Analyse und Auswertung der Ergebnisse
+- 5.1 Verifikation der Software
+- 5.2 Erprobung am Messrechner
+- 5.3 Vergleich der Auswertungen mit der PSV-Software und mit Referenzfällen
+- 5.4 Bewertung (Reproduzierbarkeit, Aufwand, Grenzen) – inkl. eigenem Vergleich des Zeitaufwands: gleiche Messreihe einmal manuell, einmal mit der Software (Nutzer, 2026-10-29)
+
+6 Schlussfolgerung und Ausblick
+- 6.1 Zusammenfassung
+- 6.2 Ausblick
+
+Anhang (Vorschlag): Bedienungsanleitung, Lastenheft, Versuchsprotokolle.
 
 ## 4 Erste Quellensammlung
 - Grundlage: `in_progress/literatur/literatur.bib`, `in_progress/literatur/leseliste.md` (Paket L1).
