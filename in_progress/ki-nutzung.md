@@ -41,3 +41,4 @@ Nutzer hat das Ergebnis geprüft und verantwortet es.
 | 2026-10-29 | `in_progress/literatur/literatur.bib`, `leseliste.md` (Ergänzung L2) | Recherche Messautomatisierung und Geschichte der Strukturtests | literatur-rechercheur (sonnet) | offen (Metadaten teils unbestätigt; Volltexte ausstehend) |
 | 2026-10-29 | `in_progress/planung/expose.md`, Rohfassung Kurzfassung | Rohfassung Fließtext aus den Interview-Antworten | wissenschaftlicher-autor (sonnet) | offen (Überarbeitung durch den Nutzer) |
 | 2026-10-29 | `in_progress/analysen/2026-10-29_W1_auswertung-heute.md`, Literatur-Ergänzung W1 | Bestandsaufnahme der Auswertung (PSV, andere Werkzeuge, Literatur) | literatur-rechercheur (sonnet) | offen |
+| 2026-10-29 | `in_progress/analysen/2026-10-29_W3_verbesserungen-auswertung.md` | Fachanalyse: Verbesserungsmöglichkeiten der Auswertung, Prüfung der .svd-Deutung | strukturdynamik-experte (opus) | offen (Auswahl A-1…A-8, B-1…B-10 durch den Nutzer am 2026-10-29) |
