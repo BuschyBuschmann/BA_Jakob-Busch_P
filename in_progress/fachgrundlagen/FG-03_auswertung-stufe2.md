@@ -1,6 +1,6 @@
 <!-- Fachgrundlage FG-03: Auswertung Stufe 2 (B-1 parametrische Dämpfungsschätzung, B-5 Vergleich mehrerer Messungen, B-8 3D-Komponentenbezug). Erstellt im Paket W4-2 von strukturdynamik-experte, Stand 2026-10-30. Status: FACHGRUNDLAGE ZUR FREIGABE. -->
 
-> **Status:** Vom Nutzer am 2026-10-30 freigegeben, einschließlich der Entscheidungen E1–E6 wie empfohlen (Abschnitt 8). Annahmen M12–M15 und die Wiederholungsmessung für B-5 werden am Messrechner (Mo 2026-11-02) geprüft bzw. aufgenommen.
+> **Status:** Vom Nutzer am 2026-10-30 freigegeben, einschließlich der Entscheidungen E1–E6 wie empfohlen (Abschnitt 8). Annahmen M12–M15 und die Wiederholungsmessung für B-5 werden am Messrechner (Mo 2026-11-02) geprüft bzw. aufgenommen. Korrektur K2-1 (Option A) bis K2-4 am 2026-10-30 freigegeben und eingearbeitet (Fachabnahme FA-W5-2; Abschnitte 3.2, 4.2, 4.5, 6.2, 6.3, 7, 9.1, 9.2).
 
 # FG-03 – Auswertung von PSV-Messdaten, Stufe 2
 
@@ -102,6 +102,12 @@ Gegeben ist die komplexe H1 (Stufe 1, nach $s_a s_b$ und Konjugation) eines Punk
 Fitlinien $k \in \mathcal K$ mit Kohärenzmaske $\gamma^2_k \ge \gamma^2_\mathrm{min}$ (FG-02 3.5).
 Linien unter der Schwelle fallen aus dem Fit heraus.
 
+**Linien mit γ² = NaN (K2-4).** γ² = NaN bedeutet „nicht prüfbar“ (z. B. $n_d = 1$, FG-02 3.3),
+nicht „zu klein“. Solche Linien bleiben im Fit, sofern H endlich ist. Ist γ² im Fitband an
+mindestens einer Linie NaN, erhält das Ergebnis den Hinweis „Kohärenz nicht prüfbar“; ein
+Kennzeichen entsteht daraus nicht. Nur Linien mit endlichem $\gamma^2_k < \gamma^2_\mathrm{min}$
+werden entfernt.
+
 1. **Lineare Teilaufgabe.** Für feste nichtlineare Parameter $\theta = (f_r, \ln\zeta_r)_{r=1..n}$
    sind $R_r$ und $C$ linear. Sie folgen aus dem komplexen Kleinste-Quadrate-Problem
    $\min\lVert H - \Phi(\theta)\,c\rVert_2$. Dabei ist $\Phi$ die Matrix der Basisfunktionen
@@ -110,6 +116,14 @@ Linien unter der Schwelle fallen aus dem Fit heraus.
    $S(\theta) = \lVert H - \Phi(\theta)\,c^\ast(\theta)\rVert_2^2$ über θ mit
    Levenberg-Marquardt. Die Jacobi-Matrix wird über Real- und Imaginärteil gestapelt, mit
    finiten Differenzen; Abbruch bei relativer Änderung von S < 10⁻¹².
+   - **Abbruchkriterium (K2-2):** Der Fit gilt als konvergiert, sobald ein Versuchsschritt S
+     relativ um höchstens 10⁻¹² ändert, gleich ob der Schritt angenommen oder verworfen
+     wird: $\lvert S(\theta + \delta) - S(\theta)\rvert \le 10^{-12}\,S(\theta)$. Ein verworfener
+     Schritt mit so kleiner Änderung zeigt, dass der Gradient auf Rundungsniveau liegt
+     (S stationär im Rahmen der Differenzen-Jacobi-Matrix). Ohne diese Lesart enden exakte
+     Daten (RF-F1, RF-F4) über λ > 10¹² und würden fälschlich `nicht_konvergiert`.
+     `nicht_konvergiert` bleibt für: 200 Schritte ohne Abbruch, λ > 10¹² oder singuläre
+     Normalgleichung (3.4).
    - Der Ansatz über ln ζ hält ζ > 0.
    - Startwerte: $f_r^{(0)} = f_\mathrm{sp}$ aus Stufe 1; $\zeta_r^{(0)} = \zeta$ aus Stufe 1,
      falls endlich, sonst $\Delta f/(2f_\mathrm{sp})$.
@@ -228,6 +242,17 @@ verglichen (Hinweis „Achsen verschieden“). Eine Interpolation zwischen Linie
   $\Delta\zeta$ sowie das Kennzeichen `signifikant`, wenn
   $\lvert\Delta f\rvert > 2\sqrt{\sigma_A^2 + \sigma_B^2}$ (Fit-Standardabweichungen nach 3.2).
   Ohne B-1 dient als Unsicherheit die Diskretisierungsgrenze 0,0508 Δf aus FG-02 3.9.
+- **Festlegung (K2-3):** $f^A$, $f^B$ sind mit B-1 der Median von $f_r$ der Zusammenfassung
+  (3.5); $\sigma_A$, $\sigma_B$ sind der **Median der Fit-Standardabweichungen**
+  $\sigma_{f_r}$ der dort verwendeten Punkte. Sie werden nicht durch $\sqrt{N}$ geteilt: Die
+  Fit-Standardabweichung enthält Modellfehler, die allen Punkten gemeinsam sind (Abschnitt 7:
+  sie ist größer als die Streuung um die Driftgerade). Ein Maß aus der Streuung über die Punkte
+  (z. B. IQR 0,007 Hz bei 401 Hz) würde fast jede Verschiebung als `signifikant` melden.
+  Das Maß ist damit konservativ gegenüber Zufallsfehlern.
+- **Hinweis zur Deutung:** Die Drift innerhalb einer Messung (4.5; in der Beispieldatei bis
+  −0,32 Hz bei 1508 Hz in 40 min) hat dieselbe Größenordnung wie σ. Ein `signifikant` zwischen
+  zwei Messungen kann daher auch von Temperatur oder Zeit herrühren, nicht nur von einer
+  Strukturänderung.
 - Spitzen ohne Partner werden aufgelistet.
 
 ### 4.3 FRF-Vergleich je Punkt und Band
@@ -269,15 +294,36 @@ $$\mathrm{MAC}(\phi_A, \phi_B) = \frac{\lvert\phi_A^\mathsf{H}\phi_B\rvert^2}{(\
   ist das konfigurierte Antriebspunkt-Paar (z. B. Ref2/Ref1). Ist keins konfiguriert, wird
   H1 an den Punkten verwendet, an denen $\lvert H_1\rvert \ge 0{,}3\cdot\max$ an der
   Spitzenlinie ist.
-- Je Punkt p liefert der Fit nach 3.2 für eine ausgewählte Spitze $f_{r,p}$. Dazu kommt die
-  Zeit $t_p$ in s relativ zum ersten Punkt.
+- Je Punkt p liefert der Fit nach 3.2 für eine ausgewählte Spitze $f_{r,p}$. Gefittet wird
+  die Gruppe der Spitze nach 3.3 (Gruppenfit mit allen Moden der Gruppe); verwendet wird nur
+  $f_r$ der gewählten Mode. Dazu kommt die Zeit $t_p$ in s relativ zum ersten Punkt.
 - Lineare Regression $f_{r,p} = b_0 + b_1 t_p$. Ausgabe:
   - $b_1$ in Hz/h,
   - Gesamtdrift $b_1(t_\mathrm{max} - t_\mathrm{min})$ in Hz und relativ zu $b_0$,
   - Standardfehler $\sigma_{b_1}$ **aus der Streuung um die Gerade** (nicht aus den
     Fit-Standardabweichungen, siehe 7),
   - Kennzeichen `drift_signifikant`, wenn $\lvert b_1\rvert > 3\sigma_{b_1}$.
-- Verwendet werden nur Punkte ohne Kennzeichen nach 3.4; mindestens 10.
+- **Punktausschluss (K2-1, Option A).** Ausgeschlossen wird nach den Kennzeichen **der
+  gewählten Mode** an diesem Punkt:
+  - `ausserhalb_band` und `unsicher` (beide je Mode nach 3.4),
+  - `nicht_konvergiert` nur bei n = 1. Im Gruppenfit (n ≥ 2) gilt das Kennzeichen für alle
+    Moden gemeinsam und stammt oft von einer schwach ausgeprägten Partnermode; über die
+    gewählte Mode entscheiden dann `ausserhalb_band` und `unsicher`,
+  - Punkte ohne Fit (`zu_wenig_linien`, `gruppe_zu_gross`, ‖H‖ = 0).
+
+  **Nicht** ausgeschlossen werden `modell_passt_nicht`, `gueltigkeit_offen_m7`,
+  `kohaerenz_niedrig` und `kein_mobilitaetsbezug`. Die Anzahl der verwendeten Punkte mit
+  `modell_passt_nicht` wird ausgegeben.
+- Mindestens 10 verwendete Punkte, sonst „nicht prüfbar“.
+- **Begründung [D, N].** ρ hängt mit der Zeit zusammen, weil der Pol durch die Drift gegen das
+  feste Linienraster wandert (Korrelation ρ–t in der Beispieldatei −0,42 bei 419 Hz, +0,94 bei
+  1508 Hz). Eine Auswahl nach ρ wählt also nach einer Größe aus, die mit dem Regressor
+  zusammenhängt, und verzerrt $b_1$: Bei 419 Hz liegt ρ fast überall zwischen 0,099 und 0,102
+  (10- bis 90-%-Quantil); die Teilmengen ρ ≤ 0,10 und ρ > 0,10 ergeben −0,097 bzw.
+  −0,138 Hz/h, alle Punkte −0,129 Hz/h. Bei 631,7 Hz trägt die Gruppe mit 640,6 Hz an
+  95 von 135 Punkten `nicht_konvergiert`, weil die in Ref2/Ref1 kaum vorhandene Partnermode
+  wegläuft (ζ bis 8·10³); die Streuung von $f_r$ der gewählten Mode ist in beiden Teilmengen
+  gleich (0,024 Hz). Prüfskripte `drift_var.py`, `drift_631.py` und `drift_k2.py` im Anhang.
 
 ---
 
@@ -362,7 +408,7 @@ $a = \mathrm{Re}\,\hat v$, $b = \mathrm{Im}\,\hat v$ [A].
 | B-5 Spitzenpaare: $f^A$, $f^B$, Δf, Δf/f, Δζ, `signifikant` | Liste | Hz, 1 |
 | B-5 FRF-Vergleich je Punkt und Band: `frac`, `pegel_db`, `diff_rel`, `n_linien` | (P_zug,) | 1, dB, 1 |
 | B-5 MAC je Spitzenpaar; Auto-MAC | Skalar; Matrix | 1 |
-| B-5 Drift: $b_1$ in Hz/h, Gesamtdrift in Hz und relativ, $\sigma_{b_1}$, `drift_signifikant`, Anzahl Punkte | je Spitze | Hz/h, Hz, 1 |
+| B-5 Drift: $b_1$ in Hz/h, Gesamtdrift in Hz und relativ, $\sigma_{b_1}$, `drift_signifikant`, Anzahl Punkte, davon mit `modell_passt_nicht` (K2-1) | je Spitze | Hz/h, Hz, 1 |
 | B-8: `normale_element` (E, 3), `flaeche_element` (E,), `normale_punkt` (P, 3); je Schwingform `v_normal` (P,) complex, `v_tangential` (P, 3) complex, `anteil_normal` (P,), `achse_max` (P, 3), `drehsinn` (P,) | – | 1, m², 1, [v], [v], 1, 1, 1 |
 
 ### 6.3 Randfälle
@@ -371,6 +417,7 @@ $a = \mathrm{Re}\,\hat v$, $b = \mathrm{Im}\,\hat v$ [A].
 |---|---|
 | Fitband mit weniger als $4n + 3$ Linien nach Maske | kein Fit, `zu_wenig_linien` |
 | γ² der Spitzenlinie unter der Schwelle | Fit mit den übrigen Linien; Kennzeichen `kohaerenz_niedrig` aus Stufe 1 wird übernommen |
+| γ² = NaN im Fitband (z. B. $n_d = 1$) | Linien bleiben im Fit (K2-4); Hinweis „Kohärenz nicht prüfbar“, kein Kennzeichen |
 | Gruppe größer als $n_\mathrm{max}$ | kein Fit, `gruppe_zu_gross` |
 | $\lVert H\rVert = 0$ im Fitband | kein Fit, Hinweis |
 | Achsen von A und B verschieden | nur Spitzenpaarung, Hinweis |
@@ -378,7 +425,8 @@ $a = \mathrm{Re}\,\hat v$, $b = \mathrm{Im}\,\hat v$ [A].
 | keine zugeordneten Punkte | MAC, FRF-Vergleich NaN, Hinweis |
 | MAC mit Nullvektor | NaN |
 | weniger als 3 gemeinsame Linien im Band | `frac`, `pegel_db`, `diff_rel` NaN |
-| Drift mit weniger als 10 brauchbaren Punkten | nicht prüfbar |
+| Drift mit weniger als 10 brauchbaren Punkten (nach Ausschluss je Mode, 4.5) | nicht prüfbar |
+| Drift: Gruppenfit mit `nicht_konvergiert` | Punkt bleibt, wenn die gewählte Mode weder `ausserhalb_band` noch `unsicher` trägt (K2-1) |
 | entartetes Element (Fläche < 10⁻¹²·Median) | ignoriert, Hinweis |
 | Punkt ohne Element | Normale NaN, Zerlegung NaN |
 | Kreisbahn | `achse_max` NaN, Hinweis |
@@ -391,11 +439,25 @@ Vorbehaltlich M1–M14; Prüfskripte `datei.py` und `gruppe.py` im Anhang.
 
 **B-1:**
 
-| Spitze | Stufe 1 (Betragsmittel, W5-1) | B-1 je Punkt (20 stärkste, Vib Z/Ref1) | ρ |
+Festlegung für die Zusammenfassung (K2-3): Punktauswahl **je Spitze** (die 20 Punkte mit dem
+größten $\lvert H_1\rvert$ an der Spitzenlinie dieser Spitze, 3.5), Fitband nach 3.3 mit
+Kürzung am lokalen Minimum, ρ als **Median über die verwendeten Punkte** (ohne
+`modell_passt_nicht`, `nicht_konvergiert`, `ausserhalb_band`). Die Werte stammen aus der
+Umsetzung W5-2 und wurden in der Fachabnahme FA-W5-2 nachgerechnet.
+
+| Spitze | Stufe 1 (Betragsmittel, W5-1) | B-1 je Punkt (20 stärkste je Spitze, Vib Z/Ref1) | ρ (Median der verwendeten Punkte) |
 |---|---|---|---|
-| ≈ 401,6 Hz | B = 1,429 Hz, ζ = 0,00178, `aufloesungsbegrenzt` | $f_r$ = 401,324 Hz (IQR 0,007), ζ = 0,00142 (IQR 0,00003) | Median 0,054 |
-| ≈ 618,9 Hz | B = 1,920 Hz, ζ = 0,00155, `aufloesungsbegrenzt` | $f_r$ = 619,016 Hz (IQR 0,016), ζ = 0,00146 (IQR 0,00004) | 0,080 |
-| ≈ 262,6 Hz (Gruppe 262,6/265,0/270,0) | B = 1,487 Hz, `aufloesungsbegrenzt`, `nachbarmode`; 265,0 Hz `ueberlappend` | 1 Mode: ζ = 0,00223; 3 Moden: $f_r$ = 262,719 / 266,165 / 270,270 Hz, ζ = 0,00214 / 0,00116 / 0,00187 | 1 Mode 0,224; 3 Moden 0,015 |
+| ≈ 401,6 Hz | B = 1,429 Hz, ζ = 0,00178, `aufloesungsbegrenzt` | $f_r$ = 401,324 Hz (IQR 0,007), ζ = 0,00142 (IQR 0,00003), 20 Punkte | 0,054 |
+| ≈ 618,9 Hz | B = 1,920 Hz, ζ = 0,00155, `aufloesungsbegrenzt` | $f_r$ = 619,015 Hz (IQR 0,015), ζ = 0,00146 (IQR 0,00004), 19 Punkte (1 × `modell_passt_nicht`) | 0,078 (über alle 20: 0,080) |
+| ≈ 262,6 Hz (Gruppe 262,6/265,0/270,0) | B = 1,487 Hz, `aufloesungsbegrenzt`, `nachbarmode`; 265,0 Hz `ueberlappend` | 3 Moden, Fitband 254,69–279,69 Hz (17 Linien): $f_r$ = 262,720 / 266,154 / 270,267 Hz, ζ = 0,00214 / 0,00116 / 0,00190, je 20 Punkte | 0,007 / 0,012 / 0,008 |
+
+- Vergleich mit dem ersten Prüfskript (`gruppe.py`, Erstfassung): Es nahm für alle drei Moden
+  die 20 stärksten Punkte bei 262,5 Hz und kürzte das Band nicht (253,1–279,7 Hz, die Linie
+  253,1 Hz liegt an der Nachbarspitze 253,2 Hz). Damit ergaben sich ζ₃ = 0,00187 und ρ = 0,015.
+  Mit der Punktauswahl des Skripts liefert die Umsetzung 270,270 Hz und ζ₃ = 0,00188; der
+  Unterschied in ρ kommt von der Bandkürzung nach 3.3.
+- Erzwungener Ein-Moden-Fit an der Gruppe (nur zur Einordnung, Prüfskript): ζ = 0,00223,
+  ρ = 0,224.
 
 - Die Halbwertsbreite von Stufe 1 liegt an der Auflösungsgrenze 6 bis 25 % über dem Fit.
   Das entspricht der Tabelle in FG-02 3.9 (positiver Bias).
@@ -403,19 +465,26 @@ Vorbehaltlich M1–M14; Prüfskripte `datei.py` und `gruppe.py` im Anhang.
   Die höheren ρ zeigen, dass die Modellform dort schlechter passt; das Vorzeichen M8 ist
   dafür nicht verantwortlich, es ändert nur R.
 
-**B-5 (Drift, Ref2/Ref1-Pol je Punkt):**
+**B-5 (Drift, Ref2/Ref1 als Mobilität, Pol je Punkt; Gruppenfit nach 3.3, Ausschluss je
+gewählter Mode nach 4.5, K2-1):**
 
-| Spitze | $b_1$ | über 39,6 min | relativ |
-|---|---|---|---|
-| ≈ 419 Hz | −0,132 ± 0,010 Hz/h | −0,087 Hz | −2,1·10⁻⁴ |
-| ≈ 631,7 Hz | −0,079 ± 0,010 Hz/h | −0,052 Hz | −0,8·10⁻⁴ |
-| ≈ 1508 Hz | −0,520 ± 0,018 Hz/h | −0,343 Hz | −2,3·10⁻⁴ |
+| Spitze | Gruppe (n) | $b_1$ | Dauer | Gesamtdrift | relativ | N (davon `modell_passt_nicht`) |
+|---|---|---|---|---|---|---|
+| ≈ 418,9 Hz | allein (1) | −0,129 ± 0,010 Hz/h | 39,6 min | −0,085 Hz | −2,0·10⁻⁴ | 135 (90) |
+| ≈ 631,7 Hz | mit 640,6 Hz (2) | −0,068 ± 0,010 Hz/h | 39,1 min | −0,044 Hz | −0,7·10⁻⁴ | 125 (0) |
+| ≈ 1508,1 Hz | mit 1491,8 Hz (2) | −0,482 ± 0,016 Hz/h | 39,6 min | −0,318 Hz | −2,1·10⁻⁴ | 135 (0) |
 
 - Alle drei Steigungen sind signifikant und bestätigen W3 2.7.
-- Die Streuung um die Gerade (0,023 bis 0,040 Hz) ist kleiner als die mittlere
-  Fit-Standardabweichung (0,049 bis 0,138 Hz). Die Fit-Standardabweichung enthält also auch
-  Modellfehler. Deshalb kommt der Standardfehler der Drift aus der Streuung um die Gerade
-  (4.5).
+- Die Streuung um die Gerade (0,022 bis 0,035 Hz) ist kleiner als die mittlere
+  Fit-Standardabweichung der verwendeten Punkte (0,036 bis 0,082 Hz). Die
+  Fit-Standardabweichung enthält also auch Modellfehler. Deshalb kommt der Standardfehler der
+  Drift aus der Streuung um die Gerade (4.5).
+- Die Erstfassung dieser Tabelle (−0,132 / −0,079 / −0,520 Hz/h) stammte aus einem
+  vereinfachten Prüfskript mit Einzelmodenfit und ohne Ausschluss. Sie ist durch die Werte
+  oben ersetzt. Der Gruppenfit passt besser: bei 1508 Hz ρ = 0,040 statt 0,069 und Streuung
+  0,035 statt 0,040 Hz.
+- Bei 631,7 Hz trägt der Gruppenfit an 95 Punkten `nicht_konvergiert` (Partnermode 640,6 Hz
+  läuft weg); 10 Punkte fallen über `unsicher` der gewählten Mode heraus.
 
 **B-8:**
 - 112 Elemente; alle Knotenreihenfolgen ergeben eine Normale mit negativer z-Komponente.
@@ -456,14 +525,16 @@ $f_j = (k_0 + j + \mathrm{off})\,\Delta f$.
 
 | ID | Eingang | Sollwert | Toleranz, Begründung |
 |---|---|---|---|
-| RF-F1 | SDOF $f_n$ = 100 Hz, ζ = 0,005; Δf = 1,5625 Hz ($B/\Delta f$ = 0,64); 17 Linien um Linie 64; off = 0 und 0,37; Start $f^{(0)}$ = 100,3 Hz, $\zeta^{(0)}$ = 0,01 | $f_r$ = 100 Hz, ζ = 0,005, R = 1 kg⁻¹, C = 0, ρ ≈ 0 | $f_r$: atol 1e-7 Hz; ζ, R: rtol 1e-6; \|C\| ≤ 1e-12; ρ ≤ 1e-12 (exakte Modellform) |
+| RF-F1 | SDOF $f_n$ = 100 Hz, ζ = 0,005; Δf = 1,5625 Hz ($B/\Delta f$ = 0,64); 17 Linien um Linie 64; off = 0 und 0,37; Start $f^{(0)}$ = 100,3 Hz, $\zeta^{(0)}$ = 0,01 | $f_r$ = 100 Hz, ζ = 0,005, R = 1 kg⁻¹, C = 0, ρ ≈ 0; konvergiert, ohne Kennzeichen (Abbruchkriterium K2-2) | $f_r$: atol 1e-7 Hz; ζ, R: rtol 1e-6; \|C\| ≤ 1e-12; ρ ≤ 1e-12 (exakte Modellform) |
 | RF-F2 (statistisch) | wie RF-F1, off = 0,37, komplexes Rauschen σ = 0,01·max\|Y\| (bzw. 0,03), 400 Wiederholungen, `default_rng(20261030)` | Mittelwert ζ ≈ 0,005; Streuung σ_ζ/ζ ≈ 0,0135 (bzw. 0,0415); mittlere Fit-sd ≈ 0,0131 (0,0392) | Bias \|·\| ≤ 0,01; Fit-sd innerhalb ±20 % der MC-Streuung |
-| RF-F3 | zwei Moden 100 Hz und 102 bzw. 103 Hz, ζ = 0,01, Modalmasse 1 kg; Δf = 0,5 Hz, Linien 90 … 114,5 Hz | n = 2: $f_r$ = (100, $f_2$), ζ = (0,01; 0,01), ρ ≈ 0. Erzwungen n = 1 (±4 Linien um das Maximum): bei 102 Hz ζ = 0,020565 (+106 %), ρ = 0,112 → `modell_passt_nicht`; bei 103 Hz ζ = 0,008775 (−12 %), ρ = 0,096 | n = 2: rtol 1e-6. n = 1: rtol 1e-3 (Algorithmus-Sollwert, Konvergenzschwelle); Kennzeichen exakt |
+| RF-F3 | zwei Moden 100 Hz und 102 bzw. 103 Hz, ζ = 0,01, Modalmasse 1 kg; Δf = 0,5 Hz, Linien 90 … 114,5 Hz | n = 2: $f_r$ = (100, $f_2$), ζ = (0,01; 0,01), ρ ≈ 0. Erzwungen n = 1 (±4 Linien um das Maximum): bei 102 Hz ζ = 0,020565 (+106 %), ρ = 0,112, $\sigma_{f_r}$ = 0,371 Hz > Δf/2 = 0,25 Hz, $\sigma_\zeta/\zeta$ = 0,18 → `modell_passt_nicht`, `unsicher` (K2-3); bei 103 Hz ζ = 0,008775 (−12 %), ρ = 0,096, $\sigma_{f_r}$ = 0,108 Hz, $\sigma_\zeta/\zeta$ = 0,124 → kein Kennzeichen (bekannte Grenze, 3.3) | n = 2: rtol 1e-6. n = 1: rtol 1e-3 (Algorithmus-Sollwert, Konvergenzschwelle); Kennzeichen exakt |
 | RF-F3b (Gruppenbildung) | Spitzen aus Stufe 1 bei 100 und 102 Hz mit `nachbarmode` | eine Gruppe, n = 2 | exakt |
+| RF-F3c (Gruppenfit mit weglaufender Partnermode, Hinweis) | Kein eigener Sollwert; Befund [D] bei 631,7 Hz (Abschnitt 7): Partnermode endet `ausserhalb_band`, Fit `nicht_konvergiert`, gewählte Mode brauchbar. Die Wirkung auf die Drift prüft RF-V6 | – | – |
 | RF-F4 | Impulsantwort $h_v(t) = e^{-\zeta\omega_n t}(\cos\omega_d t - \tfrac{\zeta\omega_n}{\omega_d}\sin\omega_d t)$, $h_v(0)$ halb gewichtet, $f_s$ = 6250 Hz, N = 4000 (T = 0,64 s), $\hat H_k$ = rfft(h)/f_s; 17 Linien um $f_n$. Fälle (100 Hz; 0,005), (100; 0,01), (100; 0,02), (400; 0,002), (100; 0,05) | ζ und $f_r$ wie Eingabe (Pole unverfälscht trotz Rest 0,134 am Blockende) | ζ: rtol 1e-4; $f_r$: atol 1e-3 Hz (Abtastfehler der Faltungssumme; bei 100 T gemessen ≤ 1,4e-5) |
 | RF-F5 | Burst-Chirp 20 → 2500 Hz linear, Dauer 0,4 T bzw. 0,8 T, Amplitude 1; $y = (x * h_v)\,\Delta t$, Block [0, T), Rechteck; $H_1 = Y_k/X_k$ (ein Block, ohne Rauschen); Fälle wie RF-F4 ohne ζ = 0,05 | Fit: \|ζ/ζ_wahr − 1\| ≤ 0,025 und ρ ≤ 0,05 in allen Fällen; Halbwertsbreite (FG-02 3.9) bei (100 Hz; 0,005): +0,316 bzw. +0,317 | Toleranz begründet durch die Modellabweichung (Leckage); Halbwertsbreite nur zur Dokumentation |
 | RF-F6 (Kennzeichen) | RF-F1 mit nur 6 Linien → `zu_wenig_linien`; Fit an `np.conj(Y)` (off = 0,37, 17 Linien) → ρ = 0,454, ζ → 0: `modell_passt_nicht`, `nicht_konvergiert`, `ausserhalb_band`; Gruppe mit 5 Spitzen → `gruppe_zu_gross` | Kennzeichen; ρ > 0,4 | exakt |
 | RF-F7 (Vorzeichen) | RF-F1 mit −Y | $f_r$, ζ wie RF-F1; R = −1 | wie RF-F1 |
+| RF-F8 (γ² = NaN, K2-4) | RF-F1 (off = 0,37, 17 Linien) mit (a) γ² = NaN auf allen Linien ($n_d$ = 1); (b) γ² = NaN auf allen Linien außer der dritten Linie mit γ² = 0,5 < γ²_min | (a) Fit mit 17 Linien, Werte wie RF-F1, Hinweis „Kohärenz nicht prüfbar“, keine Kennzeichen (insbesondere nicht `zu_wenig_linien`). (b) Fit mit 16 Linien, Werte wie RF-F1, derselbe Hinweis | wie RF-F1; Linienzahl und Kennzeichen exakt |
 
 ### 9.2 B-5
 
@@ -482,6 +553,8 @@ $L_x = 8d$, $L_y = 14d$.
 | RF-V3 | $f^A$ = (100,0; 150,2; 260,5) Hz, $f^B$ = (100,3; 149,9; 261,4; 300,0) Hz, $\Delta f_\mathrm{tol}$ = 1,5 Hz | Paare (0,0; +0,3), (1,1; −0,3), (2,2; +0,9); 300 Hz ohne Partner | atol 1e-12 |
 | RF-V4 | SDOF 100 Hz, ζ = 0,01, Linien 90 … 110 Hz, Δf = 0,25 Hz; (a) $H_B$ = 1,1 $H_A$; (b) $f_n^B$ = 101 Hz; (c) $\zeta^B$ = 0,012 | (a) frac = 1, pegel_db = 0,8278537032, diff_rel = 0,1. (b) 0,8024872570; −0,0518051640; 0,6489671289. (c) 0,9917806594; −0,8499289122; 0,1271162285 | rtol 1e-9 |
 | RF-V5 | $f_r(t)$ = 418,9 Hz − 2·10⁻⁵ Hz/s · t, 135 Punkte gleichverteilt über 0 … 2376 s | $b_1$ = −0,072 Hz/h; Gesamtdrift −0,04752 Hz; relativ −1,1344·10⁻⁴; σ_b1 = 0 → `drift_signifikant` | rtol 1e-9 |
+| RF-V6 (Drift-Ausschluss je Mode, K2-1) | Vorgegebene Fit-Ergebnisse je Punkt (Prüfung der Ausschlusslogik, ohne Fit): 20 Punkte, $t_p = 120\,p$ s ($p = 0 \dots 19$), $f_{r,p}$ der gewählten Mode = 631,7 Hz − 2·10⁻⁵ Hz/s · $t_p$; jeder Punkt, der ausgeschlossen werden muss, trägt stattdessen $f_{r,p}$ + 1,0 Hz. **(a) Gruppe n = 2, gewählte Mode 1:** Punkte 0–9 `nicht_konvergiert` (gemeinsam) und Mode 2 `ausserhalb_band`; Punkte 10, 11 Mode 1 `unsicher`; Punkt 12 Mode 1 `ausserhalb_band`; Punkte 13–19 `modell_passt_nicht`; zusätzlich Punkt 5 `gueltigkeit_offen_m7`, Punkt 6 `kohaerenz_niedrig`. Ausgeschlossen (+1,0 Hz): 10, 11, 12. **(b) n = 1:** Punkte 0–2 `nicht_konvergiert`, 10–12 wie (a), 13–19 `modell_passt_nicht`. Ausgeschlossen (+1,0 Hz): 0, 1, 2, 10, 11, 12 | (a) N = 17, davon `modell_passt_nicht` 7; $b_1$ = −0,072 Hz/h; Gesamtdrift −0,0456 Hz; relativ −7,2186164318·10⁻⁵; $b_0$ = 631,7 Hz; `drift_signifikant`. (b) N = 14, davon `modell_passt_nicht` 7; $b_1$ = −0,072 Hz/h; Gesamtdrift −0,0384 Hz; relativ −6,0789041762·10⁻⁵; $b_0$ = 631,6928 Hz (Zeit auf den ersten verwendeten Punkt bezogen); `drift_signifikant` | rtol 1e-9; N exakt. Ein falsch einbezogener Punkt verschiebt $b_1$ um mehr als 1e-3 relativ und fällt sicher auf |
+| RF-V7 (σ der Spitzenpaarung, K2-3) | Zusammenfassung A: $f^A$ = 100,00 Hz, $\sigma_{f_r}$ der verwendeten Punkte (0,02; 0,04; 0,05) Hz. B: (i) $f^B$ = 100,15 Hz, (ii) $f^B$ = 100,09 Hz, jeweils $\sigma_{f_r}$ (0,03; 0,03; 0,09) Hz; $\Delta f_\mathrm{tol}$ = 1 Hz | $\sigma_A$ = 0,04 Hz, $\sigma_B$ = 0,03 Hz (Mediane), $\sqrt{\sigma_A^2+\sigma_B^2}$ = 0,05 Hz, Grenze 0,10 Hz. (i) Δf = +0,15 Hz → `signifikant`; (ii) Δf = +0,09 Hz → nicht `signifikant` | atol 1e-12 |
 
 ### 9.3 B-8
 
@@ -940,10 +1013,192 @@ for nm, fr0 in [(1, [262.6]), (2, [262.6, 270.0]), (3, [262.6, 265.0, 270.0])]:
     print(f"{nm} Mode(n), Band {f[lo] if nm>1 else f[k-6]:.1f}-{f[hi] if nm>1 else f[k+6]:.1f} Hz: fr Median {np.round(np.median(frs,0),3)}, z Median {np.round(np.median(zs,0),5)}, IQR z {np.round(np.subtract(*np.percentile(zs,[75,25],axis=0)),5)}, rho Median {np.median(rh):.3f} max {rh.max():.3f}")
 ```
 
+### Ergänzung K2 (Fachabnahme FA-W5-2, 2026-10-30)
+
+Ausgeführt aus `software/` mit `uv run python <skript>` gegen die Umsetzung W5-2 (nur lesend); die Skripte lagen im Scratchpad unter `fa_w52/`.
+
+#### drift_k2.py – Drift nach K2-1 (Tabelle Abschnitt 7)
+
+```python
+"""FG-03 K2-1: Drift an der Beispieldatei mit Ausschluss je gewählter Mode (Option A)."""
+import sys, pathlib, numpy as np
+sys.path.insert(0, "tools/auswertung")
+import beispiel_svd
+from ldv_automation.auswertung import werte_aus
+from ldv_automation.auswertung.annahmen import SchwellenStufe2
+from ldv_automation.auswertung.svd_adapter import aus_svd_messung, zeit_s_aus_svd_messung
+from ldv_automation.auswertung.vergleich import drift_aus, drift_regression
+m = beispiel_svd.lese_svd_werkzeug(pathlib.Path("../Input/20261012_ref_Mitte.svd"))
+aw = werte_aus(aus_svd_messung(m), antriebspunkt=("Ref2","Ref1","akzeleranz"))
+t = zeit_s_aus_svd_messung(m); sp = aw.paare[("Ref2","Ref1")].spitzen.spitzen
+for f0 in (418.8, 631.2, 1507.8):
+    i = int(np.argmin([abs(s.f_sp_hz - f0) for s in sp]))
+    _, fit = drift_aus(aw, t, f0, ("Ref2","Ref1"), schwellen2=SchwellenStufe2(drift_ausschluss=()))
+    g = next(g for g in fit.gruppen if i in g.spitzen); mode = g.spitzen.index(i); n = len(g.spitzen)
+    fr = np.full(t.size, np.nan); sd = []; mpn = 0
+    for e in fit.ergebnisse:
+        k = set(e.kennzeichen[mode])
+        aus = {"ausserhalb_band", "unsicher"} | ({"nicht_konvergiert"} if n == 1 else set())
+        if e.gefittet and not k & aus:
+            fr[e.punkt] = e.fr_hz[mode]; sd.append(e.sd_fr_hz[mode]); mpn += "modell_passt_nicht" in k
+    d = drift_regression(fr, t)
+    print(f"{sp[i].f_sp_hz:.3f} Hz n={n}: b1 {d.steigung_hz_h:+.4f} ± {d.sd_steigung_hz_h:.4f} Hz/h, Dauer {d.dauer_s/60:.1f} min, gesamt {d.gesamt_hz:+.4f} Hz, rel {d.gesamt_rel:+.2e}, s {d.streuung_hz:.4f} Hz, mittl. Fit-sd {np.mean(sd):.4f} Hz, N {d.n_punkte}, davon modell_passt_nicht {mpn}, sig {d.signifikant}")
+```
+
+#### drift_var.py – Drift-Varianten: Ausschluss über ρ, Gruppen- vs. Einzelmodenfit (Begründung 4.5)
+
+```python
+"""FA-W5-2: Drift-Varianten an der Beispieldatei (nur lesend)."""
+import sys, pathlib, numpy as np, collections
+sys.path.insert(0, "tools/auswertung")
+import beispiel_svd
+from ldv_automation.auswertung import werte_aus
+from ldv_automation.auswertung.annahmen import SchwellenStufe2
+from ldv_automation.auswertung.svd_adapter import aus_svd_messung, zeit_s_aus_svd_messung
+from ldv_automation.auswertung.vergleich import drift_aus, drift_regression
+from ldv_automation.auswertung.modenfit import fit_moden, mobilitaet_des_paars
+m = beispiel_svd.lese_svd_werkzeug(pathlib.Path("../Input/20261012_ref_Mitte.svd"))
+aw = werte_aus(aus_svd_messung(m), antriebspunkt=("Ref2","Ref1","akzeleranz"))
+t = zeit_s_aus_svd_messung(m)
+pa = aw.paare[("Ref2","Ref1")]
+f = pa.paar.frequenz_hz
+Y = mobilitaet_des_paars(pa, "akzeleranz")
+sp = pa.spitzen.spitzen
+S = SchwellenStufe2()
+for f0 in [418.8, 631.2, 1507.8]:
+    i = int(np.argmin([abs(s.f_sp_hz - f0) for s in sp]))
+    d, fit = drift_aus(aw, t, f0, ("Ref2","Ref1"), schwellen2=SchwellenStufe2(drift_ausschluss=()))
+    g = next(g for g in fit.gruppen if i in g.spitzen); mode = g.spitzen.index(i)
+    fr = np.array([e.fr_hz[mode] for e in fit.ergebnisse]); P = np.array([e.punkt for e in fit.ergebnisse])
+    rho = np.array([e.rho for e in fit.ergebnisse]); kz = [set(e.kennzeichen[mode]) for e in fit.ergebnisse]
+    tt = t[P]
+    print(f"== {sp[i].f_sp_hz:.3f} Hz, Gruppe {g.f_sp_hz}, Band {f[g.k_von]:.1f}-{f[g.k_bis]:.1f} Hz")
+    print("  Kennzeichen:", dict(collections.Counter(k for s in kz for k in s)))
+    print(f"  rho: Median {np.median(rho):.3f}, Quantile 10/90 {np.quantile(rho,0.1):.3f}/{np.quantile(rho,0.9):.3f}; corr(rho,t) {np.corrcoef(rho, tt)[0,1]:+.2f}")
+    def reg(maske, name):
+        ff = np.where(maske, fr, np.nan); dd = drift_regression(ff, tt)
+        print(f"  {name:38s} b1 {dd.steigung_hz_h:+.4f} ± {dd.sd_steigung_hz_h:.4f} Hz/h  N={dd.n_punkte} s={dd.streuung_hz:.4f}")
+    alle = np.ones(len(fr), bool)
+    reg(alle, "Gruppe, ohne Ausschluss")
+    reg(np.array([not s & {"nicht_konvergiert","ausserhalb_band"} for s in kz]), "Gruppe, -nk -ab")
+    reg(np.array([not s & {"nicht_konvergiert","ausserhalb_band","unsicher"} for s in kz]), "Gruppe, -nk -ab -uns")
+    reg(np.array([not s & set(S.drift_ausschluss) for s in kz]), "Gruppe, Voreinstellung (4 Kz)")
+    reg(rho <= 0.10, "Gruppe, nur rho<=0,1")
+    reg(rho > 0.10, "Gruppe, nur rho>0,1")
+    # Einzelmodenfit wie Prüfskript FG-03 (±6 Linien um Stufe-1-Linie, ohne Neusuche je Punkt)
+    k = sp[i].k; sel = slice(k-6, k+7)
+    fr1, rho1, kz1 = [], [], []
+    for p in range(Y.shape[0]):
+        r = fit_moden(f[sel], Y[p, sel], [sp[i].f_sp_hz], [0.003])
+        fr1.append(r.fr_hz[0]); rho1.append(r.rho)
+    fr1 = np.array(fr1); rho1 = np.array(rho1)
+    for name, msk in [("Einzelmode, ohne Ausschluss", np.ones(len(fr1), bool)), ("Einzelmode, rho<=0,1", rho1 <= 0.1)]:
+        dd = drift_regression(np.where(msk, fr1, np.nan), t)
+        print(f"  {name:38s} b1 {dd.steigung_hz_h:+.4f} ± {dd.sd_steigung_hz_h:.4f} Hz/h  N={dd.n_punkte} s={dd.streuung_hz:.4f}  rho Median {np.median(rho1):.3f}")
+```
+
+#### drift_631.py – Gruppe 631,6/640,6 Hz: Ursache von nicht_konvergiert
+
+```python
+"""FA-W5-2: Warum nicht_konvergiert bei der Gruppe 631,6/640,6 Hz (Ref2/Ref1)?"""
+import sys, pathlib, numpy as np, collections
+sys.path.insert(0, "tools/auswertung")
+import beispiel_svd
+from ldv_automation.auswertung import werte_aus
+from ldv_automation.auswertung.annahmen import SchwellenStufe2
+from ldv_automation.auswertung.svd_adapter import aus_svd_messung, zeit_s_aus_svd_messung
+from ldv_automation.auswertung.vergleich import drift_aus, drift_regression
+from ldv_automation.auswertung.modenfit import fit_moden, mobilitaet_des_paars
+m = beispiel_svd.lese_svd_werkzeug(pathlib.Path("../Input/20261012_ref_Mitte.svd"))
+aw = werte_aus(aus_svd_messung(m), antriebspunkt=("Ref2","Ref1","akzeleranz"))
+t = zeit_s_aus_svd_messung(m)
+pa = aw.paare[("Ref2","Ref1")]; f = pa.paar.frequenz_hz; sp = pa.spitzen.spitzen
+Y = mobilitaet_des_paars(pa, "akzeleranz")
+i = int(np.argmin([abs(s.f_sp_hz - 631.2) for s in sp])); j = i + 1
+print("Stufe1:", sp[i].f_sp_hz, sp[i].breite_3db_hz, sp[i].kennzeichen, "|", sp[j].f_sp_hz, sp[j].breite_3db_hz, sp[j].kennzeichen)
+d, fit = drift_aus(aw, t, 631.2, ("Ref2","Ref1"), schwellen2=SchwellenStufe2(drift_ausschluss=()))
+g = next(g for g in fit.gruppen if i in g.spitzen)
+ab = collections.Counter(); 
+kon = [e for e in fit.ergebnisse if "nicht_konvergiert" not in e.kennzeichen[0]]
+nk = [e for e in fit.ergebnisse if "nicht_konvergiert" in e.kennzeichen[0]]
+for name, L in (("konvergiert", kon), ("nicht_konvergiert", nk)):
+    fr = np.array([e.fr_hz for e in L]); z = np.array([e.zeta for e in L]); sd = np.array([e.sd_fr_hz for e in L]); it = [e.iterationen for e in L]
+    print(f"{name}: N={len(L)} it median {np.median(it)}; f_r Median {np.median(fr,0)}; zeta Median {np.median(z,0)}; zeta2 min/max {z[:,1].min():.2e}/{z[:,1].max():.2e}; sd_fr Median {np.nanmedian(sd,0)}")
+# Abbruchgrund nachrechnen
+k = slice(g.k_von, g.k_bis+1); grund = collections.Counter()
+S = SchwellenStufe2()
+for e in nk[:30]:
+    r = fit_moden(f[k], Y[e.punkt, k], [sp[i].f_sp_hz, sp[j].f_sp_hz], [sp[i].zeta, 1.5625/(2*sp[j].f_sp_hz)], max_iter=S.max_iter)
+    grund[r.abbruch] += 1
+print("Abbruchgruende (30 Fits):", dict(grund))
+r = fit_moden(f[k], Y[nk[0].punkt, k], [sp[i].f_sp_hz, sp[j].f_sp_hz], [sp[i].zeta, 1.5625/(2*sp[j].f_sp_hz)], max_iter=2000)
+print("mit 2000 Iterationen:", r.abbruch, r.iterationen, r.fr_hz, r.zeta, r.rho, "vorher", nk[0].fr_hz, nk[0].zeta, nk[0].rho)
+```
+
+#### rf_v6.py – Sollwerte RF-V6
+
+```python
+"""FG-03 RF-V6: Sollwerte des Drift-Ausschlusses je gewählter Mode (K2-1), nur numpy."""
+import numpy as np
+t = np.arange(20)*120.0; f = 631.7 - 2e-5*t
+def reg(maske):
+    tt = t[maske] - t[maske].min(); ff = f[maske]
+    b1, b0 = np.polyfit(tt, ff, 1); r = ff - (b0 + b1*tt)
+    s = np.sqrt(r @ r/(len(tt)-2)); sb = s/np.sqrt(np.sum((tt-tt.mean())**2))
+    print(f"N={maske.sum()} b1={b1*3600:.12f} Hz/h sd={sb*3600:.2e} gesamt={b1*tt.max():.12f} Hz rel={b1*tt.max()/b0:.10e} b0={b0:.10f}")
+a = np.ones(20, bool); a[[10, 11, 12]] = False; reg(a)      # (a) Gruppe n = 2
+b = np.ones(20, bool); b[[0, 1, 2, 10, 11, 12]] = False; reg(b)  # (b) n = 1
+```
+
+#### rf_f3_sd.py – Standardabweichungen RF-F3 (K2-3)
+
+```python
+"""FA-W5-2: Standardabweichungen des erzwungenen Ein-Moden-Fits RF-F3."""
+import numpy as np
+from ldv_automation.auswertung.modenfit import fit_moden
+def Y(f, fn, z=0.01):
+    w = 2*np.pi*f; wn = 2*np.pi*fn; return 1j*w/(wn**2 - w**2 + 2j*z*wn*w)
+f = np.arange(180, 230)*0.5
+for f2 in (102.0, 103.0):
+    h = Y(f, 100.0) + Y(f, f2); k = int(np.argmax(np.abs(h))); sel = slice(k-4, k+5)
+    r = fit_moden(f[sel], h[sel], [f[k]], [0.01])
+    print(f"f2={f2}: Max bei {f[k]} Hz, fr={r.fr_hz[0]:.4f} sd_fr={r.sd_fr_hz[0]:.4f} Hz (Δf/2=0,25), zeta={r.zeta[0]:.6f} sd_z_rel={r.sd_zeta_rel[0]:.4f}, rho={r.rho:.4f}, abbruch={r.abbruch}")
+```
+
+#### gruppe262.py – Gruppe 262,6 Hz: Punktauswahl je Spitze und Fitband (Abschnitt 7)
+
+```python
+"""FA-W5-2: Gruppe 262,6 Hz – Punktauswahl je Spitze (Code) vs. gemeinsame (Prüfskript FG-03)."""
+import sys, pathlib, numpy as np
+sys.path.insert(0, "tools/auswertung")
+import beispiel_svd
+from ldv_automation.auswertung import werte_aus
+from ldv_automation.auswertung.svd_adapter import aus_svd_messung
+from ldv_automation.auswertung.modenfit import schaetze_daempfung
+m = beispiel_svd.lese_svd_werkzeug(pathlib.Path("../Input/20261012_ref_Mitte.svd"))
+aw = werte_aus(aus_svd_messung(m))
+pa = aw.paare[("Vib Z", "Ref1")]; sp = pa.spitzen.spitzen; f = pa.paar.frequenz_hz
+wahl = [int(np.argmin([abs(s.f_sp_hz - x) for s in sp])) for x in (262.6, 618.9)]
+r = schaetze_daempfung(aw, ("Vib Z", "Ref1"), spitzen=wahl)
+for z in r.zusammenfassung:
+    print(f"Code  {z.f_sp_hz:8.3f}: fr {z.fr_median_hz:.3f} zeta {z.zeta_median:.5f} rho {z.rho_median:.4f} N {z.n_punkte}")
+k = int(np.argmin(abs(f - 262.5))); top = np.argsort(np.abs(pa.frf.h1[:, k]))[::-1][:20]
+r2 = schaetze_daempfung(aw, ("Vib Z", "Ref1"), spitzen=wahl[:1], punkte=[int(p) for p in top])
+for z in r2.zusammenfassung:
+    print(f"Top20@262,5 {z.f_sp_hz:8.3f}: fr {z.fr_median_hz:.3f} zeta {z.zeta_median:.5f} rho {z.rho_median:.4f} N {z.n_punkte}")
+rh = [e.rho for e in r2.ergebnisse]; print("rho alle 20 (Gruppe) Median", np.median(rh))
+g618 = next(g for g in r.gruppen if wahl[1] in g.spitzen)
+e618 = [e for e in r.ergebnisse if e.gruppe == g618.nummer]
+print("618,9: rho Median alle", np.median([e.rho for e in e618]), "Kennzeichen", [e.kennzeichen[0] for e in e618 if e.kennzeichen[0]])
+g = next(g for g in r.gruppen if wahl[0] in g.spitzen)
+print("Code-Fitband Gruppe 262:", f[g.k_von], "-", f[g.k_bis], "Hz,", g.k_bis - g.k_von + 1, "Linien")
+```
+
 ---
 
 ## Änderungsprotokoll
 
 | Datum | Änderung | Freigabe |
 |---|---|---|
-| 2026-10-30 | Erstfassung (Paket W4-2) | offen |
+| 2026-10-30 | Erstfassung (Paket W4-2) | Nutzer, 2026-10-30 (mit E1–E6) |
+| 2026-10-30 | Korrektur K2 aus der Fachabnahme FA-W5-2: K2-1 Option A – Drift-Ausschluss je gewählter Mode (`ausserhalb_band`, `unsicher`, `nicht_konvergiert` nur bei n = 1; kein Ausschluss über `modell_passt_nicht`, Anzahl wird ausgegeben), Gruppenfit nach 3.3 in der Drift, Drift-Tabelle in 7 ersetzt (4.5, 6.2, 6.3, 7, RF-V6). K2-2: Abbruchkriterium auch für verworfene Versuchsschritte (3.2, RF-F1). K2-3: σ der Spitzenpaarung = Median der σ_fr, Hinweis zur Drift (4.2, RF-V7); RF-F3 bei 102 Hz zusätzlich `unsicher` (9.1); Abschnitt 7 mit Punktauswahl je Spitze und ρ als Median der verwendeten Punkte. K2-4: γ² = NaN bleibt im Fit, Hinweis „Kohärenz nicht prüfbar“ (3.2, 6.3, RF-F8). Prüfskripte im Anhang (Ergänzung K2) | Nutzer, 2026-10-30 |
