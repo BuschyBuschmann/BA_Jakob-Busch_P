@@ -7,9 +7,13 @@ Regeln (Plan P2, Abschnitt 1)::
     geraet.simulator / geraet.com -> geraet.schnittstelle -> domaene
 
 Zusätzlich darf pywin32 nur in ``geraet/com/pywin32_bindung.py`` vorkommen.
+
+Die Auswertung (``auswertung``, Paket W5-1) ist Qt-frei und importiert nur NumPy, die
+Standardbibliothek und ``protokoll.version`` (Git-Hash im Export).
 """
 
 import ast
+import sys
 from pathlib import Path
 
 import pytest
@@ -28,6 +32,11 @@ PR = f"{PAKET}.protokoll"
 PE = f"{PAKET}.persistenz"
 SI = f"{PAKET}.sitzung"
 GUI = f"{PAKET}.gui"
+AW = f"{PAKET}.auswertung"
+VERSION = f"{PAKET}.protokoll.version"
+
+#: Externe Pakete, die ``auswertung`` außer der Standardbibliothek importieren darf.
+AUSWERTUNG_EXTERN = ("numpy",)
 
 # Modulpräfix -> erlaubte interne Importziele (Präfixe). Das längste passende Präfix gilt.
 REGELN: dict[str, tuple[str, ...]] = {
@@ -49,6 +58,8 @@ REGELN: dict[str, tuple[str, ...]] = {
     # Konfigurationsdatei (K-U5): Werte für Steuerung (ablauf) und COM-Adapter (Lademaske
     # nur über die Richtlinie in geraet.com).
     f"{PAKET}.konfig": (AB, COM, S, D, f"{PAKET}.konfig"),
+    # Auswertung (W5-1): nur eigene Module und der Git-Hash für den Export.
+    AW: (AW, VERSION),
 }
 
 PYWIN32_ERLAUBT = "geraet/com/pywin32_bindung.py"
@@ -214,3 +225,71 @@ def test_u1_6_erlaubte_importe_werden_nicht_beanstandet(
     }
     dateien[datei] = inhalt
     assert finde_verstoesse(_baum(tmp_path, dateien)) == []
+
+
+def externe_verstoesse_auswertung(wurzel: Path) -> list[str]:
+    """Importe in ``auswertung`` außerhalb von Standardbibliothek, NumPy und Paket."""
+    verstoesse: list[str] = []
+    for datei in sorted((wurzel / "auswertung").rglob("*.py")):
+        modul = _modulname(datei, wurzel)
+        baum = ast.parse(datei.read_text(encoding="utf-8"), filename=str(datei))
+        for name in _importierte_module(baum, modul, datei.name == "__init__.py"):
+            oben = name.split(".")[0]
+            if oben in (PAKET, "__future__") or oben in sys.stdlib_module_names:
+                continue
+            if oben in AUSWERTUNG_EXTERN:
+                continue
+            verstoesse.append(f"{datei.relative_to(wurzel).as_posix()}: Import '{name}'")
+    return verstoesse
+
+
+def test_w5_auswertung_importiert_nur_numpy_stdlib_und_version() -> None:
+    assert (SRC / "auswertung").is_dir()
+    assert externe_verstoesse_auswertung(SRC) == []
+
+
+@pytest.mark.parametrize(
+    ("inhalt", "teil"),
+    [
+        ("from PySide6 import QtCore\n", "PySide6"),
+        ("import scipy.signal\n", "scipy"),
+        ("import matplotlib.pyplot as plt\n", "matplotlib"),
+    ],
+)
+def test_w5_auswertung_externe_importe_werden_erkannt(
+    tmp_path: Path, inhalt: str, teil: str
+) -> None:
+    wurzel = _baum(
+        tmp_path, {"__init__.py": "", "auswertung/__init__.py": "", "auswertung/x.py": inhalt}
+    )
+    assert any(teil in v for v in externe_verstoesse_auswertung(wurzel))
+
+
+@pytest.mark.parametrize(
+    ("inhalt", "erlaubt"),
+    [
+        ("from ldv_automation.protokoll.version import ermittle_build_info\n", True),
+        ("from ..protokoll.version import BuildInfo\n", True),
+        ("from . import daten\n", True),
+        ("from ldv_automation.protokoll import ablage\n", False),
+        ("from ldv_automation.domaene import eintraege\n", False),
+        ("from ldv_automation.gui import anzeige\n", False),
+        ("from ..sitzung import Sitzung\n", False),
+    ],
+)
+def test_w5_auswertung_interne_importe(tmp_path: Path, inhalt: str, erlaubt: bool) -> None:
+    dateien = {
+        "__init__.py": "",
+        "auswertung/__init__.py": "",
+        "auswertung/daten.py": "",
+        "auswertung/x.py": inhalt,
+        "protokoll/__init__.py": "",
+        "protokoll/version.py": "",
+        "protokoll/ablage.py": "",
+        "domaene/__init__.py": "",
+        "domaene/eintraege.py": "",
+        "gui/__init__.py": "",
+        "gui/anzeige.py": "",
+        "sitzung.py": "",
+    }
+    assert (finde_verstoesse(_baum(tmp_path, dateien)) == []) is erlaubt

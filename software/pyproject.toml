@@ -5,6 +5,7 @@ description = "Automatisierung von Strukturtests mit einem 3D-Laser-Doppler-Vibr
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = [
+    "numpy>=2.4.6",
     # 6.11.3 statt 6.12.0 nach ADR-001 (Nachtrag, Nutzerentscheidung 2026-10-27):
     # 6.12.0 verliert unter Python 3.11 bei jedem Qt-Aufruf ohne Rückgabewert eine
     # Referenz auf None (Absturz „none_dealloc“). Regressionstest in tests/gui.
@@ -75,12 +76,12 @@ convention = "numpy"
 [tool.mypy]
 python_version = "3.11"
 strict = true
-mypy_path = ["src", "tools/erkundung", "tools/build_info", "tools/svd_analyse"]
+mypy_path = ["src", "tools/erkundung", "tools/build_info", "tools/svd_analyse", "tools/auswertung"]
 exclude = ["^\\.venv/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "tools/erkundung", "tools/build_info", "tools/svd_analyse"]
+pythonpath = ["src", "tools/erkundung", "tools/build_info", "tools/svd_analyse", "tools/auswertung"]
 addopts = "-ra --strict-markers -m 'not hardware and not gui'"
 markers = [
     "hardware: braucht echte Hardware bzw. den Messrechner (standardmäßig abgewählt; `pytest -m hardware`)",
@@ -89,7 +90,13 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = ["src/ldv_automation", "tools/erkundung", "tools/build_info", "tools/svd_analyse"]
+source = [
+    "src/ldv_automation",
+    "tools/erkundung",
+    "tools/build_info",
+    "tools/svd_analyse",
+    "tools/auswertung",
+]
 
 # Qt-Widget-Module der Oberfläche: Sie laufen nur in den GUI-Tests (`pytest -m gui`, offscreen,
 # Qt-Systembibliotheken nötig), die standardmäßig abgewählt sind (KONVENTIONEN: Oberflächentests

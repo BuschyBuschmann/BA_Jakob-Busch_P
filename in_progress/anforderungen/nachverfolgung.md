@@ -23,10 +23,10 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-030 | `gui/` (U4) | `tests/gui/*` (gui-Marker), Handtest-Checkliste U4 | Laborbuch 2026-10-27_u4 | – | umgesetzt (Handtest offen) |
 | R-031 | `sitzung.py` (U2), `gui/anzeige.py`, `gui/tabelle.py` (U4) | `test_u2_12_*`, UI-7/UI-8 | Laborbuch 2026-10-26_u2, 2026-10-27_u4 | – | getestet (Simulator) |
 | R-040 | – | – | – | – | offen |
-| R-050 | – | – | – | – | offen |
-| R-051 | – | – | – | – | offen |
-| R-052 | – | – | – | – | offen |
-| R-053 | – | – | – | – | offen |
+| R-050 | `auswertung/spektren.py`, `mittel.py` (W5-1) | RF-S, RF-B, Golden File (Punktmittel 35/35) | Laborbuch 2026-10-30_w5 | – | getestet (Datei; PSV-Anzeige offen) |
+| R-051 | `auswertung/frf.py` (W5-1) | RF-H, RF-U, RF-G, Bandnorm H1 | Laborbuch 2026-10-30_w5 | – | getestet (Datei; PSV-Anzeige offen) |
+| R-052 | `auswertung/schwingform.py` (W5-1) | RF-3D, RF-W | Laborbuch 2026-10-30_w5 | – | getestet (Phasenbezug M1/M8 offen) |
+| R-053 | `auswertung/spitzen.py`, `baender.py` (W5-1) | RF-P, RF-M, RF-K, Golden File (Bänder 22/22) | Laborbuch 2026-10-30_w5 | – | getestet (Datei; PSV-Fit-Vergleich offen) |
 | R-054 | – | – | – | – | offen |
 | R-060 | `pyproject.toml` (`requires-python >=3.11,<3.12`) | gesamte Testsuite unter Python 3.11 | Laborbuch 2026-10-27_u4 | – | umgesetzt |
 | R-061 | `geraet/simulator.py` (U2), COM-Fake (U3) | gesamte Testsuite | Laborbuch 2026-10-26_u2, _u3 | – | umgesetzt |
