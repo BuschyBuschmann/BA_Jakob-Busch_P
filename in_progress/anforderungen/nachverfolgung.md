@@ -26,8 +26,8 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-050 | `auswertung/spektren.py`, `mittel.py` (W5-1) | RF-S, RF-B, Golden File (Punktmittel 35/35) | Laborbuch 2026-10-30_w5 | – | getestet (Datei; PSV-Anzeige offen) |
 | R-051 | `auswertung/frf.py` (W5-1) | RF-H, RF-U, RF-G, Bandnorm H1 | Laborbuch 2026-10-30_w5 | – | getestet (Datei; PSV-Anzeige offen) |
 | R-052 | `auswertung/schwingform.py` (W5-1) | RF-3D, RF-W | Laborbuch 2026-10-30_w5 | – | getestet (Phasenbezug M1/M8 offen) |
-| R-053 | `auswertung/spitzen.py`, `baender.py` (W5-1) | RF-P, RF-M, RF-K, Golden File (Bänder 22/22) | Laborbuch 2026-10-30_w5 | – | getestet (Datei; PSV-Fit-Vergleich offen) |
-| R-054 | – | – | – | – | offen |
+| R-053 | `auswertung/spitzen.py`, `baender.py` (W5-1); Dämpfung zusätzlich per Modenfit `auswertung/modenfit.py` (W5-2) | RF-P, RF-M, RF-K, Golden File (Bänder 22/22); RF-F1–F9 | Laborbuch 2026-10-30_w5, 2026-10-30_w5-auswertung-stufe2 | – | getestet (Datei; PSV-Fit-Vergleich offen) |
+| R-054 | Plausibilität P-01–P-11 (W5-1); Vergleich von Messungen und Drift `auswertung/vergleich.py`, 3D-Bezug `auswertung/bezug3d.py` (W5-2) | RF-V1–V7, RF-G1–G5 | Laborbuch 2026-10-30_w5-auswertung-stufe2 | – | in Arbeit (Umfang am Entscheidungspunkt; B-5 nur synthetisch, zweite Messung Mo 02.11.) |
 | R-060 | `pyproject.toml` (`requires-python >=3.11,<3.12`) | gesamte Testsuite unter Python 3.11 | Laborbuch 2026-10-27_u4 | – | umgesetzt |
 | R-061 | `geraet/simulator.py` (U2), COM-Fake (U3) | gesamte Testsuite | Laborbuch 2026-10-26_u2, _u3 | – | umgesetzt |
 | R-062 | Standard-Prüfung aus KONVENTIONEN | ruff, mypy --strict, pytest ≥ 90 % (97,95 %) | Laborbuch 2026-10-27_u5 | – | umgesetzt |

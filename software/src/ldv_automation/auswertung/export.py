@@ -86,14 +86,15 @@ def _json_wert(wert: Any) -> Any:
     return wert
 
 
-class _Sammler:
-    """Sammelt Felder und ihre Beschreibung."""
+class Sammler:
+    """Sammelt Felder und ihre Beschreibung (gemeinsam für die Exporte der Stufen 1 und 2)."""
 
     def __init__(self) -> None:
         self.felder: dict[str, npt.NDArray[Any]] = {}
         self.katalog: dict[str, dict[str, Any]] = {}
 
     def reell(self, name: str, wert: npt.ArrayLike, **beschreibung: Any) -> None:
+        """Nimmt ein reelles Feld mit Beschreibung auf (``ValueError`` bei doppeltem Namen)."""
         feld = np.asarray(wert)
         if feld.dtype.kind == "f":
             feld = feld.astype(np.float64)
@@ -103,6 +104,7 @@ class _Sammler:
         self.katalog[name] = {"form": list(feld.shape), "dtype": str(feld.dtype), **beschreibung}
 
     def komplex(self, name: str, wert: npt.ArrayLike, **beschreibung: Any) -> None:
+        """Nimmt ein komplexes Feld als ``name.re`` und ``name.im`` auf."""
         feld = np.asarray(wert, dtype=np.complex128)
         self.reell(f"{name}.re", feld.real, teil="Realteil", **beschreibung)
         self.reell(f"{name}.im", feld.imag, teil="Imaginärteil", **beschreibung)
@@ -153,7 +155,7 @@ def baue_export(auswertung: Auswertung) -> tuple[dict[str, npt.NDArray[Any]], di
     """
     d = auswertung.daten
     a = auswertung.annahmen
-    s = _Sammler()
+    s = Sammler()
     spitze = "Spitzenwert (0-to-peak)"
     s.reell("frequenz_hz", d.frequenz_hz, groesse="Frequenz", einheit="Hz")
     s.reell(
@@ -438,6 +440,31 @@ def exportiere(
     FileNotFoundError
         Wenn der Zielordner fehlt.
     """
+    pruefe_ziel(basis, ueberschreiben)  # vor dem Zusammenstellen (Verhalten wie bisher)
+    herkunft = auswertung.daten.herkunft
+    return schreibe_export(
+        *baue_export(auswertung),
+        basis,
+        messdatei={
+            "messdatei": None if herkunft is None else herkunft.pfad,
+            "messdatei_sha256": None if herkunft is None else herkunft.sha256,
+        },
+        build_info=build_info,
+        jetzt=jetzt,
+        ueberschreiben=ueberschreiben,
+    )
+
+
+def pruefe_ziel(basis: Path, ueberschreiben: bool) -> tuple[Path, Path]:
+    """Prüft Zielordner und vorhandene Dateien; gibt die Pfade ``.npz`` und ``.json`` zurück.
+
+    Raises
+    ------
+    FileNotFoundError
+        Wenn der Zielordner fehlt.
+    FileExistsError
+        Wenn eine Zieldatei existiert und ``ueberschreiben`` falsch ist.
+    """
     npz = basis.with_name(basis.name + ".npz")
     js = basis.with_name(basis.name + ".json")
     if not basis.parent.is_dir():
@@ -446,13 +473,41 @@ def exportiere(
         for pfad in (npz, js):
             if pfad.exists():
                 raise FileExistsError(f"Exportdatei existiert bereits: {pfad}")
-    felder, meta = baue_export(auswertung)
+    return npz, js
+
+
+#: Früherer, privater Name von :class:`Sammler` (bestehende Aufrufer).
+_Sammler = Sammler
+
+
+def schreibe_export(
+    felder: dict[str, npt.NDArray[Any]],
+    meta: dict[str, Any],
+    basis: Path,
+    *,
+    messdatei: dict[str, Any],
+    build_info: BuildInfo | None = None,
+    jetzt: Callable[[], dt.datetime] | None = None,
+    ueberschreiben: bool = False,
+) -> tuple[Path, Path]:
+    """Schreibt Felder und Metadaten als ``<basis>.npz`` und ``<basis>.json``.
+
+    Ergänzt ``meta["herkunft"]`` (Angaben ``messdatei`` plus Software-Version mit Git-Hash und
+    Zeitpunkt), ``npz_datei`` und ``npz_sha256``. Gemeinsamer Schreibweg von Stufe 1
+    (:func:`exportiere`) und Stufe 2.
+
+    Raises
+    ------
+    FileExistsError
+        Wenn eine Zieldatei existiert und ``ueberschreiben`` falsch ist.
+    FileNotFoundError
+        Wenn der Zielordner fehlt.
+    """
+    npz, js = pruefe_ziel(basis, ueberschreiben)
     build = build_info if build_info is not None else ermittle_build_info()
     zeit = (jetzt or (lambda: dt.datetime.now().astimezone()))()
-    herkunft = auswertung.daten.herkunft
     meta["herkunft"] = {
-        "messdatei": None if herkunft is None else herkunft.pfad,
-        "messdatei_sha256": None if herkunft is None else herkunft.sha256,
+        **messdatei,
         "software": asdict(build),
         "erstellt": zeit.isoformat(),
     }
@@ -480,8 +535,10 @@ def exportiere(
     return npz, js
 
 
-def lese_export(basis: Path) -> tuple[dict[str, npt.NDArray[Any]], dict[str, Any]]:
-    """Liest einen Export (ohne Pickle) und prüft den SHA-256 der ``.npz``-Datei.
+def lese_export(
+    basis: Path, format_name: str = FORMAT
+) -> tuple[dict[str, npt.NDArray[Any]], dict[str, Any]]:
+    """Liest einen Export (ohne Pickle) und prüft Format und SHA-256 der ``.npz``-Datei.
 
     Raises
     ------
@@ -491,8 +548,8 @@ def lese_export(basis: Path) -> tuple[dict[str, npt.NDArray[Any]], dict[str, Any
     npz = basis.with_name(basis.name + ".npz")
     js = basis.with_name(basis.name + ".json")
     meta: dict[str, Any] = json.loads(js.read_text(encoding="utf-8"))
-    if meta.get("format") != FORMAT:
-        raise ValueError(f"kein Export von {FORMAT}: {js}")
+    if meta.get("format") != format_name:
+        raise ValueError(f"kein Export von {format_name}: {js}")
     if sha256_datei(npz) != meta.get("npz_sha256"):
         raise ValueError(f"SHA-256 von {npz.name} passt nicht zu den Metadaten")
     with np.load(npz, allow_pickle=False) as archiv:

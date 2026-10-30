@@ -372,3 +372,284 @@ class Toleranzen:
         if set(kennzeichen) - {"gueltigkeit_offen_m7"}:
             return None
         return abs(breite_hz / breite_psv_hz - 1.0) <= self.breite_rel
+
+
+# --- Stufe 2 (FG-03, Paket W5-2) ----------------------------------------------------------
+
+#: Nummern der in Stufe 2 neuen einstellbaren Annahmen (FG-03 Abschnitt 11).
+ANNAHME_NUMMERN_STUFE2: tuple[str, ...] = ("M12", "M13", "M14", "M15")
+
+Zeitstempelfeld = Literal["zeit_a", "zeit_b"]
+"""Zeitstempel je Punkt im Datensatz (M15); beide Felder unterscheiden sich in der
+Beispieldatei um eine Blockdauer, ihre Differenzen zwischen Punkten sind gleich."""
+
+#: Grenze der Orthogonalitätsprüfung der Komponentendrehung (M12), absolut.
+DREHUNG_ATOL = 1e-9
+
+
+@dataclass(frozen=True, kw_only=True, eq=False)
+class AnnahmenStufe2:
+    r"""Einstellbare Annahmen M12–M15 der Stufe 2 (FG-03 Abschnitte 2 und 11).
+
+    Parameters
+    ----------
+    drehung_komponenten : sequence of sequence of float
+        Drehmatrix :math:`D` (3x3), die die 3D-Komponenten X/Y/Z in das Koordinatensystem
+        der Geometrie überführt: :math:`v_\mathrm{geo} = D\,v` (M12). Voreinstellung
+        Einheitsmatrix (Komponenten liegen im Geometrie-KS). Muss orthogonal mit
+        :math:`\det D = +1` sein.
+    e_ref : sequence of float
+        Bezugsrichtung der Normalen (M13, Entscheidung E5), Voreinstellung (0, 0, 1);
+        wird normiert.
+    elemente_index_basis : int
+        Basis der Punktindizes in den Elementen (M14): 0 (Voreinstellung) oder 1. Intern
+        wird immer 0-basiert gerechnet.
+    zeitstempel : {"zeit_a", "zeit_b"}
+        Zeitstempelfeld je Punkt, das als Messzeitpunkt gilt (M15). Verwendet werden nur
+        Differenzen in s.
+    status : Mapping[str, str]
+        Status je Annahmennummer (``"M12"`` …); fehlende Nummern haben den Status
+        ``"Annahme"``.
+
+    Raises
+    ------
+    ValueError
+        Bei nicht orthogonaler Drehung, Bezugsrichtung der Länge 0, unbekannter
+        Indexbasis, unbekanntem Zeitstempelfeld oder unbekannter Annahmennummer.
+    """
+
+    drehung_komponenten: Sequence[Sequence[float]] = (
+        (1.0, 0.0, 0.0),
+        (0.0, 1.0, 0.0),
+        (0.0, 0.0, 1.0),
+    )
+    e_ref: Sequence[float] = (0.0, 0.0, 1.0)
+    elemente_index_basis: int = 0
+    zeitstempel: Zeitstempelfeld = "zeit_a"
+    status: Mapping[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        d = np.asarray(self.drehung_komponenten, dtype=np.float64)
+        if d.shape != (3, 3) or not np.all(np.isfinite(d)):
+            raise ValueError(f"drehung_komponenten muss eine endliche 3x3-Matrix sein: {d.shape}")
+        if not np.allclose(d @ d.T, np.eye(3), rtol=0.0, atol=DREHUNG_ATOL) or not (
+            np.linalg.det(d) > 0
+        ):
+            raise ValueError("drehung_komponenten muss eine Drehung sein (D·Dᵀ = I, det D = +1)")
+        object.__setattr__(self, "drehung_komponenten", tuple(tuple(map(float, z)) for z in d))
+        e = np.asarray(self.e_ref, dtype=np.float64)
+        laenge = float(np.linalg.norm(e)) if e.shape == (3,) else math.nan
+        if not (math.isfinite(laenge) and laenge > 0):
+            raise ValueError(f"e_ref muss ein endlicher 3-Vektor mit Länge > 0 sein: {e}")
+        object.__setattr__(self, "e_ref", tuple(float(x) for x in e / laenge))
+        if self.elemente_index_basis not in (0, 1) or isinstance(self.elemente_index_basis, bool):
+            raise ValueError(
+                f"elemente_index_basis muss 0 oder 1 sein: {self.elemente_index_basis}"
+            )
+        if self.zeitstempel not in ("zeit_a", "zeit_b"):
+            raise ValueError(f"unbekanntes Zeitstempelfeld {self.zeitstempel!r}")
+        unbekannt = set(self.status) - set(ANNAHME_NUMMERN_STUFE2)
+        if unbekannt:
+            raise ValueError(f"unbekannte Annahmennummern im Status: {sorted(unbekannt)}")
+        if any(not str(s).strip() for s in self.status.values()):
+            raise ValueError("Status darf nicht leer sein")
+        object.__setattr__(self, "status", dict(self.status))
+
+    @property
+    def drehung(self) -> npt.NDArray[np.float64]:
+        """Drehmatrix :math:`D` als Feld ``(3, 3)`` (M12)."""
+        return np.asarray(self.drehung_komponenten, dtype=np.float64)
+
+    @property
+    def e_ref_vektor(self) -> npt.NDArray[np.float64]:
+        """Normierte Bezugsrichtung ``(3,)`` (M13)."""
+        return np.asarray(self.e_ref, dtype=np.float64)
+
+    def status_von(self, nr: str) -> str:
+        """Status der Annahme ``nr`` (``"Annahme"``, solange nicht bestätigt)."""
+        if nr not in ANNAHME_NUMMERN_STUFE2:
+            raise ValueError(f"unbekannte Annahmennummer {nr!r}")
+        return self.status.get(nr, ANNAHME)
+
+    def eintraege(self) -> tuple[AnnahmeEintrag, ...]:
+        """Annahmen M12–M15 mit Wert und Status (Kennzeichnung im Export)."""
+        d = self.drehung
+        drehung = (
+            "Einheitsmatrix (Komponenten im Geometrie-KS)"
+            if np.array_equal(d, np.eye(3))
+            else "; ".join(" ".join(f"{x:.9g}" for x in z) for z in d)
+        )
+        zeilen = (
+            ("M12", "drehung_komponenten", drehung, "3D-Komponenten → Geometrie-KS: v_geo = D·v"),
+            (
+                "M13",
+                "e_ref",
+                "(" + ", ".join(f"{x:g}" for x in self.e_ref) + ")",
+                "Bezugsrichtung der Normalen und des Drehsinns",
+            ),
+            (
+                "M14",
+                "elemente_index_basis",
+                str(self.elemente_index_basis),
+                "Basis der Punktindizes in den Elementen",
+            ),
+            ("M15", "zeitstempel", self.zeitstempel, "Zeitstempel je Punkt = Messzeitpunkt"),
+        )
+        return tuple(
+            AnnahmeEintrag(nr=nr, parameter=p, wert=w, status=self.status_von(nr), beschreibung=b)
+            for nr, p, w, b in zeilen
+        )
+
+
+Gewichtung = Literal["keine", "fehler"]
+r"""Gewichtung des Moden-Fits (E3): ``"keine"`` (Voreinstellung) oder
+:math:`1/(|H_1|\varepsilon)^2` nach FG-02 3.4/3.5."""
+
+Punktauswahl = Literal["staerkste", "alle"]
+r"""Punkte, an denen B-1 fittet: nur die :math:`n_\mathrm{P}` stärksten je Spitze
+(Voreinstellung, genügt für die Zusammenfassung) oder alle gültigen Punkte."""
+
+Zuordnungsvariante = Literal["label", "koordinaten"]
+"""Punktzuordnung in B-5 (E4)."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class SchwellenStufe2:
+    r"""Freigegebene Parameter und Schwellen der Stufe 2 (FG-03 3.3–3.5, 4, 5, 6.1, E6).
+
+    Attributes
+    ----------
+    n_fit : int
+        Linien beidseits der Spitzenlinie im Fitband (3.3), Voreinstellung 6.
+    n_max : int
+        Größte Modenzahl einer Gruppe (3.3), Voreinstellung 4; größere Gruppen bekommen
+        ``gruppe_zu_gross``.
+    rho_max : float
+        Schwelle von rho für ``modell_passt_nicht`` (3.4), Voreinstellung 0,10.
+    sd_zeta_rel_max : float
+        Schwelle von :math:`\sigma_\zeta/\zeta` für ``unsicher`` (3.4), Voreinstellung 0,2.
+    sd_fr_df_max : float
+        Schwelle von :math:`\sigma_{f_r}/\Delta f` für ``unsicher`` (3.4), 0,5.
+    n_punkte : int
+        Anzahl :math:`n_\mathrm{P}` der stärksten Punkte der Zusammenfassung (3.5), 20.
+    gewichtung : {"keine", "fehler"}
+        Gewichtung des Fits (E3), Voreinstellung ``"keine"``.
+    punktauswahl : {"staerkste", "alle"}
+        Punkte, an denen gefittet wird.
+    max_iter : int
+        Höchstzahl der Levenberg-Marquardt-Schritte (3.4), 200.
+    tol_rel : float
+        Abbruch bei relativer Änderung von S kleiner als dieser Wert (3.2), 1e-12.
+    lambda_max : float
+        Abbruch ohne Konvergenz bei λ größer als dieser Wert (3.4), 1e12.
+    zeta_max, zeta_min : float
+        Grenzen für ``ausserhalb_band`` (3.4): ζ >= 0,2 oder ζ < 1e-5.
+    zuordnung : {"label", "koordinaten"}
+        Punktzuordnung (E4), Voreinstellung ``"label"``.
+    d_tol_faktor : float
+        :math:`d_\mathrm{tol} = \text{Faktor}\cdot d_\mathrm{min}` (4.1), 0,5.
+    df_tol_faktor : float
+        :math:`\Delta f_\mathrm{tol} = \text{Faktor}\cdot\Delta f` (4.2), 2.
+    unsicherheit_ohne_b1_df : float
+        Unsicherheit einer Spitzenfrequenz ohne B-1 in Δf (4.2, FG-02 3.9), 0,0508.
+    signifikanz_faktor : float
+        ``signifikant`` bei :math:`|\Delta f| > \text{Faktor}\sqrt{\sigma_A^2+\sigma_B^2}`, 2.
+    achse_rtol : float
+        Gleiche Achsen bei :math:`|f^A_k - f^B_k| \le \text{rtol}\cdot\Delta f` (4), 1e-6.
+    frac_min_linien : int
+        Mindestzahl gemeinsamer Linien des FRF-Vergleichs (4.3), 3.
+    kollinear_min : float
+        Passpunkte kollinear bei :math:`\sigma_2/\sigma_1` kleiner als dieser Wert (6.3), 1e-6.
+    drift_min_punkte : int
+        Mindestzahl brauchbarer Punkte der Drift (4.5), 10.
+    drift_anteil : float
+        Punktauswahl der Drift ohne Antriebspunkt-Paar: :math:`|H_1| \ge` Anteil·max (4.5), 0,3.
+    drift_faktor : float
+        ``drift_signifikant`` bei :math:`|b_1| > \text{Faktor}\cdot\sigma_{b_1}` (4.5), 3.
+    drift_ausschluss : tuple of str
+        Kennzeichen der gewählten Mode, mit denen ein Punkt nicht in die Drift eingeht
+        (FG-03 4.5, K2-1 Option A: ``ausserhalb_band``, ``unsicher``; dazu
+        ``moden_vertauscht``, Korrektur K-W5-2).
+    drift_nicht_konvergiert_einzelmode : bool
+        ``nicht_konvergiert`` schließt nur bei n = 1 aus (FG-03 4.5, K2-1), Voreinstellung
+        ``True``; ``False`` schaltet diesen Ausschluss ab.
+    orientierung_min : float
+        ``orientierung_unsicher`` bei :math:`|n_e\cdot e_\mathrm{ref}|` kleiner (5.1), 0,1.
+    entartet_rel : float
+        Element entartet bei Fläche < Faktor·Median der Flächen (6.3), 1e-12.
+    kreis_rel : float
+        Kreisbahn bei :math:`|\sum\hat v_i^2| < \text{Faktor}\sum|\hat v_i|^2` (5.3), 1e-12.
+    linear_rel : float
+        Lineare Bahn bei :math:`b_\mathrm{min}/a_\mathrm{max}` kleiner (5.3), 1e-6.
+    """
+
+    n_fit: int = 6
+    n_max: int = 4
+    rho_max: float = 0.10
+    sd_zeta_rel_max: float = 0.2
+    sd_fr_df_max: float = 0.5
+    n_punkte: int = 20
+    gewichtung: Gewichtung = "keine"
+    punktauswahl: Punktauswahl = "staerkste"
+    max_iter: int = 200
+    tol_rel: float = 1e-12
+    lambda_max: float = 1e12
+    zeta_max: float = 0.2
+    zeta_min: float = 1e-5
+    zuordnung: Zuordnungsvariante = "label"
+    d_tol_faktor: float = 0.5
+    df_tol_faktor: float = 2.0
+    unsicherheit_ohne_b1_df: float = 0.0508
+    signifikanz_faktor: float = 2.0
+    achse_rtol: float = 1e-6
+    frac_min_linien: int = 3
+    kollinear_min: float = 1e-6
+    drift_min_punkte: int = 10
+    drift_anteil: float = 0.3
+    drift_faktor: float = 3.0
+    drift_ausschluss: tuple[str, ...] = ("ausserhalb_band", "unsicher", "moden_vertauscht")
+    drift_nicht_konvergiert_einzelmode: bool = True
+    orientierung_min: float = 0.1
+    entartet_rel: float = 1e-12
+    kreis_rel: float = 1e-12
+    linear_rel: float = 1e-6
+
+    def __post_init__(self) -> None:
+        for name in ("n_fit", "n_max", "n_punkte", "max_iter", "frac_min_linien"):
+            wert = getattr(self, name)
+            if isinstance(wert, bool) or not isinstance(wert, int) or wert < 1:
+                raise ValueError(f"{name} muss eine ganze Zahl >= 1 sein: {wert!r}")
+        if self.drift_min_punkte < 3:
+            raise ValueError("drift_min_punkte muss >= 3 sein (Regression mit Streuung)")
+        for name in (
+            "rho_max",
+            "sd_zeta_rel_max",
+            "sd_fr_df_max",
+            "tol_rel",
+            "lambda_max",
+            "zeta_max",
+            "zeta_min",
+            "d_tol_faktor",
+            "df_tol_faktor",
+            "unsicherheit_ohne_b1_df",
+            "signifikanz_faktor",
+            "achse_rtol",
+            "kollinear_min",
+            "drift_anteil",
+            "drift_faktor",
+            "orientierung_min",
+            "entartet_rel",
+            "kreis_rel",
+            "linear_rel",
+        ):
+            wert = getattr(self, name)
+            if not (math.isfinite(wert) and wert > 0):
+                raise ValueError(f"{name} muss endlich und > 0 sein: {wert!r}")
+        if not self.zeta_min < self.zeta_max:
+            raise ValueError("zeta_min muss kleiner als zeta_max sein")
+        if self.gewichtung not in ("keine", "fehler"):
+            raise ValueError(f"unbekannte Gewichtung {self.gewichtung!r}")
+        if self.punktauswahl not in ("staerkste", "alle"):
+            raise ValueError(f"unbekannte Punktauswahl {self.punktauswahl!r}")
+        if self.zuordnung not in ("label", "koordinaten"):
+            raise ValueError(f"unbekannte Zuordnung {self.zuordnung!r}")

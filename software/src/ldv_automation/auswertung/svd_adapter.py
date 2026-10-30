@@ -19,6 +19,7 @@ Abbildung (Datenvertrag FG-02 6.1):
 
 from __future__ import annotations
 
+import datetime as dt
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Protocol
@@ -26,6 +27,7 @@ from typing import Any, Protocol
 import numpy as np
 import numpy.typing as npt
 
+from .annahmen import AnnahmenStufe2
 from .daten import ComplexArray, FloatArray, Herkunft, Messdaten, Punkte
 from .export import sha256_datei
 
@@ -199,3 +201,56 @@ def aus_svd_messung(
         phase_gueltig=bool(cp),
         herkunft=Herkunft(pfad=str(pfad), sha256=pruefsumme),
     )
+
+
+# --- Stufe 2 (FG-03, Paket W5-2): Zeitstempel und Elemente ----------------------------------
+
+
+class _SignalMitZeit(Protocol):
+    @property
+    def zeit_a(self) -> Sequence[dt.datetime]: ...
+    @property
+    def zeit_b(self) -> Sequence[dt.datetime]: ...
+
+
+class SvdStufe2Artig(Protocol):
+    """Für Stufe 2 zusätzlich gelesene Attribute von ``svd_lesen.SvdMessung``."""
+
+    @property
+    def signale(self) -> Mapping[str, _SignalMitZeit]:
+        """Punktsignale mit Zeitstempeln je Punkt."""
+        ...
+
+    @property
+    def elemente(self) -> Sequence[Sequence[int]]:
+        """Elemente als Punktindizes."""
+        ...
+
+
+def zeit_s_aus_svd_messung(
+    messung: SvdStufe2Artig, *, annahmen2: AnnahmenStufe2 | None = None
+) -> FloatArray:
+    """Zeit je Punkt in s relativ zum frühesten Punkt (FG-03 2, Annahme M15).
+
+    Verwendet wird das Zeitstempelfeld ``annahmen2.zeitstempel`` (``zeit_a`` oder
+    ``zeit_b``); nur Differenzen gehen ein, die Zeitzone spielt keine Rolle.
+
+    Raises
+    ------
+    ValueError
+        Ohne Signale oder wenn die Zeitstempel der Signale nicht übereinstimmen.
+    """
+    annahmen2 = annahmen2 if annahmen2 is not None else AnnahmenStufe2()
+    feld = annahmen2.zeitstempel
+    reihen = [list(getattr(s, feld)) for s in messung.signale.values()]
+    if not reihen or not reihen[0]:
+        raise ValueError("keine Zeitstempel: Messung ohne Signale")
+    if any(r != reihen[0] for r in reihen[1:]):
+        raise ValueError(f"Zeitstempel {feld} der Signale stimmen nicht überein")
+    start = min(reihen[0])
+    return np.asarray([(z - start).total_seconds() for z in reihen[0]], dtype=np.float64)
+
+
+def elemente_aus_svd_messung(messung: SvdStufe2Artig) -> tuple[tuple[int, ...], ...]:
+    """Elemente der Geometrie unverändert (Indexbasis nach M14 wendet B-8 an)."""
+    return tuple(tuple(int(i) for i in e) for e in messung.elemente)

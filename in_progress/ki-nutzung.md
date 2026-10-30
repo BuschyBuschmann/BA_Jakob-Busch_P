@@ -49,3 +49,6 @@ Nutzer hat das Ergebnis geprüft und verantwortet es.
 | 2026-10-30 | FG-02 Korrektur K1, Fachabnahmen FA-W5-1/FA-W5-1b | Fachliche Prüfung der Auswertung | strukturdynamik-experte (opus) | K1 vom Nutzer freigegeben |
 | 2026-10-30 | Review R-W5-1, Re-Review RR-W5-1 | Code-Review Auswertung | reviewer (opus) | Befundauswahl durch den Nutzer |
 | 2026-10-30 | `in_progress/fachgrundlagen/FG-03_auswertung-stufe2.md` | Fachgrundlage Auswertung Stufe 2 (Moden-Fit, Mehrfachvergleich, Normal-/Tangentialanteil) | strukturdynamik-experte (opus) | vom Nutzer freigegeben (2026-10-30, E1–E6) |
+| 2026-10-30 | FG-03 Korrekturen K2 und K3, Fachabnahmen FA-W5-2, RFA-W5-2, RFA-W5-2b | Fachliche Prüfung der Auswertung Stufe 2, Korrektur der Fachgrundlage | strukturdynamik-experte (opus) | K2 und K3 vom Nutzer freigegeben |
+| 2026-10-30 | `software/src/ldv_automation/auswertung/{modenfit,vergleich,bezug3d,stufe2}.py`, Tests, `tools/auswertung/beispiel_svd.py` | Umsetzung Auswertung Stufe 2 und Korrekturen K-W5-2, K-W5-2b | software-engineer (opus) | offen (Gegenprobe am Messrechner ausstehend) |
+| 2026-10-30 | Review R-W5-2, Re-Review RR-W5-2 | Code-Review Auswertung Stufe 2 | reviewer (sonnet) | Befundauswahl durch den Nutzer |

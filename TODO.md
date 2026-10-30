@@ -42,7 +42,7 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☑ | W1/W3 Auswertung heute und Verbesserungen; FG-02 (Stufe 1) freigegeben | – | – | `in_progress/analysen/`, `in_progress/fachgrundlagen/FG-02_auswertung-stufe1.md` |
 | ☑ | W5-1 Auswertung Stufe 1 umgesetzt, reviewt | – | – | `software/src/ldv_automation/auswertung/`, Laborbuch 2026-10-30 |
 | ☑ | FG-03 (Stufe 2: Modenfit B-1, Vergleich B-5, 3D-Bezug B-8) freigegeben mit E1–E6 | – | – | `in_progress/fachgrundlagen/FG-03_auswertung-stufe2.md` |
-| ◐ | W5-2 Umsetzung Stufe 2 nach FG-03, danach Fachabnahme und Review | software-engineer, strukturdynamik-experte, reviewer | – | gestartet 30.10. |
+| ☑ | W5-2 Auswertung Stufe 2 nach FG-03 (mit Korrekturen K2, K3), Fachabnahme und Review | – | – | Laborbuch 2026-10-30_w5-auswertung-stufe2 |
 | ☐ | Vor Ort: Auswertungs-Prüfungen M1–M15, Golden-File-Export, Band-Cursor-Fit 401,6/618,9 Hz | Jakob | Mo 02.11. | Ablaufplan 7b, Protokoll 6b |
 | ☐ | Vor Ort: Wiederholungsmessung (T8) für B-5, möglichst auch mit neu abgeglichenem Raster | Jakob | Mo 02.11. | Ablaufplan 8, nur nach eigener Entscheidung |
 | ☐ | Nach Montag: M1–M15 in FG-02/FG-03 nachführen, Golden-File-Test, Abbildungen mit sauberem Git-Hash neu erzeugen | Orchestrator, strukturdynamik-experte | nach 02.11. | |
