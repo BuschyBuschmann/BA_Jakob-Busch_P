@@ -468,12 +468,21 @@ Umsetzung W5-2 und wurden in der Fachabnahme FA-W5-2 nachgerechnet.
   kein Ausschlusskennzeichen tragen, z. B. Gruppe 1325,55/1329,35 Hz: Die Partnermode läuft
   weg (1350,24 Hz, `ausserhalb_band`), die übrige springt auf 1325,01 Hz und ginge sonst als
   1329,35-Hz-Mode in die Zusammenfassung ein; ebenso 1003,42/1006,41 Hz und 834,95/845,05 Hz
-  (zwei Pole an einer Spitze). Die Zusammenfassungen dieser Spitzen, vor allem über 1 kHz
-  (z. B. 1329,35 Hz, 1006,41 Hz), **ändern sich** durch Regel (b); neue Zahlenwerte sind hier
-  nicht nachgerechnet. Die Werte der Tabelle oben (401,6 Hz, 618,9 Hz, Gruppe 262,6 Hz) und die
-  Drift-Tabelle unten sind nicht betroffen; für die Gruppe 262,6 Hz ist das aus den Medianen
-  (262,720 / 266,154 / 270,267 Hz bei Startwerten 262,58 / 264,99 / 270,05 Hz) ersichtlich, je
-  Punkt aber nicht einzeln geprüft.
+  (zwei Pole an einer Spitze).
+- **Wirkung von Regel (b) auf die Zusammenfassungen (Nachtrag N1, nachgerechnet in
+  RFA-W5-2b mit `k3_pruef.py`, Vergleich aller Zusammenfassungen vor und nach Regel (b)):**
+
+  | Spitze | vorher (nur Regel a) | nachher (Regeln a und b) |
+  |---|---|---|
+  | 1006,41 Hz | N = 15, $f_r$ = 1006,589 Hz, ζ = 0,00137 | N = 14, $f_r$ = 1006,601 Hz, ζ = 0,00135 |
+  | 1329,35 Hz | N = 12, $f_r$ = 1329,349 Hz, ζ = 0,00165 | N = 10, $f_r$ = 1329,377 Hz, ζ = 0,00146 |
+
+  - 845,05 Hz bleibt unverändert (N = 3, $f_r$ = 845,360 Hz, ζ = 0,00303). Die Ergebnisse mit
+    `moden_vertauscht` (Punkte 20, 80, 85) wurden gefittet, weil sie zu den 20 stärksten
+    Punkten der Partnerspitze 834,95 Hz gehören; unter den Kandidaten von 845,05 Hz sind sie
+    nicht. Die Zusammenfassung nimmt nach 3.5 nur die Kandidaten der eigenen Spitze.
+  - Sonst ist keine Zusammenfassung betroffen. Unverändert sind damit auch die Tabelle oben
+    (401,6 Hz, 618,9 Hz, Gruppe 262,6 Hz) und die Drift-Tabelle unten.
 
 - Die Halbwertsbreite von Stufe 1 liegt an der Auflösungsgrenze 6 bis 25 % über dem Fit.
   Das entspricht der Tabelle in FG-02 3.9 (positiver Bias).
@@ -1266,3 +1275,4 @@ for b in bsp: print("  ", b)
 | 2026-10-30 | Erstfassung (Paket W4-2) | Nutzer, 2026-10-30 (mit E1–E6) |
 | 2026-10-30 | Korrektur K2 aus der Fachabnahme FA-W5-2: K2-1 Option A – Drift-Ausschluss je gewählter Mode (`ausserhalb_band`, `unsicher`, `nicht_konvergiert` nur bei n = 1; kein Ausschluss über `modell_passt_nicht`, Anzahl wird ausgegeben), Gruppenfit nach 3.3 in der Drift, Drift-Tabelle in 7 ersetzt (4.5, 6.2, 6.3, 7, RF-V6). K2-2: Abbruchkriterium auch für verworfene Versuchsschritte (3.2, RF-F1). K2-3: σ der Spitzenpaarung = Median der σ_fr, Hinweis zur Drift (4.2, RF-V7); RF-F3 bei 102 Hz zusätzlich `unsicher` (9.1); Abschnitt 7 mit Punktauswahl je Spitze und ρ als Median der verwendeten Punkte. K2-4: γ² = NaN bleibt im Fit, Hinweis „Kohärenz nicht prüfbar“ (3.2, 6.3, RF-F8). Prüfskripte im Anhang (Ergänzung K2) | Nutzer, 2026-10-30 |
 | 2026-10-30 | Korrektur K3 aus der Re-Abnahme RFA-W5-2: Kennzeichen `moden_vertauscht` mit Rangregel (a) und Näheregel (b) (3.4, K3-1), Ausschluss aus der Zusammenfassung (3.4, K3-2) und aus der Drift (4.5, K3-3), Referenzfall RF-F9 (9.1, K3-4), Vermerk zur Wirkung an der Beispieldatei (7, K3-5); Prüfskript `vertauscht.py` im Anhang | Nutzer, 2026-10-30 |
+| 2026-10-30 | Datennachtrag N1 (Abschnitt 7, Vermerk K3-5): nachgerechnete Wirkung von Regel (b) auf die Zusammenfassungen 1006,41 Hz und 1329,35 Hz; 845,05 Hz unverändert mit Begründung; keine weitere Zusammenfassung betroffen. Keine Regeländerung | Nutzer, 2026-10-30 |

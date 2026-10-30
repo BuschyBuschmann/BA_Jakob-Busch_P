@@ -48,6 +48,10 @@ uv run pytest --cov --cov-fail-under=90
 ## Messdaten
 - Messdaten werden in Dateien gespeichert, zusammen mit der Softwareversion (Git-Hash).
 - Rohdaten werden nie überschrieben.
+- Exporte der Auswertung tragen je Stufe eine eigene Formatkennung
+  (`ldv_automation.auswertung.export[.stufeN]`) und nutzen den gemeinsamen Schreibweg
+  `schreibe_export` (SHA-256 der Datendatei, Git-Hash, Herkunft der Messdatei). Eine neue Stufe
+  ändert das Format einer bestehenden Stufe nicht.
 
 ## Verifikation
 - Jede Auswertefunktion wird gegen einen analytischen Referenzfall aus
