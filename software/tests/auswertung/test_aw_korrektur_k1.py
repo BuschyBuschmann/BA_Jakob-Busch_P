@@ -288,8 +288,15 @@ def test_nitpick6_export_atomar_ohne_verwaiste_dateien(
     assert list(tmp_path.iterdir()) == []
 
 
-def test_unteres_band_nan_bei_null_und_unendlich() -> None:
+def test_fehlerband_randfaelle_fg02_6_3() -> None:
+    """FG-02 6.3: k_ε·ε >= 1 → untere Grenze 0, auch bei |H1| = 0 und ε = +∞; obere Grenze
+    bei ε = +∞ wie RF-U7 (γ² = 0) +∞; ε = NaN bleibt NaN ohne Kennzeichen-Wert True."""
     from ldv_automation.auswertung.frf import fehlerband
 
-    u, o, ok = fehlerband(np.array([0.0]), np.array([math.inf]), 2.0)
-    assert math.isnan(u[0]) and math.isnan(o[0]) and not ok[0]
+    u, o, ok = fehlerband(
+        np.array([0.0, 1.0, 0.0, 1.0]), np.array([math.inf, math.inf, 0.6, math.nan]), 2.0
+    )
+    assert u.tolist()[:3] == [0.0, 0.0, 0.0]
+    assert o[0] == math.inf and o[1] == math.inf and o[2] == 0.0
+    assert math.isnan(u[3]) and math.isnan(o[3])
+    assert ok.tolist() == [False, False, False, False]

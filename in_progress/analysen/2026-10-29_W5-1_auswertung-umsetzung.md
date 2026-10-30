@@ -319,3 +319,15 @@ Ref1): größter `betrag_3d_psv` 8,32·10⁻⁴ m/s (Spitzenwert).
 | NITPICK 6 atomarer Export | temporäre Dateien, `os.replace` | `test_nitpick6_…` |
 | NITPICK 7 Kohärenz in Spektren-Abbildung | `abbildungen.bild_spektren` | `test_abbildung_mit_niedriger_kohaerenz_…` |
 | NITPICK-1 (FA) P-09 je Referenz | nicht umgesetzt (F15) | – |
+
+### Nachtrag K-W5-1b (2026-10-30)
+
+- **Fehlerband bei k_ε·ε ≥ 1** (`frf.fehlerband`): Die untere Grenze ist 0 (FG-02 6.3), auch
+  bei |H1| = 0 und ε = +∞. Bei ε = +∞ ist die obere Grenze +∞, unabhängig von |H1|. Damit
+  passt das Ergebnis zu FG-02 9.3 RF-U7 (γ² = 0 → unten 0, oben +∞). Ein unendlicher
+  Zufallsfehler begrenzt den Betrag nach oben nicht, und das unbestimmte Produkt 0·∞ wird
+  nicht gebildet. ε = NaN (z. B. n_d = 1) ergibt weiterhin NaN.
+  Test: `test_aw_korrektur_k1::test_fehlerband_randfaelle_fg02_6_3`.
+- **Export:** Der Kommentar in `export.exportiere` stimmt jetzt. Bricht der Lauf zwischen den
+  beiden `os.replace` ab, kann beim ersten Export eine verwaiste `.npz` bleiben. Beim
+  Überschreiben erkennt `lese_export` die Inkonsistenz über den SHA-256.

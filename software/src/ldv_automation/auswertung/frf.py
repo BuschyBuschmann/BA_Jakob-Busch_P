@@ -158,17 +158,25 @@ def fehlerband(
     -------
     unten, oben : numpy.ndarray
         :math:`\max(0, |H_1|(1 - k_\varepsilon\varepsilon))` und
-        :math:`|H_1|(1 + k_\varepsilon\varepsilon)`; :math:`|H_1| = 0` bei ε = ∞ ergibt NaN.
+        :math:`|H_1|(1 + k_\varepsilon\varepsilon)`. Bei :math:`k_\varepsilon\varepsilon \ge 1`
+        ist die untere Grenze 0 (FG-02 6.3), auch für :math:`|H_1| = 0`. Bei ε = +∞ ist die
+        obere Grenze +∞ unabhängig von :math:`|H_1|` (FG-02 9.3 RF-U7: γ² = 0 → oben +∞;
+        ein unendlicher Zufallsfehler begrenzt den Betrag nach oben nicht, das unbestimmte
+        Produkt 0·∞ wird nicht gebildet). ε = NaN ergibt NaN.
     aussagekraeftig : numpy.ndarray
         ``False`` bei :math:`k_\varepsilon\varepsilon \ge 1` (auch ε = +∞) oder ε = NaN;
         Kennzeichen „Fehlerband nicht aussagekräftig“.
     """
     b = np.asarray(betrag, dtype=np.float64)
     e = np.asarray(eps, dtype=np.float64)
+    zu_gross = k_eps * e >= 1.0  # NaN → False
+    unendlich = np.isinf(e) & (e > 0)
     with np.errstate(invalid="ignore"):
-        unten: FloatArray = np.maximum(0.0, b * (1.0 - k_eps * e))
-        oben: FloatArray = b * (1.0 + k_eps * e)
-        aussagekraeftig: BoolArray = k_eps * e < 1.0
+        roh_unten = b * (1.0 - k_eps * np.where(unendlich, 0.0, e))
+        roh_oben = b * (1.0 + k_eps * np.where(unendlich, 0.0, e))
+    unten: FloatArray = np.where(zu_gross, 0.0, np.maximum(0.0, roh_unten))
+    oben: FloatArray = np.where(unendlich, np.inf, roh_oben)
+    aussagekraeftig: BoolArray = k_eps * e < 1.0
     return unten, oben, aussagekraeftig
 
 

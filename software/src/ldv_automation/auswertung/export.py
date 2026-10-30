@@ -456,8 +456,11 @@ def exportiere(
         "software": asdict(build),
         "erstellt": zeit.isoformat(),
     }
-    # Atomar: erst temporäre Dateien im Zielordner schreiben, dann umbenennen; bei einem
-    # Fehler bleiben weder eine verwaiste .npz noch eine halbe .json zurück.
+    # Erst temporäre Dateien im Zielordner schreiben, dann je Datei atomar umbenennen. Ein
+    # Fehler beim Schreiben hinterlässt keine Exportdatei. Bricht der Lauf zwischen den
+    # beiden os.replace ab, kann beim ersten Export eine verwaiste .npz ohne .json bleiben;
+    # beim Überschreiben passt die alte .json nicht zur neuen .npz, was lese_export über
+    # den SHA-256 erkennt (ValueError).
     npz_tmp = npz.with_name(f".{npz.name}.tmp")
     js_tmp = js.with_name(f".{js.name}.tmp")
     try:
