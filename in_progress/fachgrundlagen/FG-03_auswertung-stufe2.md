@@ -1,6 +1,6 @@
 <!-- Fachgrundlage FG-03: Auswertung Stufe 2 (B-1 parametrische Dämpfungsschätzung, B-5 Vergleich mehrerer Messungen, B-8 3D-Komponentenbezug). Erstellt im Paket W4-2 von strukturdynamik-experte, Stand 2026-10-30. Status: FACHGRUNDLAGE ZUR FREIGABE. -->
 
-> **Status:** Vom Nutzer am 2026-10-30 freigegeben, einschließlich der Entscheidungen E1–E6 wie empfohlen (Abschnitt 8). Annahmen M12–M15 und die Wiederholungsmessung für B-5 werden am Messrechner (Mo 2026-11-02) geprüft bzw. aufgenommen. Korrektur K2-1 (Option A) bis K2-4 am 2026-10-30 freigegeben und eingearbeitet (Fachabnahme FA-W5-2; Abschnitte 3.2, 4.2, 4.5, 6.2, 6.3, 7, 9.1, 9.2).
+> **Status:** Vom Nutzer am 2026-10-30 freigegeben, einschließlich der Entscheidungen E1–E6 wie empfohlen (Abschnitt 8). Annahmen M12–M15 und die Wiederholungsmessung für B-5 werden am Messrechner (Mo 2026-11-02) geprüft bzw. aufgenommen. Korrektur K2-1 (Option A) bis K2-4 am 2026-10-30 freigegeben und eingearbeitet (Fachabnahme FA-W5-2; Abschnitte 3.2, 4.2, 4.5, 6.2, 6.3, 7, 9.1, 9.2). Korrektur K3-1 bis K3-5 (Kennzeichen `moden_vertauscht`) am 2026-10-30 freigegeben und eingearbeitet (Re-Abnahme RFA-W5-2; Abschnitte 3.4, 4.5, 7, 9.1).
 
 # FG-03 – Auswertung von PSV-Messdaten, Stufe 2
 
@@ -169,9 +169,11 @@ Option: Gewichte $1/(\lvert H_{1,k}\rvert\,\varepsilon_k)^2$ aus FG-02 3.4.
 | `ausserhalb_band` | $f_r$ außerhalb des Fitbands, oder ζ ≥ 0,2, oder ζ < 10⁻⁵ | Schwache Dämpfung ist Voraussetzung der lokalen Modellform |
 | `kein_mobilitaetsbezug` | FRF ist weder Mobilität noch Akzeleranz | 2 |
 | `gueltigkeit_offen_m7` | $f_r > 1000$ Hz, solange M7 offen | FG-02 3.9 |
+| `moden_vertauscht` (K3-1) | n ≥ 2. Verglichen werden nur die Moden ohne `ausserhalb_band`. Das Kennzeichen erhält jede dieser Moden r, für die gilt: (a) ihr Rang in der Reihenfolge der gefitteten $f_r$ weicht von ihrem Rang in der Reihenfolge der Startwerte $f_\mathrm{sp}$ ab, oder (b) sie liegt einem anderen Startwert der Gruppe echt näher als ihrem eigenen: $\lvert f_r - f_{\mathrm{sp},j}\rvert < \lvert f_r - f_{\mathrm{sp},r}\rvert$ für ein j ≠ r (j über alle Spitzen der Gruppe). Bei Gleichstand kein Kennzeichen | Die Zuordnung Mode ↔ Stufe-1-Spitze ist unsicher; die Modellform legt keine Reihenfolge der Moden fest. Umsortieren statt Kennzeichnen hilft nicht: An der Beispieldatei liegt nach dem Umsortieren nur in 3 von 22 Fällen mit Rangwechsel jede Mode an ihrer nächsten Spitze (Abschnitt 7) |
 
-Ergebnisse mit `modell_passt_nicht`, `nicht_konvergiert` oder `ausserhalb_band` werden
-ausgegeben, aber nicht in die Zusammenfassung nach 3.5 übernommen.
+Ergebnisse mit `modell_passt_nicht`, `nicht_konvergiert`, `ausserhalb_band` oder
+`moden_vertauscht` werden ausgegeben, aber nicht in die Zusammenfassung nach 3.5 übernommen
+(K3-2). `moden_vertauscht` gilt je Mode, die übrigen Moden desselben Fits bleiben verwendbar.
 
 ### 3.5 Ort des Fits und Zusammenfassung (Entscheidung E2)
 
@@ -305,10 +307,11 @@ $$\mathrm{MAC}(\phi_A, \phi_B) = \frac{\lvert\phi_A^\mathsf{H}\phi_B\rvert^2}{(\
   - Kennzeichen `drift_signifikant`, wenn $\lvert b_1\rvert > 3\sigma_{b_1}$.
 - **Punktausschluss (K2-1, Option A).** Ausgeschlossen wird nach den Kennzeichen **der
   gewählten Mode** an diesem Punkt:
-  - `ausserhalb_band` und `unsicher` (beide je Mode nach 3.4),
+  - `ausserhalb_band`, `unsicher` und `moden_vertauscht` (alle je Mode nach 3.4; `moden_vertauscht`
+    nach K3-3),
   - `nicht_konvergiert` nur bei n = 1. Im Gruppenfit (n ≥ 2) gilt das Kennzeichen für alle
     Moden gemeinsam und stammt oft von einer schwach ausgeprägten Partnermode; über die
-    gewählte Mode entscheiden dann `ausserhalb_band` und `unsicher`,
+    gewählte Mode entscheiden dann `ausserhalb_band`, `unsicher` und `moden_vertauscht`,
   - Punkte ohne Fit (`zu_wenig_linien`, `gruppe_zu_gross`, ‖H‖ = 0).
 
   **Nicht** ausgeschlossen werden `modell_passt_nicht`, `gueltigkeit_offen_m7`,
@@ -458,6 +461,19 @@ Umsetzung W5-2 und wurden in der Fachabnahme FA-W5-2 nachgerechnet.
   Unterschied in ρ kommt von der Bandkürzung nach 3.3.
 - Erzwungener Ein-Moden-Fit an der Gruppe (nur zur Einordnung, Prüfskript): ζ = 0,00223,
   ρ = 0,224.
+- **Kennzeichen `moden_vertauscht` (K3-5).** Nachgerechnet an Vib Z/Ref1, alle Gruppen,
+  Stand der Umsetzung mit Regel (a) (Prüfskript `vertauscht.py`): Von 801 Mehr-Moden-Fits
+  tragen 22 nach Regel (a) das Kennzeichen; davon liegt nach Umsortieren nur in 3 Fällen jede
+  Mode an ihrer nächsten Spitze. Regel (b) betrifft zusätzlich 20 Modenergebnisse, die sonst
+  kein Ausschlusskennzeichen tragen, z. B. Gruppe 1325,55/1329,35 Hz: Die Partnermode läuft
+  weg (1350,24 Hz, `ausserhalb_band`), die übrige springt auf 1325,01 Hz und ginge sonst als
+  1329,35-Hz-Mode in die Zusammenfassung ein; ebenso 1003,42/1006,41 Hz und 834,95/845,05 Hz
+  (zwei Pole an einer Spitze). Die Zusammenfassungen dieser Spitzen, vor allem über 1 kHz
+  (z. B. 1329,35 Hz, 1006,41 Hz), **ändern sich** durch Regel (b); neue Zahlenwerte sind hier
+  nicht nachgerechnet. Die Werte der Tabelle oben (401,6 Hz, 618,9 Hz, Gruppe 262,6 Hz) und die
+  Drift-Tabelle unten sind nicht betroffen; für die Gruppe 262,6 Hz ist das aus den Medianen
+  (262,720 / 266,154 / 270,267 Hz bei Startwerten 262,58 / 264,99 / 270,05 Hz) ersichtlich, je
+  Punkt aber nicht einzeln geprüft.
 
 - Die Halbwertsbreite von Stufe 1 liegt an der Auflösungsgrenze 6 bis 25 % über dem Fit.
   Das entspricht der Tabelle in FG-02 3.9 (positiver Bias).
@@ -534,6 +550,7 @@ $f_j = (k_0 + j + \mathrm{off})\,\Delta f$.
 | RF-F5 | Burst-Chirp 20 → 2500 Hz linear, Dauer 0,4 T bzw. 0,8 T, Amplitude 1; $y = (x * h_v)\,\Delta t$, Block [0, T), Rechteck; $H_1 = Y_k/X_k$ (ein Block, ohne Rauschen); Fälle wie RF-F4 ohne ζ = 0,05 | Fit: \|ζ/ζ_wahr − 1\| ≤ 0,025 und ρ ≤ 0,05 in allen Fällen; Halbwertsbreite (FG-02 3.9) bei (100 Hz; 0,005): +0,316 bzw. +0,317 | Toleranz begründet durch die Modellabweichung (Leckage); Halbwertsbreite nur zur Dokumentation |
 | RF-F6 (Kennzeichen) | RF-F1 mit nur 6 Linien → `zu_wenig_linien`; Fit an `np.conj(Y)` (off = 0,37, 17 Linien) → ρ = 0,454, ζ → 0: `modell_passt_nicht`, `nicht_konvergiert`, `ausserhalb_band`; Gruppe mit 5 Spitzen → `gruppe_zu_gross` | Kennzeichen; ρ > 0,4 | exakt |
 | RF-F7 (Vorzeichen) | RF-F1 mit −Y | $f_r$, ζ wie RF-F1; R = −1 | wie RF-F1 |
+| RF-F9 (`moden_vertauscht`, K3-4) | Nur die Kennzeichenregel 3.4 (Startwerte, gefittete $f_r$ und `ausserhalb_band` vorgegeben, ohne Fit): (i) Start 100 / 102 / 104 Hz, Fit 100,1 / 101,9 / 104,2 Hz; (ii) Start 1059,1 / 1065,1 / 1072,0 Hz, Fit 1072,86 / 1058,49 / 1065,96 Hz; (iii) Start 1325,55 / 1329,35 Hz, Fit 1350,24 Hz (Mode 1 `ausserhalb_band`) / 1325,01 Hz; (iv) Start 834,95 / 845,05 Hz, Fit 832,66 / 835,40 Hz; (v) Start 104 / 100 Hz (unsortiert), Fit 104,1 / 99,9 Hz | (i) keins. (ii) alle drei (Regel a). (iii) nur Mode 2 (Regel b: \|1325,01 − 1325,55\| = 0,54 < \|1325,01 − 1329,35\| = 4,34); Mode 1 nicht (`ausserhalb_band`). (iv) nur Mode 2 (Regel b: 0,45 < 9,65); Mode 1 nicht (\|832,66 − 834,95\| = 2,29 < 12,39). (v) keins | exakt |
 | RF-F8 (γ² = NaN, K2-4) | RF-F1 (off = 0,37, 17 Linien) mit (a) γ² = NaN auf allen Linien ($n_d$ = 1); (b) γ² = NaN auf allen Linien außer der dritten Linie mit γ² = 0,5 < γ²_min | (a) Fit mit 17 Linien, Werte wie RF-F1, Hinweis „Kohärenz nicht prüfbar“, keine Kennzeichen (insbesondere nicht `zu_wenig_linien`). (b) Fit mit 16 Linien, Werte wie RF-F1, derselbe Hinweis | wie RF-F1; Linienzahl und Kennzeichen exakt |
 
 ### 9.2 B-5
@@ -1194,6 +1211,52 @@ g = next(g for g in r.gruppen if wahl[0] in g.spitzen)
 print("Code-Fitband Gruppe 262:", f[g.k_von], "-", f[g.k_bis], "Hz,", g.k_bis - g.k_von + 1, "Linien")
 ```
 
+#### vertauscht.py – Kennzeichen `moden_vertauscht`, Regeln (a) und (b) (K3)
+
+```python
+"""RFA-W5-2: moden_vertauscht – Rangkriterium vs. Umsortieren mit Nähekriterium (Vib Z/Ref1)."""
+import sys, pathlib, numpy as np
+sys.path.insert(0, "tools/auswertung")
+import beispiel_svd
+from ldv_automation.auswertung import werte_aus
+from ldv_automation.auswertung.svd_adapter import aus_svd_messung
+from ldv_automation.auswertung.modenfit import schaetze_daempfung, MODEN_VERTAUSCHT, AUSSERHALB_BAND
+m = beispiel_svd.lese_svd_werkzeug(pathlib.Path("../Input/20261012_ref_Mitte.svd"))
+aw = werte_aus(aus_svd_messung(m))
+r = schaetze_daempfung(aw, ("Vib Z", "Ref1"))
+sp = aw.paare[("Vib Z", "Ref1")].spitzen.spitzen
+mehr = [e for e in r.ergebnisse if e.gefittet and e.n_moden > 1]
+rang = umsort_ok = umsort_fehl = naehe_ohne_rang = 0
+for e in mehr:
+    fsp = np.array([sp[i].f_sp_hz for i in e.spitzen]); fr = np.array(e.fr_hz)
+    ok = [j for j in range(e.n_moden) if AUSSERHALB_BAND not in e.kennzeichen[j]]
+    v = any(MODEN_VERTAUSCHT in e.kennzeichen[j] for j in range(e.n_moden))
+    def naehe(zuord):  # Pol j -> Spitze zuord[j]; nah, wenn kein anderer Startwert näher liegt
+        return all(np.argmin(np.abs(fsp - fr[j])) == zuord[j] for j in ok)
+    if v:
+        rang += 1
+        s_start = sorted(ok, key=lambda j: fsp[j]); s_fit = sorted(ok, key=lambda j: fr[j])
+        zuord = {jf: js for jf, js in zip(s_fit, s_start)}
+        if naehe(zuord): umsort_ok += 1
+        else: umsort_fehl += 1
+    elif not naehe({j: j for j in ok}):
+        naehe_ohne_rang += 1
+print(f"Mehr-Moden-Fits: {len(mehr)}; moden_vertauscht (Rang): {rang}; davon nach Umsortieren jede Mode an ihrer nächsten Spitze: {umsort_ok}, nicht: {umsort_fehl}")
+print(f"ohne Rangvertauschung, aber eine Mode einer anderen Spitze näher: {naehe_ohne_rang}")
+AUS = {"modell_passt_nicht", "nicht_konvergiert", "ausserhalb_band", MODEN_VERTAUSCHT}
+bsp = []; zaehl = 0
+for e in mehr:
+    fsp = np.array([sp[i].f_sp_hz for i in e.spitzen]); fr = np.array(e.fr_hz)
+    for j in range(e.n_moden):
+        k = set(e.kennzeichen[j])
+        if k & AUS: continue
+        if np.argmin(np.abs(fsp - fr[j])) != j:
+            zaehl += 1
+            if len(bsp) < 8: bsp.append((e.punkt, np.round(fsp, 2).tolist(), np.round(fr, 2).tolist(), j, sorted(k)))
+print("Moden ohne Ausschlusskennzeichen, die einer anderen Spitze näher liegen:", zaehl)
+for b in bsp: print("  ", b)
+```
+
 ---
 
 ## Änderungsprotokoll
@@ -1202,3 +1265,4 @@ print("Code-Fitband Gruppe 262:", f[g.k_von], "-", f[g.k_bis], "Hz,", g.k_bis - 
 |---|---|---|
 | 2026-10-30 | Erstfassung (Paket W4-2) | Nutzer, 2026-10-30 (mit E1–E6) |
 | 2026-10-30 | Korrektur K2 aus der Fachabnahme FA-W5-2: K2-1 Option A – Drift-Ausschluss je gewählter Mode (`ausserhalb_band`, `unsicher`, `nicht_konvergiert` nur bei n = 1; kein Ausschluss über `modell_passt_nicht`, Anzahl wird ausgegeben), Gruppenfit nach 3.3 in der Drift, Drift-Tabelle in 7 ersetzt (4.5, 6.2, 6.3, 7, RF-V6). K2-2: Abbruchkriterium auch für verworfene Versuchsschritte (3.2, RF-F1). K2-3: σ der Spitzenpaarung = Median der σ_fr, Hinweis zur Drift (4.2, RF-V7); RF-F3 bei 102 Hz zusätzlich `unsicher` (9.1); Abschnitt 7 mit Punktauswahl je Spitze und ρ als Median der verwendeten Punkte. K2-4: γ² = NaN bleibt im Fit, Hinweis „Kohärenz nicht prüfbar“ (3.2, 6.3, RF-F8). Prüfskripte im Anhang (Ergänzung K2) | Nutzer, 2026-10-30 |
+| 2026-10-30 | Korrektur K3 aus der Re-Abnahme RFA-W5-2: Kennzeichen `moden_vertauscht` mit Rangregel (a) und Näheregel (b) (3.4, K3-1), Ausschluss aus der Zusammenfassung (3.4, K3-2) und aus der Drift (4.5, K3-3), Referenzfall RF-F9 (9.1, K3-4), Vermerk zur Wirkung an der Beispieldatei (7, K3-5); Prüfskript `vertauscht.py` im Anhang | Nutzer, 2026-10-30 |
