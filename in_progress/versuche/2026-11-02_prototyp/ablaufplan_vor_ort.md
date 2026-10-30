@@ -30,8 +30,8 @@ Quellen: [Plan P2, Abschnitt 9](../../planung/plaene/2026-10-26_P2_architektur-p
 
 ## Zeitplan und Priorität
 
-Gesamt etwa 6 bis 7 Stunden bei vollem Programm (Summe der Annahmen unten). Reicht die Zeit nicht,
-gilt diese Reihenfolge der Streichung [Vorschlag, bitte bestätigen]: zuletzt entfallen T6/T7, 1b,
+Gesamt etwa 8 bis 9 Stunden bei vollem Programm (Summe der Annahmen unten, ohne Scandauer T8). Reicht die Zeit nicht,
+gilt diese Reihenfolge der Streichung [Vorschlag, bitte bestätigen]: zuletzt entfallen T6/T7, T8, 1b,
 T3, T5; **nicht streichen**: 0 bis 4 (Installation, Erkundung, Schalter), T0, T1, T2.
 
 | Nr | Abschnitt | Annahme | Priorität |
@@ -46,10 +46,12 @@ T3, T5; **nicht streichen**: 0 bis 4 (Installation, Erkundung, Schalter), T0, T1
 | 6 | T0, T1, T2 | 15 + 20 + 30 min | Muss |
 | 6b | Handtest U4 (Teilmenge) | 30 min | Soll |
 | 7 | T3 (Meldungsprobe), optional | 10 min | Kann |
+| 7b | Auswertungs-Prüfungen in PSV (M1–M15, Export) | 45 min | Soll |
 | 8 | T4 erste echte Messung | 30 min | Soll, nur nach Entscheidung |
 | 8b | T5 Abbruch | 20 min | Kann, nur nach Entscheidung |
 | 8c | T6 Warteschlange mit drei Messungen | 45 min | Kann, nur nach Entscheidung |
 | 8d | T7 Speichern/Laden, `--ereignisse` | 15 min | Kann |
+| 8e | T8 Wiederholungsmessung für B-5 | 45 min + Messdauer (Beispieldatei: ca. 40 min Scan) | Soll, nur nach Entscheidung |
 | 9 | Sicherung und Rückmeldung | 30 min | Muss |
 
 ## 0 Vorbereitung (ca. 15 min)
@@ -175,6 +177,33 @@ Im Dialog „Einstellungen …“ werden Ordner und Standard-Zeitlimit nur **gem
 Nur mit dir am Gerät (I5 P1-8): Existiert die Zieldatei, fängt die Vorprüfung ab und PSV erhält
 keinen Aufruf (U3 6-1).
 
+## 7b Auswertungs-Prüfungen in PSV (ca. 45 min, ohne Messung)
+
+Ziel: die Annahmen der Auswertung (FG-02 Abschnitt 11: M1–M11, FG-03 Abschnitt 11: M12–M15) am
+Original-PSV prüfen. Grundlage ist eine **Kopie** von `20261012_ref_Mitte.svd` auf dem Messrechner
+(nie das Original öffnen); in PSV nichts speichern. Ergebnisse in [Protokoll](protokoll_vor_ort.md),
+Abschnitt 6b, Screenshots sichern. Bezugspunkt ist **Label 132**.
+
+| Nr. | Was in PSV ablesen bzw. tun |
+|---|---|
+| M1 | „Vib X & Ref1“, H1, Phase (oder Real/Imag) bei 100, 500, 1000 Hz |
+| M2 | erste und letzte Frequenz der Achse (erwartet 1,5625 Hz und 2500 Hz) |
+| M4 | „Vib X Geschwindigkeit“ bei 100, 500, 1000 Hz (Betrag, Skalierung Spitze/RMS notieren) |
+| M5 | Fenster, Generator (Signalform, Burstlänge), Mittelungsart und -anzahl, Signal Enhancement |
+| M6 | Scanstatus der Punkte (besonders Punkte mit Statuswert 1 und 3) |
+| M7 | Bedeutung „Bandbreitenbereich 1 kHz“ (Anzeige, Datenblatt, Betreuer fragen) |
+| M8 | Typ, Ort, Einbaurichtung von Kraftsensor (Ref1) und Beschleunigungsaufnehmer (Ref2), Shakerposition; Foto |
+| M10 | Band 100–200 Hz definieren, RMS „Vib Z Geschwindigkeit“ ablesen |
+| M11 | Band-Cursor-Fit auf H1 „Vib Z & Ref1“: an drei Spitzen ohne Warnkennzeichen und einer mit, **zusätzlich bei 401,6 Hz und 618,9 Hz** (Vergleich mit dem Modenfit B-1); f_max, „Dämpfung“ und Cursorgrenzen notieren |
+| M12 | Achsen des 3D-Abgleichs: liegen die 3D-Komponenten im Koordinatensystem der Geometrie? |
+| M13 | Lage der Scanköpfe zum Prüfling: zeigt +z vom Prüfling zu den Köpfen? |
+| M14 | ein Element ansehen: Eckpunkt-Labels gegen die Indizes (0-basiert?) |
+| M15 | Messzeit in der PSV-Info: Zeitstempel je Punkt = Messzeitpunkt? |
+| Export | Golden File: für Label 132 „Vib X Geschwindigkeit“ und H1 „Vib Z & Ref1“ als ASCII exportieren (Formatwahl und Optionen notieren) |
+
+**Abbruch:** PSV fragt beim Schließen nach Speichern (immer „Nein“), Dialog oder Fehler: Befund sichern.
+Fehlt die Zeit, gilt die Reihenfolge M8, M1, M11, M12–M15, Export, Rest [Vorschlag].
+
 ## 8 Echte Messung T4 bis T7 (nur nach deiner eigenen ausdrücklichen Entscheidung)
 
 Vor T4 selbst entscheiden und im Protokoll vermerken (Zeit, Entscheidung, Grund). Voraussetzungen
@@ -196,6 +225,13 @@ Git-Hash bekannt, Messdaten-Wurzel gesetzt und beschreibbar, Trockenlauf des ers
   bewusst knapp (Fehlerpfad, R-019 vorläufig). Messtabelle und Protokolle später über Name/ID zuordnen.
 - **T7 (ca. 15 min, optional):** `--ereignisse`, `--fortschritt punktstatus`, Speichern und Laden der Warteschlange.
 
+- **T8 Wiederholungsmessung (Soll, ca. 45 min plus Scandauer):** zweite Messung am selben Aufbau mit den
+  Einstellungen von `20261012_ref_Mitte` (für den Vergleich B-5 nach FG-03 Abschnitt 4). Wenn möglich
+  zusätzlich eine Messung mit **neu abgeglichenem bzw. verschobenem Raster** (prüft die Punktzuordnung
+  über Koordinaten). Unter neuem Dateinamen speichern, nie eine vorhandene Datei überschreiben.
+  Notieren: Raumtemperatur am Anfang und Ende (Drift, FG-03 4.5), Uhrzeit, Änderungen am Aufbau.
+  Kann über das Programm (Warteschlange) oder direkt in PSV laufen; Entscheidung im Protokoll.
+
 Die Reihenfolge ist bindend: T4 vor T5 vor T6; nach jedem Abbruchkriterium keine weiteren Messtests.
 
 ## 9 Sicherung und Rückmeldung (ca. 30 min)
@@ -210,6 +246,8 @@ Zu sichern (alles nach `in_progress/versuche/2026-11-02_prototyp/` bzw. `…/erk
 | ausgefülltes [Protokoll](protokoll_vor_ort.md), Fotos/Screenshots PSV | Anmeldenamen in Pfaden prüfen |
 | Nachweis-`.set` aus T2, Test-`.set` | |
 | Notizen zu Handtest-Zeilen (✔/✖) | |
+| Ergebnisse 7b (Screenshots, ASCII-Export Golden File) | nur Kopie der Beispieldatei verwendet |
+| `.svd` der Wiederholungsmessung(en) T8 | nach `Input/` über Upload; Größe beachten |
 
 Danach `/laborbuch` (Hardwaretest- und Versuchseintrag). Ein Befund gilt als „am Gerät bestätigt“ erst,
 wenn du ihn bestätigt hast.

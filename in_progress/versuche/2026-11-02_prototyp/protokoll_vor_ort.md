@@ -137,6 +137,49 @@ Zuordnung Messung ↔ Datei (**über Name/ID im Messprotokoll**, nicht über Tab
 |---|---|---|---|---|
 | | | | | |
 
+## 6b Auswertungs-Prüfungen (Ablaufplan 7b) und Wiederholungsmessung (T8)
+
+Kopie von `20261012_ref_Mitte.svd` verwendet: ☐ · Label 132 · Screenshots: ________
+
+| Nr. | Annahme (Voreinstellung) | Abgelesen in PSV | Bestätigt / abweichend |
+|---|---|---|---|
+| M1 | `konjugieren = False` | Phase H1 Vib X & Ref1: 100 Hz ___ · 500 Hz ___ · 1000 Hz ___ | |
+| M2 | k₀ = 1 (1,5625 … 2500 Hz) | erste ___ Hz · letzte ___ Hz | |
+| M4 | 0-to-peak | Vib X Geschw.: 100 Hz ___ · 500 Hz ___ · 1000 Hz ___ · Skalierung ___ | |
+| M5 | Rechteck, n_d = 7 | Fenster ___ · Signalform ___ · Burstlänge ___ · Mittelung ___ · Enhancement ___ | |
+| M6 | alle Punkte gültig | Status der Punkte mit Wert 1/3: | |
+| M7 | Gültigkeit > 1 kHz offen | „Bandbreitenbereich 1 kHz“ bedeutet: | |
+| M8 | s = +1 für Ref1, Ref2 | Kraftsensor: Typ ___ Ort ___ Richtung ___ · Beschl.-Aufnehmer: Typ ___ Ort ___ Richtung ___ · Shaker ___ | |
+| M10 | Band geschlossen | RMS Vib Z Geschw. 100–200 Hz: ___ | |
+| M11 | Toleranzen FG-02 Abschn. 8 | siehe Tabelle unten | |
+| M12 | 3D-Komponenten im Geometrie-KS | | |
+| M13 | Normalenbezug +z | | |
+| M14 | Elementindizes 0-basiert | Element ___: Labels ___ | |
+| M15 | Zeitstempel je Punkt = Messzeit | | |
+| Export | Golden File | Format/Optionen: ___ · Dateien: ___ | |
+
+Band-Cursor-Fit (M11), H1 „Vib Z & Ref1“, Label 132:
+
+| Spitze (Hz, ungefähr) | Warnkennzeichen? | Cursorgrenzen (Hz) | f_max (Hz) | Dämpfung (Angabe wie PSV) |
+|---|---|---|---|---|
+| 401,6 | | | | |
+| 618,9 | | | | |
+| | nein | | | |
+| | nein | | | |
+| | nein | | | |
+| | ja | | | |
+
+Wiederholungsmessung T8 (nur nach eigener Entscheidung):
+
+| Punkt | Eintrag |
+|---|---|
+| Entscheidung (Zeit, Grund), über Programm oder direkt in PSV | |
+| Dateiname(n) `.svd` | |
+| gleicher Aufbau / Raster neu abgeglichen bzw. verschoben? | |
+| Temperatur Anfang / Ende | |
+| Beginn / Ende (Uhrzeit) | |
+| Änderungen am Aufbau, Auffälligkeiten | |
+
 ## 7 Abbruch / Auffälligkeiten
 
 | Uhrzeit | Kriterium aus dem Ablaufplan | Beobachtung | Gesichert (Dateien, Foto) |
@@ -149,6 +192,7 @@ Zuordnung Messung ↔ Datei (**über Name/ID im Messprotokoll**, nicht über Tab
 |---|---|
 | Erkundungsordner, Durchgangsordner, Konsolenausgaben, Protokoll gesichert und Pfade/Kontonamen geprüft | ☐ |
 | Nachweis-.set, Test-.set gesichert | ☐ |
+| Ergebnisse 7b und `.svd` aus T8 gesichert | ☐ |
 | PSV in sauberem Zustand (keine Messung, kein Dialog) | ☐ |
 | Ende (Uhrzeit) | |
 | Was ich als „am Gerät bestätigt“ gelten lasse (je Schritt): | |
