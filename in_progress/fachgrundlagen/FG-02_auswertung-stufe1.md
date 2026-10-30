@@ -1,6 +1,7 @@
-<!-- Fachgrundlage FG-02: Auswertung Stufe 1 (R-050 bis R-053 sowie B-2, B-3, B-9, B-10 und fachliche Festlegungen zu B-4, B-6, B-7). Erstellt im Paket W4-1 von strukturdynamik-experte, Stand 2026-10-29. Status: ENTWURF ZUR FREIGABE. -->
+<!-- Fachgrundlage FG-02: Auswertung Stufe 1 (R-050 bis R-053 sowie B-2, B-3, B-9, B-10 und fachliche Festlegungen zu B-4, B-6, B-7). Erstellt im Paket W4-1 von strukturdynamik-experte, Stand 2026-10-29, Korrektur K1 eingearbeitet 2026-10-30. -->
 
 > **Status:** Vom Nutzer am 2026-10-29 freigegeben, einschließlich der Toleranzen (Abschnitt 8) und Schwellen (γ²_min = 0,9, n_min = 3, Nachbarmode 3B, P-07 bis P-09). Annahmen M1–M11 werden nach der Prüfung am Messrechner (Mo 2026-11-02) nachgeführt.
+> **Korrektur K1** (`FG-02_korrekturvorschlag-K1.md`, K1-1 bis K1-8) am 2026-10-30 eingearbeitet, Nutzerfreigabe; Änderungen siehe Änderungsprotokoll am Ende.
 
 # FG-02 – Auswertung von PSV-Messdaten, Stufe 1
 
@@ -80,10 +81,15 @@ vorläufig). Die Achse kommt immer aus der Datei. $k_0$ ist ein Parameter mit Ke
 
 Die Rohdaten aus der Datei werden vor jeder Rechnung so verarbeitet:
 
-$$\mathrm{CP}_{ab} \leftarrow s_b\cdot\mathcal C(\mathrm{CP}^\mathrm{roh}_{ab}),\qquad
-\mathrm{CPH}_{ab} \leftarrow s_b\cdot\mathcal C(\mathrm{CPH}^\mathrm{roh}_{ab}),\qquad \mathrm{AP},\ \mathrm{ABS}\ \text{unverändert}.$$
+$$\mathrm{CP}_{ab} \leftarrow s_a s_b\cdot\mathcal C(\mathrm{CP}^\mathrm{roh}_{ab}),\qquad
+\mathrm{CPH}_{ab} \leftarrow s_a s_b\cdot\mathcal C(\mathrm{CPH}^\mathrm{roh}_{ab}),\qquad \mathrm{AP},\ \mathrm{ABS}\ \text{unverändert}.$$
 
-- $s_b \in \{+1, -1\}$ ist das Vorzeichen der Referenz b **[ANN M8]**, Voreinstellung $+1$.
+- $s_c \in \{+1, -1\}$ ist das **Vorzeichen je Kanal** c (Parameter `vorzeichen_kanal`)
+  **[ANN M8]**, Voreinstellung $+1$. Für Vib X/Y/Z bleibt $s_c = +1$ (Richtungskonvention
+  KONVENTIONEN). Es gilt für jedes Kreuzspektrum, in dem der Kanal vorkommt, als Antwort
+  **oder** als Referenz [A]: $\langle (s_aA)(s_bB)^{*}\rangle = s_a s_b\langle AB^{*}\rangle$.
+  Beispiel: Ref2 ist Antwort in Ref2/Ref1 und Referenz in Vib/Ref2; ein gedrehter Ref2 wird
+  nur mit $s_{\mathrm{Ref2}}$ in **beiden** Paaren korrigiert (K1-1).
   Ein gedrehter Kraftsensor verschiebt alle H1-Phasen und Schwingformen global um π.
 - $\mathcal C$ ist die Identität (Voreinstellung) oder die komplexe Konjugation (Parameter
   `konjugieren`). Die Datei ist nach dem Kausalitätstest **nicht** konjugiert (W3 2.2 [D]).
@@ -188,8 +194,11 @@ $$\varepsilon\big[\lvert\hat H_1\rvert\big] \approx \frac{\sqrt{1-\gamma^2}}{\lv
 - **Erwartungstreue von γ̂² [N]:** Bei wahrem γ² = 0 gilt $E[\hat\gamma^2] = 1/n_d$, das
   95-%-Quantil ist $1-0{,}05^{1/(n_d-1)}$ (bei $n_d = 7$: 0,393; MC: 0,394).
 - **Ausgabe:** `eps_betrag_h1`, `sigma_phase_h1_rad`, `eps_kohaerenz` je Punkt und Linie,
-  dazu als Band $\lvert\hat H_1\rvert\,(1 \pm k_\varepsilon\,\varepsilon)$. Vorschlag
-  $k_\varepsilon = 2$, einstellbar.
+  dazu als Band mit oberer Grenze $\lvert\hat H_1\rvert\,(1 + k_\varepsilon\,\varepsilon)$ und
+  unterer Grenze $\max\big(0,\ \lvert\hat H_1\rvert\,(1 - k_\varepsilon\,\varepsilon)\big)$.
+  Ist $k_\varepsilon\,\varepsilon \ge 1$, gilt das Kennzeichen „Fehlerband nicht aussagekräftig“
+  (K1-6): Ein Betrag kann nicht negativ sein. Bei $n_d = 7$ und $k_\varepsilon = 2$ betrifft das
+  γ² < 0,222 (ε > 0,5) [N]. $k_\varepsilon = 2$, einstellbar.
 - **Mittelungsanzahl $n_d$ [ANN M5]:** In der Datei vermutlich 7, je Punkt eventuell
   7 bis 25 (Signal Enhancement, W2 3.2). Parameter, Voreinstellung aus `Average`, Kennzeichen.
 - **Grenzen:** Die Formeln setzen unabhängige Blöcke und stationäre Zufallssignale voraus.
@@ -236,7 +245,7 @@ $$\varepsilon\big[\lvert\hat H_1\rvert\big] \approx \frac{\sqrt{1-\gamma^2}}{\lv
   - `auslenkung_min` = $\sqrt{\max\big(0,\ \tfrac12(\sum_c\lvert\hat v_c\rvert^2 - \lvert\sum_c\hat v_c^2\rvert)\big)}$.
   - Es gilt $\text{min} \le \text{max} \le \text{betrag\_3d\_psv}$. Gleichheit von max und PSV-Betrag
     gilt bei gleichphasigen Komponenten (lineare Bahn).
-- Das globale Vorzeichen hängt von $s_b$ ab (2.4). Die Form selbst nicht.
+- Das globale Vorzeichen hängt von $s_a s_b$ ab (2.4). Die Form selbst nicht.
 
 ### 3.7 Umrechnung Weg/Schnelle/Beschleunigung (B-10)
 
@@ -280,7 +289,8 @@ Ob PSV beide Grenzlinien einschließt, ist am Gerät zu prüfen.
 ### 3.9 Spitzensuche und −3-dB-Breite (A-6, R-053)
 
 **Eingang:** $y_k = \lvert H_{1,k}\rvert$ eines Punkts oder eines Punktmittels
-($M^\mathrm{Betrag}$ von |H1|), dazu γ² und der Parametersatz.
+($M^\mathrm{Betrag}$ von |H1|), dazu γ² und der Parametersatz. Für ein Punktmittel ist γ² das
+**arithmetische Punktmittel** von γ² des Paars (wie PSV `AVGSEQ[COH]`, K1-7a).
 
 **Schritt 1 – Kandidaten.** Linie k ist Spitze, wenn
 - $y_k > y_{k-1}$ und $y_k \ge y_{k+1}$ für $1 \le k \le K-2$ gilt (Randlinien nie),
@@ -326,12 +336,16 @@ gleichverteilt, 50 Lagen):
 
 | $B/\Delta f$ | max. \|Fehler $f_\mathrm{sp}$\| | Fehler von $B$ (min … max) |
 |---|---|---|
-| 0,64 | 0,20 Δf | +32 % … +178 % |
-| 1,0 | 0,16 Δf | +6 % … +88 % |
-| 2,0 | 0,09 Δf | 0 … +18 % |
-| 3,0 | 0,05 Δf | +2,6 % … +5,2 % |
-| 4,0 | 0,03 Δf | 0 … +3,2 % |
-| 8,0 | 0,01 Δf | 0 … +0,5 % |
+| 0,64 | 0,2012 Δf | +31,64 % … +177,53 % |
+| 1,0 | 0,1633 Δf | +5,96 % … +88,23 % |
+| 1,5 | 0,1195 Δf | −2,37 % … +39,34 % |
+| 2,0 | 0,0877 Δf | +0,04 % … +18,31 % |
+| 3,0 | 0,0508 Δf | +2,56 % … +5,21 % |
+| 4,0 | 0,0322 Δf | +0,05 % … +3,25 % |
+| 6,0 | 0,0160 Δf | +0,01 % … +1,11 % |
+| 8,0 | 0,0095 Δf | +0,0006 % … +0,54 % |
+
+Werte in voller Stellenzahl aus dem Prüfskript nachgerechnet (K1-3, FA-W5-1).
 
 Ohne Parabel (Höhe = Linienmaximum) sind die Fehler etwa doppelt so groß, bei $f_\mathrm{sp}$
 bis 0,5 Δf.
@@ -340,10 +354,10 @@ bis 0,5 Δf.
 
 | Kennzeichen | Bedingung | Begründung |
 |---|---|---|
-| `aufloesungsbegrenzt` | $B/\Delta f < n_\mathrm{min}$, **Vorschlag $n_\mathrm{min} = 3$** | Ab drei Linien liegt der Fehler von B unter +5,2 % (Tabelle) |
+| `aufloesungsbegrenzt` | $B/\Delta f < n_\mathrm{min}$, **Vorschlag $n_\mathrm{min} = 3$** | Ab drei Linien beträgt der Fehler von B höchstens +5,21 % (Tabelle) |
 | `ueberlappend` | eine Seite nicht bestimmt (Schritt 3) | Halbwertsbreite einer Einzelmode nicht definiert |
 | `nachbarmode` | Abstand zur nächsten gefundenen Spitze $< 3B$ | RF-M: ab 3 B Fehler ≤ 0,5 % (untere Mode) bzw. +0,5 % (obere); bei 1,5 B +2,4 % / +3,5 % |
-| `kohaerenz_niedrig` | ein $\gamma^2_k < \gamma^2_\mathrm{min}$ für $f_l \le f_k \le f_r$ oder an der Spitzenlinie | 3.5 |
+| `kohaerenz_niedrig` | ein $\gamma^2_k < \gamma^2_\mathrm{min}$ für $f_l \le f_k \le f_r$ oder an der Spitzenlinie; ist eine Seite unbestimmt, zählt der Bereich bis zur Spitzenlinie. γ² = NaN löst das Kennzeichen nicht aus. Ist γ² im geprüften Bereich **vollständig** NaN (z. B. $n_d = 1$) oder fehlt γ², gilt der Hinweis „Kohärenz nicht prüfbar“ (K1-7b) | 3.5 |
 | `gueltigkeit_offen_m7` | $f_\mathrm{sp} > 1000$ Hz, solange M7 offen **[ANN M7]** | W3 2.6 |
 
 **Grenze:** Zwei Moden, die enger beieinander liegen als etwa B, erscheinen als **eine**
@@ -367,9 +381,9 @@ Die Schwellen sind Vorschläge und einstellbar. Ergebnis je Prüfung: `ok` / `wa
 | P-06 | Frequenzachse | $\lvert f_k - (k+k_0)\Delta f\rvert \le 10^{-6}\Delta f$ | fehler | 2.3 |
 | P-07 | Phasensinn (A-1) | Anteil $q$ fallender Phase an Spitzen von $\lvert H_1\rvert$ (Prominenz wie 3.9 mit $p_\mathrm{min} = 2$, γ² ≥ 0,9, zentrale Differenz $\arg H_{k+1} - \arg H_{k-1}$, entfaltet); $q \ge 0{,}9$ ok; $q \le 0{,}1$ fehler „Daten vermutlich konjugiert“; dazwischen warnung; weniger als 10 Spitzen: „nicht prüfbar“ | siehe Kriterium | W3 2.2 [A, D]: Datei q = 0,982 |
 | P-08 | Passivität am Antriebspunkt (nur wenn ein Antriebspunkt-Paar konfiguriert ist, z. B. Ref2/Ref1) | Anteil $r$ der Linien mit $\mathrm{Re}\{Y\} \ge 0$ unter γ² ≥ 0,9, mit $Y$ = Mobilität (aus Akzeleranz: $Y = H/(i\omega)$); $r \ge 0{,}95$ ok; $r \le 0{,}05$ warnung „Vorzeichen einer Referenz vermutlich gedreht“; dazwischen warnung „kein Antriebspunkt?“ | warnung | W3 2.3 [A, D]: Datei r = 0,0 |
-| P-09 | Referenzstabilität | Median über Linien mit γ² ≥ 0,9 des Variationskoeffizienten von $\sqrt{\mathrm{AP}_b}$ über die gültigen Punkte ≤ 0,05 | warnung | W3 2.7 [D]: Datei 0,0105 |
+| P-09 | Referenzstabilität | Median über die Linien, deren **arithmetisches Punktmittel** von γ² des Paars ≥ 0,9 ist, des Variationskoeffizienten von $\sqrt{\mathrm{AP}_b}$ über die gültigen Punkte (Standardabweichung mit ddof = 0) ≤ 0,05; je Kanalpaar | warnung | [D]: Datei 0,0108 (Vib Z/Ref1). Der frühere Wert 0,0105 stammt aus W3 2.7 (Linien 150–2400 Hz, ohne Kohärenzauswahl) (K1-5) |
 | P-10 | Punktstatus | Anzahl ungültiger Punkte > 0 | Hinweis | [ANN M6] |
-| P-11 | Annahmen | Liste aller Parameter mit Status „Annahme“ ($k_0$, $s_b$, `konjugieren`, $W_\mathrm{RBW}$, $n_d$, M7, Bandgrenzenregel) | Hinweis, immer ausgeben | Abschnitt 11 |
+| P-11 | Annahmen | Liste aller Parameter mit Status „Annahme“ ($k_0$, $s_c$, `konjugieren`, $W_\mathrm{RBW}$, $n_d$, M7, Bandgrenzenregel) | Hinweis, immer ausgeben | Abschnitt 11 |
 
 P-07 und P-08 prüfen verschiedene Fehler (W3 2.2): Eine Konjugation dreht den Phasensinn,
 ein Vorzeichenwechsel nicht. Ein Vorzeichenwechsel dreht das Vorzeichen von Re{Y}, eine
@@ -382,9 +396,9 @@ Konjugation nicht.
 **Export, Pflichtinhalt** (Format entscheidet der software-engineer):
 1. Frequenzachse `frequenz_hz` und Linienindex k; $\Delta f$, $k_0$ mit Status.
 2. Punkte: `index` (0-basiert), `label`, Koordinaten in m, Gültigkeit.
-3. **Rohgrößen** CP, AP, ABS, CPH je Kanalpaar, ohne $s_b$ und ohne Konjugation. Komplexe
+3. **Rohgrößen** CP, AP, ABS, CPH je Kanalpaar, ohne $s_c$ und ohne Konjugation. Komplexe
    Werte als Real- und Imaginärteil in float64, keine Rundung.
-4. Abgeleitete Größen H1, H2, γ², Spektren nach 3.1, jeweils mit angewandtem $s_b$ und
+4. Abgeleitete Größen H1, H2, γ², Spektren nach 3.1, jeweils mit angewandtem $s_a s_b$ und
    `konjugieren`.
 5. Einheit jeder Größe als Text, z. B. `m/s`, `(m/s)/N`, `N^2`. Kennzeichen „Spitzenwert“
    bzw. „Effektivwert“ und „einseitig“.
@@ -421,7 +435,7 @@ festgelegt, weil keine gelesene Quelle vorliegt. Das ist ein offener Punkt (Absc
 | `gueltig` | (P,) | bool | – | Voreinstellung alle True [ANN M6] |
 | `n_d` | int oder (P,) | int | – | ≥ 1 [ANN M5] |
 | `w_rbw` | float | float64 | – | ≥ 1 [ANN M5], Voreinstellung 1,0 |
-| `vorzeichen_ref[b]` | – | int | – | ±1 [ANN M8], Voreinstellung +1 |
+| `vorzeichen_kanal[c]` | – | int | – | ±1 je Kanal [ANN M8], Voreinstellung +1; Vib X/Y/Z fest +1 (K1-1) |
 | `konjugieren` | – | bool | – | Voreinstellung False [ANN M1] |
 | `phase_gueltig` | – | bool | – | Referenz oder Trigger vorhanden |
 | Parameter | – | – | – | γ²_min = 0,9; $p_\mathrm{min}$ = 2; W = 20; $n_\mathrm{min}$ = 3; $k_\varepsilon$ = 2; Abstand Nachbarmode 3 B |
@@ -449,6 +463,8 @@ festgelegt, weil keine gelesene Quelle vorliegt. Das ist ein offener Punkt (Absc
 | AP < 0 oder ABS < 0 | `ValueError` (P-03) |
 | γ² in (1, 1 + 10⁻⁵] | auf 1 setzen, zählen; darüber Fehler P-05 |
 | γ² = 1 | ε = 0, Gewicht über die Begrenzung endlich |
+| $k_\varepsilon\,\varepsilon \ge 1$ (auch ε = +∞) | untere Fehlergrenze 0, Kennzeichen „Fehlerband nicht aussagekräftig“ (K1-6) |
+| γ² im Spitzenbereich vollständig NaN | kein `kohaerenz_niedrig`, Hinweis „Kohärenz nicht prüfbar“ (K1-7b) |
 | $n_d = 1$ | γ² = NaN, ε = NaN, H1 als „FRF“ bezeichnen |
 | NaN im Eingang | wird weitergegeben; Punktmittel ignorieren NaN und geben $n$ aus |
 | keine gültigen Punkte | Punktmittel NaN, $n = 0$ |
@@ -482,10 +498,13 @@ festgelegt, weil keine gelesene Quelle vorliegt. Das ist ein offener Punkt (Absc
 |---|---|---|
 | Spektren, H1, H2, γ², Punktmittel, Bandwerte aus derselben Datei | rtol = 1·10⁻⁵, atol = 10⁻⁶·max\|Größe\| der Kurve | Daten sind float32 (rel. Rundung 6·10⁻⁸); W2 erreicht ≤ 9,3·10⁻⁷. atol fängt Werte nahe 0 ab |
 | Werte aus ASCII/UFF-Export von PSV (M4) | rtol = 1·10⁻⁵ bzw. Rundung des Exportformats, falls gröber | einfache Genauigkeit im UFF (W1 [H]) |
-| Spitzenfrequenz, ohne Warnkennzeichen | $\lvert f_\mathrm{sp} - f_\mathrm{PSV}\rvert \le 0{,}25\,\Delta f$ | Eigener Fehler ≤ 0,05 Δf bei B ≥ 3 Δf [N]; PSV-Fit unbekannt (Fitbereich vom Band-Cursor abhängig); Reserve für Modellunterschiede |
-| Spitzenfrequenz, mit `aufloesungsbegrenzt` | $\le 0{,}5\,\Delta f$ | Beide Verfahren müssen dieselbe Linie treffen; feiner ist ohne Kenntnis des PSV-Fits nicht begründbar |
-| −3-dB-Breite B (bzw. ζ), ohne Warnkennzeichen | $\lvert B/B_\mathrm{PSV} - 1\rvert \le 0{,}10$ | Eigener Bias ≤ +5,2 % bei B ≥ 3 Δf [N]; der Rest ist Reserve für den PSV-Fit |
-| B mit einem Warnkennzeichen | kein Vergleich, nur Bericht der Werte | Beide Schätzer sind dort systematisch verzerrt (bis +178 %); Übereinstimmung wäre zufällig |
+| Spitzenfrequenz, ohne Warnkennzeichen oder nur mit `gueltigkeit_offen_m7` | $\lvert f_\mathrm{sp} - f_\mathrm{PSV}\rvert \le 0{,}25\,\Delta f$ | Eigener Fehler ≤ 0,0508 Δf bei B ≥ 3 Δf [N]; PSV-Fit unbekannt (Fitbereich vom Band-Cursor abhängig); Reserve für Modellunterschiede |
+| Spitzenfrequenz, mit `aufloesungsbegrenzt` (ggf. zusätzlich `gueltigkeit_offen_m7`) | $\le 0{,}5\,\Delta f$ | Beide Verfahren müssen dieselbe Linie treffen; feiner ist ohne Kenntnis des PSV-Fits nicht begründbar |
+| −3-dB-Breite B (bzw. ζ), ohne Warnkennzeichen oder nur mit `gueltigkeit_offen_m7` | $\lvert B/B_\mathrm{PSV} - 1\rvert \le 0{,}10$ | Eigener Bias ≤ +5,21 % bei B ≥ 3 Δf [N]; der Rest ist Reserve für den PSV-Fit |
+| B mit einem anderen Warnkennzeichen | kein Vergleich, nur Bericht der Werte | Beide Schätzer sind dort systematisch verzerrt (bis +178 %); Übereinstimmung wäre zufällig |
+
+`gueltigkeit_offen_m7` allein schließt den Vergleich nicht aus: M7 betrifft die physikalische
+Gültigkeit oberhalb 1 kHz, nicht die Übereinstimmung mit PSV an denselben Daten (K1-8).
 
 Diese Toleranzen sind **Vorschläge**. Prüfschritt M11 (Abschnitt 11) liefert am Montag
 PSV-Werte, an denen sie bestätigt oder enger gefasst werden. Der Nutzer gibt frei.
@@ -540,8 +559,16 @@ $\mathrm{AP}_a = \lvert H\rvert^2S_x + N_V$, $\mathrm{CP}_{ab} = H\,S_x$.
   - AP = −1 → `ValueError`.
   - γ² = 1 + 5·10⁻⁶ (konstruiert) → 1,0 und Zähler 1.
   - γ² = 1,001 → P-05 fehler.
-- **RF-H8 (Vorzeichen/Konjugation):** Mit $s_b = -1$ werden H1 und H2 zu $-H_1$, $-H_2$,
-  γ² bleibt gleich. Mit `konjugieren=True` wird H1 zu $H_1^{*}$. rtol 1e-12.
+- **RF-H8 (Vorzeichen/Konjugation, K1-1):** Eingang RF-H2.
+  - Nur $s_b = -1$ (Referenz): H1 → $-H_1$, H2 → $-H_2$.
+  - Nur $s_a = -1$ (Antwort): H1 → $-H_1$, H2 → $-H_2$.
+  - $s_a = s_b = -1$: H1 und H2 unverändert.
+  - In allen Fällen bleiben γ², AP und ABS gleich. `spektrum_kohaerent` ändert das Vorzeichen
+    wie H1.
+  - Kanal in zwei Rollen: Paare Ref2/Ref1 und Vib Z/Ref2 mit $s_{\mathrm{Ref2}} = -1$ → beide
+    H1 wechseln das Vorzeichen; Vib Z/Ref1 bleibt unverändert.
+  - Mit `konjugieren=True` wird H1 zu $H_1^{*}$.
+  - rtol 1e-12.
 
 ### 9.3 Zufallsfehler und Kohärenzschwelle (B-2, B-3)
 
@@ -553,6 +580,7 @@ $\mathrm{AP}_a = \lvert H\rvert^2S_x + N_V$, $\mathrm{CP}_{ab} = H\,S_x$.
 | RF-U4 | γ² = 0 / γ² = 1 / $n_d = 1$ | ε = +∞, Gewicht 0 / ε = 0 / NaN | exakt |
 | RF-U5 (statistisch, optional) | Monte-Carlo: $x_j$ komplex normal (Varianz 1), $y_j = Hx_j + n_j$ mit $\mathrm{Var}(n) = \lvert H\rvert^2(1/\gamma^2 - 1)$, $n_d = 25$, γ² = 0,9, M = 40 000 Wiederholungen, `numpy.random.default_rng(20261029)` | Standardabweichung von $\lvert\hat H_1\rvert/\lvert H\rvert$ = Formelwert 0,04714 | relativ ±10 % (beobachtet +3 %; Formel ist Näherung erster Ordnung) |
 | RF-U6 | Maske mit γ² = [0,95; 0,9; 0,85], γ²_min = 0,9 | [True, True, False] | exakt (Grenze inklusiv) |
+| RF-U7 (K1-6) | \|H1\| = 1, $n_d = 7$, $k_\varepsilon = 2$; γ² = 0,9 bzw. 0,2 | γ² = 0,9: Band [0,8218258387; 1,1781741613], kein Kennzeichen. γ² = 0,2: ε = 0,5345224838, untere Grenze 0 (ungekürzt −0,0690449676), obere 2,0690449676, Kennzeichen „Fehlerband nicht aussagekräftig“. γ² = 0: untere Grenze 0, obere +∞, Kennzeichen | rtol 1e-9 |
 
 ### 9.4 Einmassenschwinger und zwei Moden (A-6)
 
@@ -567,10 +595,10 @@ $f_j = (j + \text{off})\,\Delta f$, $j = 1, 2, \dots$; die Eingabe ist $y = \lve
 | RF-P2 | 100; 0,01; 0,25; 0,37 | wie P1 | 100,002070830; 7,953876069e-2; 2,008976145; 0,010044673 | keins |
 | RF-P3 | 100; 0,005; 1,5625; 0 | B = 1,0 Hz | 100,002427267; 0,1591552101; 1,316512038; 0,006582400 | `aufloesungsbegrenzt` (0,84) |
 | RF-P4 | 100; 0,005; 1,5625; 0,37 | B = 1,0 Hz | 100,303481217; 0,1058309032; 2,095705355; 0,010446823 | `aufloesungsbegrenzt` (1,34) |
-| RF-P5 | wie P1, 50 Rasterlagen off ∈ [0, 1) | – | max\|$f_\mathrm{sp}$ − 100\| ≤ 0,010 Δf; $B$ − 2 in [0; +0,005·2] Hz | keins |
+| RF-P5 | wie P1, 50 Rasterlagen off ∈ [0, 1) | – | max\|$f_\mathrm{sp}$ − 100\| = 0,00954 Δf (≤ 0,010 Δf); $B$ − 2 in [0; +0,005364·2] Hz, Maximum +0,005364·2 Hz mit Toleranz 1e-6·2 Hz (K1-2) | keins |
 
 Gegen die physikalische Wahrheit gilt die Toleranz aus der Diskretisierungstabelle (3.9),
-z. B. RF-P1: \|B/2 − 1\| ≤ 0,005 und \|f_sp − 100\| ≤ 0,01 Δf.
+z. B. RF-P1: \|B/2 − 1\| ≤ 0,0054 und \|f_sp − 100\| ≤ 0,01 Δf.
 
 **Zwei Moden** (RF-M): $Y = \sum_{r=1}^{2} i\omega/(\omega_r^2 - \omega^2 + 2i\zeta\omega_r\omega)$
 in (m/s)/N, Modalmasse 1 kg, ζ = 0,01, $f_1 = 100$ Hz, Δf = 0,05 Hz, off = 0. Sollwerte als
@@ -685,7 +713,7 @@ ungeprüft.
 | M5 | $W_\mathrm{RBW} = 1$ (Rechteck), $n_d = 7$ | Fenster, Generator (Signalform, Burstlänge), Mittelungsart und -anzahl, Signal Enhancement ablesen | $W_\mathrm{RBW}$ setzen; $n_d$ je Punkt deuten |
 | M6 | alle Punkte gültig | Scanstatus der Punkte mit Feldwert 1 und 3 | Gültigkeitsmaske |
 | M7 | Gültigkeit > 1 kHz offen | Bedeutung „Bandbreitenbereich 1 kHz“ (Datenblatt, Betreuer) | Kennzeichen entfernen oder Gültigkeitsgrenze festschreiben |
-| M8 | $s_b = +1$ für Ref1, Ref2 | Typ, Ort und Einbaurichtung von Kraftsensor und Beschleunigungsaufnehmer; Shakerposition | P-08 an der Datei zeigt heute r = 0 → ein Vorzeichen ist vermutlich zu drehen; welches, entscheidet der Einbau |
+| M8 | $s_c = +1$ für Ref1, Ref2 (Vorzeichen je Kanal, K1-1) | Typ, Ort und Einbaurichtung von Kraftsensor und Beschleunigungsaufnehmer; Shakerposition | P-08 an der Datei zeigt heute r = 0 → ein Vorzeichen ist vermutlich zu drehen; welches, entscheidet der Einbau. Gedrehter Ref1: $s_{\mathrm{Ref1}} = -1$; gedrehter Ref2: $s_{\mathrm{Ref2}} = -1$ (wirkt in Ref2/Ref1 und Vib/Ref2) |
 | M10 | Band geschlossen, beide Grenzlinien | In PSV ein Band 100–200 Hz definieren, RMS von „Vib Z Geschwindigkeit“ für Label 132 ablesen; mit `rms_psv` für [100, 200] und für (100, 200) vergleichen | Regel bestätigen oder ändern |
 | M11 | Toleranzen aus Abschnitt 8 | Band-Cursor-Fit in PSV auf H1 „Vib Z & Ref1“, Label 132, an drei Spitzen ohne Warnkennzeichen und einer mit; f_max und „Dämpfung“ notieren, Cursorgrenzen festhalten | Toleranzen bestätigen oder anpassen |
 
@@ -874,3 +902,12 @@ print("== RF-G: Punktmittel ==")
 h = np.array([1+0j, -1+0j, 2j])
 print("Betrag", np.abs(h).mean(), "quadr", np.sqrt((np.abs(h)**2).mean()), "|komplex|", abs(h.mean()))
 ```
+
+---
+
+## Änderungsprotokoll
+
+| Datum | Änderung | Freigabe |
+|---|---|---|
+| 2026-10-29 | Erstfassung (Paket W4-1) | Nutzer, 2026-10-29 |
+| 2026-10-30 | K1 eingearbeitet, Nutzerfreigabe (`FG-02_korrekturvorschlag-K1.md`). K1-1: Vorzeichen je Kanal $s_a s_b$ (2.4, 3.6, 4 P-11, 5, 6.1, 9.2 RF-H8, 11 M8). K1-2: RF-P5-Grenze (9.4). K1-3: Tabelle Diskretisierungsfehler in voller Stellenzahl (3.9). K1-4: „höchstens +5,21 %“ (3.9, 8). K1-5: Linienauswahl P-09 und Datei-Wert 0,0108 (4). K1-6: Fehlerband unten bei 0 begrenzt und gekennzeichnet (3.4, 6.3, RF-U7). K1-7: γ² des Punktmittels für die Spitzensuche, Hinweis bei vollständig NaN-γ² (3.9, 6.3). K1-8: PSV-Vergleich auch bei reinem `gueltigkeit_offen_m7` (8) | Nutzer, 2026-10-30 |
