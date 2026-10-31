@@ -29,4 +29,8 @@ Vom Nutzer freigegeben (M2 und K3, 2026-10-30); Referenzfall RF-F9; Fachabnahme 
 ## Konsequenzen
 - An der Beispieldatei ändern sich die Zusammenfassungen bei 1006,41 und 1329,35 Hz; Drift und
   übrige Werte aus FG-03 Abschnitt 7 bleiben gleich.
-- Grenze: zwei Moden mit exakt gleicher Fitfrequenz sind gesondert zu betrachten (Paket K-W5-2c).
+- Bekannte Grenze (vom Nutzer am 2026-10-30 so festgelegt, Paket K-W5-2c): Laufen zwei Moden auf
+  exakt dieselbe Fitfrequenz, regelt FG-03 den Ranggleichstand nicht. Bei aufsteigend sortierten
+  Startwerten (so liefert sie `bilde_gruppen` immer) entsteht über Regel (a) kein Kennzeichen; bei
+  direkt übergebenen unsortierten Startwerten hängt es von der Modenreihenfolge ab. Das Verhalten ist
+  im Test `test_gleiche_fr_zweier_moden_verhalten_festgehalten` festgehalten.
