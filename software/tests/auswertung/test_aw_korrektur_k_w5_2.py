@@ -278,6 +278,21 @@ def test_rf_f9_gleichstand_ohne_kennzeichen() -> None:
     assert vertauschte_moden([100.0, 102.0], [101.0, 103.0], [(), ()]) == [False, False]
 
 
+def test_gleiche_fr_zweier_moden_verhalten_festgehalten() -> None:
+    """Zwei Moden laufen auf dieselbe f_r (K-W5-2c): jetziges Verhalten, Frage an FG-03.
+
+    Gleiche Abstände zu beiden Startwerten: Regel (b) setzt nach FG-03 3.4 kein Kennzeichen.
+    Sonst greift Regel (b) für die Mode, die dem fremden Startwert näher liegt. Regel (a) bricht
+    den Ranggleichstand der f_r nach dem Modenindex (stabile Sortierung); bei sortierten
+    Startwerten (immer so aus ``bilde_gruppen``) entsteht daraus kein Kennzeichen, bei
+    unsortierten Startwerten kennzeichnet (a) beide Moden.
+    """
+    kz: list[tuple[str, ...]] = [(), ()]
+    assert vertauschte_moden([100.0, 102.0], [101.0, 101.0], kz) == [False, False]
+    assert vertauschte_moden([100.0, 102.0], [101.5, 101.5], kz) == [True, False]
+    assert vertauschte_moden([104.0, 100.0], [102.0, 102.0], kz) == [True, True]
+
+
 def test_m2_ausschluss_zusammenfassung() -> None:
     g = Gruppe(nummer=0, spitzen=(0,), f_sp_hz=(100.0,), k_von=0, k_bis=10, kennzeichen=())
     erg = [_ergebnis(0, 100.0, 1, [(MODEN_VERTAUSCHT,)]), _ergebnis(1, 101.0, 1, [()])]
@@ -385,7 +400,10 @@ def test_m3_b8_d_und_dt_verschieden(messung_a: Messdaten) -> None:
 def test_m4_ungueltige_punkte(messung_a: Messdaten) -> None:
     a = werte_aus(messung_a, annahmen=Annahmen(gueltig=[True, False, True, True]))
     v = vergleiche_messungen(a, a, ("Vib Z", "Ref1"), baender=[(90.0, 110.0)])
-    assert any("ungültige Punkte" in h for h in v.hinweise)
+    hinweis = next(h for h in v.hinweise if "ungültige Punkte" in h)
+    # Eindeutige Zählung (K-W5-2c): 1 Paar, je 1 ungültiger Punkt in A und B (A = B).
+    assert "1 zugeordnete Paare" in hinweis
+    assert "ohne 1 ungültige Punkte in A und 1 in B" in hinweis
     assert v.frf[0].frac.shape == (3,)
     np.testing.assert_allclose(v.mac, 1.0, atol=1e-12)
     voll = werte_aus(messung_a)

@@ -70,7 +70,10 @@ HINWEIS_MAC_SCHWELLE = (
 )
 HINWEIS_DRIFT_WENIG = "Drift nicht prüfbar: weniger als {n} brauchbare Punkte"
 HINWEIS_DRIFT_ZEIT = "Drift nicht prüfbar: alle Punkte zur selben Zeit"
-HINWEIS_UNGUELTIG = "ungültige Punkte (M6) aus FRF-Vergleich, MAC und Auto-MAC ausgeschlossen: {n}"
+HINWEIS_UNGUELTIG = (
+    "ungültige Punkte (M6) ausgeschlossen: {paare} zugeordnete Paare mit ungültigem A- oder "
+    "B-Punkt (FRF-Vergleich, MAC); Auto-MAC ohne {n_a} ungültige Punkte in A und {n_b} in B"
+)
 
 Quelle = Literal["cph", "h1"]
 """Quelle der Amplituden für MAC (FG-02 3.6): CPH (Voreinstellung) oder H1."""
@@ -1027,9 +1030,11 @@ def vergleiche_messungen(
     g_a = pa_a.paar.gueltig
     g_b = pa_b.paar.gueltig
     beide = g_a[zuordnung.index_a] & g_b[zuordnung.index_b]
-    ungueltig = int(np.count_nonzero(~beide) + np.count_nonzero(~g_a) + np.count_nonzero(~g_b))
-    if ungueltig:
-        hinweise.append(HINWEIS_UNGUELTIG.format(n=ungueltig))
+    paare_ungueltig = int(np.count_nonzero(~beide))
+    n_a = int(np.count_nonzero(~g_a))
+    n_b = int(np.count_nonzero(~g_b))
+    if paare_ungueltig or n_a or n_b:
+        hinweise.append(HINWEIS_UNGUELTIG.format(paare=paare_ungueltig, n_a=n_a, n_b=n_b))
     if not gleich:
         hinweise.append(HINWEIS_ACHSEN)
     else:
