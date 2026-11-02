@@ -53,7 +53,8 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ◐ | Recherche R-0211: Peak-Anpassung und SE belegt; **PCB 288D01 und Decoder: Volltext von Jakob benötigt** (Input/literatur/pcb/, Leseliste) | Jakob, literatur-rechercheur | – | M8 bis dahin offen |
 | ☑ | P4/P4b Lese-Skripte korrigiert und reviewt | – | – | 4279382, 0129b75 |
 | ☑ | P3 Ablaufplan nächster Termin mit Ersatzplänen und Prüfzettel, fachlich durchgesehen und freigegeben (`in_progress/versuche/naechster-termin_messrechner/`) (Übersicht 2a: Registrierung, Mini-Scan mit Zeitdaten, Messpunkt Impedanzkopf, Zwei-Amplituden-Test, Wiegen, Handbücher, M11 ohne Kennzeichen, Golden v2 …) | software-engineer, `/versuchsplanung` | nach P1 | |
-| ☐ | Vor dem nächsten Termin: Version 0.2.0, Wheel nach Abschluss K-ACHSE bauen und pushen (SHA-256 notieren); aktuelle Skripte; Fragen F1–F8 an Daniel (Ablaufplan 3.2) | Orchestrator, Jakob | vor Termin | Nutzerentscheidung 02.11.: Version erhöhen |
+| ☑ | Wheel 0.2.0 gebaut (f66af80, sauber), mit Skripten und SHA-256 abgelegt | – | – | `in_progress/versuche/naechster-termin_messrechner/stick/LIESMICH.txt` |
+| ☐ | Fragen F1–F8 an Daniel (Ablaufplan 3.2) | Jakob | vor Termin | |
 | ☐ | Anforderungsvorschläge aus PSV-Einblicken (Übersicht 2b) | `/anforderungs-analyst`, Jakob | – | |
 | ☐ | ADR-006 Datenweg abschließen (eigener Leser / File Access / beides) | Jakob | – | Übersicht 2c |
 | ☑ | Kleine Code-Aufgaben aus PSV-Einblicken (Übersicht 2d), reviewt; MINORs zur Entscheidung, Gerätetest offen | – | – | Laborbuch 2026-11-02_k2d-psv-einblicke-code |

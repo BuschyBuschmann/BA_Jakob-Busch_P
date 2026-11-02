@@ -1,0 +1,20 @@
+LIESMICH – Stick/Download-Paket nächster Termin am Messrechner
+=============================================================
+Software: ldv-automation 0.2.0, Git f66af80578ca16ec5a9f719cc0fdbb30c47e3b00 (Build-Info im Wheel, git_dirty: false).
+Gebaut 2026-11-02 (23:21 UTC) in der Cloud, Wheel in frischer venv importiert (Version 0.2.0, Build-Info gelesen).
+Nicht am Messrechner geprüft.
+
+Abhängigkeiten unverändert gegenüber 530af41 (pyproject: nur die Version geändert).
+Wer ohne Internet installieren muss, nimmt die Abhängigkeits-Wheels aus
+in_progress/versuche/2026-11-02_prototyp/stick/wheelhouse/ (dort mit SHA-256).
+
+Update in die vorhandene PyCharm-venv: Ablaufplan Block A1, Schritt 3 (pip install --upgrade --no-deps <Wheel>).
+Skripte aus erkundung/ nach $ARB kopieren, alte Fassungen vorher als *_alt.py beiseitelegen (A1, Schritt 4).
+
+SHA-256 (prüfen mit Get-FileHash, ins Protokoll übernehmen):
+af8c50054f5cbb6a73d233bf157b4774544f4aa9b4469407f89f5c5059d91628  wheelhouse/ldv_automation-0.2.0-py3-none-any.whl
+ced54752a40ac950c339d85df25d51d4c0479acdc166d8a5bd34f570953afd3b  erkundung/README.md
+f9bddf2dda2ab42955c6031478f19d6225aba6554be285b4cc185b5dd1632848  erkundung/daten_lesen.py
+7bc6611a93213e171d4e8a10303e8a43d9c9420835c53bef4c7f2c72f31b2ad9  erkundung/einstellungen_lesen.py
+a90d45f135fcfe2594f195191fc2ba48cb189e4a8e42431bc23ffa1616a148d7  erkundung/erkundung.py
+1fa6e3dffc0a982b7cc453b26666a2c1b022701f93a735d30cb5d8b1068d6e53  konfig/beispiel_messrechner.json
