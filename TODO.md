@@ -52,7 +52,8 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ◐ | P2 K-ACHSE: KA-1 bis KA-15 (Bänder umbenennen, M7-Kennzeichen entfällt); Ablauf E | strukturdynamik-experte → software-engineer | – | Übersicht 02.11., Abschnitt 1 |
 | ◐ | Recherche: Datenblatt PCB 288D01 (Polarität, entscheidet M8), PSV-Peak-Anpassung, Decoder-Amplitudengang, Signal Enhancement | literatur-rechercheur | – | M8 bis dahin offen |
 | ◐ | P4 Lese-Skripte: MAJOR, MINOR, 8 Tests, README, statischer Test | software-engineer | – | Review P0a |
-| ☐ | P3 Ablaufplan nächster Termin mit Ersatzplänen und Prüfzettel (Übersicht 2a: Registrierung, Mini-Scan mit Zeitdaten, Messpunkt Impedanzkopf, Zwei-Amplituden-Test, Wiegen, Handbücher, M11 ohne Kennzeichen, Golden v2 …) | software-engineer, `/versuchsplanung` | nach P1 | |
+| ◐ | P3 Ablaufplan nächster Termin mit Ersatzplänen und Prüfzettel (Entwurf `in_progress/versuche/naechster-termin_messrechner/`, Fachdurchsicht läuft) (Übersicht 2a: Registrierung, Mini-Scan mit Zeitdaten, Messpunkt Impedanzkopf, Zwei-Amplituden-Test, Wiegen, Handbücher, M11 ohne Kennzeichen, Golden v2 …) | software-engineer, `/versuchsplanung` | nach P1 | |
+| ☐ | Vor dem nächsten Termin: Version 0.2.0, Wheel nach Abschluss K-ACHSE bauen und pushen (SHA-256 notieren); aktuelle Skripte; Fragen F1–F8 an Daniel (Ablaufplan 3.2) | Orchestrator, Jakob | vor Termin | Nutzerentscheidung 02.11.: Version erhöhen |
 | ☐ | Anforderungsvorschläge aus PSV-Einblicken (Übersicht 2b) | `/anforderungs-analyst`, Jakob | – | |
 | ☐ | ADR-006 Datenweg abschließen (eigener Leser / File Access / beides) | Jakob | – | Übersicht 2c |
 | ☐ | Kleine Code-Aufgaben aus PSV-Einblicken (Übersicht 2d) | software-engineer | nach K-ACHSE | |
