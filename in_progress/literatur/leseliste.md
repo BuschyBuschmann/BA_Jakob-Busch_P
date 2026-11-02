@@ -203,3 +203,28 @@ Bericht: `in_progress/analysen/2026-10-29_W1_auswertung-heute.md`. Neu in `liter
 **Volltext benötigt (W1):** polytec.com-Seiten (PSV-Software, Polytec Update/File Access, Release Notes PFA, Lizenzbedingungen) als PDF/Screenshots (Priorität A für die .svd/PFA-Frage); Theory Manual Gleichungsseiten sind als Bild vorhanden und müssen visuell gelesen werden (B); bestehende Prioritäten A (bendat2010random, ewins2000modal) tragen H1/H2 und Halbwertsmethode.
 
 **Lücken (W1):** siehe Bericht Abschnitt 6.
+
+---
+
+# Ergänzung Paket R-0211 (Stand 2026-11-02)
+
+Neu/geändert in `literatur.bib`: neu `polytec2022psvpresentationen`, `pcb288d01manual`, `pcb288d01datasheet`; Notiz erweitert bei `polytec2015theory` und `polytec2022psvsoftware`. In der Cloud-Sitzung waren pcb.com, polytec.com, nbn.at und manualedistruzioni.it nicht abrufbar; zu PCB und zur Vibrometer-Bandbreite liegen nur Suchtreffer vor.
+
+## Volltext benötigt (R-0211)
+
+| Priorität | Quelle (vollständige Angabe) | Grund | Ablage |
+|---|---|---|---|
+| A (Prio 1) | PCB Piezotronics, Inc.: Installation and Operating Manual, Model 288D01 Impedance Head (Titel/Revision unbestätigt). Fundstelle: https://www.pcb.com/contentstore/docs/pcb_corporate/vibration/products/manuals/tld288d01.pdf (Suchtreffer, nicht geöffnet) | Positivrichtung von Kraft- und Beschleunigungsausgang relativ zur Montagerichtung, Massenkorrektur; Eintrag `pcb288d01manual` (ungeprüft) | `Input/literatur/pcb/` |
+| A | PCB 288D01: Datenblatt/Specification Sheet samt Installation Drawing (Abbildung der Montageseite, Lage der Masse oberhalb des Kraftelements, nominale Empfindlichkeiten). Fundstellen: https://www.pcb.com/products?m=288d01, Eintrag `pcb288d01datasheet` (ungeprüft) | Nominale Empfindlichkeiten, Polarität, effektive Masse | `Input/literatur/pcb/` |
+| A | Kalibrierzertifikat des am Messrechner verwendeten 288D01-Exemplars, falls vorhanden (kein Katalogeintrag, Gerätedokument) | Tatsächliche Empfindlichkeiten, Seriennummer, ggf. Polaritäts-/Massenangabe | `Input/literatur/pcb/` |
+| A | Polytec: PSV-Software-Handbuch bzw. Software Manual Version 10.4 (Acquisition und Presentation, de/en) vom Messrechner | Vorliegende Handbücher sind 10.1; Aussagen zu Peak-Fit, SE und Vibrometerseite gegen 10.4 abgleichen | `Input/literatur/polytec/Handbuecher/` |
+| A | Polytec: Theory Manual zu PSV 10.x (liegt nur als Stand 9.1 vor) | SE-Beschreibung (Kap. 13.6) und Peak-Fit-Hinweise gegen aktuelle Version prüfen; Hinweis: Hilfe auf dem Messrechner (Help-Menü der PSV-Software) | `Input/literatur/polytec/Handbuecher/` |
+| A | Polytec: Betriebsanleitung/Datenblatt Front-End PSV-F-600-3D (bzw. das am Messrechner installierte Front-End laut Softwareanzeige) mit Spezifikation des Geschwindigkeitsdecoders (Frequenzgang je Messbereich/Bandbreite, Amplitudentoleranz, Filter) | Frage 3 (Amplitudengang bei Bandbreite 1 kHz, 50 mm/s): in keinem Repo-Dokument beantwortet | `Input/literatur/polytec/Handbuecher/`; Beschaffung über Betreuer/Polytec |
+| B | Polytec: Technische Daten PSV QTec 3D (siehe Lücke 4 der ersten Liste) | Wie oben; Websuche lieferte nur Datenblätter der VibroScan-Reihe (nicht dasselbe Produkt, nicht übernommen) | `Input/literatur/polytec/` |
+
+## Lücken (R-0211)
+
+1. Positivrichtung/Polarität des 288D01 (Kraft und Beschleunigung): keine geprüfte Quelle, nur Suchtreffer.
+2. Fitalgorithmus des PSV-Peak-Fit (Fitparameter, Gewichtung, Fenster): in keinem vorliegenden Polytec-Dokument beschrieben.
+3. Amplitudengang/Filter des Geschwindigkeitsdecoders bei "Bandbreite 1 kHz": nicht gefunden.
+4. Exakte Zahl der zusätzlichen SE-Mittelungen je Punkt (Rechenregel): nur die Obergrenzen Faktor 3 (Standard) und 5 (Best) bzw. "bis zu fünffach" belegt.

@@ -1,6 +1,7 @@
-<!-- Fachgrundlage FG-03: Auswertung Stufe 2 (B-1 parametrische Dämpfungsschätzung, B-5 Vergleich mehrerer Messungen, B-8 3D-Komponentenbezug). Erstellt im Paket W4-2 von strukturdynamik-experte, Stand 2026-10-30. Status: FACHGRUNDLAGE ZUR FREIGABE. -->
+<!-- Fachgrundlage FG-03: Auswertung Stufe 2 (B-1 parametrische Dämpfungsschätzung, B-5 Vergleich mehrerer Messungen, B-8 3D-Komponentenbezug). Erstellt im Paket W4-2 von strukturdynamik-experte, Stand 2026-10-30, Korrektur K-ACHSE eingearbeitet und vom Nutzer freigegeben 2026-11-02. -->
 
 > **Status:** Vom Nutzer am 2026-10-30 freigegeben, einschließlich der Entscheidungen E1–E6 wie empfohlen (Abschnitt 8). Annahmen M12–M15 und die Wiederholungsmessung für B-5 werden am Messrechner (Mo 2026-11-02) geprüft bzw. aufgenommen. Korrektur K2-1 (Option A) bis K2-4 am 2026-10-30 freigegeben und eingearbeitet (Fachabnahme FA-W5-2; Abschnitte 3.2, 4.2, 4.5, 6.2, 6.3, 7, 9.1, 9.2). Korrektur K3-1 bis K3-5 (Kennzeichen `moden_vertauscht`) am 2026-10-30 freigegeben und eingearbeitet (Re-Abnahme RFA-W5-2; Abschnitte 3.4, 4.5, 7, 9.1).
+> **Korrektur K-ACHSE** (KA-12, KA-13 aus Fachanalyse P0b, Liste vom Nutzer am 2026-11-02 freigegeben) am 2026-11-02 eingearbeitet und als Fachgrundlage vom Nutzer am 2026-11-02 freigegeben: Frequenzachse der Beispieldatei Δf = 0,625 Hz statt 1,5625 Hz (FG-02 2.3); Abschnitt 7 mit korrigierter Achse neu gerechnet bzw. – ausdrücklich vermerkt – skaliert; Kennzeichen `gueltigkeit_offen_m7` entfällt; feste Bänder umbenannt. **Freigabe der eingearbeiteten Fassung durch den Nutzer offen.**
 
 # FG-03 – Auswertung von PSV-Messdaten, Stufe 2
 
@@ -60,7 +61,7 @@ Frequenzachse aus der Datei, Indizes 0-basiert, SI-Einheiten. Hinzu kommen:
   - Elemente sind Tupel 0-basierter Punktindizes (Dreiecke oder Vierecke) **[ANN M14]**.
   - Die 3D-Komponenten X/Y/Z liegen im selben Koordinatensystem wie die Koordinaten
     **[ANN M12]**. Indiz [D]: In der Beispieldatei liegt der Median des Anteils der
-    Normalenbewegung zwischen 150 und 500 Hz bei 0,995 (Abschnitt 7).
+    Normalenbewegung zwischen 60 und 200 Hz (früher als 150–500 Hz bezeichnet) bei 0,995 (Abschnitt 7).
 - **Zeit (B-5, Drift).** Zeit je Punkt aus dem Zeitstempel des Datensatzes (W2: naive
   FILETIME, Zeitzone offen). Verwendet werden nur Differenzen in s, die Zeitzone spielt dafür
   keine Rolle.
@@ -90,7 +91,7 @@ Befunde aus W3, FG-02 und dieser Prüfung:
 5. Für eng liegende Moden ist ein gemeinsamer Fit mehrerer Moden nötig.
    - RF-F3 [N]: Bei 2 % Frequenzabstand liegt ein Ein-Moden-Fit um +106 % daneben, der
      Zwei-Moden-Fit ist exakt.
-   - Datei [D] (Gruppe um 262,5 Hz): ρ sinkt von 0,22 bei einer Mode auf 0,015 bei drei Moden.
+   - Datei [D] (Gruppe um 105,0 Hz, früher als 262,5 Hz bezeichnet): ρ sinkt von 0,22 bei einer Mode auf 0,015 bei drei Moden.
 
 **Gewähltes Verfahren** (Empfehlung, Entscheidung E1): komplexer Moden-Fit nach 2 mit
 Variablenprojektion. Für isolierte Spitzen gilt n = 1, für Gruppen von Spitzen aus Stufe 1
@@ -168,8 +169,9 @@ Option: Gewichte $1/(\lvert H_{1,k}\rvert\,\varepsilon_k)^2$ aus FG-02 3.4.
 | `nicht_konvergiert` | Levenberg-Marquardt ohne Abbruch nach 200 Schritten, λ > 10¹² oder singuläre Normalgleichung | Beispiel: konjugierte Daten treiben ζ gegen 0 (RF-F6) |
 | `ausserhalb_band` | $f_r$ außerhalb des Fitbands, oder ζ ≥ 0,2, oder ζ < 10⁻⁵ | Schwache Dämpfung ist Voraussetzung der lokalen Modellform |
 | `kein_mobilitaetsbezug` | FRF ist weder Mobilität noch Akzeleranz | 2 |
-| `gueltigkeit_offen_m7` | $f_r > 1000$ Hz, solange M7 offen | FG-02 3.9 |
 | `moden_vertauscht` (K3-1) | n ≥ 2. Verglichen werden nur die Moden ohne `ausserhalb_band`. Das Kennzeichen erhält jede dieser Moden r, für die gilt: (a) ihr Rang in der Reihenfolge der gefitteten $f_r$ weicht von ihrem Rang in der Reihenfolge der Startwerte $f_\mathrm{sp}$ ab, oder (b) sie liegt einem anderen Startwert der Gruppe echt näher als ihrem eigenen: $\lvert f_r - f_{\mathrm{sp},j}\rvert < \lvert f_r - f_{\mathrm{sp},r}\rvert$ für ein j ≠ r (j über alle Spitzen der Gruppe). Bei Gleichstand kein Kennzeichen | Die Zuordnung Mode ↔ Stufe-1-Spitze ist unsicher; die Modellform legt keine Reihenfolge der Moden fest. Umsortieren statt Kennzeichnen hilft nicht: An der Beispieldatei liegt nach dem Umsortieren nur in 3 von 22 Fällen mit Rangwechsel jede Mode an ihrer nächsten Spitze (Abschnitt 7) |
+
+Das frühere Kennzeichen `gueltigkeit_offen_m7` entfällt (K-ACHSE, FG-02 3.9; M7 erledigt).
 
 Ergebnisse mit `modell_passt_nicht`, `nicht_konvergiert`, `ausserhalb_band` oder
 `moden_vertauscht` werden ausgegeben, aber nicht in die Zusammenfassung nach 3.5 übernommen
@@ -184,7 +186,7 @@ Daraus ohne gekennzeichnete Ergebnisse:
 - Anzahl der verwendeten Punkte.
 
 Begründung: Der Pol ist eine Eigenschaft der Struktur. Die Streuung über die Punkte zeigt,
-wie zuverlässig der Wert ist. In der Datei liegt der IQR von ζ bei 401 Hz unter 2 % des
+wie zuverlässig der Wert ist. In der Datei liegt der IQR von ζ bei 160,6 Hz (früher 401 Hz) unter 2 % des
 Medians [D]. Das Punktmittel von |H1| eignet sich nicht, weil es keine Phase hat.
 Alternativ ist der Fit an einem konfigurierten Antriebspunkt-Paar (z. B. Ref2/Ref1) möglich.
 
@@ -204,7 +206,14 @@ Alternativ ist der Fit an einem konfigurierten Antriebspunkt-Paar (z. B. Ref2/Re
   - Bei Hann-Fenster auf transienten Daten ist die Modellform nicht geprüft (M5).
 - **Vorzeichen und Konjugation:** ohne Einfluss auf $f_r$ und ζ. Sind die Daten konjugiert,
   passt die Modellform nicht; P-07 aus Stufe 1 erkennt das vorher.
-- **Frequenzachse:** Ein Linienversatz (M2) verschiebt $f_r$ um $\Delta f$.
+- **Frequenzachse:** Ein Linienversatz verschiebt $f_r$ um $\Delta f$ ($k_0 = 1$ ist bestätigt, M2).
+  Ein Maßstabsfehler c der Achse (wie bis 2026-11-02 mit c = 2,5) skaliert $f_r$, $B_\mathrm{fit}$,
+  $\sigma_{f_r}$ und die Drift in Hz/h mit c; ζ, ρ, MAC, Gruppenbildung und alle Kennzeichen
+  bleiben gleich [A]. Herleitung: Mit $\omega \to c\omega$, $\omega_r \to c\omega_r$ wird die
+  Basisfunktion $i\omega/(\omega_r^2-\omega^2+2i\zeta\omega_r\omega)$ mit 1/c multipliziert; das
+  gleicht die lineare Teilaufgabe über $R \to cR$ aus, ζ ändert sich nicht. Für eine aus Akzeleranz
+  gebildete Mobilität ($Y = H/(i\omega)$) gilt $Y \to Y/c$, also R unverändert und $C \to C/c$.
+  Numerisch an der Beispieldatei bestätigt (Fachanalyse P0b; Grenzfälle siehe Abschnitt 7).
 
 ---
 
@@ -249,10 +258,11 @@ verglichen (Hinweis „Achsen verschieden“). Eine Interpolation zwischen Linie
   $\sigma_{f_r}$ der dort verwendeten Punkte. Sie werden nicht durch $\sqrt{N}$ geteilt: Die
   Fit-Standardabweichung enthält Modellfehler, die allen Punkten gemeinsam sind (Abschnitt 7:
   sie ist größer als die Streuung um die Driftgerade). Ein Maß aus der Streuung über die Punkte
-  (z. B. IQR 0,007 Hz bei 401 Hz) würde fast jede Verschiebung als `signifikant` melden.
+  (z. B. IQR 0,003 Hz bei 160,6 Hz, K-ACHSE neu gerechnet) würde fast jede Verschiebung als `signifikant` melden.
   Das Maß ist damit konservativ gegenüber Zufallsfehlern.
 - **Hinweis zur Deutung:** Die Drift innerhalb einer Messung (4.5; in der Beispieldatei bis
-  −0,32 Hz bei 1508 Hz in 40 min) hat dieselbe Größenordnung wie σ. Ein `signifikant` zwischen
+  −0,13 Hz bei 603,2 Hz in 40 min, K-ACHSE neu gerechnet) hat dieselbe Größenordnung wie σ
+  (beide skalieren gleich mit der Achse). Ein `signifikant` zwischen
   zwei Messungen kann daher auch von Temperatur oder Zeit herrühren, nicht nur von einer
   Strukturänderung.
 - Spitzen ohne Partner werden aufgelistet.
@@ -314,19 +324,23 @@ $$\mathrm{MAC}(\phi_A, \phi_B) = \frac{\lvert\phi_A^\mathsf{H}\phi_B\rvert^2}{(\
     gewählte Mode entscheiden dann `ausserhalb_band`, `unsicher` und `moden_vertauscht`,
   - Punkte ohne Fit (`zu_wenig_linien`, `gruppe_zu_gross`, ‖H‖ = 0).
 
-  **Nicht** ausgeschlossen werden `modell_passt_nicht`, `gueltigkeit_offen_m7`,
-  `kohaerenz_niedrig` und `kein_mobilitaetsbezug`. Die Anzahl der verwendeten Punkte mit
+  **Nicht** ausgeschlossen werden `modell_passt_nicht`, `kohaerenz_niedrig` und
+  `kein_mobilitaetsbezug`. Die Anzahl der verwendeten Punkte mit
   `modell_passt_nicht` wird ausgegeben.
 - Mindestens 10 verwendete Punkte, sonst „nicht prüfbar“.
 - **Begründung [D, N].** ρ hängt mit der Zeit zusammen, weil der Pol durch die Drift gegen das
-  feste Linienraster wandert (Korrelation ρ–t in der Beispieldatei −0,42 bei 419 Hz, +0,94 bei
-  1508 Hz). Eine Auswahl nach ρ wählt also nach einer Größe aus, die mit dem Regressor
-  zusammenhängt, und verzerrt $b_1$: Bei 419 Hz liegt ρ fast überall zwischen 0,099 und 0,102
-  (10- bis 90-%-Quantil); die Teilmengen ρ ≤ 0,10 und ρ > 0,10 ergeben −0,097 bzw.
-  −0,138 Hz/h, alle Punkte −0,129 Hz/h. Bei 631,7 Hz trägt die Gruppe mit 640,6 Hz an
+  feste Linienraster wandert (Korrelation ρ–t in der Beispieldatei −0,42 bei 167,6 Hz, +0,94 bei
+  603,2 Hz). Eine Auswahl nach ρ wählt also nach einer Größe aus, die mit dem Regressor
+  zusammenhängt, und verzerrt $b_1$: Bei 167,6 Hz liegt ρ fast überall zwischen 0,099 und 0,102
+  (10- bis 90-%-Quantil); die Teilmengen ρ ≤ 0,10 und ρ > 0,10 ergeben −0,039 bzw.
+  −0,055 Hz/h, alle Punkte −0,052 Hz/h. Bei 252,7 Hz trägt die Gruppe mit 256,2 Hz an
   95 von 135 Punkten `nicht_konvergiert`, weil die in Ref2/Ref1 kaum vorhandene Partnermode
   wegläuft (ζ bis 8·10³); die Streuung von $f_r$ der gewählten Mode ist in beiden Teilmengen
-  gleich (0,024 Hz). Prüfskripte `drift_var.py`, `drift_631.py` und `drift_k2.py` im Anhang.
+  gleich (0,010 Hz).
+  *K-ACHSE: Frequenzen, Steigungen und Streuung in diesem Absatz sind die Werte der früheren
+  Achse × 0,4 (skaliert, nicht neu gerechnet); ρ und die Korrelationen sind achsunabhängig. Die
+  Punktzahl 95 gilt für die frühere Achse; mit korrigierter Achse fallen bei 252,7 Hz 13 statt 10
+  Punkte heraus (Abschnitt 7), die Aufteilung nach Kennzeichen ist nicht neu gerechnet.* Prüfskripte `drift_var.py`, `drift_631.py` und `drift_k2.py` im Anhang.
 
 ---
 
@@ -438,92 +452,123 @@ $a = \mathrm{Re}\,\hat v$, $b = \mathrm{Im}\,\hat v$ [A].
 
 ## 7 Befunde an der Beispieldatei [D]
 
-Vorbehaltlich M1–M14; Prüfskripte `datei.py` und `gruppe.py` im Anhang.
+Vorbehaltlich M8 und M12–M15; Prüfskripte `datei.py`, `gruppe.py` und `k_achse.py` im Anhang.
+
+**Korrektur K-ACHSE (2026-11-02).** Bis 2026-11-02 waren alle Frequenzen dieses Abschnitts mit
+der falschen Achse Δf = 1,5625 Hz gerechnet (FG-02 2.3) und damit um den Faktor 2,5 zu hoch.
+Die Werte unten gelten für Δf = 0,625 Hz. Kennzeichnung:
+- **[neu]**: mit dem Paket (`werte_aus`, `schaetze_daempfung`, `werte_stufe2_aus`, Stand der
+  Umsetzung W5-2) neu gerechnet. Der Leser war noch nicht korrigiert; Achse und Δf wurden im
+  Speicher ersetzt (`k_achse.py`). Der software-engineer rechnet die Werte nach der
+  Leser-Korrektur (KA-1 bis KA-6) mit dem korrigierten Leser nach.
+- **[× 0,4]**: Wert der früheren Achse mit 0,4 multipliziert, **nicht** neu gerechnet. Nach 3.6
+  exakt bis auf Grenzfälle der Kennzeichen.
+- **[unverändert]**: achsunabhängige Größe (ζ, ρ, Anzahl, Winkel, η) oder gleiche Linien.
 
 **B-1:**
 
 Festlegung für die Zusammenfassung (K2-3): Punktauswahl **je Spitze** (die 20 Punkte mit dem
 größten $\lvert H_1\rvert$ an der Spitzenlinie dieser Spitze, 3.5), Fitband nach 3.3 mit
 Kürzung am lokalen Minimum, ρ als **Median über die verwendeten Punkte** (ohne
-`modell_passt_nicht`, `nicht_konvergiert`, `ausserhalb_band`). Die Werte stammen aus der
-Umsetzung W5-2 und wurden in der Fachabnahme FA-W5-2 nachgerechnet.
+`modell_passt_nicht`, `nicht_konvergiert`, `ausserhalb_band`). Die Werte der früheren Achse
+stammen aus der Umsetzung W5-2 und wurden in der Fachabnahme FA-W5-2 nachgerechnet.
 
-| Spitze | Stufe 1 (Betragsmittel, W5-1) | B-1 je Punkt (20 stärkste je Spitze, Vib Z/Ref1) | ρ (Median der verwendeten Punkte) |
+| Spitze (früher) | Stufe 1 (Betragsmittel) [neu] | B-1 je Punkt (20 stärkste je Spitze, Vib Z/Ref1) [neu] | ρ (Median der verwendeten Punkte) [neu] |
 |---|---|---|---|
-| ≈ 401,6 Hz | B = 1,429 Hz, ζ = 0,00178, `aufloesungsbegrenzt` | $f_r$ = 401,324 Hz (IQR 0,007), ζ = 0,00142 (IQR 0,00003), 20 Punkte | 0,054 |
-| ≈ 618,9 Hz | B = 1,920 Hz, ζ = 0,00155, `aufloesungsbegrenzt` | $f_r$ = 619,015 Hz (IQR 0,015), ζ = 0,00146 (IQR 0,00004), 19 Punkte (1 × `modell_passt_nicht`) | 0,078 (über alle 20: 0,080) |
-| ≈ 262,6 Hz (Gruppe 262,6/265,0/270,0) | B = 1,487 Hz, `aufloesungsbegrenzt`, `nachbarmode`; 265,0 Hz `ueberlappend` | 3 Moden, Fitband 254,69–279,69 Hz (17 Linien): $f_r$ = 262,720 / 266,154 / 270,267 Hz, ζ = 0,00214 / 0,00116 / 0,00190, je 20 Punkte | 0,007 / 0,012 / 0,008 |
+| ≈ 160,6 Hz (401,6 Hz) | $f_\mathrm{sp}$ = 160,627 Hz, B = 0,572 Hz, ζ = 0,00178, `aufloesungsbegrenzt` | $f_r$ = 160,530 Hz (IQR 0,003), ζ = 0,00142 (IQR 0,00003), 20 Punkte | 0,054 |
+| ≈ 247,6 Hz (618,9 Hz) | $f_\mathrm{sp}$ = 247,572 Hz, B = 0,768 Hz, ζ = 0,00155, `aufloesungsbegrenzt` | $f_r$ = 247,606 Hz (IQR 0,006), ζ = 0,00146 (IQR 0,00004), 19 Punkte (1 × `modell_passt_nicht`) | 0,078 (über alle 20: 0,080 [unverändert, nicht neu gerechnet]) |
+| ≈ 105,0 Hz (262,6 Hz; Gruppe 105,0/106,0/108,0 Hz, früher 262,6/265,0/270,0 Hz) | $f_\mathrm{sp}$ = 105,033 Hz, B = 0,595 Hz, `aufloesungsbegrenzt`, `nachbarmode`; 106,0 Hz `ueberlappend` | 3 Moden, Fitband 101,875–111,875 Hz (17 Linien): $f_r$ = 105,088 / 106,462 / 108,107 Hz, ζ = 0,00214 / 0,00116 / 0,00190, je 20 Punkte | 0,007 / 0,012 / 0,008 |
 
-- Vergleich mit dem ersten Prüfskript (`gruppe.py`, Erstfassung): Es nahm für alle drei Moden
-  die 20 stärksten Punkte bei 262,5 Hz und kürzte das Band nicht (253,1–279,7 Hz, die Linie
-  253,1 Hz liegt an der Nachbarspitze 253,2 Hz). Damit ergaben sich ζ₃ = 0,00187 und ρ = 0,015.
-  Mit der Punktauswahl des Skripts liefert die Umsetzung 270,270 Hz und ζ₃ = 0,00188; der
-  Unterschied in ρ kommt von der Bandkürzung nach 3.3.
+Kontrolle: Die neu gerechneten Frequenzen stimmen mit den Werten der früheren Achse × 0,4 auf
+≤ 0,001 Hz überein (z. B. 401,324 × 0,4 = 160,530; 619,015 × 0,4 = 247,606); ζ, ρ und die
+Punktzahlen sind gleich.
+
+- Vergleich mit dem ersten Prüfskript (`gruppe.py`, Erstfassung) [× 0,4]: Es nahm für alle drei
+  Moden die 20 stärksten Punkte bei 105,0 Hz und kürzte das Band nicht (101,25–111,88 Hz, die
+  Linie 101,25 Hz liegt an der Nachbarspitze 101,28 Hz). Damit ergaben sich ζ₃ = 0,00187 und
+  ρ = 0,015 [unverändert]. Mit der Punktauswahl des Skripts liefert die Umsetzung 108,108 Hz
+  [× 0,4] und ζ₃ = 0,00188; der Unterschied in ρ kommt von der Bandkürzung nach 3.3.
 - Erzwungener Ein-Moden-Fit an der Gruppe (nur zur Einordnung, Prüfskript): ζ = 0,00223,
-  ρ = 0,224.
+  ρ = 0,224 [unverändert].
 - **Kennzeichen `moden_vertauscht` (K3-5).** Nachgerechnet an Vib Z/Ref1, alle Gruppen,
-  Stand der Umsetzung mit Regel (a) (Prüfskript `vertauscht.py`): Von 801 Mehr-Moden-Fits
-  tragen 22 nach Regel (a) das Kennzeichen; davon liegt nach Umsortieren nur in 3 Fällen jede
-  Mode an ihrer nächsten Spitze. Regel (b) betrifft zusätzlich 20 Modenergebnisse, die sonst
-  kein Ausschlusskennzeichen tragen, z. B. Gruppe 1325,55/1329,35 Hz: Die Partnermode läuft
-  weg (1350,24 Hz, `ausserhalb_band`), die übrige springt auf 1325,01 Hz und ginge sonst als
-  1329,35-Hz-Mode in die Zusammenfassung ein; ebenso 1003,42/1006,41 Hz und 834,95/845,05 Hz
-  (zwei Pole an einer Spitze).
+  Stand der Umsetzung mit Regel (a) (Prüfskript `vertauscht.py`, frühere Achse): Von 801
+  Mehr-Moden-Fits tragen 22 nach Regel (a) das Kennzeichen; davon liegt nach Umsortieren nur in
+  3 Fällen jede Mode an ihrer nächsten Spitze. Regel (b) betrifft zusätzlich 20 Modenergebnisse,
+  die sonst kein Ausschlusskennzeichen tragen, z. B. Gruppe 530,22/531,74 Hz: Die Partnermode
+  läuft weg (540,10 Hz, `ausserhalb_band`), die übrige springt auf 530,00 Hz und ginge sonst als
+  531,74-Hz-Mode in die Zusammenfassung ein; ebenso 401,37/402,56 Hz und 333,98/338,02 Hz (zwei
+  Pole an einer Spitze). *Frequenzen [× 0,4]; die Aufteilung 22/3/20 ist nicht neu gerechnet.
+  Neu gerechnet [neu]: weiterhin 801 Mehr-Moden-Fits; Fits mit `moden_vertauscht` nach Regeln
+  (a) und (b) zusammen 61 (frühere Achse mit heutigem Code: 60). Der Unterschied von einem Fit
+  ist ein Grenzfall des Fits, keine Regeländerung.*
 - **Wirkung von Regel (b) auf die Zusammenfassungen (Nachtrag N1, nachgerechnet in
   RFA-W5-2b mit `k3_pruef.py`, Vergleich aller Zusammenfassungen vor und nach Regel (b)):**
 
-  | Spitze | vorher (nur Regel a) | nachher (Regeln a und b) |
+  | Spitze (früher) | vorher (nur Regel a) [× 0,4] | nachher (Regeln a und b) [neu] |
   |---|---|---|
-  | 1006,41 Hz | N = 15, $f_r$ = 1006,589 Hz, ζ = 0,00137 | N = 14, $f_r$ = 1006,601 Hz, ζ = 0,00135 |
-  | 1329,35 Hz | N = 12, $f_r$ = 1329,349 Hz, ζ = 0,00165 | N = 10, $f_r$ = 1329,377 Hz, ζ = 0,00146 |
+  | 402,56 Hz (1006,41 Hz) | N = 15, $f_r$ = 402,636 Hz, ζ = 0,00137 | N = 14, $f_r$ = 402,640 Hz, ζ = 0,00135 |
+  | 531,74 Hz (1329,35 Hz) | N = 12, $f_r$ = 531,740 Hz, ζ = 0,00165 | N = 10, $f_r$ = 531,751 Hz, ζ = 0,00146 |
 
-  - 845,05 Hz bleibt unverändert (N = 3, $f_r$ = 845,360 Hz, ζ = 0,00303). Die Ergebnisse mit
-    `moden_vertauscht` (Punkte 20, 80, 85) wurden gefittet, weil sie zu den 20 stärksten
-    Punkten der Partnerspitze 834,95 Hz gehören; unter den Kandidaten von 845,05 Hz sind sie
-    nicht. Die Zusammenfassung nimmt nach 3.5 nur die Kandidaten der eigenen Spitze.
+  - 338,02 Hz (845,05 Hz) bleibt unverändert (N = 3, $f_r$ = 338,144 Hz, ζ = 0,00303 [neu]).
+    Die Ergebnisse mit `moden_vertauscht` (Punkte 20, 80, 85) wurden gefittet, weil sie zu den
+    20 stärksten Punkten der Partnerspitze 333,98 Hz gehören; unter den Kandidaten von
+    338,02 Hz sind sie nicht. Die Zusammenfassung nimmt nach 3.5 nur die Kandidaten der eigenen
+    Spitze. *(Punktnummern aus der früheren Rechnung, nicht neu geprüft.)*
   - Sonst ist keine Zusammenfassung betroffen. Unverändert sind damit auch die Tabelle oben
-    (401,6 Hz, 618,9 Hz, Gruppe 262,6 Hz) und die Drift-Tabelle unten.
+    (160,6 Hz, 247,6 Hz, Gruppe 105,0 Hz) und die Drift-Tabelle unten.
 
-- Die Halbwertsbreite von Stufe 1 liegt an der Auflösungsgrenze 6 bis 25 % über dem Fit.
-  Das entspricht der Tabelle in FG-02 3.9 (positiver Bias).
-- Ref2/Ref1 als Mobilität, Fit am Punktmittel: ρ = 0,09 bis 0,16 bei ζ = 0,0012 bis 0,0017.
+- Die Halbwertsbreite von Stufe 1 liegt an der Auflösungsgrenze 6 bis 25 % über dem Fit
+  [unverändert]. Das entspricht der Tabelle in FG-02 3.9 (positiver Bias).
+- Ref2/Ref1 als Mobilität, Fit am Punktmittel: ρ = 0,09 bis 0,16 bei ζ = 0,0012 bis 0,0017
+  [unverändert: $Y = H/(i\omega)$ ändert sich mit der Achse nur um den reellen Faktor 2,5, 3.6].
   Die höheren ρ zeigen, dass die Modellform dort schlechter passt; das Vorzeichen M8 ist
   dafür nicht verantwortlich, es ändert nur R.
 
 **B-5 (Drift, Ref2/Ref1 als Mobilität, Pol je Punkt; Gruppenfit nach 3.3, Ausschluss je
-gewählter Mode nach 4.5, K2-1):**
+gewählter Mode nach 4.5, K2-1) [neu]:**
 
-| Spitze | Gruppe (n) | $b_1$ | Dauer | Gesamtdrift | relativ | N (davon `modell_passt_nicht`) |
+| Spitze (früher) | Gruppe (n) | $b_1$ | Dauer | Gesamtdrift | relativ | N (davon `modell_passt_nicht`) |
 |---|---|---|---|---|---|---|
-| ≈ 418,9 Hz | allein (1) | −0,129 ± 0,010 Hz/h | 39,6 min | −0,085 Hz | −2,0·10⁻⁴ | 135 (90) |
-| ≈ 631,7 Hz | mit 640,6 Hz (2) | −0,068 ± 0,010 Hz/h | 39,1 min | −0,044 Hz | −0,7·10⁻⁴ | 125 (0) |
-| ≈ 1508,1 Hz | mit 1491,8 Hz (2) | −0,482 ± 0,016 Hz/h | 39,6 min | −0,318 Hz | −2,1·10⁻⁴ | 135 (0) |
+| ≈ 167,5 Hz (418,9 Hz) | allein (1) | −0,0517 ± 0,0041 Hz/h | 39,6 min | −0,034 Hz | −2,0·10⁻⁴ | 135 (90) |
+| ≈ 252,7 Hz (631,7 Hz) | mit 256,2 Hz (2) | −0,0275 ± 0,0044 Hz/h | 39,3 min | −0,018 Hz | −0,7·10⁻⁴ | 122 (0) |
+| ≈ 603,2 Hz (1508,1 Hz) | mit 596,7 Hz (2) | −0,1930 ± 0,0062 Hz/h | 39,6 min | −0,127 Hz | −2,1·10⁻⁴ | 135 (0) |
 
+- Neu gerechnet mit `drift_spitzen_hz` = (167,52; 252,48; 603,12) Hz. Bei 167,5 und 603,2 Hz
+  stimmen die Werte mit der früheren Tabelle × 0,4 überein (−0,0516 / −0,1928 Hz/h; N gleich).
+  **Bei 252,7 Hz** werden 122 statt 125 Punkte verwendet (Dauer 39,3 statt 39,1 min), $b_1$ =
+  −0,0275 statt −0,0272 Hz/h (× 0,4). Ursache sind Grenzfälle der Ausschlusskennzeichen im
+  Gruppenfit mit weglaufender Partnermode; sie ist nicht im Einzelnen untersucht (offener
+  Punkt 7). Die Abweichung liegt weit unter dem Standardfehler.
 - Alle drei Steigungen sind signifikant und bestätigen W3 2.7.
-- Die Streuung um die Gerade (0,022 bis 0,035 Hz) ist kleiner als die mittlere
-  Fit-Standardabweichung der verwendeten Punkte (0,036 bis 0,082 Hz). Die
+- Die Streuung um die Gerade (0,009 bis 0,014 Hz [neu]) ist kleiner als die mittlere
+  Fit-Standardabweichung der verwendeten Punkte (0,014 bis 0,033 Hz [× 0,4]). Die
   Fit-Standardabweichung enthält also auch Modellfehler. Deshalb kommt der Standardfehler der
   Drift aus der Streuung um die Gerade (4.5).
-- Die Erstfassung dieser Tabelle (−0,132 / −0,079 / −0,520 Hz/h) stammte aus einem
+- Die Erstfassung dieser Tabelle (−0,053 / −0,032 / −0,208 Hz/h [× 0,4]) stammte aus einem
   vereinfachten Prüfskript mit Einzelmodenfit und ohne Ausschluss. Sie ist durch die Werte
-  oben ersetzt. Der Gruppenfit passt besser: bei 1508 Hz ρ = 0,040 statt 0,069 und Streuung
-  0,035 statt 0,040 Hz.
-- Bei 631,7 Hz trägt der Gruppenfit an 95 Punkten `nicht_konvergiert` (Partnermode 640,6 Hz
-  läuft weg); 10 Punkte fallen über `unsicher` der gewählten Mode heraus.
+  oben ersetzt. Der Gruppenfit passt besser: bei 603,2 Hz ρ = 0,040 statt 0,069 und Streuung
+  0,014 statt 0,016 Hz [× 0,4].
+- Bei 252,7 Hz trägt der Gruppenfit an 95 Punkten `nicht_konvergiert` (Partnermode 256,2 Hz
+  läuft weg); 10 Punkte fallen über `unsicher` der gewählten Mode heraus. *(Zahlen der früheren
+  Achse; mit korrigierter Achse fallen 13 Punkte heraus, Aufteilung nicht neu gerechnet.)*
 
 **B-8:**
 - 112 Elemente; alle Knotenreihenfolgen ergeben eine Normale mit negativer z-Komponente.
-  Nach Ausrichtung auf +z sind die Punktnormalen 1,3° bis 5,0° gegen z geneigt (Median 3,2°).
-- Anteil der Normalenbewegung η (CPH zu Ref1) als Median über Punkte und Linien:
+  Nach Ausrichtung auf +z sind die Punktnormalen 1,3° bis 5,0° gegen z geneigt (Median 3,2°)
+  [unverändert, achsunabhängig].
+- Anteil der Normalenbewegung η (CPH zu Ref1) als Median über Punkte und Linien. Die Bänder
+  sind bei **gleichen Linien umbenannt** (Nutzerentscheidung 2026-11-02); die Werte sind damit
+  unverändert [unverändert]:
 
-  | Band | Median | 10-%-Quantil |
+  | Band (früher bezeichnet als) | Median | 10-%-Quantil |
   |---|---|---|
-  | 150–500 Hz | 0,995 | 0,90 |
-  | 500–1000 Hz | 0,983 | 0,71 |
-  | 1000–2500 Hz | 0,967 | 0,65 |
+  | 60–200 Hz (150–500 Hz) | 0,995 | 0,90 |
+  | 200–400 Hz (500–1000 Hz) | 0,983 | 0,71 |
+  | 400–1000 Hz (1000–2500 Hz) | 0,967 | 0,65 |
 
   Das ist plausibel für eine Platte in Biegung und stützt M12. Bewiesen ist M12 damit nur
-  für die z-Richtung; die Lage von X und Y prüft dieser Befund nicht.
+  für die z-Richtung; die Lage von X und Y prüft dieser Befund nicht. Der Golden-File-Vergleich
+  vom 2026-11-02 bestätigt nur, dass der Leser dieselben Komponenten liefert wie PSV.
 
 ---
 
@@ -548,6 +593,13 @@ $f_j = (k_0 + j + \mathrm{off})\,\Delta f$.
 
 ### 9.1 B-1
 
+Die Raster und Abtastparameter der Referenzfälle (z. B. Δf = 1,5625 Hz, $f_s$ = 6250 Hz,
+T = 0,64 s, Burst-Chirp bis 2500 Hz) sind **synthetisch**. Sie stammen aus der früheren
+Fehldeutung der Beispieldatei (FG-02 2.3), sind in sich stimmig und prüfen Algorithmen; die
+Sollwerte bleiben gültig (K-ACHSE). Leckage hängt nur von den dimensionslosen Größen
+$\zeta\omega_n T$ und Burstanteil ab; die Aussagen von RF-F4/RF-F5 übertragen sich deshalb auf
+die Beispieldatei (T = 1,6 s, Frequenzen × 0,4) unverändert.
+
 | ID | Eingang | Sollwert | Toleranz, Begründung |
 |---|---|---|---|
 | RF-F1 | SDOF $f_n$ = 100 Hz, ζ = 0,005; Δf = 1,5625 Hz ($B/\Delta f$ = 0,64); 17 Linien um Linie 64; off = 0 und 0,37; Start $f^{(0)}$ = 100,3 Hz, $\zeta^{(0)}$ = 0,01 | $f_r$ = 100 Hz, ζ = 0,005, R = 1 kg⁻¹, C = 0, ρ ≈ 0; konvergiert, ohne Kennzeichen (Abbruchkriterium K2-2) | $f_r$: atol 1e-7 Hz; ζ, R: rtol 1e-6; \|C\| ≤ 1e-12; ρ ≤ 1e-12 (exakte Modellform) |
@@ -563,6 +615,9 @@ $f_j = (k_0 + j + \mathrm{off})\,\Delta f$.
 | RF-F8 (γ² = NaN, K2-4) | RF-F1 (off = 0,37, 17 Linien) mit (a) γ² = NaN auf allen Linien ($n_d$ = 1); (b) γ² = NaN auf allen Linien außer der dritten Linie mit γ² = 0,5 < γ²_min | (a) Fit mit 17 Linien, Werte wie RF-F1, Hinweis „Kohärenz nicht prüfbar“, keine Kennzeichen (insbesondere nicht `zu_wenig_linien`). (b) Fit mit 16 Linien, Werte wie RF-F1, derselbe Hinweis | wie RF-F1; Linienzahl und Kennzeichen exakt |
 
 ### 9.2 B-5
+
+RF-V5 und RF-V6 verwenden Frequenzen der früheren Achse (418,9 Hz, 631,7 Hz) als **synthetische**
+Eingänge; die Sollwerte bleiben gültig (K-ACHSE).
 
 Raster 9 × 15, Abstand d = 0,029 m, z = 0. Formen
 $\phi_{mn} = \sin\!\big(m\pi\frac{x+d}{L_x+2d}\big)\sin\!\big(n\pi\frac{y+d}{L_y+2d}\big)$ mit
@@ -614,12 +669,12 @@ Es gelten M1–M11 aus FG-02. Neu bzw. für Stufe 2 relevant:
 
 | Nr. | Annahme | Prüfung | Folge |
 |---|---|---|---|
-| M2 | erste Linie bei Δf | Montag | $f_r$ verschiebt sich um Δf bei falscher Annahme |
-| M5 | Rechteckfenster, $n_d$ = 7 | Montag | bei Hann auf Burst-Daten: Modellform nicht geprüft, RF-F5 nicht übertragbar |
-| M8 | Vorzeichen je Kanal | Montag | nur R und Schwingformvorzeichen, nicht $f_r$, ζ, MAC |
-| M11 | PSV-Toleranzen | Montag: Band-Cursor-Fit an 401,6 Hz und 618,9 Hz zusätzlich mit B-1 vergleichen | Einordnung des PSV-Fits gegen B-1; keine Toleranz für B-1 gegen PSV festgelegt |
-| **M12** (neu) | 3D-Komponenten im Koordinatensystem der Geometrie | Montag: Achsen des 3D-Abgleichs in PSV ansehen; Indiz [D] η ≈ 0,99 | B-8 und gedrehte Vergleiche in B-5 |
-| **M13** (neu) | Bezugsrichtung der Normalen +z | Montag: Lage der Scanköpfe zum Prüfling | Vorzeichen von $\hat v_n$ und Drehsinn |
+| M2 | erste Linie bei Δf | 2026-11-02: **bestätigt**, $k_0 = 1$; Achse korrigiert auf Δf = 0,625 Hz (FG-02 2.3) | Abschnitt 7 neu gerechnet (K-ACHSE) |
+| M5 | Rechteckfenster, $n_d$ = 7 | 2026-11-02: Rechteck **bestätigt** (FG-02 11); $n_d$ bei Signal Enhancement offen | RF-F5 übertragbar (Rechteck) |
+| M8 | Vorzeichen je Kanal | 2026-11-02: **offen**; relative Polarität Ref1/Ref2 invertiert (P-08, FG-02 11), $s_c$ bleibt +1 | nur R und Schwingformvorzeichen, nicht $f_r$, ζ, MAC |
+| M11 | PSV-Toleranzen | 2026-11-02: Band-Cursor-Fit an Label 132 bei 160,7 Hz und 247,7 Hz (früher als 401,6 Hz und 618,9 Hz bezeichnet) erhoben; Vergleich mit B-1 in FG-02 Abschnitt 8 | B-1 liegt bei gleichen Bandgrenzen um +5,0 % bzw. +8,8 % über ζ_PSV, $f_r$ um −0,03 bzw. −0,14 Hz daneben; zwei Spitzen an einem Punkt reichen für eine Toleranz nicht; keine Toleranz für B-1 gegen PSV festgelegt |
+| **M12** (neu) | 3D-Komponenten im Koordinatensystem der Geometrie | 2026-11-02: Vib X/Y/Z und Koordinaten aus PSV gleich dem Leser (Golden File). Der Bezug der Komponenten zum Geometrie-KS ist damit **nicht** belegt; Indiz [D] η ≈ 0,99 nur für z | **offen** (Leser = PSV bestätigt) |
+| **M13** (neu) | Bezugsrichtung der Normalen +z | 2026-11-02: Z-Achse in PSV zeigt zu den Scanköpfen; Abstand 2,82 m | plausibel, nicht formal geprüft; Vorzeichen von $\hat v_n$ und Drehsinn |
 | **M14** (neu) | Elementindizes 0-basiert (W2 plausibel) | Montag: Element in PSV ansehen, Eckpunkt-Labels gegen Indizes | B-8 |
 | **M15** (neu) | Zeitstempel je Punkt = Messzeitpunkt | Montag: PSV-Info zur Messzeit (W2 M9) | B-5 Drift; nur Differenzen nötig |
 | **Zweite Messdatei** | – | Wiederholungsmessung mit gleichem Aufbau, möglichst eine mit verschobenem bzw. neu abgeglichenem Raster | erst damit ist B-5 an realen Daten prüfbar (Golden-File-Vergleich, Punktzuordnung über Koordinaten) |
@@ -628,7 +683,7 @@ Es gelten M1–M11 aus FG-02. Neu bzw. für Stufe 2 relevant:
 
 ## 12 Offene Punkte
 
-1. Annahmen M1–M15 bis Montag.
+1. Offene Annahmen: M8 (Polarität), M11 (B-1 gegen PSV an weiteren Spitzen), M12, M13, M14, M15.
 2. Wie sich der Fit bei Hann-Fenster auf transienten Daten verhält, ist nicht geprüft (M5).
 3. Eine B-1-Toleranz gegen den PSV-Fit ist nicht festgelegt. Erst M11 liefert Werte.
 4. Rechercheaufträge: Volltexte von Ewins und Maia/Silva (Kurvenanpassung, Residuen),
@@ -1268,6 +1323,61 @@ for b in bsp: print("  ", b)
 
 ---
 
+### Ergänzung K-ACHSE (Fachanalyse P0b und Paket K-ACHSE-FG, 2026-11-02)
+
+#### k_achse.py – Abschnitt 7 mit korrigierter Achse
+
+Ausgeführt mit der Projektumgebung (`software/.venv/bin/python`). Der Leser ist noch nicht
+korrigiert; Achse und Δf werden im Speicher ersetzt.
+
+```python
+"""K-ACHSE: FG-03 Abschnitt 7 mit korrigierter Achse (Δf = 0,625 Hz), Leser-Ergebnis im Speicher korrigiert."""
+import sys, dataclasses, numpy as np, pathlib
+R = "/home/user/BA_Jakob-Busch_P/software/"
+sys.path[:0] = [R + "src", R + "tools/auswertung", R + "tools/svd_analyse"]
+import svd_lesen as L, beispiel_svd
+from ldv_automation.auswertung import werte_aus
+from ldv_automation.auswertung.modenfit import schaetze_daempfung
+from ldv_automation.auswertung.stufe2 import werte_stufe2_aus
+from ldv_automation.auswertung.svd_adapter import aus_svd_messung, zeit_s_aus_svd_messung
+
+m0 = beispiel_svd.lese_svd_werkzeug(pathlib.Path("/home/user/BA_Jakob-Busch_P/Input/20261012_ref_Mitte.svd"))
+m = dataclasses.replace(m0, frequenz_hz=0.625*np.arange(1, 1601), fft=L.FftEinstellungen(1000.0, 1600, 4000))
+aw = werte_aus(aus_svd_messung(m, sha256="0"*64))
+sp = aw.paare[("Vib Z", "Ref1")].spitzen.spitzen
+print("Spitzen", len(sp), "aufloesungsbegrenzt", sum("aufloesungsbegrenzt" in s.kennzeichen for s in sp))
+wahl = [int(np.argmin([abs(s.f_sp_hz - f) for s in sp])) for f in (160.64, 247.56, 105.04)]
+r = schaetze_daempfung(aw, ("Vib Z", "Ref1"), spitzen=wahl)
+for f in (160.64, 247.56, 105.04, 106.0, 108.0):
+    z = r.zusammenfassung_bei(f)
+    print(f, z.f_sp_hz, z.fr_median_hz, z.fr_iqr_hz, z.zeta_median, z.zeta_iqr, z.rho_median, z.n_punkte)
+g = [x for x in r.gruppen if any(abs(v - 105.03) < 0.1 for v in x.f_sp_hz)][0]
+print("Fitband", m.frequenz_hz[g.k_von], m.frequenz_hz[g.k_bis], g.k_bis - g.k_von + 1)
+r_alle = schaetze_daempfung(aw, ("Vib Z", "Ref1"))                         # N1-Tabelle, moden_vertauscht
+for f in (402.564, 531.74, 338.02):
+    z = r_alle.zusammenfassung_bei(f); print(f, z.n_punkte, z.fr_median_hz, z.zeta_median)
+mm = [e for e in r_alle.ergebnisse if e.n_moden >= 2]
+print("Mehr-Moden-Fits", len({(e.punkt, e.gruppe) for e in mm}),
+      "mit moden_vertauscht", sum(any("moden_vertauscht" in k for k in e.kennzeichen) for e in mm))
+st = werte_stufe2_aus(aw, zeit_s=zeit_s_aus_svd_messung(m), drift_paar=("Ref2", "Ref1"),
+                      drift_spitzen_hz=(167.52, 252.48, 603.12))
+for d in st.drift:
+    print(d.f_spitze_hz, d.steigung_hz_h, d.sd_steigung_hz_h, d.dauer_s/60, d.gesamt_hz, d.gesamt_rel,
+          d.streuung_hz, d.n_punkte, d.n_modell_passt_nicht)
+```
+
+Ausgabe (gekürzt): 114 Spitzen, 67 `aufloesungsbegrenzt`; 160,627 / 160,5298 / IQR 0,0026 /
+ζ 0,001415 / 0,0537 / 20; 247,572 / 247,6061 / 0,0062 / 0,001464 / 0,0778 / 19; Gruppe
+105,0881 / 106,4615 / 108,1067, ζ 0,002142 / 0,001160 / 0,001900, ρ 0,0069 / 0,0116 / 0,0084,
+je 20; Fitband 101,875–111,875 Hz, 17 Linien; N1: 14 / 402,6404 / 0,001353; 10 / 531,7508 /
+0,001460; 3 / 338,1442 / 0,003025; 801 Mehr-Moden-Fits, 61 mit `moden_vertauscht`; Drift
+167,544 Hz −0,05170 ± 0,00412 Hz/h, 39,6 min, −0,0341 Hz, −2,04·10⁻⁴, s 0,0092 Hz, N 135 (90);
+252,660 Hz −0,02748 ± 0,00442, 39,3 min, −0,0180 Hz, −7,1·10⁻⁵, s 0,0092 Hz, N 122 (0);
+603,233 Hz −0,19298 ± 0,00624, 39,6 min, −0,1273 Hz, −2,11·10⁻⁴, s 0,0139 Hz, N 135 (0).
+Gegenprobe mit der früheren Achse und heutigem Code: Drift −0,12925 / −0,0678 / −0,48245 Hz/h,
+N 135 / 125 / 135 (wie die frühere Tabelle).
+
+
 ## Änderungsprotokoll
 
 | Datum | Änderung | Freigabe |
@@ -1276,3 +1386,4 @@ for b in bsp: print("  ", b)
 | 2026-10-30 | Korrektur K2 aus der Fachabnahme FA-W5-2: K2-1 Option A – Drift-Ausschluss je gewählter Mode (`ausserhalb_band`, `unsicher`, `nicht_konvergiert` nur bei n = 1; kein Ausschluss über `modell_passt_nicht`, Anzahl wird ausgegeben), Gruppenfit nach 3.3 in der Drift, Drift-Tabelle in 7 ersetzt (4.5, 6.2, 6.3, 7, RF-V6). K2-2: Abbruchkriterium auch für verworfene Versuchsschritte (3.2, RF-F1). K2-3: σ der Spitzenpaarung = Median der σ_fr, Hinweis zur Drift (4.2, RF-V7); RF-F3 bei 102 Hz zusätzlich `unsicher` (9.1); Abschnitt 7 mit Punktauswahl je Spitze und ρ als Median der verwendeten Punkte. K2-4: γ² = NaN bleibt im Fit, Hinweis „Kohärenz nicht prüfbar“ (3.2, 6.3, RF-F8). Prüfskripte im Anhang (Ergänzung K2) | Nutzer, 2026-10-30 |
 | 2026-10-30 | Korrektur K3 aus der Re-Abnahme RFA-W5-2: Kennzeichen `moden_vertauscht` mit Rangregel (a) und Näheregel (b) (3.4, K3-1), Ausschluss aus der Zusammenfassung (3.4, K3-2) und aus der Drift (4.5, K3-3), Referenzfall RF-F9 (9.1, K3-4), Vermerk zur Wirkung an der Beispieldatei (7, K3-5); Prüfskript `vertauscht.py` im Anhang | Nutzer, 2026-10-30 |
 | 2026-10-30 | Datennachtrag N1 (Abschnitt 7, Vermerk K3-5): nachgerechnete Wirkung von Regel (b) auf die Zusammenfassungen 1006,41 Hz und 1329,35 Hz; 845,05 Hz unverändert mit Begründung; keine weitere Zusammenfassung betroffen. Keine Regeländerung | Nutzer, 2026-10-30 |
+| 2026-11-02 | **Korrektur K-ACHSE** (KA-12, KA-13, Fachanalyse P0b; Korrekturliste vom Nutzer am 2026-11-02 freigegeben, mit Nutzerentscheidungen: feste Bänder bei gleichen Linien umbenannt, `gueltigkeit_offen_m7` entfällt, M8 bleibt offen). KA-12: Abschnitt 7 mit korrigierter Achse (Δf = 0,625 Hz) neu gerechnet (B-1-Tabelle, Gruppe, N1-Tabelle Spalte „nachher“, Drift-Tabelle); nicht neu gerechnete Werte als „× 0,4 skaliert“ vermerkt; B-8-Bänder umbenannt (60–200 / 200–400 / 400–1000 Hz, Werte unverändert); Absatz Begründung in 4.5 skaliert. KA-13: 3.6 Maßstabsfehler der Achse mit Herleitung; Kennzeichen `gueltigkeit_offen_m7` aus 3.4 und 4.5 entfernt; 9.1/9.2 Testparameter als synthetisch gekennzeichnet; Abschnitt 11 (M2, M5, M8, M11, M12, M13) und 12 nachgeführt; Prüfskript `k_achse.py` im Anhang | **offen** (Freigabe durch den Nutzer ausstehend) |

@@ -1,7 +1,8 @@
-<!-- Fachgrundlage FG-02: Auswertung Stufe 1 (R-050 bis R-053 sowie B-2, B-3, B-9, B-10 und fachliche Festlegungen zu B-4, B-6, B-7). Erstellt im Paket W4-1 von strukturdynamik-experte, Stand 2026-10-29, Korrektur K1 eingearbeitet 2026-10-30. -->
+<!-- Fachgrundlage FG-02: Auswertung Stufe 1 (R-050 bis R-053 sowie B-2, B-3, B-9, B-10 und fachliche Festlegungen zu B-4, B-6, B-7). Erstellt im Paket W4-1 von strukturdynamik-experte, Stand 2026-10-29, Korrektur K1 eingearbeitet 2026-10-30, Korrektur K-ACHSE eingearbeitet und vom Nutzer freigegeben 2026-11-02. -->
 
 > **Status:** Vom Nutzer am 2026-10-29 freigegeben, einschließlich der Toleranzen (Abschnitt 8) und Schwellen (γ²_min = 0,9, n_min = 3, Nachbarmode 3B, P-07 bis P-09). Annahmen M1–M11 werden nach der Prüfung am Messrechner (Mo 2026-11-02) nachgeführt.
 > **Korrektur K1** (`FG-02_korrekturvorschlag-K1.md`, K1-1 bis K1-8) am 2026-10-30 eingearbeitet, Nutzerfreigabe; Änderungen siehe Änderungsprotokoll am Ende.
+> **Korrektur K-ACHSE** (KA-7 bis KA-11 aus Fachanalyse P0b, Liste vom Nutzer am 2026-11-02 freigegeben) am 2026-11-02 eingearbeitet und als Fachgrundlage vom Nutzer am 2026-11-02 freigegeben: Frequenzachse der Datei Δf = 0,625 Hz statt 1,5625 Hz, Kennzeichen `gueltigkeit_offen_m7` entfällt, Annahmen M1–M11 nach dem Termin vom 2026-11-02 nachgeführt. **Freigabe der eingearbeiteten Fassung durch den Nutzer offen.** Änderungen siehe Änderungsprotokoll.
 
 # FG-02 – Auswertung von PSV-Messdaten, Stufe 1
 
@@ -72,10 +73,28 @@ Der quadratische Mittelwert der Linie ist $\mathrm{AP}/2$, der Effektivwert $\sq
 
 ### 2.3 Frequenzachse [ANN M2]
 
-$f_k = (k + k_0)\,\Delta f$ für den Array-Index $k = 0 \dots K-1$, $\Delta f = BW/n_\mathrm{FFT}$.
-Voreinstellung $k_0 = 1$, die erste Linie liegt also bei $\Delta f$ und DC fehlt (KONVENTIONEN,
-vorläufig). Die Achse kommt immer aus der Datei. $k_0$ ist ein Parameter mit Kennzeichen
-„M2 unbestätigt“. Für die Datei gilt $\Delta f = 1{,}5625$ Hz und $K = 1600$.
+$f_k = (k + k_0)\,\Delta f$ für den Array-Index $k = 0 \dots K-1$, $\Delta f = BW/n_\mathrm{FFT} = 1/T$
+mit der Blockdauer $T = N/f_s$. Bei PSV gilt $f_s = 2{,}5\cdot BW$ und $N = 2{,}5\cdot n_\mathrm{FFT}$.
+$k_0 = 1$: Die erste Linie liegt bei $\Delta f$, DC fehlt. Die Achse kommt immer aus der Datei.
+
+**Für die Datei `20261012_ref_Mitte.svd` gilt (M2 bestätigt, K-ACHSE):** $BW = 1000$ Hz,
+$f_s = 2500$ Hz, $N = 4000$, $T = 1{,}6$ s, $n_\mathrm{FFT} = K = 1600$, $\Delta f = 0{,}625$ Hz,
+Achse 0,625 … 1000 Hz. Belege (Fachanalyse P0b, 2026-11-02):
+- PFA `XAxis` Min 0,625 Hz, Max 1000 Hz, MaxCount 1600; `GetMidX(0/1/1599)` = 0,625 / 1,25 / 1000 Hz [H, D].
+- Golden File `golden_punkt1_label132.csv` (PSV-Export), Spalte f exakt $0{,}625\,k$ [D].
+- Stream `Info/DAQ_Settings_Fft/Fft`: float64 @4 = 2500 (Abtastfrequenz), @20 = 0 (Startfrequenz),
+  @28 und @36 = 1000 (Bandbreite und Endfrequenz), passend zur Geräteausgabe der Erfassungseinstellungen [D].
+- PSV-Größe „Weg“ = $\lvert v\rvert/(2\pi\cdot0{,}625\,k)$ auf 1,1·10⁻⁷ [D, N]; Zeitabstand der Punkte
+  steigt je erfasstem Block um 1,600 ± 0,017 s = T [D, N].
+
+**Frühere Fehldeutung (bis 2026-11-02):** W2 hatte das Feld @4 (Abtastfrequenz 2500 Hz) als
+Bandbreite gelesen und daraus $\Delta f = 1{,}5625$ Hz abgeleitet. Alle damit gerechneten
+Frequenzen der Datei waren um den Faktor 2,5 zu hoch. Dimensionslose Größen (ζ, Q, $B/\Delta f$,
+γ², MAC, ρ) und alle Angaben in Linien bleiben unverändert [A]: Bei einer Skalierung der Achse
+mit c gehen $f_\mathrm{sp}$, B, $f_r$ in $c\cdot f$ über, ζ = B/(2f) bleibt gleich.
+
+**Randfall:** Startfrequenz ≠ 0 (Zoom-FFT) ist an keiner Datei geprüft; die Achse kommt dann
+ausschließlich aus der Datei bzw. aus `XAxis`, P-06 prüft sie.
 
 ### 2.4 Vorzeichen und Konjugation (A-1)
 
@@ -300,7 +319,7 @@ Ob PSV beide Grenzlinien einschließt, ist am Gerät zu prüfen.
 
 Vorschlag $p_\mathrm{min} = 2$, $W = 20$ Linien, $f_\mathrm{min} = f_0$; alle Werte sind
 einstellbar und betreffen nur die Auswahl, nicht die Kennwerte. W ist in Linien angegeben,
-die Fensterbreite in Hz hängt also von Δf ab. Bei Δf = 1,5625 Hz sind es ±31 Hz. Bei sehr
+die Fensterbreite in Hz hängt also von Δf ab. Bei Δf = 0,625 Hz (Beispieldatei) sind es ±12,5 Hz. Bei sehr
 feiner Auflösung findet das Kriterium breite Spitzen nicht mehr (geprüft [N]: Δf = 0,05 Hz,
 B = 2 Hz → keine Spitze). Eine Angabe in Hz oder in Vielfachen von B ist eine Alternative
 für W5 (offener Punkt 5).
@@ -358,7 +377,11 @@ bis 0,5 Δf.
 | `ueberlappend` | eine Seite nicht bestimmt (Schritt 3) | Halbwertsbreite einer Einzelmode nicht definiert |
 | `nachbarmode` | Abstand zur nächsten gefundenen Spitze $< 3B$ | RF-M: ab 3 B Fehler ≤ 0,5 % (untere Mode) bzw. +0,5 % (obere); bei 1,5 B +2,4 % / +3,5 % |
 | `kohaerenz_niedrig` | ein $\gamma^2_k < \gamma^2_\mathrm{min}$ für $f_l \le f_k \le f_r$ oder an der Spitzenlinie; ist eine Seite unbestimmt, zählt der Bereich bis zur Spitzenlinie. γ² = NaN löst das Kennzeichen nicht aus. Ist γ² im geprüften Bereich **vollständig** NaN (z. B. $n_d = 1$) oder fehlt γ², gilt der Hinweis „Kohärenz nicht prüfbar“ (K1-7b) | 3.5 |
-| `gueltigkeit_offen_m7` | $f_\mathrm{sp} > 1000$ Hz, solange M7 offen **[ANN M7]** | W3 2.6 |
+
+Das frühere Kennzeichen `gueltigkeit_offen_m7` ($f_\mathrm{sp} > 1000$ Hz) **entfällt** (K-ACHSE,
+Nutzerentscheidung 2026-11-02): Die Messung reicht nur bis 1000 Hz, das ist zugleich der
+Bandbreitenbereich des Decoders (M7 erledigt). An der Beispieldatei trugen es mit der falschen
+Achse 42 von 114 Spitzen, mit der richtigen Achse wäre es an keiner gesetzt [N].
 
 **Grenze:** Zwei Moden, die enger beieinander liegen als etwa B, erscheinen als **eine**
 Spitze ohne Kennzeichen (RF-M1: 0,5 B Abstand ergibt +52 % Breite). Das ist eine Grenze des
@@ -380,10 +403,10 @@ Die Schwellen sind Vorschläge und einstellbar. Ergebnis je Prüfung: `ok` / `wa
 | P-05 | Kohärenzbereich | $\gamma^2 \le 1 + 10^{-5}$; Werte in $(1, 1+10^{-5}]$ werden auf 1 gesetzt und gezählt | fehler darüber | Rundung |
 | P-06 | Frequenzachse | $\lvert f_k - (k+k_0)\Delta f\rvert \le 10^{-6}\Delta f$ | fehler | 2.3 |
 | P-07 | Phasensinn (A-1) | Anteil $q$ fallender Phase an Spitzen von $\lvert H_1\rvert$ (Prominenz wie 3.9 mit $p_\mathrm{min} = 2$, γ² ≥ 0,9, zentrale Differenz $\arg H_{k+1} - \arg H_{k-1}$, entfaltet); $q \ge 0{,}9$ ok; $q \le 0{,}1$ fehler „Daten vermutlich konjugiert“; dazwischen warnung; weniger als 10 Spitzen: „nicht prüfbar“ | siehe Kriterium | W3 2.2 [A, D]: Datei q = 0,982 |
-| P-08 | Passivität am Antriebspunkt (nur wenn ein Antriebspunkt-Paar konfiguriert ist, z. B. Ref2/Ref1) | Anteil $r$ der Linien mit $\mathrm{Re}\{Y\} \ge 0$ unter γ² ≥ 0,9, mit $Y$ = Mobilität (aus Akzeleranz: $Y = H/(i\omega)$); $r \ge 0{,}95$ ok; $r \le 0{,}05$ warnung „Vorzeichen einer Referenz vermutlich gedreht“; dazwischen warnung „kein Antriebspunkt?“ | warnung | W3 2.3 [A, D]: Datei r = 0,0 |
-| P-09 | Referenzstabilität | Median über die Linien, deren **arithmetisches Punktmittel** von γ² des Paars ≥ 0,9 ist, des Variationskoeffizienten von $\sqrt{\mathrm{AP}_b}$ über die gültigen Punkte (Standardabweichung mit ddof = 0) ≤ 0,05; je Kanalpaar | warnung | [D]: Datei 0,0108 (Vib Z/Ref1). Der frühere Wert 0,0105 stammt aus W3 2.7 (Linien 150–2400 Hz, ohne Kohärenzauswahl) (K1-5) |
+| P-08 | Passivität am Antriebspunkt (nur wenn ein Antriebspunkt-Paar konfiguriert ist, z. B. Ref2/Ref1) | Anteil $r$ der Linien mit $\mathrm{Re}\{Y\} \ge 0$ unter γ² ≥ 0,9, mit $Y$ = Mobilität (aus Akzeleranz: $Y = H/(i\omega)$); $r \ge 0{,}95$ ok; $r \le 0{,}05$ warnung „Vorzeichen einer Referenz vermutlich gedreht“; dazwischen warnung „kein Antriebspunkt?“ | warnung | W3 2.3 [A, D]: Datei r = 0,0 (Punktmittel, 1592 Linien) bzw. 3,2·10⁻⁴ (alle Punkte und Linien, 214 980 Werte). **Achsunabhängig** [A]: $\mathrm{Re}\{H/(i\omega)\} = \mathrm{Im}\{H\}/\omega$, das Vorzeichen hängt bei ω > 0 nicht vom Achsmaßstab ab; mit Δf = 1,5625 und 0,625 Hz identisch [N]. Laufzeiten erklären den Befund nicht (P0b) |
+| P-09 | Referenzstabilität | Median über die Linien, deren **arithmetisches Punktmittel** von γ² des Paars ≥ 0,9 ist, des Variationskoeffizienten von $\sqrt{\mathrm{AP}_b}$ über die gültigen Punkte (Standardabweichung mit ddof = 0) ≤ 0,05; je Kanalpaar | warnung | [D]: Datei 0,0108 (Vib Z/Ref1). Der frühere Wert 0,0105 stammt aus W3 2.7 (Linien 150–2400 Hz in der früheren Achse, richtig 60–960 Hz, ohne Kohärenzauswahl) (K1-5). Der Wert hängt nicht von der Achse ab |
 | P-10 | Punktstatus | Anzahl ungültiger Punkte > 0 | Hinweis | [ANN M6] |
-| P-11 | Annahmen | Liste aller Parameter mit Status „Annahme“ ($k_0$, $s_c$, `konjugieren`, $W_\mathrm{RBW}$, $n_d$, M7, Bandgrenzenregel) | Hinweis, immer ausgeben | Abschnitt 11 |
+| P-11 | Annahmen | Liste aller Parameter mit Status „Annahme“ bzw. „bestätigt am …“ ($k_0$, $s_c$, `konjugieren`, $W_\mathrm{RBW}$, $n_d$, Bandgrenzenregel); M7 entfällt (K-ACHSE) | Hinweis, immer ausgeben | Abschnitt 11 |
 
 P-07 und P-08 prüfen verschiedene Fehler (W3 2.2): Eine Konjugation dreht den Phasensinn,
 ein Vorzeichenwechsel nicht. Ein Vorzeichenwechsel dreht das Vorzeichen von Re{Y}, eine
@@ -487,8 +510,12 @@ festgelegt, weil keine gelesene Quelle vorliegt. Das ist ein offener Punkt (Absc
   Zufallssignale und unabhängige Blöcke (3.4).
 - Halbwertsbreite: getrennte Moden (Abstand ≥ 3 B), genügend Linien ($B \ge 3\Delta f$),
   abgeklungene Antwort im Messfenster. Leckage wird nicht erkannt (W3 2.5).
-- 0-to-peak-Skalierung, $W_\mathrm{RBW}$ und Frequenzachse unter Vorbehalt M2, M4 und M5.
-- Oberhalb 1 kHz ist die Gültigkeit offen (M7).
+- Frequenzachse (M2), Rechteckfenster $W_\mathrm{RBW} = 1$ (M5) und 0-to-peak-Skalierung im
+  Sinne der PSV-internen Konsistenz (M4) am 2026-11-02 bestätigt. Eine absolute Kalibrierung mit
+  bekannter Amplitude ist nicht geprüft.
+- Gültigkeitsbereich ist die Bandbreite der Messung (Beispieldatei: bis 1000 Hz = Bandbreitenbereich
+  des Decoders, M7 erledigt). Ob der Amplitudengang von Decoder und Filter bis zur oberen
+  Bandgrenze flach ist, ist nicht belegt (Datenblatt, offener Punkt 7).
 
 ---
 
@@ -498,23 +525,53 @@ festgelegt, weil keine gelesene Quelle vorliegt. Das ist ein offener Punkt (Absc
 |---|---|---|
 | Spektren, H1, H2, γ², Punktmittel, Bandwerte aus derselben Datei | rtol = 1·10⁻⁵, atol = 10⁻⁶·max\|Größe\| der Kurve | Daten sind float32 (rel. Rundung 6·10⁻⁸); W2 erreicht ≤ 9,3·10⁻⁷. atol fängt Werte nahe 0 ab |
 | Werte aus ASCII/UFF-Export von PSV (M4) | rtol = 1·10⁻⁵ bzw. Rundung des Exportformats, falls gröber | einfache Genauigkeit im UFF (W1 [H]) |
-| Spitzenfrequenz, ohne Warnkennzeichen oder nur mit `gueltigkeit_offen_m7` | $\lvert f_\mathrm{sp} - f_\mathrm{PSV}\rvert \le 0{,}25\,\Delta f$ | Eigener Fehler ≤ 0,0508 Δf bei B ≥ 3 Δf [N]; PSV-Fit unbekannt (Fitbereich vom Band-Cursor abhängig); Reserve für Modellunterschiede |
-| Spitzenfrequenz, mit `aufloesungsbegrenzt` (ggf. zusätzlich `gueltigkeit_offen_m7`) | $\le 0{,}5\,\Delta f$ | Beide Verfahren müssen dieselbe Linie treffen; feiner ist ohne Kenntnis des PSV-Fits nicht begründbar |
-| −3-dB-Breite B (bzw. ζ), ohne Warnkennzeichen oder nur mit `gueltigkeit_offen_m7` | $\lvert B/B_\mathrm{PSV} - 1\rvert \le 0{,}10$ | Eigener Bias ≤ +5,21 % bei B ≥ 3 Δf [N]; der Rest ist Reserve für den PSV-Fit |
-| B mit einem anderen Warnkennzeichen | kein Vergleich, nur Bericht der Werte | Beide Schätzer sind dort systematisch verzerrt (bis +178 %); Übereinstimmung wäre zufällig |
+| Spitzenfrequenz, ohne Warnkennzeichen | $\lvert f_\mathrm{sp} - f_\mathrm{PSV}\rvert \le 0{,}25\,\Delta f$ | Eigener Fehler ≤ 0,0508 Δf bei B ≥ 3 Δf [N]; PSV-Fit unbekannt (Fitbereich vom Band-Cursor abhängig); Reserve für Modellunterschiede |
+| Spitzenfrequenz, mit `aufloesungsbegrenzt` | $\le 0{,}5\,\Delta f$ | Beide Verfahren müssen dieselbe Linie treffen; feiner ist ohne Kenntnis des PSV-Fits nicht begründbar |
+| −3-dB-Breite B (bzw. ζ), ohne Warnkennzeichen | $\lvert B/B_\mathrm{PSV} - 1\rvert \le 0{,}10$ | Eigener Bias ≤ +5,21 % bei B ≥ 3 Δf [N]; der Rest ist Reserve für den PSV-Fit |
+| B bzw. ζ bei $B < 3\,\Delta f$ (`aufloesungsbegrenzt`) oder mit einem anderen Warnkennzeichen | kein Vergleich, nur Bericht der Werte **[ANN K-ACHSE]** | Beide Schätzer sind dort systematisch verzerrt (bis +178 %); Übereinstimmung wäre zufällig. Bestätigt durch M11 (unten): PSV-Breite 0,42 Hz < Δf |
 
-`gueltigkeit_offen_m7` allein schließt den Vergleich nicht aus: M7 betrifft die physikalische
-Gültigkeit oberhalb 1 kHz, nicht die Übereinstimmung mit PSV an denselben Daten (K1-8).
+Das Kennzeichen `gueltigkeit_offen_m7` und die Regel K1-8 entfallen (K-ACHSE).
 
-Diese Toleranzen sind **Vorschläge**. Prüfschritt M11 (Abschnitt 11) liefert am Montag
-PSV-Werte, an denen sie bestätigt oder enger gefasst werden. Der Nutzer gibt frei.
+**Annahme [ANN K-ACHSE]:** „Bei Spitzen mit $B < 3\,\Delta f$ wird der PSV-Vergleich nur
+berichtet“ ist eine Empfehlung aus der Fachanalyse P0b, die der Nutzer am 2026-11-02 übernommen
+hat; am 2026-11-02 vom Nutzer bestätigt: Sie gilt für B und ζ, die Frequenztoleranz (≤ 0,5 Δf) bleibt Prüfgrenze. Die
+Frequenzzeile mit `aufloesungsbegrenzt` (≤ 0,5 Δf) bleibt als freigegebene Toleranz stehen, bis
+der Nutzer entscheidet, ob auch sie nur berichtet wird.
+
+**Anzeigerundung in PSV:** Die PSV-Oberfläche zeigt $f_\mathrm{max}$ auf 0,1 Hz. Bei Δf = 0,625 Hz
+sind das ±0,05 Hz = ±0,08 Δf; die Toleranz 0,25 Δf = 0,156 Hz behält davon nur etwa 0,17 Δf.
+PSV-Vergleichswerte deshalb mit voller Stellenzahl (COM oder Export) erheben.
+
+**Ergebnis M11 (2026-11-02), Label 132, H1 Vib Z/Ref1, Band-Cursor „Peak-Anpassung“** [D, N]
+(Nachrechnung Fachanalyse P0b):
+
+| Spitze | PSV: Band; f max; ζ (= 1/(2Q)) | Stufe 1 (−3 dB) | B-1 (FG-03) mit denselben Bandgrenzen |
+|---|---|---|---|
+| 1 | 158,75–163,75 Hz; 160,7 Hz; 1,319·10⁻³ | 160,65 Hz; B = 0,559 Hz; ζ = 1,741·10⁻³; $B/\Delta f$ = 0,89 → `aufloesungsbegrenzt` | 160,563 Hz; ζ = 1,435·10⁻³ (+8,8 %) |
+| 1 | 159,375–162,5 Hz; 160,7 Hz; 1,242·10⁻³ | wie oben | 6 Linien < 4n + 3: nach FG-03 nicht rechenbar |
+| 2 | 245,625–250,625 Hz; 247,7 Hz; 1,321·10⁻³ | 247,605 Hz; B = 0,897 Hz; ζ = 1,811·10⁻³; $B/\Delta f$ = 1,44 → `aufloesungsbegrenzt` | 247,669 Hz; ζ = 1,387·10⁻³ (+5,0 %) |
+
+- Spitzenfrequenz mit `aufloesungsbegrenzt`: −0,05 Hz (−0,08 Δf) und −0,095 Hz (−0,15 Δf),
+  innerhalb 0,5 Δf.
+- Die Zeilen **ohne Warnkennzeichen sind durch M11 nicht geprüft**: Beide Spitzen tragen
+  `aufloesungsbegrenzt`. PSV gibt eine −3-dB-Breite unter Δf an (0,42 bzw. 0,65 Hz) und fittet
+  damit ein Modell, nicht die Breite auf dem Raster.
+- Kandidaten für die Nachholung (Punktmittel |H1| Vib Z/Ref1 ohne Kennzeichen, korrigierte
+  Achse): 617,9; 631,7; 644,8; 693,5; 757,3; 867,9 Hz. Am gewählten Punkt muss die Spitze in
+  Stufe 1 ebenfalls ohne Kennzeichen sein.
+
+Diese Toleranzen bleiben **Vorschläge**, bis M11 an Spitzen ohne Warnkennzeichen nachgeholt ist.
+Der Nutzer gibt frei.
 
 ---
 
 ## 9 Referenzfälle (Tests)
 
-Gemeinsame Testdaten: $BW = 2500$ Hz, $n_\mathrm{FFT} = 1600$, $N = 4000$, $f_s = 6250$ Hz,
-$\Delta f = 1{,}5625$ Hz. Spektren nach 2.1, Linien $k = 1\dots1600$ ($k_0 = 1$), periodisches
+Gemeinsame Testdaten (**synthetisch**): $BW = 2500$ Hz, $n_\mathrm{FFT} = 1600$, $N = 4000$, $f_s = 6250$ Hz,
+$\Delta f = 1{,}5625$ Hz. Diese Werte gehen auf die frühere Fehldeutung der Beispieldatei zurück
+(2.3). Sie sind in sich stimmig, die Sollwerte bleiben gültig, denn die Referenzfälle prüfen
+Algorithmen, nicht die Datei. Die Parameter der Beispieldatei sind $BW = 1000$ Hz,
+$f_s = 2500$ Hz, $N = 4000$, $\Delta f = 0{,}625$ Hz (Golden-File-Test 9.9). Spektren nach 2.1, Linien $k = 1\dots1600$ ($k_0 = 1$), periodisches
 Hann-Fenster $w_n = 0{,}5 - 0{,}5\cos(2\pi n/N)$. „Algorithmus-Sollwert“ bedeutet: Der Wert
 folgt deterministisch aus der Vorschrift, die Toleranz deckt nur Gleitkommarundung ab.
 
@@ -680,8 +737,21 @@ Exakt geprüft [N].
 
 An `Input/20261012_ref_Mitte.svd` müssen die Größen aus 3.2, 3.3 und 3.8 die PSV-eigenen
 Punktmittel und Banddaten der Datei mit den Toleranzen aus Abschnitt 8 treffen. Das hat W2
-bereits für die Beträge gezeigt. P-07 muss q ≥ 0,9 liefern (W3: 0,982). Nach M1, M4 und M11
-kommen die PSV-Exportwerte hinzu.
+bereits für die Beträge gezeigt. P-07 muss q ≥ 0,9 liefern (W3: 0,982).
+
+**Golden File (K-ACHSE):** `in_progress/versuche/2026-11-02_prototyp/golden_punkt1_label132.csv`
+(PSV, Polytec File Access, Label 132 = Punktindex 0) gegen die eigene Rechnung:
+
+| Größe | Soll | Toleranz | Beobachtet (P0b) |
+|---|---|---|---|
+| Frequenzachse | $f_k = 0{,}625\,(k+1)$ Hz, $k = 0 \dots 1599$ | exakt (atol 10⁻⁹ Hz) | Abweichung 0 |
+| Vib X/Y/Z Geschwindigkeit, Ref2 Beschleunigung | = CPH aus der Datei (Re, Im) | rtol 1·10⁻⁵ nach Abschnitt 8 | bitgleich |
+| H1 Vib X & Ref1, Vib Z & Ref1 | = CP/AP_Ref1, nicht konjugiert | rtol 1·10⁻⁵ | rel. ≤ 5,8·10⁻⁸, Phase ≤ 4,7·10⁻⁸ rad |
+| `bandnorm` H1 Vib Z/Ref1, Band [158,75; 163,75] Hz | 50,478 mm/s/N (PSV-Anzeige 50,48) | ±0,005 mm/s/N (Anzeigerundung) | 50,4776 mm/s/N, 9 Linien |
+| $\sqrt{\mathrm{rms\_psv}_X^2 + \mathrm{rms\_psv}_Y^2 + \mathrm{rms\_psv}_Z^2}$ (CPH, alle Linien, Label 132; nur Prüfgröße, keine eigene Ausgabe) | 1,349 mm/s (PSV-Anzeige) | ±0,0005 mm/s | 1,3490 mm/s; Vib Z allein 1,3325 mm/s (= Banddaten S5) |
+
+Die Werte in der CSV sind float32. Die beiden letzten Zeilen sind Anzeigewerte von PSV; ihre
+Toleranz ist die halbe letzte angezeigte Stelle.
 
 ---
 
@@ -705,23 +775,27 @@ ungeprüft.
 
 ## 11 Einstellbare Annahmen und Prüfschritte am Messrechner (Montag, 2026-11-02)
 
-| Nr. | Annahme (Parameter, Voreinstellung) | Prüfschritt | Erwartung / Folge |
-|---|---|---|---|
-| M1 | `konjugieren = False` | PSV: Punkt Label 132, „Vib X & Ref1“, H1, Phase (oder Real/Imag) bei drei Frequenzen, z. B. 100, 500, 1000 Hz; mit H1 = CP/AP aus dem Leser vergleichen | Gleich → bestätigt. Gespiegelt → PSV-Anzeige ist konjugiert; Daten bleiben nach P-07 physikalisch richtig, für den PSV-Vergleich konjugieren |
-| M2 | $k_0 = 1$ | Erste und letzte Frequenz der Achse in PSV oder Export | 1,5625 Hz bzw. 2500 Hz |
-| M4 | 0-to-peak | Export „Vib X Geschwindigkeit“ Label 132 bei drei Frequenzen gegen \|CPH\| | gleiche Zahlen (Spitzenwert) |
-| M5 | $W_\mathrm{RBW} = 1$ (Rechteck), $n_d = 7$ | Fenster, Generator (Signalform, Burstlänge), Mittelungsart und -anzahl, Signal Enhancement ablesen | $W_\mathrm{RBW}$ setzen; $n_d$ je Punkt deuten |
-| M6 | alle Punkte gültig | Scanstatus der Punkte mit Feldwert 1 und 3 | Gültigkeitsmaske |
-| M7 | Gültigkeit > 1 kHz offen | Bedeutung „Bandbreitenbereich 1 kHz“ (Datenblatt, Betreuer) | Kennzeichen entfernen oder Gültigkeitsgrenze festschreiben |
-| M8 | $s_c = +1$ für Ref1, Ref2 (Vorzeichen je Kanal, K1-1) | Typ, Ort und Einbaurichtung von Kraftsensor und Beschleunigungsaufnehmer; Shakerposition | P-08 an der Datei zeigt heute r = 0 → ein Vorzeichen ist vermutlich zu drehen; welches, entscheidet der Einbau. Gedrehter Ref1: $s_{\mathrm{Ref1}} = -1$; gedrehter Ref2: $s_{\mathrm{Ref2}} = -1$ (wirkt in Ref2/Ref1 und Vib/Ref2) |
-| M10 | Band geschlossen, beide Grenzlinien | In PSV ein Band 100–200 Hz definieren, RMS von „Vib Z Geschwindigkeit“ für Label 132 ablesen; mit `rms_psv` für [100, 200] und für (100, 200) vergleichen | Regel bestätigen oder ändern |
-| M11 | Toleranzen aus Abschnitt 8 | Band-Cursor-Fit in PSV auf H1 „Vib Z & Ref1“, Label 132, an drei Spitzen ohne Warnkennzeichen und einer mit; f_max und „Dämpfung“ notieren, Cursorgrenzen festhalten | Toleranzen bestätigen oder anpassen |
+Stand nach dem Termin vom 2026-11-02 (Ergebnisse `in_progress/versuche/2026-11-02_prototyp/ergebnisse_7b.md`,
+fachlich nachgeprüft in der Fachanalyse P0b; Korrektur K-ACHSE).
+
+| Nr. | Annahme (Parameter, Voreinstellung) | Prüfschritt (wie am 2026-11-02 durchgeführt) | Ergebnis / Folge | Stand |
+|---|---|---|---|---|
+| M1 | `konjugieren = False` | Golden File: H1 „Vib X & Ref1“, „Vib Z & Ref1“ aus PSV gegen CP/AP_Ref1 aus dem Leser | rel. ≤ 5,8·10⁻⁸, Phase ≤ 4,7·10⁻⁸ rad; konjugiert passt nicht (rel. ≈ 1,8) | **bestätigt 2026-11-02** |
+| M2 | $k_0 = 1$, Achse aus der Datei | PFA `XAxis`, `GetMidX`, Golden File, Stream `Fft`, Statusleiste PSV | $k_0 = 1$ bestätigt; **Δf = 0,625 Hz, 0,625 … 1000 Hz** statt 1,5625 … 2500 Hz (2.3, K-ACHSE) | **bestätigt 2026-11-02, Achse korrigiert** |
+| M4 | 0-to-peak | Golden File: Vib X/Y/Z Geschwindigkeit gegen CPH; Band-Effektivwerte in PSV gegen $\sqrt{\sum\lvert\cdot\rvert^2/2}$ | bitgleich; Band 50,48 mm/s/N und Gesamtwert 1,349 mm/s (3D aus X, Y, Z) reproduziert | **bestätigt 2026-11-02** im Sinne der PSV-internen Spitzenwertdeutung; absolute Kalibrierung nicht geprüft |
+| M5 | $W_\mathrm{RBW} = 1$ (Rechteck), $n_d = 7$ | Erfassungseinstellungen per COM (`einstellungen_lesen`) | WindowFunction 0 = `ptcWindowFctRectangle` (Enum `PTCWindowFunction`, [H]), RMS-Korrektur 1,0, alle Kanäle; Mittelung Type 2 = `ptcAverageComplex`, Count 7; Trigger 0 = aus; Signal Enhancement an | Fenster **bestätigt 2026-11-02**. $n_d = 7$ als Einstellung bestätigt; das Punktfeld +0x3C (7 … 25) ist die Zahl der **erfassten** Blöcke (je Einheit 1,6 s). Ob bei Signal Enhancement nur 7 davon gemittelt werden, ist offen |
+| M6 | alle Punkte gültig | Statusfeld gegen PSV | 1 (18 Punkte) = „Gültig“, 3 (117) = „Optimal“; 13,3 % / 86,7 % | **bestätigt 2026-11-02** |
+| M7 | Gültigkeit > 1 kHz offen | Erfassungseinstellungen | Messung reicht nur bis 1000 Hz (= Bandbreitenbereich des Decoders); Kennzeichen `gueltigkeit_offen_m7` entfällt (Nutzerentscheidung 2026-11-02) | **erledigt**; Flachheit des Amplitudengangs bis 1 kHz offen (12, Punkt 7) |
+| M8 | $s_c = +1$ für Ref1, Ref2 (Vorzeichen je Kanal, K1-1) | Fotos Impedanzkopf PCB 288D01, Kanaleinstellungen | Einstellungen: Kraft → Ref1 (40,306 N/V), Beschleunigung → Ref2 (97,847 (m/s²)/V), IEPE, Faktoren positiv, `DirectionOfVibration` = 0 = `ptcZPos` für beide. P-08 zeigt achs- und laufzeitunabhängig r ≈ 0: **relative Polarität Ref1/Ref2 invertiert**. Welcher Kanal, ist aus den Daten nicht ableitbar | **offen.** $s_c$ bleibt +1 (Nutzerentscheidung 2026-11-02); Klärung über Datenblatt PCB 288D01 (Rechercheauftrag) und Kontrollversuch beim nächsten Termin. Gedrehter Ref1: $s_{\mathrm{Ref1}} = -1$; gedrehter Ref2: $s_{\mathrm{Ref2}} = -1$ (wirkt in Ref2/Ref1 und Vib/Ref2) |
+| M10 | Band geschlossen, beide Grenzlinien | Band-Cursor 158,8–163,8 Hz (Linien 158,75 und 163,75 Hz) auf H1 Vib Z/Ref1, Label 132 | PSV 50,48 mm/s/N = geschlossen 50,478 (9 Linien); offen 49,686, halboffen 49,731 bzw. 50,433 | **bestätigt 2026-11-02** |
+| M11 | Toleranzen aus Abschnitt 8 | Band-Cursor „Peak-Anpassung“ in PSV, Label 132, Spitzen 160,7 und 247,7 Hz | Werte und Vergleich in Abschnitt 8. Nur Spitzen mit `aufloesungsbegrenzt` erhoben | **teilweise**; an mindestens drei Spitzen ohne Warnkennzeichen nachholen, Werte mit voller Stellenzahl |
 
 ---
 
 ## 12 Offene Punkte
 
-1. Alle Annahmen aus Abschnitt 11 bis Montag.
+1. Offene Annahmen aus Abschnitt 11: M8 (Polarität Ref1/Ref2), M11 (Spitzen ohne
+   Warnkennzeichen), $n_d$ bei Signal Enhancement (M5).
 2. Lehrbuchbelege für 3.4 (Bendat/Piersol), 3.9 (Ewins), Leckage (Brandt): Volltexte lesen
    (Rechercheauftrag).
 3. UFF-58-Konventionen (Vorzeichen, Einheitenfelder, Abszissen-Definition) für den Export:
@@ -730,7 +804,10 @@ ungeprüft.
    Zeitdaten oder die Burstlänge (Stufe 2 bzw. Versuchsplanung).
 5. Das Prominenzkriterium der Spitzensuche ist eine Auswahlheuristik ohne Literaturbeleg.
 6. Ob PSV im Band-Cursor auf H1 oder auf dem Antwortspektrum fittet, hängt von der Anzeige
-   ab. Für M11 auf H1 einstellen.
+   ab. Für M11 auf H1 einstellen. Welches Modell die „Peak-Anpassung“ fittet, ist unbekannt
+   (Rechercheauftrag PSV-Handbuch).
+7. Amplitudengang von Decoder und Filter des Vibrometers bei „Bandbreitenbereich 1 kHz“ bis
+   1000 Hz: kein Beleg (Rechercheauftrag Datenblatt).
 
 ---
 
@@ -749,7 +826,7 @@ lief über den W2-Leser (`m.baender["S17"].werte` gegen $\sqrt{\sum\lvert\mathrm
 """Pruefskript FG-02 (Auswertung Stufe 1). numpy only. Alle Sollwerte der Fachgrundlage."""
 import numpy as np
 np.set_printoptions(precision=10)
-BW, NL = 2500.0, 1600; N = int(2.5*NL); FS = 2.5*BW; DF = FS/N   # 6250 Hz, 4000, 1.5625 Hz
+BW, NL = 2500.0, 1600; N = int(2.5*NL); FS = 2.5*BW; DF = FS/N   # 6250 Hz, 4000, 1.5625 Hz (synthetisch, siehe 9)
 t = np.arange(N)/FS
 
 def spek(x, w):
@@ -905,9 +982,62 @@ print("Betrag", np.abs(h).mean(), "quadr", np.sqrt((np.abs(h)**2).mean()), "|kom
 
 ---
 
+### Ergänzung K-ACHSE (Fachanalyse P0b, 2026-11-02): `k_achse_fg02.py`
+
+Belegt 2.3 (Achse), 4 (P-08 auf beiden Achsen), 8 (M11) und 9.9 (Golden File). Ausgeführt mit
+`software/.venv/bin/python`; der Leser ist noch nicht korrigiert, die Achse wird im Skript gesetzt.
+
+```python
+"""K-ACHSE (FG-02 2.3, 4 P-08, 8 M11, 9.9): Golden File, Band, P-08, Stufe 1 und B-1 an Label 132."""
+import sys, numpy as np
+R = "/home/user/BA_Jakob-Busch_P/"
+sys.path[:0] = [R + "software/src", R + "software/tools/svd_analyse"]
+import svd_lesen as L
+from ldv_automation.auswertung.modenfit import fit_moden
+m = L.lese_svd(R + "Input/20261012_ref_Mitte.svd"); W = lambda n: m.signale[n].werte
+k = np.arange(1, 1601); f = 0.625*k                       # korrigierte Achse
+g = np.genfromtxt(R + "in_progress/versuche/2026-11-02_prototyp/golden_punkt1_label132.csv", delimiter=";", skip_header=1)
+c = lambda j: g[:, j] + 1j*g[:, j+1]; p = 0                 # Label 132 = Punktindex 0
+print("Achse:", np.max(np.abs(g[:, 0] - f)))
+for j, ours in [(1, W("M1")[p]), (3, W("M3")[p]), (5, W("M5")[p]), (7, W("M7")[p]),
+                (9, W("M0")[p]/W("M12")[p]), (11, W("M4")[p]/W("M12")[p])]:
+    print(j, "rel max", np.max(np.abs(c(j)-ours)/np.abs(c(j))), "phase max", np.max(np.abs(np.angle(c(j)/ours))))
+H = W("M4")[p]/W("M12")[p]
+msk = (f >= 158.75 - 1e-6*0.625) & (f <= 163.75 + 1e-6*0.625)
+print("bandnorm [158,75;163,75]:", np.sqrt(np.sum(np.abs(H[msk])**2)/2)*1e3, "mm/s/N,", msk.sum(), "Linien")
+e = [np.sum(np.abs(W(n)[p])**2)/2 for n in ("M1", "M3", "M5")]
+print("3D gesamt", np.sqrt(sum(e))*1e3, "Vib Z", np.sqrt(e[2])*1e3, "mm/s")
+# P-08 (Ref2/Ref1), beide Achsen
+A = W("M6")/W("M12"); g2 = np.abs(W("M6"))**2/(W("M12")*W("M13"))
+for df in (1.5625, 0.625):
+    Y = A/(1j*2*np.pi*df*k); print("P-08 df", df, "r gepoolt", (Y.real[g2 >= 0.9] >= 0).mean(),
+          "r Mittel", (Y.mean(0).real[g2.mean(0) >= 0.9] >= 0).mean())
+# Stufe 1 (-3 dB, FG-02 3.9) und B-1 an Label 132
+y = np.abs(H)
+def s1(i):
+    d = 0.5*(y[i-1]-y[i+1])/(y[i-1]-2*y[i]+y[i+1]); fs = f[i]+d*0.625; ys = (y[i]-0.25*(y[i-1]-y[i+1])*d)/np.sqrt(2)
+    j = i
+    while y[j] >= ys: j -= 1
+    fl = f[j]+(ys-y[j])/(y[j+1]-y[j])*0.625; j = i
+    while y[j] >= ys: j += 1
+    fr = f[j-1]+(ys-y[j-1])/(y[j]-y[j-1])*0.625; return fs, fr-fl
+for i, (a, b) in [(256, (253, 261)), (395, (392, 400))]:
+    fs, B = s1(i); r = fit_moden(f[a:b+1], H[a:b+1], [fs], [B/(2*fs)])
+    print(f"Stufe 1: {fs:.3f} Hz B {B:.3f} zeta {B/(2*fs):.4e} B/df {B/0.625:.2f} | B-1 {f[a]}-{f[b]}: {r.fr_hz[0]:.3f} Hz zeta {r.zeta[0]:.4e}")
+```
+
+Ausgabe: Achse 0,0; CPH rel. 0 (bitgleich); H1 rel. ≤ 5,8·10⁻⁸, Phase ≤ 4,7·10⁻⁸ rad;
+`bandnorm` 50,4776 mm/s/N (9 Linien); 3D gesamt 1,3490 mm/s, Vib Z 1,3325 mm/s; P-08 r = 3,2·10⁻⁴
+(gepoolt) bzw. 0,0 (Mittel) für beide Achsen; Stufe 1 160,649 Hz / B 0,559 Hz / ζ 1,741·10⁻³ /
+B/Δf 0,89 und 247,605 Hz / 0,897 Hz / 1,811·10⁻³ / 1,44; B-1 160,563 Hz / 1,4345·10⁻³ und
+247,669 Hz / 1,3868·10⁻³.
+
+---
+
 ## Änderungsprotokoll
 
 | Datum | Änderung | Freigabe |
 |---|---|---|
 | 2026-10-29 | Erstfassung (Paket W4-1) | Nutzer, 2026-10-29 |
 | 2026-10-30 | K1 eingearbeitet, Nutzerfreigabe (`FG-02_korrekturvorschlag-K1.md`). K1-1: Vorzeichen je Kanal $s_a s_b$ (2.4, 3.6, 4 P-11, 5, 6.1, 9.2 RF-H8, 11 M8). K1-2: RF-P5-Grenze (9.4). K1-3: Tabelle Diskretisierungsfehler in voller Stellenzahl (3.9). K1-4: „höchstens +5,21 %“ (3.9, 8). K1-5: Linienauswahl P-09 und Datei-Wert 0,0108 (4). K1-6: Fehlerband unten bei 0 begrenzt und gekennzeichnet (3.4, 6.3, RF-U7). K1-7: γ² des Punktmittels für die Spitzensuche, Hinweis bei vollständig NaN-γ² (3.9, 6.3). K1-8: PSV-Vergleich auch bei reinem `gueltigkeit_offen_m7` (8) | Nutzer, 2026-10-30 |
+| 2026-11-02 | **Korrektur K-ACHSE** (KA-7 bis KA-11, Fachanalyse P0b; Korrekturliste vom Nutzer am 2026-11-02 freigegeben). KA-7: Frequenzachse der Beispieldatei Δf = 0,625 Hz, BW 1000 Hz, f_s 2500 Hz, T 1,6 s, M2 bestätigt, Belege (2.3). KA-8: Fensterbreite ±12,5 Hz (3.9); Kennzeichen `gueltigkeit_offen_m7` entfällt (3.9). KA-9: P-08-Beleg achsunabhängig (4), P-09-Bandangabe (4), P-11 ohne M7 (4), Gültigkeit (7), Abschnitt 11 mit Ergebnissen des Termins 2026-11-02 (M1, M2, M4, M5, M6, M7, M10 bestätigt bzw. erledigt; M8 offen, $s_c$ unverändert; M11 teilweise), offene Punkte 1, 6, 7 (12). KA-10: Abschnitt 8 ohne M7-Bezug und ohne K1-8, Annahme „bei B < 3 Δf nur Bericht“ für B/ζ, Anzeigerundung, M11-Ergebnis. KA-11: Testdaten in 9 als synthetisch gekennzeichnet, Golden-File-Sollwerte in 9.9 | **offen** (Freigabe durch den Nutzer ausstehend) |
