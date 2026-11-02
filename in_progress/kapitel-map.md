@@ -6,4 +6,4 @@ Institutsvorlage angepasst.
 
 | Kapitel | Quellen im Repo | Stand |
 |---|---|---|
-| nicht zugeordnet | | |
+| nicht zugeordnet | Laborbuch 2026-11-02_messrechner-erster-termin (Umsetzung/Inbetriebnahme, Verifikation des Datenwegs, Versuchsaufbau, Bewertung der Schnittstelle); `in_progress/versuche/2026-11-02_prototyp/` | Gliederung offen |

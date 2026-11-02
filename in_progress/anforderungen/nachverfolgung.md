@@ -6,7 +6,7 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 
 | ID | Umsetzung (Modul/Commit) | Test | Nachweis | Thesis-Kapitel | Stand |
 |---|---|---|---|---|---|
-| R-001 | `geraet/com/adapter.py` (U3) | `tests/geraet_com/*` (gegen COM-Fake) | Laborbuch 2026-10-26_u3; Prüfanleitung U3 | – | getestet (Fake), am Gerät offen |
+| R-001 | `geraet/com/adapter.py` (U3) | `tests/geraet_com/*` (gegen COM-Fake) | Laborbuch 2026-10-26_u3, 2026-11-02_messrechner-erster-termin; Prüfanleitung U3 | – | getestet (Fake), am Gerät offen (COM nicht registriert, 02.11.) |
 | R-010 | `ablauf/steuerung.py` (U2) | `test_u2_1_*` | Laborbuch 2026-10-26_u2 | – | getestet (Simulator) |
 | R-011 | `domaene/eintraege.py`, `domaene/parameter.py` (U1) | `tests/domaene/test_domaene_parameter.py`, `test_domaene_eintraege.py` | Laborbuch 2026-10-26_u1 | – | umgesetzt (Domäne; Ablauf in U2) |
 | R-012 | `domaene/warteschlange.py` (U1) | `test_u1_1_*` | Laborbuch 2026-10-26_u1 | – | getestet (Domäne) |
@@ -19,7 +19,7 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-019 | `ablauf/fehlerstrategie.py` (U2, vorläufig) | `test_u2_5_*`, `test_u2_6_*` | Laborbuch 2026-10-26_u2 | – | vorläufig umgesetzt (O1 offen) |
 | R-020 | `protokoll/messprotokoll.py` (U2), Konfiguration und Build-Info (U5) | `test_u2_10_*`, `tests/test_konfig.py`, `test_build_info.py` | Laborbuch 2026-10-26_u2, 2026-10-27_u5 | – | getestet (Simulator) |
 | R-021 | `persistenz/warteschlangendatei.py` (U1) | `test_u1_4_*`, `test_u1_5_*` | Laborbuch 2026-10-26_u1 | – | getestet (ohne GUI) |
-| R-022 | `software/tools/svd_analyse/svd_lesen.py` (W2, Prototyp) | `tests/tools/svd_analyse/*` (72 Plausibilitätsprüfungen an der Beispieldatei) | Laborbuch 2026-10-29_w2 | – | in Arbeit (Gegenprobe gegen PSV am Messrechner offen) |
+| R-022 | `software/tools/svd_analyse/svd_lesen.py` (W2, Prototyp) | `tests/tools/svd_analyse/*` (72 Plausibilitätsprüfungen an der Beispieldatei) | Laborbuch 2026-10-29_w2, 2026-11-02_messrechner-erster-termin; Golden File `golden_punkt1_label132.csv` | – | gegen PSV geprüft (Werte bitgleich), Frequenzachse falsch → Korrektur K-ACHSE |
 | R-030 | `gui/` (U4) | `tests/gui/*` (gui-Marker), Handtest-Checkliste U4 | Laborbuch 2026-10-27_u4 | – | umgesetzt (Handtest offen) |
 | R-031 | `sitzung.py` (U2), `gui/anzeige.py`, `gui/tabelle.py` (U4) | `test_u2_12_*`, UI-7/UI-8 | Laborbuch 2026-10-26_u2, 2026-10-27_u4 | – | getestet (Simulator) |
 | R-040 | – | – | – | – | offen |
