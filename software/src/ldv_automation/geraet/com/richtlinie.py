@@ -407,6 +407,7 @@ KANAL_LESEN = (
     "Calibration",
     "DirectionOfVibration",
     "WindowFunction",
+    "SignalDelay",
 )
 HARDWARE_LESEN = (
     "AcqBoardName",

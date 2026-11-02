@@ -93,6 +93,16 @@ def fft(
     return struct.pack("<idiidddd", 2, fs_hz, linien, abtast, start_hz, bw, ende, 0.0)
 
 
+def file_version(filetime: int, laenge: int = 32, kopf: int = 2) -> bytes:
+    """Stream ``FileVersion`` wie an der Beispieldatei (5 int32, 2 uint16, FILETIME)."""
+    roh = struct.pack("<5i2HQ", kopf, 4, 2624, 2, 1, 4, 10, filetime)
+    return roh[:laenge] if laenge <= len(roh) else roh + bytes(laenge - len(roh))
+
+
+FILETIME_2026_10_12 = 134362711720000000
+"""FILETIME der Beispieldatei: 2026-10-12 09:32:52 (naiv)."""
+
+
 def band_info(linien: int, df_hz: float, obergrenze_hz: float) -> bytes:
     """``BandInfo-0`` im Layout der Beispieldatei (36 Byte entpackt, zlib mit Längenkopf)."""
     roh = bytearray(36)
@@ -240,6 +250,7 @@ def messung_stroeme(
         "Info/DAQ_Settings_Fft/VibrometerControllers": struct.pack("<3i", 2, 2, 4)
         + zk("<ControllerSettings><Range>50 mm/s</Range></ControllerSettings>"),
         "Info/ScanHead": zk("PSV-I-680") + zk("1.13"),
+        "FileVersion": file_version(FILETIME_2026_10_12),
     }
     sigs: list[tuple[str, list[tuple[str, str]], npt.NDArray[np.float32]]] = [
         (F_CP, [VIB, REF], verschraenkt(cp32)),

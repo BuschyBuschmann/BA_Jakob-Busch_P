@@ -93,6 +93,17 @@ def test_u3_1_katalog_ist_nicht_versehentlich_freigegeben() -> None:
             assert name not in PRODUKTIV.einstieg
 
 
+def test_signal_delay_nur_lesend_freigegeben() -> None:
+    """K-2D Punkt 2: ``Channel.SignalDelay`` darf gelesen, nie gesetzt werden."""
+    welt = Welt()
+    kanal = FakeKnoten("Channel", welt, {"SignalDelay": 0.0013336})
+    proxy = WhitelistProxy(kanal, "Channel", PRODUKTIV, _kontext())
+    assert proxy.SignalDelay == pytest.approx(0.0013336, rel=1e-12)
+    with pytest.raises(PermissionError, match=r"Default deny"):
+        proxy.SignalDelay = 0.0
+    assert "SignalDelay" not in PRODUKTIV.schreiben.get("Channel", {})
+
+
 def test_jede_schreibende_operation_hat_eine_begruendung() -> None:
     begruendungen = schreibbegruendungen()
     erwartet = {

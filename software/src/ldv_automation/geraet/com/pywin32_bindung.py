@@ -11,6 +11,7 @@ damit das Modul unter Linux importierbar bleibt.
 
 from __future__ import annotations
 
+import importlib
 import subprocess
 
 from ldv_automation.geraet.com.bindung import dekodiere_prozessliste, psv_treffer
@@ -56,3 +57,21 @@ class Pywin32Bindung:  # pragma: no cover - braucht Windows, pywin32 und PSV (s.
         import win32com.client
 
         return win32com.client.dynamic.Dispatch(progid)
+
+    def progid_registriert(self, progid: str) -> bool | None:
+        r"""Prüft lesend, ob ``HKEY_CLASSES_ROOT\<progid>`` existiert (``winreg``).
+
+        ``None``, wenn die Registry nicht lesbar ist (kein Windows, Zugriffsfehler).
+        """
+        try:
+            # dynamisch: ``winreg`` gibt es nur unter Windows (mypy läuft unter Linux)
+            winreg = importlib.import_module("winreg")
+        except ImportError:
+            return None
+        try:
+            with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, progid):
+                return True
+        except FileNotFoundError:
+            return False
+        except OSError:
+            return None

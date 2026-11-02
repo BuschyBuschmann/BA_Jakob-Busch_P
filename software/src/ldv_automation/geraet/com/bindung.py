@@ -40,6 +40,10 @@ class ComBindung(Protocol):
         """Legt das COM-Objekt zu ``progid`` an (Late Binding)."""
         ...
 
+    def progid_registriert(self, progid: str) -> bool | None:
+        """Ist ``progid`` in der Registry eingetragen? Nur lesend; ``None``, wenn unklar."""
+        ...
+
 
 def dekodiere_prozessliste(roh: bytes, codec: str) -> str | None:
     """Dekodiert die Rohausgabe von ``tasklist``; ``None`` bei Fehler (dann wird gesperrt).

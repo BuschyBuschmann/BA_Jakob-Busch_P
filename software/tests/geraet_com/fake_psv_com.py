@@ -258,6 +258,7 @@ def baue_psv(
         "Calibration": 0.05,
         "DirectionOfVibration": 6,
         "WindowFunction": 7,
+        "SignalDelay": 0.0013336,
     }
     kanaele_liste = [
         FakeKnoten("Channel", welt, {"Name": f"Vib {i}", **kanal_werte}) for i in (1, 2)
@@ -414,6 +415,8 @@ class FakeBindung:
         self.ende = 0
         self.fehler: dict[str, Exception] = {}
         self.beim_aufruf: Callable[[str], None] | None = None
+        self.registriert: bool | None = True  # Ergebnis der Registry-Prüfung der ProgID
+        self.registry_abfragen: list[str] = []
 
     def _betrete(self, name: str) -> None:
         if self.beim_aufruf is not None:
@@ -435,7 +438,14 @@ class FakeBindung:
             return self.prozess
         return ("PSV.exe",) if self.prozess else ()
 
+    def progid_registriert(self, progid: str) -> bool | None:
+        self._betrete("progid_registriert")
+        self.registry_abfragen.append(progid)
+        return self.registriert
+
     def dispatch(self, progid: str) -> object:
+        if "dispatch" in self.fehler:  # ohne ``beim_aufruf`` (Wächtertest zählt Namen)
+            raise self.fehler["dispatch"]
         self.psv.welt.dispatches.append(progid)
         assert progid == "PSV.AcquisitionInstance"
         return self.psv.inst

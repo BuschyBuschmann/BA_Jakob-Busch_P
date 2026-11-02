@@ -14,7 +14,8 @@ Abbildung (Datenvertrag FG-02 6.1):
 - Frequenzachse und Δf aus dem Leser (Achse :math:`k\,\Delta f`, :math:`k = 1 …`).
 - ``phase_gueltig`` ist wahr, wenn die Datei mindestens ein Kreuzspektrum enthält
   (Referenzkanal vorhanden).
-- SHA-256 der Datei als Herkunft (Datei wird nur lesend geöffnet).
+- SHA-256 der Datei als Herkunft (Datei wird nur lesend geöffnet); dazu die Dateizeit, wenn der
+  Leser sie liefert (``datei_zeit``). Die Programmversion liefert der Leser nicht (nur COM).
 """
 
 from __future__ import annotations
@@ -94,6 +95,12 @@ class SvdMessungArtig(Protocol):
     def baender(self) -> Mapping[str, _Band]:
         """Banddaten (Einheiten je Kanal)."""
         ...
+
+
+def _dateizeit(messung: object) -> str | None:
+    """Dateizeit des Lesers (``datei_zeit``) als ISO-Text; ``None``, wenn sie fehlt."""
+    zeit = getattr(messung, "datei_zeit", None)
+    return zeit.isoformat() if isinstance(zeit, dt.datetime) else None
 
 
 def _einheiten(baender: Mapping[str, _Band]) -> dict[str, str]:
@@ -199,7 +206,7 @@ def aus_svd_messung(
         cp=cp,
         cph=cph,
         phase_gueltig=bool(cp),
-        herkunft=Herkunft(pfad=str(pfad), sha256=pruefsumme),
+        herkunft=Herkunft(pfad=str(pfad), sha256=pruefsumme, dateizeit=_dateizeit(messung)),
     )
 
 

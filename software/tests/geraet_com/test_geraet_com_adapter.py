@@ -15,6 +15,7 @@ from ldv_automation.domaene.parameter import (
     ParameterWert,
 )
 from ldv_automation.geraet.com.adapter import (
+    HINWEIS_DESKTOP_MODUS,
     MAX_KANAELE,
     ComBetriebsart,
     ComKonfiguration,
@@ -143,6 +144,7 @@ ERWARTETE_FOLGE = [
             "Channel.Reference:get", "Channel.Quantity:get", "Channel.Unit:get",
             "Channel.InputRange:get", "Channel.Calibration:get",
             "Channel.DirectionOfVibration:get", "Channel.WindowFunction:get",
+            "Channel.SignalDelay:get",
         )
     ],
     "AcquisitionProperties.HasGeneratorsProperties:get",
@@ -267,8 +269,50 @@ def test_verbinde_fehlende_objekte() -> None:
         geraet.verbinde()
     geraet, fake, _ = _geraet()
     fake.app._props["Acquisition"] = None
-    with pytest.raises(GeraeteFehler, match="Acquisition nicht verfügbar"):
+    with pytest.raises(GeraeteFehler, match="Acquisition nicht verfügbar") as info:
         geraet.verbinde()
+    assert HINWEIS_DESKTOP_MODUS in info.value.text
+    assert "Verknüpfung \u201aPSV 10.4 Deutsch\u2018 = /Acquisition verwenden" in info.value.text
+
+
+def _dispatch_scheitert(registriert: bool | None) -> tuple[PsvComGeraet, FakeBindung]:
+    geraet, _fake, bindung = _geraet()
+    bindung.registriert = registriert
+    bindung.fehler["dispatch"] = FakeComError("Ungültige Klassenzeichenfolge", hresult=-2147221005)
+    return geraet, bindung
+
+
+def test_verbinde_dispatch_scheitert_progid_fehlt_meldet_regserver() -> None:
+    geraet, bindung = _dispatch_scheitert(False)
+    with pytest.raises(GeraeteFehler) as info:
+        geraet.verbinde()
+    assert info.value.text.startswith(
+        "PSV ist nicht als COM-Server registriert; siehe Release Notes PSV 10.4: "
+        "`PSV.exe /regserver` als Administrator bzw. Reparaturinstallation"
+    )
+    assert "Ungültige Klassenzeichenfolge" in info.value.text  # Originalursache bleibt sichtbar
+    assert info.value.hresult == -2147221005
+    assert bindung.registry_abfragen == ["PSV.AcquisitionInstance"]
+
+
+@pytest.mark.parametrize("registriert", [True, None])
+def test_verbinde_dispatch_scheitert_progid_da_oder_unklar_bleibt_originalmeldung(
+    registriert: bool | None,
+) -> None:
+    geraet, _bindung = _dispatch_scheitert(registriert)
+    with pytest.raises(GeraeteFehler) as info:
+        geraet.verbinde()
+    assert "Ungültige Klassenzeichenfolge" in info.value.text
+    assert "regserver" not in info.value.text
+
+
+def test_verbinde_registry_pruefung_scheitert_ueberdeckt_dispatchfehler_nicht() -> None:
+    geraet, bindung = _dispatch_scheitert(False)
+    bindung.fehler["progid_registriert"] = OSError("Registry gesperrt")
+    with pytest.raises(GeraeteFehler) as info:
+        geraet.verbinde()
+    assert "Ungültige Klassenzeichenfolge" in info.value.text
+    assert "regserver" not in info.value.text
 
 
 def test_verbinde_raeumt_bei_fehler_im_zustand_auf() -> None:
@@ -685,6 +729,18 @@ def test_einstellungsstand_inhalte() -> None:
     assert g["trigger"]["phase_aus_referenz"] is True
     assert g["kanaele"]["anzahl"] == 2
     assert g["kanaele"]["k0.name"] == "Vib 1" and g["kanaele"]["k1.name"] == "Vib 2"
+    # SignalDelay je Kanal (Polytec: in s), nur lesend
+    assert g["kanaele"]["k0.signalverzoegerung_s"] == pytest.approx(0.0013336, rel=1e-12)
+    assert g["kanaele"]["k1.signalverzoegerung_s"] == pytest.approx(0.0013336, rel=1e-12)
+    # Messprotokoll: derselbe Stand, JSON-fähig, enthält SignalDelay je Kanal
+    from ldv_automation.protokoll.messprotokoll import einstellungsstand_zu_dict
+
+    protokoll = einstellungsstand_zu_dict(stand)
+    kanaele = protokoll["gruppen"]["kanaele"]  # type: ignore[index]
+    assert kanaele["k0.signalverzoegerung_s"] == pytest.approx(0.0013336, rel=1e-12)
+    # SignalDelay ist nur lesend freigegeben (Whitelist), kein ``set``
+    assert not any(a.endswith("SignalDelay:set") for a in fake.welt.ops())
+    assert "Channel.SignalDelay:get" in fake.welt.ops()
     assert g["generator"]["signalform_typ"] == 7
     assert g["generator"]["generatoren_an"] is False
     assert set(g) == {"fft", "mittelung", "allgemein", "trigger", "se", "kanaele", "generator"}
@@ -814,7 +870,13 @@ def test_nur_mittelungstyp_und_tupelwerte_im_stand() -> None:
 def test_pywin32_bindung_ist_ohne_pywin32_importierbar() -> None:
     from ldv_automation.geraet.com import pywin32_bindung
 
-    for name in ("initialisiere_thread", "beende_thread", "psv_prozesse", "dispatch"):
+    for name in (
+        "initialisiere_thread",
+        "beende_thread",
+        "psv_prozesse",
+        "dispatch",
+        "progid_registriert",
+    ):
         assert callable(getattr(pywin32_bindung.Pywin32Bindung, name))
 
 

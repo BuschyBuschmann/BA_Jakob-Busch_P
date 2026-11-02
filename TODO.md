@@ -56,7 +56,7 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☐ | Vor dem nächsten Termin: Version 0.2.0, Wheel nach Abschluss K-ACHSE bauen und pushen (SHA-256 notieren); aktuelle Skripte; Fragen F1–F8 an Daniel (Ablaufplan 3.2) | Orchestrator, Jakob | vor Termin | Nutzerentscheidung 02.11.: Version erhöhen |
 | ☐ | Anforderungsvorschläge aus PSV-Einblicken (Übersicht 2b) | `/anforderungs-analyst`, Jakob | – | |
 | ☐ | ADR-006 Datenweg abschließen (eigener Leser / File Access / beides) | Jakob | – | Übersicht 2c |
-| ☐ | Kleine Code-Aufgaben aus PSV-Einblicken (Übersicht 2d) | software-engineer | nach K-ACHSE | |
+| ☑ | Kleine Code-Aufgaben aus PSV-Einblicken (Übersicht 2d), reviewt; MINORs zur Entscheidung, Gerätetest offen | – | – | Laborbuch 2026-11-02_k2d-psv-einblicke-code |
 | ☐ | KONVENTIONEN-Vorschläge (Achse bestätigt, Polaritätsprüfung) und Thesis-Bausteine in kapitel-map | Orchestrator, Jakob | – | Übersicht 2f |
 | ☐ | Nach Montag: M1–M15 in FG-02/FG-03 nachführen, Golden-File-Test, Abbildungen mit sauberem Git-Hash neu erzeugen | Orchestrator, strukturdynamik-experte | nach 02.11. | |
 

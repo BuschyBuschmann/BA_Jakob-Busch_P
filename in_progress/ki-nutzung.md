@@ -58,3 +58,4 @@ Nutzer hat das Ergebnis geprüft und verantwortet es.
 | 2026-11-02 | FG-02/FG-03 Korrektur K-ACHSE, Fachabnahme FA-K-ACHSE | Korrektur der Fachgrundlagen, fachliche Prüfung | strukturdynamik-experte (opus) | K-ACHSE vom Nutzer freigegeben |
 | 2026-11-02 | `svd_lesen.py`, Auswertemodule, Tests, Abbildungen W2/W5-1; Lese-Skripte (P4/P4b) | Umsetzung K-ACHSE, Korrektur Lese-Skripte | software-engineer (sonnet, haiku) | Befundauswahl durch den Nutzer |
 | 2026-11-02 | Reviews R-K-ACHSE, RR-P4, RR-P4b; Recherche R-0211 | Code-Review, Quellenrecherche | reviewer (sonnet), literatur-rechercheur (sonnet) | Befundauswahl durch den Nutzer |
+| 2026-11-02 | `geraet/com/*` (Meldungen, SignalDelay), `auswertung/punktstatus.py`, Dateizeit in `svd_lesen.py`/Export (K-2D); Review R-K2D | Umsetzung kleiner Code-Aufgaben, Code-Review | software-engineer (sonnet), reviewer (sonnet) | Auftrag vom Nutzer freigegeben; MINORs zur Entscheidung |

@@ -14,6 +14,7 @@ hat f_s 2500 Hz, BW 1000 Hz, Δf 0,625 Hz.
 
 from __future__ import annotations
 
+import datetime as dt
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -166,6 +167,7 @@ class FakeSvdMessung:
     punkte: FakePunkte
     signale: dict[str, FakeSignal]
     baender: dict[str, FakeBand] = field(default_factory=dict)
+    datei_zeit: dt.datetime | None = None
 
 
 EINHEITEN_DATEI = {

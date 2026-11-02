@@ -74,6 +74,19 @@ from ldv_automation.geraet.schnittstelle import (
     VerweigertFehler,
 )
 
+HINWEIS_NICHT_REGISTRIERT = (
+    "PSV ist nicht als COM-Server registriert; siehe Release Notes PSV 10.4: "
+    "`PSV.exe /regserver` als Administrator bzw. Reparaturinstallation"
+)
+"""Meldung, wenn der ``Dispatch`` scheitert und die ProgID in der Registry fehlt."""
+
+HINWEIS_DESKTOP_MODUS = (
+    # Escapes für die deutschen einfachen Anführungszeichen (Auftragstext, RUF001)
+    "PSV läuft vermutlich im Desktop-Modus (Verknüpfung \u201aPSV 10.4 Deutsch\u2018 = "
+    "/Acquisition verwenden)"
+)
+"""Hinweis, wenn die Verbindung keine Erfassungsinstanz liefert (Beobachtung A3/A4)."""
+
 START_ZEITLIMIT_MS = 30000
 """``GetApplication(True, …)``-Zeitlimit in ms (wie Erkundung, I5 Abschnitt 10, P1-5)."""
 
@@ -185,6 +198,7 @@ _KANAL_STAND = (
     ("Calibration", "kalibrierfaktor_si_je_v"),
     ("DirectionOfVibration", "schwingrichtung"),
     ("WindowFunction", "fensterfunktion"),
+    ("SignalDelay", "signalverzoegerung_s"),
 )
 _HARDWARE = (
     ("AcqBoardName", "erfassungskarte"),
@@ -442,9 +456,20 @@ class PsvComGeraet:
         if not self._thread_initialisiert:
             self._bindungsaufruf("initialisiere_thread", self._bindung.initialisiere_thread)
             self._thread_initialisiert = True
-        inst = oeffne(
-            PROGID_ACQUISITION_INSTANCE, self._bindung.dispatch, self._richtlinie, self._kontext
-        )
+        try:
+            inst = oeffne(
+                PROGID_ACQUISITION_INSTANCE, self._bindung.dispatch, self._richtlinie, self._kontext
+            )
+        except ComFehler as exc:
+            if self._progid_registriert(PROGID_ACQUISITION_INSTANCE) is False:
+                raise GeraeteFehler(
+                    f"{HINWEIS_NICHT_REGISTRIERT} ({exc.text})",
+                    methode=exc.pfad,
+                    argumente=exc.argumente,
+                    hresult=exc.hresult,
+                    excepinfo=exc.excepinfo,
+                ) from exc
+            raise
         laeuft_com = inst.IsRunning is True
         if laeuft_com:
             app: WhitelistProxy | None = inst.GetApplication(False)
@@ -462,7 +487,10 @@ class PsvComGeraet:
         unterdrueckt = app.SuppressMessagesForAutomation is True
         acq: WhitelistProxy | None = app.Acquisition
         if acq is None:
-            raise GeraeteFehler("Acquisition nicht verfügbar", methode="Application.Acquisition")
+            raise GeraeteFehler(
+                f"Acquisition nicht verfügbar. {HINWEIS_DESKTOP_MODUS}",
+                methode="Application.Acquisition",
+            )
         self._app, self._acq = app, acq
         self._info = GeraeteInfo(
             psv_version=str(version),
@@ -485,6 +513,15 @@ class PsvComGeraet:
             lademaske=lademaske_text(self._konf.lademaske),
         )
         return self._info
+
+    def _progid_registriert(self, progid: str) -> bool | None:
+        """Registry-Prüfung der ProgID (nur lesend, über die Bindung)."""
+        try:
+            return self._bindungsaufruf(
+                "progid_registriert", lambda: self._bindung.progid_registriert(progid)
+            )
+        except GeraeteFehler:
+            return None  # die Zusatzprüfung darf den eigentlichen Fehler nicht überdecken
 
     def _lies_hardware(self, acq: WhitelistProxy) -> dict[str, str]:
         ergebnis: dict[str, str] = {}

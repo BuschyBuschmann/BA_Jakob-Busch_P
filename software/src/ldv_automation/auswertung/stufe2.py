@@ -36,6 +36,7 @@ from .export import (
     KREUZSPEKTRUM,
     ZEITKONVENTION,
     Sammler,
+    messdatei_angaben,
     paar_schluessel,
     pruefe_ziel,
     schreibe_export,
@@ -324,14 +325,11 @@ def exportiere_stufe2(
     pruefe_ziel(basis, ueberschreiben)
     felder, meta = baue_export_stufe2(ergebnis, vergleich)
     herkunft = ergebnis.auswertung.daten.herkunft
-    messdatei: dict[str, Any] = {
-        "messdatei": None if herkunft is None else herkunft.pfad,
-        "messdatei_sha256": None if herkunft is None else herkunft.sha256,
-    }
+    messdatei: dict[str, Any] = messdatei_angaben(herkunft)
     if vergleich_auswertung is not None:
-        hb = vergleich_auswertung.daten.herkunft
-        messdatei["vergleich_messdatei"] = None if hb is None else hb.pfad
-        messdatei["vergleich_messdatei_sha256"] = None if hb is None else hb.sha256
+        messdatei.update(
+            messdatei_angaben(vergleich_auswertung.daten.herkunft, "vergleich_messdatei")
+        )
     return schreibe_export(
         felder,
         meta,

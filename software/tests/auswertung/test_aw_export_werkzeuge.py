@@ -303,3 +303,45 @@ def test_abbildung_mit_niedriger_kohaerenz_und_kennzeichen(messdatei: Path, tmp_
     exportiere(a, tmp_path / "k", build_info=BUILD)
     pfade = abbildungen.erzeuge(tmp_path / "k", tmp_path / "abb", ["Vib_Z__Ref1"])
     assert len(pfade) == 4
+
+
+def _meta_herkunft(daten_messung: ref.FakeSvdMessung, ziel: Path) -> dict[str, object]:
+    a = werte_aus(aus_svd_messung(daten_messung), f_schwingform_hz=150.0)
+    _, js = exportiere(a, ziel, build_info=BUILD, jetzt=lambda: JETZT)
+    herkunft: dict[str, object] = json.loads(js.read_text(encoding="utf-8"))["herkunft"]
+    return herkunft
+
+
+def test_export_datei_metadaten_aus_dem_leser(messdatei: Path, tmp_path: Path) -> None:
+    m = ref.fake_svd_messung(messdatei)
+    m.datei_zeit = dt.datetime(2026, 10, 12, 9, 32, 52)
+    h = _meta_herkunft(m, tmp_path / "mit")
+    assert h["messdatei_dateizeit"] == "2026-10-12T09:32:52"
+    # Der Leser liefert keine Programmversion: ausdrücklich „nicht verfügbar“, nichts erfunden.
+    assert h["messdatei_programmversion"] == "nicht verfügbar"
+
+
+def test_export_datei_metadaten_nicht_verfuegbar(messdatei: Path, tmp_path: Path) -> None:
+    h = _meta_herkunft(ref.fake_svd_messung(messdatei), tmp_path / "ohne")
+    assert h["messdatei_dateizeit"] == "nicht verfügbar"
+    assert h["messdatei_programmversion"] == "nicht verfügbar"
+
+
+def test_export_datei_metadaten_ohne_herkunft(tmp_path: Path) -> None:
+    daten = ref.messdaten(
+        frequenz_hz=np.arange(1.0, 6.0),
+        ap={"Vib X": np.ones((2, 5)), "Vib Y": np.ones((2, 5)), "Vib Z": np.ones((2, 5))},
+        phase_gueltig=False,
+    )
+    a = werte_aus(daten, f_schwingform_hz=3.0)
+    _, js = exportiere(a, tmp_path / "o", build_info=BUILD)
+    h = json.loads(js.read_text(encoding="utf-8"))["herkunft"]
+    assert h["messdatei_dateizeit"] is None and h["messdatei_programmversion"] is None
+
+
+def test_herkunft_mit_programmversion_im_export() -> None:
+    from ldv_automation.auswertung.daten import Herkunft
+    from ldv_automation.auswertung.export import messdatei_angaben
+
+    h = Herkunft(pfad="x", sha256="0", dateizeit="2026-10-12T09:32:52", programmversion="10.4.0.1")
+    assert messdatei_angaben(h)["messdatei_programmversion"] == "10.4.0.1"

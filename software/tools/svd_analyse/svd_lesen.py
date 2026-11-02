@@ -993,6 +993,18 @@ class SvdMessung:
         Ergebnis der Gegenprobe gegen ``BandInfo-0`` (:data:`BAND_INFO_GEPRUEFT`,
         :data:`BAND_INFO_NICHT_PRUEFBAR`, :data:`BAND_INFO_FEHLT`, :data:`BAND_INFO_WIDERSPRUCH`).
         Ein Widerspruch bricht nicht ab, wird aber in :func:`uebersicht` ausdrücklich gemeldet.
+    datei_zeit : datetime.datetime or None
+        FILETIME aus dem Stream ``FileVersion`` (Offset 24), naiv. Gegenprobe an der
+        Beispieldatei: 09:32:52, die COM-Eigenschaft ``Version.FileTime`` meldet 11:32:52
+        (Ortszeit MESZ), der Stream enthält also vermutlich UTC (Zeitzone nicht gesichert).
+        ``None`` = nicht verfügbar (Stream fehlt oder weicht vom Layout ab).
+
+    Notes
+    -----
+    Die Programmversion (z. B. „10.4.0.1“) ist **nicht** Teil des Ergebnisses: Der Stream
+    ``FileVersion`` enthält nur zwei ``uint16`` (4, 10), deren Zuordnung zu Haupt- und
+    Nebenversion offen ist; Revision und Build fehlen. Sie liefert nur die COM-Eigenschaft
+    ``Version.ProgramVersionString``.
     """
 
     pfad: Path
@@ -1009,6 +1021,30 @@ class SvdMessung:
     satz_kennfeld: FloatArray = field(default_factory=lambda: np.zeros(0, dtype=np.float64))
     satz_feld_34: float | None = None
     band_info: str = BAND_INFO_NICHT_PRUEFBAR
+    datei_zeit: dt.datetime | None = None
+
+
+FILE_VERSION_LAENGE = 32
+"""Länge des Streams ``FileVersion`` an der Beispieldatei (Byte)."""
+
+FILE_VERSION_FILETIME_OFFSET = 24
+"""Offset der FILETIME im Stream ``FileVersion`` (fünf ``int32`` und zwei ``uint16`` davor)."""
+
+
+def dekodiere_file_version(daten: bytes) -> dt.datetime | None:
+    """FILETIME aus dem Stream ``FileVersion``; ``None``, wenn das Layout nicht passt.
+
+    Layout (Beispieldatei, W2 Abschnitt 1.1): ``int32`` 2, 4, 2624, 2, 1, ``uint16`` 4, 10,
+    ``uint64`` FILETIME. Geprüft werden Länge und die erste ``int32`` (2); bei Abweichung
+    oder unplausibler FILETIME wird nichts geraten.
+    """
+    if len(daten) != FILE_VERSION_LAENGE or _i32(daten, 0) != 2:
+        return None
+    (filetime,) = struct.unpack_from("<Q", daten, FILE_VERSION_FILETIME_OFFSET)
+    try:
+        return filetime_zu_datetime(filetime)
+    except SvdFormatFehler:
+        return None
 
 
 def _strom(ole: Any, pfad: str) -> bytes:
@@ -1160,6 +1196,9 @@ def lese_container(ole: Any, pfad: Path) -> SvdMessung:
         if ole.exists(p):
             hw.extend(t for _, t in utf16_zeichenketten(_strom(ole, p)))
     freq = fft.delta_f_hz * np.arange(1, fft.linien + 1, dtype=np.float64)
+    datei_zeit = (
+        dekodiere_file_version(_strom(ole, "FileVersion")) if ole.exists("FileVersion") else None
+    )
     return SvdMessung(
         pfad,
         fft,
@@ -1175,6 +1214,7 @@ def lese_container(ole: Any, pfad: Path) -> SvdMessung:
         kennfeld,
         feld_34,
         band_info,
+        datei_zeit,
     )
 
 
@@ -1198,6 +1238,15 @@ def uebersicht(messung: SvdMessung) -> str:
     zeilen.append(
         "Koordinaten [m, plausibel]: "
         + ", ".join(f"{a} {u:.4f} … {o:.4f}" for a, u, o in zip("xyz", lo, hi, strict=True))
+    )
+    zeilen.append(
+        "Dateizeit (FileVersion, naiv, vermutlich UTC): "
+        + (
+            "nicht verfügbar"
+            if messung.datei_zeit is None
+            else f"{messung.datei_zeit:%Y-%m-%d %H:%M:%S}"
+        )
+        + "; Programmversion: nicht verfügbar (nur über COM)"
     )
     alle_zeiten = [z for s in messung.signale.values() for z in s.zeit_a]
     if alle_zeiten:

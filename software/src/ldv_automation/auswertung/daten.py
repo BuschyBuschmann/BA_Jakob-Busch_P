@@ -43,10 +43,17 @@ class Herkunft:
         Pfad der Messdatei.
     sha256 : str
         SHA-256 der Messdatei (Hex).
+    dateizeit : str or None
+        Zeitpunkt der Messung laut Datei (ISO 8601, naiv, Zeitzone der Datei offen); ``None``
+        = nicht verfügbar.
+    programmversion : str or None
+        Programmversion der PSV, mit der die Datei erzeugt wurde; ``None`` = nicht verfügbar.
     """
 
     pfad: str
     sha256: str
+    dateizeit: str | None = None
+    programmversion: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True, eq=False)

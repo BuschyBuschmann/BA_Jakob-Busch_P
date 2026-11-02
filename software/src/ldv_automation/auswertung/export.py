@@ -37,7 +37,7 @@ import numpy.typing as npt
 from ldv_automation.protokoll.version import BuildInfo, ermittle_build_info
 
 from .baender import Bandwert
-from .daten import einheit_produkt, einheit_quadrat
+from .daten import Herkunft, einheit_produkt, einheit_quadrat
 from .gesamt import Auswertung
 from .plausibilitaet import Pruefergebnis
 from .spitzen import Spitzenergebnis
@@ -66,6 +66,31 @@ def sha256_datei(pfad: Path) -> str:
         for block in iter(lambda: datei.read(1 << 20), b""):
             h.update(block)
     return h.hexdigest()
+
+
+NICHT_VERFUEGBAR = "nicht verfügbar"
+"""Eintrag im Export für Datei-Metadaten, die der Leser nicht geliefert hat."""
+
+
+def messdatei_angaben(herkunft: Herkunft | None, praefix: str = "messdatei") -> dict[str, Any]:
+    """Angaben zur Messdatei für ``herkunft`` im Export (Pfad, SHA-256, Dateizeit, Version).
+
+    Dateizeit und Programmversion stehen als Text, fehlende Angaben als
+    :data:`NICHT_VERFUEGBAR` (nichts wird erfunden); ohne Herkunft ist alles ``None``.
+    """
+    if herkunft is None:
+        return {
+            praefix: None,
+            f"{praefix}_sha256": None,
+            f"{praefix}_dateizeit": None,
+            f"{praefix}_programmversion": None,
+        }
+    return {
+        praefix: herkunft.pfad,
+        f"{praefix}_sha256": herkunft.sha256,
+        f"{praefix}_dateizeit": herkunft.dateizeit or NICHT_VERFUEGBAR,
+        f"{praefix}_programmversion": herkunft.programmversion or NICHT_VERFUEGBAR,
+    }
 
 
 def _json_wert(wert: Any) -> Any:
@@ -445,10 +470,7 @@ def exportiere(
     return schreibe_export(
         *baue_export(auswertung),
         basis,
-        messdatei={
-            "messdatei": None if herkunft is None else herkunft.pfad,
-            "messdatei_sha256": None if herkunft is None else herkunft.sha256,
-        },
+        messdatei=messdatei_angaben(herkunft),
         build_info=build_info,
         jetzt=jetzt,
         ueberschreiben=ueberschreiben,

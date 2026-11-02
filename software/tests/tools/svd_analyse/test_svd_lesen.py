@@ -912,3 +912,45 @@ def test_kennfeld_nicht_trennscharf_bei_gleichen_werten() -> None:
     kenn = sp.pruefe_punktzuordnung(m)[0]
     assert not kenn.durchgefuehrt and not kenn.bestanden
     assert kenn.grund is not None and "nicht trennscharf" in kenn.grund
+
+
+# --- Datei-Metadaten (K-2D Punkt 4) ----------------------------------------------------
+
+
+def test_datei_zeit_aus_file_version() -> None:
+    m, _ = _messung()
+    assert m.datei_zeit == dt.datetime(2026, 10, 12, 9, 32, 52)
+    assert "Dateizeit (FileVersion, naiv, vermutlich UTC): 2026-10-12 09:32:52" in sl.uebersicht(m)
+    assert "Programmversion: nicht verfügbar" in sl.uebersicht(m)
+
+
+@pytest.mark.parametrize(
+    "stream",
+    [
+        syn.file_version(syn.FILETIME_2026_10_12, laenge=31),
+        syn.file_version(syn.FILETIME_2026_10_12, laenge=40),
+        syn.file_version(syn.FILETIME_2026_10_12, kopf=3),
+        syn.file_version(-1 & 0xFFFFFFFFFFFFFFFF),
+    ],
+    ids=["zu_kurz", "zu_lang", "kopf_unbekannt", "filetime_unplausibel"],
+)
+def test_datei_zeit_nicht_verfuegbar_bei_abweichendem_layout(stream: bytes) -> None:
+    assert sl.dekodiere_file_version(stream) is None
+
+
+def test_datei_zeit_nicht_verfuegbar_ohne_stream() -> None:
+    st, _ = syn.messung_stroeme()
+    del st["FileVersion"]
+    m = sl.lese_container(syn.FakeOle(st), Path("x"))
+    assert m.datei_zeit is None
+    assert "Dateizeit (FileVersion, naiv, vermutlich UTC): nicht verfügbar" in sl.uebersicht(m)
+
+
+BEISPIELDATEI = Path(__file__).resolve().parents[4] / "Input" / "20261012_ref_Mitte.svd"
+
+
+@pytest.mark.skipif(not BEISPIELDATEI.is_file(), reason="Beispieldatei nicht im Repository")
+def test_datei_zeit_der_beispieldatei() -> None:
+    """Gegenprobe: COM ``Version.FileTime`` 11:32:52 (MESZ) = 09:32:52 UTC (Faktenliste C8)."""
+    m = sl.lese_svd(BEISPIELDATEI)
+    assert m.datei_zeit == dt.datetime(2026, 10, 12, 9, 32, 52)
