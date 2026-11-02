@@ -1,0 +1,26 @@
+LIESMICH – Stick-Paket Messrechner, Mo 2026-11-02
+=================================================
+Software-Stand: Git 530af41 (sauber, Build-Info im Wheel). Gebaut 2026-11-02.
+
+FEHLT (bitte selbst laden): Python-3.11-Installer x64 von python.org
+  https://www.python.org/downloads/release/python-3119/  -> "Windows installer (64-bit)"
+
+Installation (PowerShell, Details: dokumente\installation_messrechner.md, Abschnitt 5):
+  mkdir C:\ldv, C:\ldv\wheelhouse, C:\ldv\daten, C:\ldv\vorlagen, C:\ldv\erkundung
+  Inhalt von wheelhouse\ nach C:\ldv\wheelhouse, erkundung\ nach C:\ldv\erkundung kopieren
+  py -3.11 -m venv C:\ldv\venv
+  C:\ldv\venv\Scripts\python.exe -m pip install --no-index --find-links C:\ldv\wheelhouse "C:\ldv\wheelhouse\ldv_automation-0.1.0-py3-none-any.whl[com]"
+
+HINWEIS: numpy ist seit der Auswertung eine Abhängigkeit und liegt jetzt im wheelhouse
+(in installation_messrechner.md, Abschnitt 3 und Weg B, fehlt es noch). Bei Weg B also
+zusätzlich "numpy==2.4.6" installieren.
+
+SHA-256 (ins Protokoll übernehmen, prüfen mit Get-FileHash):
+bfdd213c7b711863c79cb9727bf29a6a3ae65d2046cf6038b3378a4bce81126b  wheelhouse/ldv_automation-0.1.0-py3-none-any.whl
+1e254a00cdf42b1e4d5b3d68d33af63268d41340d8885df2ab6470f2e1500147  wheelhouse/numpy-2.4.6-cp311-cp311-win_amd64.whl
+ea61687d2c27f8cc7a851c259481be1001dbffa3bebacea4491d9905e7a5d0cf  wheelhouse/pyside6_essentials-6.11.3-cp310-abi3-win_amd64.whl
+d11417d84412f859b722fad0841b3614459ed0047f7542d8362e77884f6b6e8a  wheelhouse/pywin32-312-cp311-cp311-win_amd64.whl
+1d38919492d08417b7579ad077bc81110d05183d21eb21d66316bc556140a8a3  wheelhouse/shiboken6-6.11.3-cp310-abi3-win_amd64.whl
+34bd18fbc55ea98a0ff4162d5db633afcaa966f50b89d7c578259681a993cefc  erkundung/README.md
+a90d45f135fcfe2594f195191fc2ba48cb189e4a8e42431bc23ffa1616a148d7  erkundung/erkundung.py
+1fa6e3dffc0a982b7cc453b26666a2c1b022701f93a735d30cb5d8b1068d6e53  konfig/beispiel_messrechner.json

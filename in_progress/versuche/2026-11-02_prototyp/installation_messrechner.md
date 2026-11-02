@@ -74,7 +74,7 @@ Download (aus `software/`; ein Befehl, **hier nicht ausgeführt**):
 ```bash
 python -m pip download --dest wheelhouse --platform win_amd64 --python-version 3.11 \
   --implementation cp --abi cp311 --only-binary=:all: \
-  "pyside6-essentials==6.11.3" "shiboken6==6.11.3" "pywin32==312"
+  "numpy==2.4.6" "pyside6-essentials==6.11.3" "shiboken6==6.11.3" "pywin32==312"
 ```
 
 Dasselbe bündelt das Skript `software/tools/wheelhouse/erzeuge_wheelhouse.py` (nur Anzeige:
@@ -165,7 +165,7 @@ im Ordner: Meldung notieren, nicht mit dem Internet nachhelfen, bevor das geklä
 Nur nach Rücksprache (Netzfreigabe unklar, Plan Risiko 6). Gleiche Pins verwenden:
 
 ```powershell
-C:\ldv\venv\Scripts\python.exe -m pip install "pyside6-essentials==6.11.3" "pywin32==312"
+C:\ldv\venv\Scripts\python.exe -m pip install "numpy==2.4.6" "pyside6-essentials==6.11.3" "pywin32==312"
 C:\ldv\venv\Scripts\python.exe -m pip install --no-deps C:\ldv\wheelhouse\ldv_automation-0.1.0-py3-none-any.whl
 ```
 
