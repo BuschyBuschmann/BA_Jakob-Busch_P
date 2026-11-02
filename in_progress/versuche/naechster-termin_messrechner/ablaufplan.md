@@ -149,7 +149,7 @@ PFAD B (COM aus): A0, A1 (nur Skripte/Datei), Zweig C (File Access auf Kopien), 
 - Für Golden File v2 (C3): `daten_lesen.py` hat eine feste Signalliste (`AUSWAHL`, 8 Signale). Die Namen für Kohärenz, H2, PSD/ESD, Terzen stehen in der Erkundung 1b **nicht**
   (die Erkundung listet nur bis zu 8 Kanäle und 6 Signale je Kanal, `MAX_CHANNELS = 8`, `MAX_SIGNALS = 6`; die Domäne „Terzen“ wird nicht aufgelistet). Entweder die Liste vorher erweitern (Paket SKRIPTE) oder am Termin
   die Namen in PSV ablesen (C3, Ersatz).
-- Für M11 (C2) **vorab prüfen** (Fachprüfung): Die Kennzeichenfreiheit der Kandidaten (617,9; 631,7; 644,8; 693,5; 757,3; 867,9 Hz) gilt in FG-02 Abschnitt 8 am **Punktmittel**, nicht am Einzelpunkt. Am Entwicklungsrechner mit der Stufe-1-Spitzenerkennung am gewählten Punkt (Label 132 oder anderer) bestimmen, welche Kandidaten dort ohne Kennzeichen sind. Grobe Vorabrechnung siehe C2: aussichtsreich sind 693,5 / 757,3 / 867,9 Hz.
+- Für M11 (C2) **vorab prüfen** (Fachprüfung): Die Kennzeichenfreiheit der Kandidaten (617,9; 631,7; 644,8; 693,5; 757,3; 867,9 Hz) gilt in FG-02 Abschnitt 8 am **Punktmittel**, nicht am Einzelpunkt. Am Entwicklungsrechner mit der Stufe-1-Spitzenerkennung am gewählten Punkt (Label 132 oder anderer) bestimmen, welche Kandidaten dort ohne Kennzeichen sind. **Erledigt (V2):** an Label 132 gewählt 921,5 / 632,5 / 483,8 Hz, Reserve 949,3 / 644,8 Hz (siehe C2).
 - Für D1/D2 offline vorbereiten: Auswerteweg für die Phasen-/Betragsauswertung von D2 (Fit φ(f), |H1|·ω) und die eigene FFT je Block (D1); Testdaten für B5 (siehe B5).
 - SHA-256 der vorhandenen Handbücher unter `Input/literatur/polytec/Handbücher/` notieren, um am Termin zu erkennen, ob die 10.4-Fassung abweicht (E2). Die Version der vorhandenen Handbücher ist **[offen]**.
 - Mit der neuen Version 0.2.0 genügt am Messrechner das normale `pip install --upgrade --no-deps`; `--force-reinstall` ist nur Rückfall (A1).
@@ -392,6 +392,19 @@ Voraussetzung: **C1** zuerst.
 *Zweck:* Die Toleranzzeilen für Spitzen ohne Warnkennzeichen (FG-02 Abschnitt 8) sind bisher **nicht geprüft**; beide Spitzen vom 02.11. waren `aufloesungsbegrenzt`.
 *Kandidaten* (FG-02 Abschnitt 8, Punktmittel |H1| Vib Z/Ref1 ohne Kennzeichen, **korrigierte Achse, Hz**): 617,9; 631,7; 644,8; 693,5; 757,3; 867,9.
 *Kandidaten vorab am Punkt prüfen:* Die Kennzeichenfreiheit gilt in FG-02 §8 am **Punktmittel**, nicht am Einzelpunkt (3.2). Grobe Vorabrechnung der Fachprüfung **[N]** mit ζ ≈ 1,4·10⁻³ (aus nur zwei Spitzen) und B = 2ζf: 1,73 Hz (617,9), 1,77 (631,7), 1,81 (644,8), 1,94 (693,5), 2,12 (757,3), 2,43 Hz (867,9) gegen 3Δf = 1,875 Hz. Erst ab ca. 670 Hz ist B ≥ 3Δf: **693,5 / 757,3 / 867,9 Hz sind am aussichtsreichsten**, die ersten drei sind am Einzelpunkt wahrscheinlich wieder `aufloesungsbegrenzt`. Auswahl der drei Spitzen erst nach der Vorabprüfung in Stufe 1 am gewählten Punkt.
+
+*Vorabprüfung V2 (Fachanalyse, 2026-11-02, korrigierter Leser, Label 132, H1 Vib Z/Ref1; Skripte im Scratchpad, Werte [N]):* Von den Punktmittel-Kandidaten ist an Label 132 nur 644,8 Hz kennzeichenfrei (631,7 → Spitze 632,5 Hz); 693,5 und 757,3 tragen `nachbarmode`, 867,9 `ueberlappend`, 617,9 hat keine Spitze. **Gewählt (Reihenfolge):**
+
+| Rang | Spitze (Stufe 1) | B; B/Δf | Band ±2B (Hz) | Band ±4B (Hz) | eigener B-1 ±2B: f_r / ζ / ρ | B-1 ±4B: f_r / ζ |
+|---|---|---|---|---|---|---|
+| 1 | 921,546 Hz | 2,894 Hz; 4,63 | 915,625 – 927,500 (20 Linien) | 910,000 – 933,125 (38) | 921,6578 / 1,6556e-3 / 0,056 | 921,5496 / 1,8651e-3 (`modell_passt_nicht`) |
+| 2 | 632,514 Hz | 2,576 Hz; 4,12 | 627,500 – 637,500 (17) | 622,500 – 643,125 (34) | 632,4926 / 1,6884e-3 / 0,066 | 632,4912 / 1,6613e-3 (`modell_passt_nicht`) |
+| 3 | 483,827 Hz | 1,917 Hz; 3,07 | 480,000 – 487,500 (13) | 476,250 – 491,250 (25) | 483,7730 / 1,9528e-3 / 0,054 | 483,7887 / 1,8712e-3 (`modell_passt_nicht`) |
+| Reserve | 949,301 Hz | 6,102 Hz; 9,76 | 936,875 – 961,250 | 925,000 – 973,750 | 949,1154 / 2,5995e-3 / 0,082 | – |
+| Reserve | 644,824 Hz | 2,870 Hz; 4,59 | 639,375 – 650,625 | (unbrauchbar) | 645,0121 / 1,9801e-3 / 0,145 | – |
+
+Spitze am Gerät über die Frequenz prüfen (632,5 Hz liegt 1,2 Δf neben dem Punktmittelwert 631,7 Hz). Rückfallpunkte, falls Label 132 ungeeignet: Label 338 (u. a. 921,0 Hz, ρ 0,035), Label 298. Im ±4B-Band ist der Ein-Moden-Fit für keine Spitze sauber (ρ > 0,10) – Aussage über die Modellgüte, nicht über PSV.
+
 *Klickpfad (vom 02.11. bekannt):* Datei (Kopie) in PSV öffnen → Ansichten-Menü (Symbol links in der zweiten Symbolleiste) → **Alt+2** Einzelner Scanpunkt (Alt+1 Messobjekt, Alt+3 Gemitteltes Spektrum, Alt+4 Profil, Alt+5 Banddaten, Alt+6 Punktdaten) → Punkt Label 132 anklicken →
 Analysator-Menü: Domäne FFT, Kanal **Vib 3D & Ref1**, Komponente Z, Signal H1 Geschwindigkeit/Kraft → Analysator → **Band-Cursor** → Cursor-Eigenschaften → **Peak-Anpassung** (f max, −3 dB, Q-Faktor, Zeta). **Strg+K** = Autoskalieren, Zoomen/Verschieben im Analysator-Menü.
 *Bandregel (ersetzt die Regel „Breite ≥ 3 Δf“ des ersten Entwurfs, die fachlich falsch war):* Bandgrenzen als Vielfache von Δf = 0,625 Hz; Band mit **mindestens 7 Linien** (FG-03: ≥ 4n+3 bei n = 1, sonst für B-1 nicht rechenbar) und mehrere B breit. **Zwei Bänder je Spitze** (z. B. ±2 B und ±4 B), weil das PSV-ζ bandabhängig ist (−6 % bei engerem Band). `aufloesungsbegrenzt` hängt an der −3-dB-Breite B der **Spitze** (FG-02 3.9), nicht am Cursorband.

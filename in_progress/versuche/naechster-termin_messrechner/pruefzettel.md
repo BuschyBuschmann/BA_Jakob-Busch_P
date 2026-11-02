@@ -9,7 +9,7 @@ Dauern sind Annahmen. Bei Zeitmangel zuerst Kann streichen, dann Soll von hinten
 
 - [ ] Fragen F1 bis F8 an Daniel gestellt, Antworten notiert (Registrierung, **Anregung**, **längerer Termin z. B. 4 h**, Waage, **Laser auf Kopf und Reflexfolie auf der Stirnfläche**, Internet/Stick, Handbücher, Zeitdaten)
 - [ ] Wheel **0.2.0** (Stand nach K-ACHSE) gebaut, gepusht, Git-Hash und SHA-256 notiert; Skripte im aktuellen Stand; Stick gepackt
-- [ ] Kandidaten für M11 **am Einzelpunkt** vorab geprüft (ohne Kennzeichen; aussichtsreich 693,5 / 757,3 / 867,9 Hz)? · Namen für Golden File v2 geklärt oder Skript erweitert?
+- [ ] Kandidaten für M11 **am Einzelpunkt** vorab geprüft ✔ erledigt: 921,5 / 632,5 / 483,8 Hz (Reserve 949,3 / 644,8)? · Namen für Golden File v2 geklärt oder Skript erweitert?
 - [ ] SHA-256 der vorhandenen Handbücher notiert
 - [ ] Prüfzettel ausgedruckt, Handy/Kamera, Maßband
 
@@ -37,7 +37,7 @@ Dauern sind Annahmen. Bei Zeitmangel zuerst Kann streichen, dann Soll von hinten
 
 Ohne Anregung und ohne COM möglich (an **Kopien**, nie am Original):
 
-- [ ] **S** (–) C2 **M11 an drei Spitzen ohne Kennzeichen** (am Einzelpunkt vorab prüfen; aussichtsreich 693,5 · 757,3 · 867,9 Hz; Hz der korrigierten Achse): Alt+2 → Analysator → Band-Cursor → Cursor-Eigenschaften → Peak-Anpassung (Strg+K autoskalieren); **zwei Bänder je Spitze** (Vielfache von Δf = 0,625 Hz, ≥ 7 Linien, ±2 B und ±4 B); Cursorgrenzen, f max, −3 dB, **Q und ζ mit voller Stellenzahl**
+- [ ] **S** (–) C2 **M11 an drei Spitzen ohne Kennzeichen** (Label 132, vorab geprüft: **921,5 · 632,5 · 483,8 Hz**, Reserve 949,3 · 644,8; Bänder siehe Ablaufplan C2): Alt+2 → Analysator → Band-Cursor → Cursor-Eigenschaften → Peak-Anpassung (Strg+K autoskalieren); **zwei Bänder je Spitze** (Vielfache von Δf = 0,625 Hz, ≥ 7 Linien, ±2 B und ±4 B); Cursorgrenzen, f max, −3 dB, **Q und ζ mit voller Stellenzahl**
 - [ ] **S** (–) E1 **Platte und Impedanzkopf wiegen** (erst **nach** allen Messungen am Aufbau; Fotos vorher; Waage ______; Erwartung Plattenseite 4,5 bis 6,7 kg; Stinger/Shaker nicht)
 - [ ] **S** (–) C3 **Golden File v2**: **zuerst H1 Ref2/Ref1** (Phase 0°/180°, m = |F/a| bei 1 bis 6 Hz; sonst Analysator „Ref2 & Ref1“), dann H2, Kohärenz, PSD/ESD, Terzen; **Skalierung notieren** (einseitig, RMS/Spitze, Fensterkorrektur, Terzbasis); Exit-Code notieren
 - [ ] **S** (–) E2 **Handbücher 10.4 kopieren** (`C:\Program Files\Polytec\PSV 10.4\Doc`: Theory Manual, Software Handbuch/Manual PSV, Desktop-Varianten, Basic Engine Manual, Release Notes) für `Input/literatur/polytec/`

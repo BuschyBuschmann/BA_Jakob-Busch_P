@@ -212,7 +212,7 @@ Zu jedem Punkt: Entscheidung (Zeit, Grund) vor Messungen in D. Dateien immer mit
 
 ### 10.2 C2 M11 an drei Spitzen ohne Kennzeichen (H1 Vib Z & Ref1, Label 132 bzw. gewählter Punkt: ____)
 
-Kandidaten (FG-02 Abschnitt 8, Hz der korrigierten Achse): 617,9 · 631,7 · 644,8 · **693,5 · 757,3 · 867,9** (am aussichtsreichsten, Vorabrechnung der Fachprüfung [N]; B ≥ 3Δf = 1,875 Hz erst ab ca. 670 Hz). **Vorab geprüft:** welche Kandidaten sind am gewählten **Einzelpunkt** in Stufe 1 ohne Kennzeichen? ____
+Kandidaten (FG-02 Abschnitt 8, Hz der korrigierten Achse): 617,9 · 631,7 · 644,8 · **693,5 · 757,3 · 867,9** (am aussichtsreichsten, Vorabrechnung der Fachprüfung [N]; B ≥ 3Δf = 1,875 Hz erst ab ca. 670 Hz). **Vorab geprüft (V2):** an Label 132 kennzeichenfrei und im ±2B-Band sauber: **921,5 · 632,5 · 483,8 Hz** (Reserve 949,3 · 644,8); Bandgrenzen und eigene Vergleichswerte in Ablaufplan C2.
 Bandregel: Grenzen als Vielfache von Δf = 0,625 Hz, mindestens 7 Linien, mehrere B breit, **zwei Bänder je Spitze** (z. B. ±2 B und ±4 B). **Q und ζ mit voller angezeigter Stellenzahl** ablesen (ζ = 1/(2Q)); f max nur 0,1 Hz (Grenze vermerken).
 
 | Spitze (Hz) | Band (1 oder 2) | Kennzeichen in Stufe 1 am Punkt (keins?) | Cursorgrenze links (Hz) | rechts (Hz) | Linien im Band | f max (Hz) | −3 dB (Hz) | Q (volle Stellen) | ζ (volle Stellen) | Screenshot |
