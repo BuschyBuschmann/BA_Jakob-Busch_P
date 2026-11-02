@@ -1,0 +1,21 @@
+Ja, genau. Kleine Korrektur vorab: Das Programm heißt ldv_automation, mit L wie Laser.
+
+1. Ordner anlegen (PowerShell):
+
+mkdir C:\ldv, C:\ldv\wheelhouse, C:\ldv\daten, C:\ldv\vorlagen, C:\ldv\erkundung
+
+2. Kopieren aus dem entpackten ...\stick\:
+
+aus	nach
+stick\wheelhouse\ (die 5 .whl-Dateien)	C:\ldv\wheelhouse\
+stick\erkundung\ (erkundung.py, README.md)	C:\ldv\erkundung\
+stick\konfig\beispiel_messrechner.json	C:\ldv\
+
+Kopiert werden die Dateien selbst, nicht der Ordner. Am Ende muss es also C:\ldv\wheelhouse\numpy-….whl heißen und nicht C:\ldv\wheelhouse\wheelhouse\….
+
+3. Python-Umgebung anlegen und installieren:
+
+py -3.11 -m venv C:\ldv\venv
+C:\ldv\venv\Scripts\python.exe -m pip install --no-index --find-links C:\ldv\wheelhouse "C:\ldv\wheelhouse\ldv_automation-0.1.0-py3-none-any.whl[com]"
+
+Schick mir die Ausgabe von py -0p und das Ende der pip install-Ausgabe. Kommt schon beim Anlegen der Umgebung mit py -3.11 ein Fehler, ist Python 3.11 nicht vorhanden. Dann schick mir die Meldung.
