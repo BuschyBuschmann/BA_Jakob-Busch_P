@@ -209,6 +209,29 @@ Vom Nutzer nach Review R-E1 übernommen (Plan-Nachtrag 2026-10-23):
   Watchdog je Prüfpunkt (siehe Rückmeldung zu E1-U).
 - **Technische Sperre** des COM-Teils von Stufe 1 (siehe Prüfanleitung).
 
+## Werkzeuge `einstellungen_lesen.py` und `daten_lesen.py` (Polytec File Access, nur lesen)
+
+Zwei kleine Einzeldatei-Skripte, am Messrechner entstanden (2026-11-02). Sie öffnen eine
+.svd-Datei über `PolyFile.PolyFile` (pywin32) mit `ReadOnly = True` und lesen Einstellungen
+bzw. Spektren eines Scanpunkts.
+
+- Sie verwenden den Whitelist-Proxy von `erkundung.py` **nicht**; der Schutz besteht nur aus
+  `ReadOnly = True` (einzige Zuweisung) und dem Verzicht auf Schreib- und Messaufrufe (per
+  Test über den Quelltext abgesichert).
+- Sie lesen nur und sollen **nur auf Kopien** der Messdatei laufen, die nicht in PSV geöffnet sind.
+- `daten_lesen.py <kopie.svd> <ziel.csv> [Punkt] [--ueberschreiben]`: eine vorhandene Zieldatei
+  (und Begleitdatei) wird nicht überschrieben. Exit-Codes: 0 vollständig, 1 nichts gelesen
+  (keine CSV), 2 Aufruffehler oder Ziel existiert, 3 unvollständig. Bei 3 liegt neben der CSV
+  `<ziel.csv>.fehlend.txt` (UTF-8, erste Zeile `# Fehlende Signale`, danach je Zeile
+  `<Kanal> | <Signal><TAB><Grund>`). Signale mit abweichender Länge (`len(Re) == len(Im)`,
+  Achse) oder abweichender Achse gelten als fehlend.
+- `einstellungen_lesen.py <kopie.svd>`: meldet nicht lesbare, nicht vorhandene und
+  übersprungene (aufrufbare) Eigenschaften. Die Waveform-Parameter sind eventuell nur nach einem
+  Cast lesbar; das ist am Gerät zu prüfen und nicht umgesetzt.
+- Annahmen (Domäne 1 = FFT, Display-Typen 7/8, Namen aus Erkundung 1b) stehen im Kopf der Skripte.
+- Tests: `tests/tools/erkundung/test_daten_lesen.py`, `test_einstellungen_lesen.py`
+  (Fake-COM, `fake_polyfile.py`).
+
 ## Entwicklung
 
 Aus `software/`: `uv run pytest` (Tests gegen Fake-PSV, laufen ohne Windows), dazu
