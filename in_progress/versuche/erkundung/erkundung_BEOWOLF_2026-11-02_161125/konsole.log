@@ -1,0 +1,25 @@
+erkundung 0.1.0: Stufe 1, Ausgabe in D:\Messdaten\DAL\BA Jakob Busch\erkundung\erkundung_BEOWOLF_2026-11-02_161125
+Nur Lesen. Watchdog 60 s je Prüfpunkt. Strg+C bricht ab (der Teilbericht bleibt erhalten).
+[P1-1-umgebung] ok (0.06 s) Windows 10, Python 3.11.9 (64 Bit)
+[P1-4-pywin32] ok (0.02 s) pywin32 importierbar, Version 312
+[P1-2-registry] ok (0.00 s) 2 von 5 ProgIDs registriert
+[P1-2-dateien] ok (0.02 s) 4 Serverdatei(en) geprüft
+[P1-4-typelibs-registry] ok (0.19 s) 186 Polytec-Typbibliothek(en) von 946 gesichtet
+[P1-3-verzeichnisse] ok (0.03 s) 4 Verzeichnis(se) vorhanden
+[P1-5-prozess] ok (0.17 s) 0 passende Prozesse
+[P1-5-verbinden] uebersprungen (0.00 s)  Sperre: Stufe 0 hat keinen laufenden PSV-Prozess gefunden (oder die Prozessliste war nicht lesbar). Das Objekt PSV.AcquisitionInstance wird deshalb nicht angelegt, weil COM bei einer als Server registrierten PSV-EXE diese beim Anlegen selbst starten könnte. PSV im Erfassungsmodus starten und erneut ausführen, oder --start-psv mit Bestätigung verwenden.
+[P1-5-application] uebersprungen (0.00 s)  Voraussetzung fehlt (P1-5-verbinden)
+[P1-6-zustand] uebersprungen (0.00 s)  Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)
+[P1-6-eigenschaften] uebersprungen (0.00 s)  Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)
+[P1-6-hardware] uebersprungen (0.00 s)  Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)
+[P1-6-scankopf] uebersprungen (0.00 s)  Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)
+[P1-6-vibrometer] uebersprungen (0.00 s)  Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)
+[P1-6-messpunkte] uebersprungen (0.00 s)  Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)
+[P1-6-abgleich] uebersprungen (0.00 s)  Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)
+[P3-2-existenz] uebersprungen (0.00 s)  Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)
+[P1-4-typelibs-com] ok (0.16 s) 93 Polytec-Typbibliotheken, 0 abweichende Konstanten Keine win32com-Konstanten verfügbar. Die Ursache wurde nicht geprüft; der Vergleich mit I5 Abschnitt 8 ist damit nicht möglich (das Skript erzeugt keine Typbibliotheks-Wrapper).
+[P1-10-oeffnen] fehler (0.38 s) geöffnet, Programmversion '10.4.0.1'
+[P1-10-struktur] ok (0.11 s) 2 Domäne(n), 12 Kanäle in der gewählten Domäne
+[P1-10-daten] ok (0.02 s) GetData-Länge 1600, MaxCount 1600
+[P1-10-schliessen] ok (0.02 s) geschlossen
+Fertig. Ergebnis: D:\Messdaten\DAL\BA Jakob Busch\erkundung\erkundung_BEOWOLF_2026-11-02_161125

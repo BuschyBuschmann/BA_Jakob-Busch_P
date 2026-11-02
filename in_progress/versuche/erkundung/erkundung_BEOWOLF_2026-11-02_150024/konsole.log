@@ -1,0 +1,10 @@
+erkundung 0.1.0: Stufe 0, Ausgabe in D:\Messdaten\DAL\BA Jakob Busch\erkundung\erkundung_BEOWOLF_2026-11-02_150024
+Nur Lesen. Watchdog 60 s je Prüfpunkt. Strg+C bricht ab (der Teilbericht bleibt erhalten).
+[P1-1-umgebung] ok (0.08 s) Windows 10, Python 3.11.9 (64 Bit)
+[P1-4-pywin32] ok (0.01 s) pywin32 importierbar, Version 312
+[P1-2-registry] ok (0.00 s) 2 von 5 ProgIDs registriert
+[P1-2-dateien] ok (0.01 s) 4 Serverdatei(en) geprüft
+[P1-4-typelibs-registry] ok (0.23 s) 186 Polytec-Typbibliothek(en) von 946 gesichtet
+[P1-3-verzeichnisse] ok (0.05 s) 4 Verzeichnis(se) vorhanden
+[P1-5-prozess] ok (0.31 s) 1 passende Prozesse
+Fertig. Ergebnis: D:\Messdaten\DAL\BA Jakob Busch\erkundung\erkundung_BEOWOLF_2026-11-02_150024

@@ -46,6 +46,7 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☑ | W5-2 Auswertung Stufe 2 nach FG-03 (mit Korrekturen K2, K3), Fachabnahme und Review | – | – | Laborbuch 2026-10-30_w5-auswertung-stufe2 |
 | ☐ | Vor Ort: Auswertungs-Prüfungen M1–M15, Golden-File-Export, Band-Cursor-Fit 401,6/618,9 Hz | Jakob | Mo 02.11. | Ablaufplan 7b, Protokoll 6b |
 | ☐ | Vor Ort: Wiederholungsmessung (T8) für B-5, möglichst auch mit neu abgeglichenem Raster | Jakob | Mo 02.11. | Ablaufplan 8, nur nach eigener Entscheidung |
+| ❗ | **Frequenzachse korrigieren:** Polytec File Access liefert für `20261012_ref_Mitte.svd` Δf = 0,625 Hz, 0,625 … 1000 Hz (1600 Linien), nicht 1,5625 … 2500 Hz. Leser (`svd_lesen.py`), FG-02/FG-03 (Sollwerte in Hz, Abschnitt 7), Befunde W5 neu; ζ, MAC, Amplituden unverändert | strukturdynamik-experte, software-engineer | nach 02.11. | Erkundung 1b 2026-11-02 16:11, PSV-RMS 1,349 mm/s = CPH über alle 1600 Linien |
 | ☐ | Nach Montag: M1–M15 in FG-02/FG-03 nachführen, Golden-File-Test, Abbildungen mit sauberem Git-Hash neu erzeugen | Orchestrator, strukturdynamik-experte | nach 02.11. | |
 
 ## 4 Thesis

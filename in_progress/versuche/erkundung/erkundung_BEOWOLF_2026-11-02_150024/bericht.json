@@ -1,0 +1,2930 @@
+{
+  "schema_version": 1,
+  "skript_version": "0.1.0",
+  "skript_sha256": "a90d45f135fcfe2594f195191fc2ba48cb189e4a8e42431bc23ffa1616a148d7",
+  "zeitstempel_lokal": "2026-11-02T15:00:24+01:00",
+  "zeitstempel_utc": "2026-11-02T14:00:24+00:00",
+  "rechnername": "BEOWOLF",
+  "benutzername_entfernt": true,
+  "kommandozeile": [
+    "--stufe",
+    "0",
+    "--out",
+    "D:\\Messdaten\\DAL\\BA Jakob Busch\\erkundung"
+  ],
+  "stufen": [
+    "0"
+  ],
+  "parameter": {
+    "timeout_s": 60.0,
+    "max_punkte": 3,
+    "max_werte": 6,
+    "start_psv": false,
+    "datei": null
+  },
+  "lauf": {
+    "status": "vollstaendig",
+    "hinweis": ""
+  },
+  "umgebung": {
+    "system": "Windows",
+    "release": "10",
+    "version": "10.0.17763",
+    "machine": "AMD64",
+    "win32_ver": [
+      "10",
+      "10.0.17763",
+      "SP0",
+      "Multiprocessor Free"
+    ],
+    "python_version": "3.11.9",
+    "python_implementierung": "CPython",
+    "python_bit": 64,
+    "python_pfad": "D:\\Messdaten\\DAL\\BA Jakob Busch\\PyCharmProject\\.venv\\Scripts\\python.exe",
+    "processor_architecture": "AMD64",
+    "processor_architew6432": null,
+    "windows_bit_einschaetzung": 64,
+    "pywin32": {
+      "importierbar": true,
+      "version": "312",
+      "fehler": null
+    }
+  },
+  "pruefpunkte": [
+    {
+      "id": "P1-1-umgebung",
+      "stufe": "0",
+      "titel": "Windows, Python, Bitness",
+      "beleg_ref": "I5 10 P1-1/P1-2",
+      "status": "ok",
+      "kernwert": "Windows 10, Python 3.11.9 (64 Bit)",
+      "hinweis": "",
+      "werte": {
+        "system": "Windows",
+        "release": "10",
+        "version": "10.0.17763",
+        "machine": "AMD64",
+        "win32_ver": [
+          "10",
+          "10.0.17763",
+          "SP0",
+          "Multiprocessor Free"
+        ],
+        "python_version": "3.11.9",
+        "python_implementierung": "CPython",
+        "python_bit": 64,
+        "python_pfad": "D:\\Messdaten\\DAL\\BA Jakob Busch\\PyCharmProject\\.venv\\Scripts\\python.exe",
+        "processor_architecture": "AMD64",
+        "processor_architew6432": null,
+        "windows_bit_einschaetzung": 64
+      },
+      "auffaelligkeiten": [],
+      "dauer_s": 0.079,
+      "exception": null
+    },
+    {
+      "id": "P1-4-pywin32",
+      "stufe": "0",
+      "titel": "pywin32 importierbar?",
+      "beleg_ref": "I5 10 P1-4; 7.1",
+      "status": "ok",
+      "kernwert": "pywin32 importierbar, Version 312",
+      "hinweis": "",
+      "werte": {
+        "importierbar": true,
+        "version": "312",
+        "fehler": null
+      },
+      "auffaelligkeiten": [],
+      "dauer_s": 0.015,
+      "exception": null
+    },
+    {
+      "id": "P1-2-registry",
+      "stufe": "0",
+      "titel": "ProgIDs, CLSID, Server",
+      "beleg_ref": "I5 1.3; 10 P1-2",
+      "status": "ok",
+      "kernwert": "2 von 5 ProgIDs registriert",
+      "hinweis": "",
+      "werte": {
+        "progids": {
+          "PSV.AcquisitionInstance": {
+            "64_bit": {
+              "vorhanden": false
+            },
+            "32_bit": {
+              "vorhanden": false
+            }
+          },
+          "PSV.PresentationInstance": {
+            "64_bit": {
+              "vorhanden": false
+            },
+            "32_bit": {
+              "vorhanden": false
+            }
+          },
+          "PSV.Application": {
+            "64_bit": {
+              "vorhanden": false
+            },
+            "32_bit": {
+              "vorhanden": false
+            }
+          },
+          "PolyFile.PolyFile": {
+            "64_bit": {
+              "vorhanden": true,
+              "clsid": "{42C0C985-D29E-4DBD-B44F-ED8653B00C00}",
+              "beschreibung": "PolyFile Class",
+              "LocalServer32": null,
+              "InprocServer32": "C:\\Program Files\\Common Files\\Polytec\\COM\\PolyFile.dll",
+              "InprocServer32_pfad": "C:\\Program Files\\Common Files\\Polytec\\COM\\PolyFile.dll",
+              "InprocServer32_threadingmodel": "Both",
+              "TypeLib": "{A65C100F-C1FE-4C3B-9C43-46F4FB4C3BC3}",
+              "AppID": null
+            },
+            "32_bit": {
+              "vorhanden": true,
+              "clsid": "{42C0C985-D29E-4DBD-B44F-ED8653B00C00}",
+              "beschreibung": "PolyFile Class",
+              "LocalServer32": null,
+              "InprocServer32": "C:\\Program Files (x86)\\Common Files\\Polytec\\COM\\PolyFile.dll",
+              "InprocServer32_pfad": "C:\\Program Files (x86)\\Common Files\\Polytec\\COM\\PolyFile.dll",
+              "InprocServer32_threadingmodel": "Both",
+              "TypeLib": "{A65C100F-C1FE-4C3B-9C43-46F4FB4C3BC3}",
+              "AppID": null
+            }
+          },
+          "PolyWaveforms.WaveformSine": {
+            "64_bit": {
+              "vorhanden": true,
+              "clsid": "{E5F973AA-1E93-47D5-870D-DF6935F5D73B}",
+              "beschreibung": "WaveformSine Class",
+              "LocalServer32": null,
+              "InprocServer32": "C:\\Program Files\\Common Files\\Polytec\\COM\\PolyWaveforms.dll",
+              "InprocServer32_pfad": "C:\\Program Files\\Common Files\\Polytec\\COM\\PolyWaveforms.dll",
+              "InprocServer32_threadingmodel": "Both",
+              "TypeLib": "{A2D3E461-6A14-4E9E-90B5-7B540591EF59}",
+              "AppID": null
+            },
+            "32_bit": {
+              "vorhanden": true,
+              "clsid": "{E5F973AA-1E93-47D5-870D-DF6935F5D73B}",
+              "beschreibung": "WaveformSine Class",
+              "LocalServer32": null,
+              "InprocServer32": "C:\\Program Files (x86)\\Common Files\\Polytec\\COM\\PolyWaveforms.dll",
+              "InprocServer32_pfad": "C:\\Program Files (x86)\\Common Files\\Polytec\\COM\\PolyWaveforms.dll",
+              "InprocServer32_threadingmodel": "Both",
+              "TypeLib": "{A2D3E461-6A14-4E9E-90B5-7B540591EF59}",
+              "AppID": null
+            }
+          }
+        }
+      },
+      "auffaelligkeiten": [],
+      "dauer_s": 0.0,
+      "exception": null
+    },
+    {
+      "id": "P1-2-dateien",
+      "stufe": "0",
+      "titel": "Serverdateien",
+      "beleg_ref": "I5 7.3; 10 P1-2",
+      "status": "ok",
+      "kernwert": "4 Serverdatei(en) geprüft",
+      "hinweis": "",
+      "werte": {
+        "server_dateien": [
+          {
+            "pfad": "C:\\Program Files\\Common Files\\Polytec\\COM\\PolyFile.dll",
+            "vorhanden": true,
+            "groesse_byte": 26228976,
+            "pe_maschine": "x64 (64 Bit)",
+            "dateiversion": "6.6.26383.0"
+          },
+          {
+            "pfad": "C:\\Program Files (x86)\\Common Files\\Polytec\\COM\\PolyFile.dll",
+            "vorhanden": true,
+            "ordner_hinweis": "Program Files (x86): spricht für 32-Bit-Installation",
+            "groesse_byte": 12348144,
+            "pe_maschine": "x86 (32 Bit)",
+            "dateiversion": "6.6.26383.0"
+          },
+          {
+            "pfad": "C:\\Program Files\\Common Files\\Polytec\\COM\\PolyWaveforms.dll",
+            "vorhanden": true,
+            "groesse_byte": 483568,
+            "pe_maschine": "x64 (64 Bit)",
+            "dateiversion": "4.9.26383.0"
+          },
+          {
+            "pfad": "C:\\Program Files (x86)\\Common Files\\Polytec\\COM\\PolyWaveforms.dll",
+            "vorhanden": true,
+            "ordner_hinweis": "Program Files (x86): spricht für 32-Bit-Installation",
+            "groesse_byte": 453872,
+            "pe_maschine": "x86 (32 Bit)",
+            "dateiversion": "4.9.26383.0"
+          }
+        ]
+      },
+      "auffaelligkeiten": [],
+      "dauer_s": 0.015,
+      "exception": null
+    },
+    {
+      "id": "P1-4-typelibs-registry",
+      "stufe": "0",
+      "titel": "Typbibliotheken (Registry)",
+      "beleg_ref": "I5 1.2; 10 P1-4",
+      "status": "ok",
+      "kernwert": "186 Polytec-Typbibliothek(en) von 946 gesichtet",
+      "hinweis": "",
+      "werte": {
+        "gesamt_gesehen": 946,
+        "treffer": [
+          {
+            "sicht": "64_bit",
+            "guid": "{0381E8E6-9175-44BD-9993-7338132F2754}",
+            "version": "1.0",
+            "name": "Polytec PolyAcquisition Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYAC~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYAC~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{06226B87-BD70-4041-A55B-ECD2B47F175A}",
+            "version": "1.0",
+            "name": "Polytec Shell Extension Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSH~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSH~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{068599C7-B111-4223-A78C-DCF0411797D1}",
+            "version": "1.0",
+            "name": "Polytec MDrive Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\MDrive.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{07B59BE6-A0F1-4B9C-ACEB-F68719C36488}",
+            "version": "3.0",
+            "name": "Polytec IO VibController Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.0.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.0.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{07B59BE6-A0F1-4B9C-ACEB-F68719C36488}",
+            "version": "3.1",
+            "name": "Polytec IO VibController Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.1.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{07B59BE6-A0F1-4B9C-ACEB-F68719C36488}",
+            "version": "3.2",
+            "name": "Polytec IO VibController Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.2.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.2.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{07B59BE6-A0F1-4B9C-ACEB-F68719C36488}",
+            "version": "3.4",
+            "name": "Polytec IO VibController Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.4.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.4.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{101A6076-C9B9-4031-A9EA-90A39B7524F2}",
+            "version": "1.0",
+            "name": "Polytec PolyLaserFinder Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYLA~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYLA~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{20D7E0EE-3BF0-405D-8C84-0DB364FC70EF}",
+            "version": "1.0",
+            "name": "Polytec PolyParser Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYPA~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYPA~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{2D8C6635-A0C7-4251-A257-7347F7D842A1}",
+            "version": "3.0",
+            "name": "Polytec IO VibInterfaces Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.0.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.0.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{2D8C6635-A0C7-4251-A257-7347F7D842A1}",
+            "version": "3.1",
+            "name": "Polytec IO VibInterfaces Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.1.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{2D8C6635-A0C7-4251-A257-7347F7D842A1}",
+            "version": "3.2",
+            "name": "Polytec IO VibInterfaces Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.2.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.2.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{2D8C6635-A0C7-4251-A257-7347F7D842A1}",
+            "version": "3.4",
+            "name": "Polytec IO VibInterfaces Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.4.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.4.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{2E56C670-9F9A-4FBD-8670-9422C2864DF4}",
+            "version": "2.3",
+            "name": "Polytec IO TedsSensors Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.3.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.3.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{2E56C670-9F9A-4FBD-8670-9422C2864DF4}",
+            "version": "2.4",
+            "name": "Polytec IO TedsSensors Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.4.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{2E56C670-9F9A-4FBD-8670-9422C2864DF4}",
+            "version": "2.5",
+            "name": "Polytec IO TedsSensors Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.5.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.5.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{2E56C670-9F9A-4FBD-8670-9422C2864DF4}",
+            "version": "2.6",
+            "name": "Polytec IO TedsSensors Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.6.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.6.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{2F620863-6635-11D3-B445-00105AABAF31}",
+            "version": "4.3",
+            "name": "ME'scopeVES File Creation DLL",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\VES_File.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{307FA7F3-5ED1-43B2-A345-AAE654891545}",
+            "version": "1.0",
+            "name": "Polytec PolyCompoundFile Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYCO~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYCO~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{3818DB01-E57E-4443-9A1D-AC4B23E830EC}",
+            "version": "1.0",
+            "name": "Polytec PolyAlignment Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYAL~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYAL~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{3BF51558-A1C2-44CC-BA55-FA261DE1965E}",
+            "version": "1.0",
+            "name": "Polytec Ethernet Service",
+            "dateien": {
+              "0/win64": "C:\\Program Files\\Common Files\\Polytec\\Service\\2.5\\PolyEthernetService.exe"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{450A9894-D9C9-11D1-9966-0000F840FC5E}",
+            "version": "1.0",
+            "name": "ActiveDSO ActiveX Control module",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\ACTIVE~1.OCX"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{48C786C7-C591-480C-9F89-9271B3BE13CC}",
+            "version": "1.0",
+            "name": "Polytec Ethernet Service",
+            "dateien": {
+              "0/win64": "C:\\Program Files\\Common Files\\Polytec\\Service\\2.4\\PolyEthernetService.exe"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{4DCF4C92-E1C5-47CB-B409-9E68C8BA4662}",
+            "version": "1.0",
+            "name": "Polytec PolyAtfxExport Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYAT~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYAT~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{53D4F9AB-9B83-40F5-BE0C-E155C88B67A7}",
+            "version": "1.0",
+            "name": "Polytec PolyHardlock Type Library",
+            "dateien": {
+              "0/win32": "C:\\Program Files (x86)\\Common Files\\Polytec\\COM\\PolyHardlock.dll",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYHA~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{541A9FB9-A881-4C5F-822D-C8EC5F091CE1}",
+            "version": "1.0",
+            "name": "E7XX_GCS_COM 1.0 Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\E7XX_G~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\E7XX_G~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{54AAF207-B71A-45F2-9915-CF2FEAE3C70F}",
+            "version": "1.0",
+            "name": "Polytec PolyVideoSimulation Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYVI~3.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYVI~3.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{55F62BF3-8202-11D3-9B2A-00104BB92514}",
+            "version": "1.0",
+            "name": "Polytec CommInterface Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\COMMIN~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\COMMIN~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{58E59DE7-08B4-4975-AEBC-206321D07689}",
+            "version": "1.0",
+            "name": "Polytec PolyDigitalFilters Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYDI~2.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYDI~2.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{5A92CDF6-0FEB-48C5-9A8F-3C37D46ABD36}",
+            "version": "1.1",
+            "name": "",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYMA~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{5BF46737-4121-4B92-AF7A-BF07871BDAE3}",
+            "version": "1.0",
+            "name": "Polytec PolyTimer Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYTI~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYTI~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{6155D92B-9DC1-489C-8211-6B8C2A5F17BF}",
+            "version": "1.0",
+            "name": "PolyImageProcessingLib",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYIM~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{654FDEA6-2325-4CA8-9F2A-1DEF2DDCDFD5}",
+            "version": "1.0",
+            "name": "Polytec PolyVideoWDM Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYVI~4.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYVI~4.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{664D2F1D-38CF-40DA-9747-54ED8B98A735}",
+            "version": "1.0",
+            "name": "Polytec PolyUFFImport Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYUF~2.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYUF~2.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{67EF2634-7D73-43D6-AA45-2A3117CF2419}",
+            "version": "1.0",
+            "name": "Polytec PolyMEScopeExport ActiveX Control Module",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYME~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYME~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{68B16ED3-3DD9-11D4-84CF-0001020A663A}",
+            "version": "1.0",
+            "name": "Polytec KoraRTAnalysis Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\KORART~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{6DD61A76-3DF2-43D6-8FB7-087DA3F5AFD6}",
+            "version": "1.0",
+            "name": "Polytec PolyVideoBCAM Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYVI~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYVI~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{704CEAEF-B308-4423-849D-BB31EB61BFFF}",
+            "version": "1.0",
+            "name": "EtelLib",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\Etel.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{72A628D3-AED2-11D3-A6A0-00104BB924E4}",
+            "version": "1.0",
+            "name": "Polytec PolyNiDaq Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYNI~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYNI~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{7BEA4D71-71C2-11D4-9093-0001020A66CB}",
+            "version": "1.0",
+            "name": "Polytec KoraPiezo Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\KORAPI~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{7C2047A4-47F1-4EEF-BAF5-082E4AAB8B38}",
+            "version": "1.0",
+            "name": "IntelCpLSPCONSvcLib",
+            "dateien": {
+              "0/win64": "C:\\Windows\\System32\\DriverStore\\FileRepository\\igdlh64.inf_amd64_1b626e0655b19580\\IntelCpHDCPSvc.exe"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{802FF516-808E-11D3-9B28-00104BB92514}",
+            "version": "1.0",
+            "name": "Polytec Vibrometer Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\VIBROM~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\VIBROM~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{8429111D-9DCC-47A1-90CE-DC92C1D8A5F7}",
+            "version": "1.0",
+            "name": "Polytec Mercury Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\Mercury.dll",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\Mercury.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{847500B8-F0F9-4C0D-892B-127817D5940C}",
+            "version": "1.0",
+            "name": "Polytec Nanotec Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\Nanotec.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{875BF55A-D88D-40A0-B44D-AF0B5F3C4EFC}",
+            "version": "1.0",
+            "name": "Polytec ZStage Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\Trinamic.dll\\2"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{8A3503DB-5310-4F38-90A2-516FCB605A3F}",
+            "version": "1.0",
+            "name": "Polytec PolyScope Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSC~3.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSC~3.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{8BA5195B-6CF6-460F-8199-6BD5A95D029C}",
+            "version": "1.0",
+            "name": "AerotechLib",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\Aerotech.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{9286552C-E92A-4083-9ACB-7666298E12A8}",
+            "version": "1.0",
+            "name": "Polytec PolySpectrumDaq Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSP~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSP~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{93502E9B-DDCE-4EC4-84E2-C27D339B96C9}",
+            "version": "1.0",
+            "name": "Polytec PolyDigitalFilterDesign Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYDI~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYDI~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{950099D9-5E65-4382-B28F-BAEDEADCF730}",
+            "version": "1.0",
+            "name": "Polytec PolyScanRenderer Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSC~2.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSC~2.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{990EBDD4-5DCF-4BCE-AF6D-8D11888BA3E9}",
+            "version": "1.0",
+            "name": "Polytec PolyDAQController MSA Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYDA~2.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYDA~2.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{99825ED0-3394-11D3-8EAD-00104BB924B2}",
+            "version": "1.0",
+            "name": "Polytec PhysicalUnit Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\PHYSIC~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\PHYSIC~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{99825EE0-3394-11D3-8EAD-00104BB924B2}",
+            "version": "1.0",
+            "name": "Polytec WindowFunction Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\WINDOW~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\WINDOW~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{9AA96A2F-1EED-4201-B596-2AD2F1D45057}",
+            "version": "1.0",
+            "name": "Polytec TmsReport 1.0 Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\POLYTE~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{A044FEC0-CFEA-11D3-A6BF-00104BB924E4}",
+            "version": "1.0",
+            "name": "",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYDA~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{A2D3E461-6A14-4E9E-90B5-7B540591EF59}",
+            "version": "1.0",
+            "name": "Polytec PolyWaveforms Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYWA~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYWA~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{A65C100F-C1FE-4C3B-9C43-46F4FB4C3BC3}",
+            "version": "1.0",
+            "name": "Polytec PolyFile Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\PolyFile.dll",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\PolyFile.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{A921B062-5C20-4A1D-86FF-CFE1AFDD92D8}",
+            "version": "1.0",
+            "name": "Polytec PolyCamera Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYCA~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYCA~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{AA2C9885-4E77-43F8-B9F0-23643E5DF4FC}",
+            "version": "1.0",
+            "name": "Polytec PolySigPro Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSI~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSI~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{AC3AF14B-DAC1-458B-8F26-43E548F21738}",
+            "version": "1.0",
+            "name": "Polytec Trinamic Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\Trinamic.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{B20ABC70-3858-1110-8F7F-0000861EF01D}",
+            "version": "1.0",
+            "name": "WinWrap Basic v10 Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\WINWRA~1\\WW10_C64.OCX"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{B71A4F33-8EDF-4465-83BC-314A93D0AC32}",
+            "version": "1.0",
+            "name": "Polytec PolyPositioningDevice Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYPO~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYPO~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{BAE65420-1BBC-4EA7-9F7F-214239DCEC33}",
+            "version": "1.0",
+            "name": "Polytec PolySignalGenerator Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSI~3.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSI~3.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{BD86A636-2D28-40C0-9ED4-701375B394F3}",
+            "version": "1.0",
+            "name": "Polytec PolyVideoGigE Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYVI~2.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYVI~2.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{C358C8AC-7FD1-41EE-B034-D0518A314017}",
+            "version": "1.0",
+            "name": "Polytec PolyFrontEnd Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYFR~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYFR~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{C4A43400-5BEF-44F0-964E-4C44517A06E9}",
+            "version": "1.0",
+            "name": "Polytec PolyDeviceSupervisor Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYDE~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYDE~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{C4DF02F3-944B-11D4-90B7-0001020A66CB}",
+            "version": "1.0",
+            "name": "Polytec KoraHWConfiguration Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\KORAHW~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{C9E15A43-8BF8-4B54-AA7B-594F0AF82EA6}",
+            "version": "4.7",
+            "name": "Polytec IO Vibrometer Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_4.7.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_4.7.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{C9E15A43-8BF8-4B54-AA7B-594F0AF82EA6}",
+            "version": "4.8",
+            "name": "Polytec IO Vibrometer Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_4.8.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{C9E15A43-8BF8-4B54-AA7B-594F0AF82EA6}",
+            "version": "4.9",
+            "name": "Polytec IO Vibrometer Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_4.9.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_4.9.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{C9E15A43-8BF8-4B54-AA7B-594F0AF82EA6}",
+            "version": "5.1",
+            "name": "Polytec IO Vibrometer Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_5.1.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_5.1.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{CE68D434-5052-431F-BE75-F3C23458127A}",
+            "version": "1.0",
+            "name": "Polytec PolySignal Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSI~2.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSI~2.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{D1C66EE2-5A5A-11D5-91C4-0001020A66CB}",
+            "version": "1.0",
+            "name": "Polytec KoraAcquisitionBCAM Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\KORAAC~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{D28C7599-56F5-409C-A307-A9A4797ECCB9}",
+            "version": "1.0",
+            "name": "Polytec PolyUFFExport Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYUF~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYUF~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "3.2",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_3.2.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_3.2.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "3.3",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_3.3.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_3.3.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "3.6",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_3.6.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "3.9",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_3.9.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "4.0",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_4.0.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_4.0.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "4.1",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_4.1.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "4.3",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_4.3.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_4.3.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{DA2DB89A-C676-4C30-AA8B-4BDEA6901480}",
+            "version": "1.0",
+            "name": "Polytec PolyBands Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYBA~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYBA~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{DABB7387-B3C2-4939-A6BF-205B098C5CAC}",
+            "version": "1.0",
+            "name": "Polytec Ethernet Service",
+            "dateien": {
+              "0/win64": "C:\\Program Files\\Common Files\\Polytec\\Service\\2.6\\PolyEthernetService.exe"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{DB2040F4-DDF9-4E4F-9FD1-46F5C482DC3C}",
+            "version": "1.0",
+            "name": "Polytec PolyScanHead Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSC~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSC~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{DD2F9C05-7790-4FFF-8EE8-4241246E8A67}",
+            "version": "1.0",
+            "name": "Polytec EnvelopeCalculator Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\ENVELO~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{DF5FD641-DBFA-4C75-A53D-1D81A0FA5447}",
+            "version": "1.0",
+            "name": "Polytec StrobeGenerator Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\STROBE~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{E1837635-2DFC-44CA-A431-64DF91E1AB79}",
+            "version": "1.0",
+            "name": "Polytec PolyBrowser Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYBR~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYBR~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{E44752C9-2D41-48A6-9B74-66D5B7505325}",
+            "version": "1.0",
+            "name": "Polytec PolyProperties Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYPR~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYPR~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{E68EA160-8AD4-11D3-8F08-00104BB924B2}",
+            "version": "1.0",
+            "name": "Polytec SignalDescription Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\SIGNAL~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\SIGNAL~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{EC48ABC8-9FD4-4339-B4A2-EF4EFB2B3266}",
+            "version": "1.0",
+            "name": "Polytec PolyInplane Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYIN~1.DLL"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{EE097937-355C-4D58-BE2B-F99FB3F9C133}",
+            "version": "1.0",
+            "name": "Scan Viewer ActiveX Control module",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\Polytec\\POLYTE~2.1\\POLYTE~1.OCX",
+              "0/win64": "C:\\PROGRA~1\\Polytec\\POLYTE~1.1\\POLYTE~1.OCX"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{F08ACE20-C7AD-46CA-8001-D5158D9B0224}",
+            "version": "1.0",
+            "name": "Polytec PolyMath Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\PolyMath.dll",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\PolyMath.dll"
+            }
+          },
+          {
+            "sicht": "64_bit",
+            "guid": "{F6B50100-8186-45EF-93FF-7E8A587C5CB7}",
+            "version": "1.0",
+            "name": "Polytec PolyTask Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\PolyTask.dll",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\PolyTask.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{0381E8E6-9175-44BD-9993-7338132F2754}",
+            "version": "1.0",
+            "name": "Polytec PolyAcquisition Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYAC~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYAC~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{06226B87-BD70-4041-A55B-ECD2B47F175A}",
+            "version": "1.0",
+            "name": "Polytec Shell Extension Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSH~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSH~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{068599C7-B111-4223-A78C-DCF0411797D1}",
+            "version": "1.0",
+            "name": "Polytec MDrive Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\MDrive.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{07B59BE6-A0F1-4B9C-ACEB-F68719C36488}",
+            "version": "3.0",
+            "name": "Polytec IO VibController Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.0.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.0.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{07B59BE6-A0F1-4B9C-ACEB-F68719C36488}",
+            "version": "3.1",
+            "name": "Polytec IO VibController Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.1.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{07B59BE6-A0F1-4B9C-ACEB-F68719C36488}",
+            "version": "3.2",
+            "name": "Polytec IO VibController Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.2.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.2.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{07B59BE6-A0F1-4B9C-ACEB-F68719C36488}",
+            "version": "3.4",
+            "name": "Polytec IO VibController Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.4.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibController\\v4.0_3.4.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibController.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{101A6076-C9B9-4031-A9EA-90A39B7524F2}",
+            "version": "1.0",
+            "name": "Polytec PolyLaserFinder Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYLA~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYLA~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{20D7E0EE-3BF0-405D-8C84-0DB364FC70EF}",
+            "version": "1.0",
+            "name": "Polytec PolyParser Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYPA~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYPA~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{2D8C6635-A0C7-4251-A257-7347F7D842A1}",
+            "version": "3.0",
+            "name": "Polytec IO VibInterfaces Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.0.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.0.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{2D8C6635-A0C7-4251-A257-7347F7D842A1}",
+            "version": "3.1",
+            "name": "Polytec IO VibInterfaces Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.1.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{2D8C6635-A0C7-4251-A257-7347F7D842A1}",
+            "version": "3.2",
+            "name": "Polytec IO VibInterfaces Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.2.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.2.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{2D8C6635-A0C7-4251-A257-7347F7D842A1}",
+            "version": "3.4",
+            "name": "Polytec IO VibInterfaces Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.4.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.VibInterfaces\\v4.0_3.4.0.0__e9bf5e9b998cc19f\\Polytec.IO.VibInterfaces.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{2E56C670-9F9A-4FBD-8670-9422C2864DF4}",
+            "version": "2.3",
+            "name": "Polytec IO TedsSensors Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.3.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.3.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{2E56C670-9F9A-4FBD-8670-9422C2864DF4}",
+            "version": "2.4",
+            "name": "Polytec IO TedsSensors Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.4.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{2E56C670-9F9A-4FBD-8670-9422C2864DF4}",
+            "version": "2.5",
+            "name": "Polytec IO TedsSensors Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.5.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.5.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{2E56C670-9F9A-4FBD-8670-9422C2864DF4}",
+            "version": "2.6",
+            "name": "Polytec IO TedsSensors Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.6.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.TedsSensors\\v4.0_2.6.0.0__e9bf5e9b998cc19f\\Polytec.IO.TedsSensors.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{2F620863-6635-11D3-B445-00105AABAF31}",
+            "version": "4.3",
+            "name": "ME'scopeVES File Creation DLL",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\VES_File.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{307FA7F3-5ED1-43B2-A345-AAE654891545}",
+            "version": "1.0",
+            "name": "Polytec PolyCompoundFile Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYCO~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYCO~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{3818DB01-E57E-4443-9A1D-AC4B23E830EC}",
+            "version": "1.0",
+            "name": "Polytec PolyAlignment Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYAL~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYAL~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{3BF51558-A1C2-44CC-BA55-FA261DE1965E}",
+            "version": "1.0",
+            "name": "Polytec Ethernet Service",
+            "dateien": {
+              "0/win64": "C:\\Program Files\\Common Files\\Polytec\\Service\\2.5\\PolyEthernetService.exe"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{450A9894-D9C9-11D1-9966-0000F840FC5E}",
+            "version": "1.0",
+            "name": "ActiveDSO ActiveX Control module",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\ACTIVE~1.OCX"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{48C786C7-C591-480C-9F89-9271B3BE13CC}",
+            "version": "1.0",
+            "name": "Polytec Ethernet Service",
+            "dateien": {
+              "0/win64": "C:\\Program Files\\Common Files\\Polytec\\Service\\2.4\\PolyEthernetService.exe"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{4DCF4C92-E1C5-47CB-B409-9E68C8BA4662}",
+            "version": "1.0",
+            "name": "Polytec PolyAtfxExport Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYAT~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYAT~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{53D4F9AB-9B83-40F5-BE0C-E155C88B67A7}",
+            "version": "1.0",
+            "name": "Polytec PolyHardlock Type Library",
+            "dateien": {
+              "0/win32": "C:\\Program Files (x86)\\Common Files\\Polytec\\COM\\PolyHardlock.dll",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYHA~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{541A9FB9-A881-4C5F-822D-C8EC5F091CE1}",
+            "version": "1.0",
+            "name": "E7XX_GCS_COM 1.0 Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\E7XX_G~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\E7XX_G~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{54AAF207-B71A-45F2-9915-CF2FEAE3C70F}",
+            "version": "1.0",
+            "name": "Polytec PolyVideoSimulation Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYVI~3.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYVI~3.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{55F62BF3-8202-11D3-9B2A-00104BB92514}",
+            "version": "1.0",
+            "name": "Polytec CommInterface Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\COMMIN~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\COMMIN~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{58E59DE7-08B4-4975-AEBC-206321D07689}",
+            "version": "1.0",
+            "name": "Polytec PolyDigitalFilters Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYDI~2.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYDI~2.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{5A92CDF6-0FEB-48C5-9A8F-3C37D46ABD36}",
+            "version": "1.1",
+            "name": "",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYMA~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{5BF46737-4121-4B92-AF7A-BF07871BDAE3}",
+            "version": "1.0",
+            "name": "Polytec PolyTimer Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYTI~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYTI~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{6155D92B-9DC1-489C-8211-6B8C2A5F17BF}",
+            "version": "1.0",
+            "name": "PolyImageProcessingLib",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYIM~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{654FDEA6-2325-4CA8-9F2A-1DEF2DDCDFD5}",
+            "version": "1.0",
+            "name": "Polytec PolyVideoWDM Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYVI~4.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYVI~4.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{664D2F1D-38CF-40DA-9747-54ED8B98A735}",
+            "version": "1.0",
+            "name": "Polytec PolyUFFImport Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYUF~2.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYUF~2.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{67EF2634-7D73-43D6-AA45-2A3117CF2419}",
+            "version": "1.0",
+            "name": "Polytec PolyMEScopeExport ActiveX Control Module",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYME~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYME~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{68B16ED3-3DD9-11D4-84CF-0001020A663A}",
+            "version": "1.0",
+            "name": "Polytec KoraRTAnalysis Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\KORART~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{6DD61A76-3DF2-43D6-8FB7-087DA3F5AFD6}",
+            "version": "1.0",
+            "name": "Polytec PolyVideoBCAM Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYVI~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYVI~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{704CEAEF-B308-4423-849D-BB31EB61BFFF}",
+            "version": "1.0",
+            "name": "EtelLib",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\Etel.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{72A628D3-AED2-11D3-A6A0-00104BB924E4}",
+            "version": "1.0",
+            "name": "Polytec PolyNiDaq Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYNI~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYNI~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{7BEA4D71-71C2-11D4-9093-0001020A66CB}",
+            "version": "1.0",
+            "name": "Polytec KoraPiezo Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\KORAPI~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{7C2047A4-47F1-4EEF-BAF5-082E4AAB8B38}",
+            "version": "1.0",
+            "name": "IntelCpLSPCONSvcLib",
+            "dateien": {
+              "0/win64": "C:\\Windows\\System32\\DriverStore\\FileRepository\\igdlh64.inf_amd64_1b626e0655b19580\\IntelCpHDCPSvc.exe"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{802FF516-808E-11D3-9B28-00104BB92514}",
+            "version": "1.0",
+            "name": "Polytec Vibrometer Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\VIBROM~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\VIBROM~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{8429111D-9DCC-47A1-90CE-DC92C1D8A5F7}",
+            "version": "1.0",
+            "name": "Polytec Mercury Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\Mercury.dll",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\Mercury.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{847500B8-F0F9-4C0D-892B-127817D5940C}",
+            "version": "1.0",
+            "name": "Polytec Nanotec Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\Nanotec.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{875BF55A-D88D-40A0-B44D-AF0B5F3C4EFC}",
+            "version": "1.0",
+            "name": "Polytec ZStage Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\Trinamic.dll\\2"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{8A3503DB-5310-4F38-90A2-516FCB605A3F}",
+            "version": "1.0",
+            "name": "Polytec PolyScope Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSC~3.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSC~3.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{8BA5195B-6CF6-460F-8199-6BD5A95D029C}",
+            "version": "1.0",
+            "name": "AerotechLib",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\Aerotech.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{9286552C-E92A-4083-9ACB-7666298E12A8}",
+            "version": "1.0",
+            "name": "Polytec PolySpectrumDaq Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSP~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSP~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{93502E9B-DDCE-4EC4-84E2-C27D339B96C9}",
+            "version": "1.0",
+            "name": "Polytec PolyDigitalFilterDesign Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYDI~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYDI~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{950099D9-5E65-4382-B28F-BAEDEADCF730}",
+            "version": "1.0",
+            "name": "Polytec PolyScanRenderer Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSC~2.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSC~2.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{990EBDD4-5DCF-4BCE-AF6D-8D11888BA3E9}",
+            "version": "1.0",
+            "name": "Polytec PolyDAQController MSA Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYDA~2.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYDA~2.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{99825ED0-3394-11D3-8EAD-00104BB924B2}",
+            "version": "1.0",
+            "name": "Polytec PhysicalUnit Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\PHYSIC~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\PHYSIC~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{99825EE0-3394-11D3-8EAD-00104BB924B2}",
+            "version": "1.0",
+            "name": "Polytec WindowFunction Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\WINDOW~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\WINDOW~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{9AA96A2F-1EED-4201-B596-2AD2F1D45057}",
+            "version": "1.0",
+            "name": "Polytec TmsReport 1.0 Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\POLYTE~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{A044FEC0-CFEA-11D3-A6BF-00104BB924E4}",
+            "version": "1.0",
+            "name": "",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYDA~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{A2D3E461-6A14-4E9E-90B5-7B540591EF59}",
+            "version": "1.0",
+            "name": "Polytec PolyWaveforms Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYWA~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYWA~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{A65C100F-C1FE-4C3B-9C43-46F4FB4C3BC3}",
+            "version": "1.0",
+            "name": "Polytec PolyFile Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\PolyFile.dll",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\PolyFile.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{A921B062-5C20-4A1D-86FF-CFE1AFDD92D8}",
+            "version": "1.0",
+            "name": "Polytec PolyCamera Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYCA~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYCA~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{AA2C9885-4E77-43F8-B9F0-23643E5DF4FC}",
+            "version": "1.0",
+            "name": "Polytec PolySigPro Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSI~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSI~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{AC3AF14B-DAC1-458B-8F26-43E548F21738}",
+            "version": "1.0",
+            "name": "Polytec Trinamic Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\Trinamic.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{B20ABC70-3858-1110-8F7F-0000861EF01D}",
+            "version": "1.0",
+            "name": "WinWrap Basic v10 Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\WINWRA~1\\WW10_C64.OCX"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{B71A4F33-8EDF-4465-83BC-314A93D0AC32}",
+            "version": "1.0",
+            "name": "Polytec PolyPositioningDevice Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYPO~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYPO~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{BAE65420-1BBC-4EA7-9F7F-214239DCEC33}",
+            "version": "1.0",
+            "name": "Polytec PolySignalGenerator Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSI~3.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSI~3.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{BD86A636-2D28-40C0-9ED4-701375B394F3}",
+            "version": "1.0",
+            "name": "Polytec PolyVideoGigE Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYVI~2.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYVI~2.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{C358C8AC-7FD1-41EE-B034-D0518A314017}",
+            "version": "1.0",
+            "name": "Polytec PolyFrontEnd Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYFR~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYFR~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{C4A43400-5BEF-44F0-964E-4C44517A06E9}",
+            "version": "1.0",
+            "name": "Polytec PolyDeviceSupervisor Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYDE~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYDE~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{C4DF02F3-944B-11D4-90B7-0001020A66CB}",
+            "version": "1.0",
+            "name": "Polytec KoraHWConfiguration Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\KORAHW~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{C9E15A43-8BF8-4B54-AA7B-594F0AF82EA6}",
+            "version": "4.7",
+            "name": "Polytec IO Vibrometer Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_4.7.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_4.7.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{C9E15A43-8BF8-4B54-AA7B-594F0AF82EA6}",
+            "version": "4.8",
+            "name": "Polytec IO Vibrometer Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_4.8.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{C9E15A43-8BF8-4B54-AA7B-594F0AF82EA6}",
+            "version": "4.9",
+            "name": "Polytec IO Vibrometer Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_4.9.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_4.9.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{C9E15A43-8BF8-4B54-AA7B-594F0AF82EA6}",
+            "version": "5.1",
+            "name": "Polytec IO Vibrometer Type Library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_5.1.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.Vibrometer\\v4.0_5.1.0.0__e9bf5e9b998cc19f\\Polytec.IO.Vibrometer.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{CE68D434-5052-431F-BE75-F3C23458127A}",
+            "version": "1.0",
+            "name": "Polytec PolySignal Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSI~2.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSI~2.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{D1C66EE2-5A5A-11D5-91C4-0001020A66CB}",
+            "version": "1.0",
+            "name": "Polytec KoraAcquisitionBCAM Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\KORAAC~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{D28C7599-56F5-409C-A307-A9A4797ECCB9}",
+            "version": "1.0",
+            "name": "Polytec PolyUFFExport Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYUF~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYUF~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "3.2",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_3.2.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_3.2.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "3.3",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_3.3.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_3.3.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "3.6",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_3.6.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "3.9",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_3.9.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "4.0",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_4.0.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_4.0.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "4.1",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_4.1.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{D310ABD1-18DB-4C85-ABB0-942E22D043BC}",
+            "version": "4.3",
+            "name": "Polytec IO FrontEnd class library",
+            "dateien": {
+              "0/win32": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_4.3.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll",
+              "0/win64": "%SystemRoot%\\Microsoft.Net\\assembly\\GAC_MSIL\\Polytec.IO.FrontEnd\\v4.0_4.3.0.0__e9bf5e9b998cc19f\\Polytec.IO.FrontEnd.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{DA2DB89A-C676-4C30-AA8B-4BDEA6901480}",
+            "version": "1.0",
+            "name": "Polytec PolyBands Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYBA~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYBA~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{DABB7387-B3C2-4939-A6BF-205B098C5CAC}",
+            "version": "1.0",
+            "name": "Polytec Ethernet Service",
+            "dateien": {
+              "0/win64": "C:\\Program Files\\Common Files\\Polytec\\Service\\2.6\\PolyEthernetService.exe"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{DB2040F4-DDF9-4E4F-9FD1-46F5C482DC3C}",
+            "version": "1.0",
+            "name": "Polytec PolyScanHead Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYSC~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYSC~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{DD2F9C05-7790-4FFF-8EE8-4241246E8A67}",
+            "version": "1.0",
+            "name": "Polytec EnvelopeCalculator Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\TMS\\ENVELO~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{DF5FD641-DBFA-4C75-A53D-1D81A0FA5447}",
+            "version": "1.0",
+            "name": "Polytec StrobeGenerator Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\STROBE~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{E1837635-2DFC-44CA-A431-64DF91E1AB79}",
+            "version": "1.0",
+            "name": "Polytec PolyBrowser Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYBR~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYBR~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{E44752C9-2D41-48A6-9B74-66D5B7505325}",
+            "version": "1.0",
+            "name": "Polytec PolyProperties Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\POLYPR~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYPR~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{E68EA160-8AD4-11D3-8F08-00104BB924B2}",
+            "version": "1.0",
+            "name": "Polytec SignalDescription Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\SIGNAL~1.DLL",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\SIGNAL~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{EC48ABC8-9FD4-4339-B4A2-EF4EFB2B3266}",
+            "version": "1.0",
+            "name": "Polytec PolyInplane Type Library",
+            "dateien": {
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\POLYIN~1.DLL"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{EE097937-355C-4D58-BE2B-F99FB3F9C133}",
+            "version": "1.0",
+            "name": "Scan Viewer ActiveX Control module",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\Polytec\\POLYTE~2.1\\POLYTE~1.OCX",
+              "0/win64": "C:\\PROGRA~1\\Polytec\\POLYTE~1.1\\POLYTE~1.OCX"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{F08ACE20-C7AD-46CA-8001-D5158D9B0224}",
+            "version": "1.0",
+            "name": "Polytec PolyMath Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\PolyMath.dll",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\PolyMath.dll"
+            }
+          },
+          {
+            "sicht": "32_bit",
+            "guid": "{F6B50100-8186-45EF-93FF-7E8A587C5CB7}",
+            "version": "1.0",
+            "name": "Polytec PolyTask Type Library",
+            "dateien": {
+              "0/win32": "C:\\PROGRA~2\\COMMON~1\\Polytec\\COM\\PolyTask.dll",
+              "0/win64": "C:\\PROGRA~1\\COMMON~1\\Polytec\\COM\\PolyTask.dll"
+            }
+          }
+        ]
+      },
+      "auffaelligkeiten": [],
+      "dauer_s": 0.235,
+      "exception": null
+    },
+    {
+      "id": "P1-3-verzeichnisse",
+      "stufe": "0",
+      "titel": "Polytec-Verzeichnisse",
+      "beleg_ref": "I5 10 P1-3",
+      "status": "ok",
+      "kernwert": "4 Verzeichnis(se) vorhanden",
+      "hinweis": "",
+      "werte": {
+        "verzeichnisse": {
+          "%ProgramFiles%\\Polytec": {
+            "vorhanden": true,
+            "eintraege": [
+              {
+                "name": "Polytec Configuration Tool 2.3",
+                "ordner": true
+              },
+              {
+                "name": "Polytec Diagnostic Report 1.6",
+                "ordner": true
+              },
+              {
+                "name": "Polytec File Access 6.3",
+                "ordner": true
+              },
+              {
+                "name": "Polytec File Access 6.4",
+                "ordner": true
+              },
+              {
+                "name": "Polytec File Access 6.5",
+                "ordner": true
+              },
+              {
+                "name": "Polytec File Access 6.6",
+                "ordner": true
+              },
+              {
+                "name": "Polytec Scan Viewer 3.1",
+                "ordner": true
+              },
+              {
+                "name": "Polytec Strain Processor 2.9",
+                "ordner": true
+              },
+              {
+                "name": "Polytec Strain Processor 3.0",
+                "ordner": true
+              },
+              {
+                "name": "Polytec Strain Processor 3.1",
+                "ordner": true
+              },
+              {
+                "name": "PSV 10.2",
+                "ordner": true
+              },
+              {
+                "name": "PSV 10.3",
+                "ordner": true
+              },
+              {
+                "name": "PSV 10.4",
+                "ordner": true
+              },
+              {
+                "name": "TMS 4.5",
+                "ordner": true
+              },
+              {
+                "name": "TMS 4.6",
+                "ordner": true
+              },
+              {
+                "name": "TMS Viewer 4.2",
+                "ordner": true
+              },
+              {
+                "name": "Vibrometer Service Tool 1.7",
+                "ordner": true
+              }
+            ]
+          },
+          "%ProgramFiles(x86)%\\Polytec": {
+            "vorhanden": true,
+            "eintraege": [
+              {
+                "name": "Polytec Diagnostic Report 1.5",
+                "ordner": true
+              },
+              {
+                "name": "Polytec Scan Viewer 3.1",
+                "ordner": true
+              },
+              {
+                "name": "Polytec Update 1.1",
+                "ordner": true
+              },
+              {
+                "name": "Polytec Update 1.2",
+                "ordner": true
+              }
+            ]
+          },
+          "%CommonProgramFiles%\\Polytec\\COM": {
+            "vorhanden": true,
+            "eintraege": [
+              {
+                "name": "ActiveDSO.ocx",
+                "ordner": false,
+                "groesse_byte": 913920
+              },
+              {
+                "name": "CommInterface.dll",
+                "ordner": false,
+                "groesse_byte": 377584
+              },
+              {
+                "name": "E7XX_GCS_COM_x64.dll",
+                "ordner": false,
+                "groesse_byte": 3260928
+              },
+              {
+                "name": "Mercury.dll",
+                "ordner": false,
+                "groesse_byte": 5524208
+              },
+              {
+                "name": "mercuryuserstages2.dat",
+                "ordner": false,
+                "groesse_byte": 6144
+              },
+              {
+                "name": "niFixup.dll",
+                "ordner": false,
+                "groesse_byte": 38912
+              },
+              {
+                "name": "PhysicalUnit.dll",
+                "ordner": false,
+                "groesse_byte": 362736
+              },
+              {
+                "name": "PI_GCS2_DLL_x64.dll",
+                "ordner": false,
+                "groesse_byte": 13366720
+              },
+              {
+                "name": "PI_Mercury_GCS_DLL_X64.dll",
+                "ordner": false,
+                "groesse_byte": 895488
+              },
+              {
+                "name": "PI_USERSTAGES2.dat",
+                "ordner": false,
+                "groesse_byte": 34816
+              },
+              {
+                "name": "pistages3.db",
+                "ordner": false,
+                "groesse_byte": 46825472
+              },
+              {
+                "name": "PolyAcquisition.dll",
+                "ordner": false,
+                "groesse_byte": 25217264
+              },
+              {
+                "name": "PolyAlignment.dll",
+                "ordner": false,
+                "groesse_byte": 4565744
+              },
+              {
+                "name": "polyampdemod_v142_x64.dll",
+                "ordner": false,
+                "groesse_byte": 620784
+              },
+              {
+                "name": "PolyAtfxExport.dll",
+                "ordner": false,
+                "groesse_byte": 16898800
+              },
+              {
+                "name": "PolyBands.dll",
+                "ordner": false,
+                "groesse_byte": 639216
+              },
+              {
+                "name": "PolyBrowser2.dll",
+                "ordner": false,
+                "groesse_byte": 11887856
+              },
+              {
+                "name": "PolyCamera.dll",
+                "ordner": false,
+                "groesse_byte": 236784
+              },
+              {
+                "name": "PolyCompoundFile.dll",
+                "ordner": false,
+                "groesse_byte": 997104
+              },
+              {
+                "name": "PolyDacCio.dll",
+                "ordner": false,
+                "groesse_byte": 257824
+              },
+              {
+                "name": "PolyDaqControllerMSA.dll",
+                "ordner": false,
+                "groesse_byte": 933616
+              },
+              {
+                "name": "PolyDeviceSupervisor.dll",
+                "ordner": false,
+                "groesse_byte": 5763824
+              },
+              {
+                "name": "PolyDigitalFilterDesign.dll",
+                "ordner": false,
+                "groesse_byte": 260848
+              },
+              {
+                "name": "PolyDigitalFilters.dll",
+                "ordner": false,
+                "groesse_byte": 253168
+              },
+              {
+                "name": "PolyFile.dll",
+                "ordner": false,
+                "groesse_byte": 26228976
+              },
+              {
+                "name": "PolyFrontEnd.dll",
+                "ordner": false,
+                "groesse_byte": 1999600
+              },
+              {
+                "name": "PolyHardlock.dll",
+                "ordner": false,
+                "groesse_byte": 1222384
+              },
+              {
+                "name": "PolyImageProcessing.dll",
+                "ordner": false,
+                "groesse_byte": 5592816
+              },
+              {
+                "name": "PolyInplane.dll",
+                "ordner": false,
+                "groesse_byte": 2561264
+              },
+              {
+                "name": "PolyLaserFinder.dll",
+                "ordner": false,
+                "groesse_byte": 3008240
+              },
+              {
+                "name": "PolyMath.dll",
+                "ordner": false,
+                "groesse_byte": 56588016
+              },
+              {
+                "name": "PolyMAXpci.dll",
+                "ordner": false,
+                "groesse_byte": 254240
+              },
+              {
+                "name": "PolyMEScopeExport.dll",
+                "ordner": false,
+                "groesse_byte": 12269808
+              },
+              {
+                "name": "PolyNiDaq.dll",
+                "ordner": false,
+                "groesse_byte": 421104
+              },
+              {
+                "name": "PolyParser.dll",
+                "ordner": false,
+                "groesse_byte": 460016
+              },
+              {
+                "name": "PolyPositioningDevice.dll",
+                "ordner": false,
+                "groesse_byte": 1250032
+              },
+              {
+                "name": "PolyProperties.dll",
+                "ordner": false,
+                "groesse_byte": 1526512
+              },
+              {
+                "name": "PolyPureGEVWrapper2x_v143_x64.dll",
+                "ordner": false,
+                "groesse_byte": 970992
+              },
+              {
+                "name": "PolyPureGEVWrapper2x_v145_x64.dll",
+                "ordner": false,
+                "groesse_byte": 973552
+              },
+              {
+                "name": "PolyPureGEVWrapper4x_v143_x64.dll",
+                "ordner": false,
+                "groesse_byte": 976112
+              },
+              {
+                "name": "PolyPureGEVWrapper4x_v145_x64.dll",
+                "ordner": false,
+                "groesse_byte": 976112
+              },
+              {
+                "name": "PolyPureGEVWrapper6x_v143_x64.dll",
+                "ordner": false,
+                "groesse_byte": 976112
+              },
+              {
+                "name": "PolyPureGEVWrapper6x_v145_x64.dll",
+                "ordner": false,
+                "groesse_byte": 975600
+              },
+              {
+                "name": "PolyPylonWrapper3x_v143_x64.dll",
+                "ordner": false,
+                "groesse_byte": 1009904
+              },
+              {
+                "name": "PolyPylonWrapper3x_v145_x64.dll",
+                "ordner": false,
+                "groesse_byte": 998128
+              },
+              {
+                "name": "PolyPylonWrapper4x_v143_x64.dll",
+                "ordner": false,
+                "groesse_byte": 1290992
+              },
+              {
+                "name": "PolyPylonWrapper4x_v145_x64.dll",
+                "ordner": false,
+                "groesse_byte": 1275632
+              },
+              {
+                "name": "PolyPylonWrapper5x_v143_x64.dll",
+                "ordner": false,
+                "groesse_byte": 1411824
+              },
+              {
+                "name": "PolyPylonWrapper5x_v145_x64.dll",
+                "ordner": false,
+                "groesse_byte": 1396464
+              },
+              {
+                "name": "PolyPylonWrapper6x_v143_x64.dll",
+                "ordner": false,
+                "groesse_byte": 1232624
+              },
+              {
+                "name": "PolyPylonWrapper6x_v145_x64.dll",
+                "ordner": false,
+                "groesse_byte": 1223408
+              },
+              {
+                "name": "PolyPylonWrapper7x_v143_x64.dll",
+                "ordner": false,
+                "groesse_byte": 1232624
+              },
+              {
+                "name": "PolyPylonWrapper7x_v145_x64.dll",
+                "ordner": false,
+                "groesse_byte": 1223408
+              },
+              {
+                "name": "PolyScanHead.dll",
+                "ordner": false,
+                "groesse_byte": 9730288
+              },
+              {
+                "name": "PolyScanRenderer.dll",
+                "ordner": false,
+                "groesse_byte": 5057776
+              },
+              {
+                "name": "PolyScope.dll",
+                "ordner": false,
+                "groesse_byte": 542960
+              },
+              {
+                "name": "PolyShellExt.dll",
+                "ordner": false,
+                "groesse_byte": 18939632
+              },
+              {
+                "name": "PolySignal.dll",
+                "ordner": false,
+                "groesse_byte": 966896
+              },
+              {
+                "name": "PolySignalGenerator.dll",
+                "ordner": false,
+                "groesse_byte": 1687792
+              },
+              {
+                "name": "PolySigPro.dll",
+                "ordner": false,
+                "groesse_byte": 1158896
+              },
+              {
+                "name": "PolySpectrumDaq.dll",
+                "ordner": false,
+                "groesse_byte": 332016
+              },
+              {
+                "name": "PolyTask.dll",
+                "ordner": false,
+                "groesse_byte": 331504
+              },
+              {
+                "name": "PolyTimer.dll",
+                "ordner": false,
+                "groesse_byte": 84208
+              },
+              {
+                "name": "PolyUFFExport.dll",
+                "ordner": false,
+                "groesse_byte": 12466416
+              },
+              {
+                "name": "PolyUFFImport.dll",
+                "ordner": false,
+                "groesse_byte": 10199792
+              },
+              {
+                "name": "PolyVideoBCAM.dll",
+                "ordner": false,
+                "groesse_byte": 3126512
+              },
+              {
+                "name": "PolyVideoGigE.dll",
+                "ordner": false,
+                "groesse_byte": 5666544
+              },
+              {
+                "name": "PolyVideoSimulation.dll",
+                "ordner": false,
+                "groesse_byte": 4475632
+              },
+              {
+                "name": "PolyVideoWDM.dll",
+                "ordner": false,
+                "groesse_byte": 2719984
+              },
+              {
+                "name": "PolyVimbaWrapper_v143_x64.dll",
+                "ordner": false,
+                "groesse_byte": 520944
+              },
+              {
+                "name": "PolyVimbaWrapper_v145_x64.dll",
+                "ordner": false,
+                "groesse_byte": 510192
+              },
+              {
+                "name": "PolyWaveforms.dll",
+                "ordner": false,
+                "groesse_byte": 483568
+              },
+              {
+                "name": "SignalDescription.dll",
+                "ordner": false,
+                "groesse_byte": 324336
+              },
+              {
+                "name": "StrobeGenerator.dll",
+                "ordner": false,
+                "groesse_byte": 1441008
+              },
+              {
+                "name": "TMS",
+                "ordner": true
+              },
+              {
+                "name": "Trinamic.dll",
+                "ordner": false,
+                "groesse_byte": 1211632
+              },
+              {
+                "name": "Vibrometer.dll",
+                "ordner": false,
+                "groesse_byte": 822000
+              },
+              {
+                "name": "WindowFunction.dll",
+                "ordner": false,
+                "groesse_byte": 239344
+              }
+            ]
+          },
+          "%CommonProgramFiles(x86)%\\Polytec\\COM": {
+            "vorhanden": true,
+            "eintraege": [
+              {
+                "name": "ActiveDSO.ocx",
+                "ordner": false,
+                "groesse_byte": 692224
+              },
+              {
+                "name": "CommInterface.dll",
+                "ordner": false,
+                "groesse_byte": 359152
+              },
+              {
+                "name": "E7XX_GCS_COM.dll",
+                "ordner": false,
+                "groesse_byte": 2508288
+              },
+              {
+                "name": "Mercury.dll",
+                "ordner": false,
+                "groesse_byte": 3833072
+              },
+              {
+                "name": "mercuryuserstages2.dat",
+                "ordner": false,
+                "groesse_byte": 6144
+              },
+              {
+                "name": "PhysicalUnit.dll",
+                "ordner": false,
+                "groesse_byte": 330992
+              },
+              {
+                "name": "PI_GCS2_DLL.dll",
+                "ordner": false,
+                "groesse_byte": 10874808
+              },
+              {
+                "name": "PI_Mercury_GCS_DLL.dll",
+                "ordner": false,
+                "groesse_byte": 739840
+              },
+              {
+                "name": "PolyAcquisition.dll",
+                "ordner": false,
+                "groesse_byte": 11432176
+              },
+              {
+                "name": "PolyAlignment.dll",
+                "ordner": false,
+                "groesse_byte": 3791088
+              },
+              {
+                "name": "polyampdemod_v142_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 582896
+              },
+              {
+                "name": "PolyAtfxExport.dll",
+                "ordner": false,
+                "groesse_byte": 13925616
+              },
+              {
+                "name": "PolyBands.dll",
+                "ordner": false,
+                "groesse_byte": 615664
+              },
+              {
+                "name": "PolyBrowser2.dll",
+                "ordner": false,
+                "groesse_byte": 10586864
+              },
+              {
+                "name": "PolyCamera.dll",
+                "ordner": false,
+                "groesse_byte": 224496
+              },
+              {
+                "name": "PolyCompoundFile.dll",
+                "ordner": false,
+                "groesse_byte": 948976
+              },
+              {
+                "name": "PolyDaqControllerMSA.dll",
+                "ordner": false,
+                "groesse_byte": 909552
+              },
+              {
+                "name": "PolyDeviceSupervisor.dll",
+                "ordner": false,
+                "groesse_byte": 4032240
+              },
+              {
+                "name": "PolyDigitalFilterDesign.dll",
+                "ordner": false,
+                "groesse_byte": 247024
+              },
+              {
+                "name": "PolyDigitalFilters.dll",
+                "ordner": false,
+                "groesse_byte": 238320
+              },
+              {
+                "name": "PolyFile.dll",
+                "ordner": false,
+                "groesse_byte": 12348144
+              },
+              {
+                "name": "PolyFrontEnd.dll",
+                "ordner": false,
+                "groesse_byte": 1866480
+              },
+              {
+                "name": "PolyHardlock.dll",
+                "ordner": false,
+                "groesse_byte": 1389296
+              },
+              {
+                "name": "PolyLaserFinder.dll",
+                "ordner": false,
+                "groesse_byte": 2220272
+              },
+              {
+                "name": "PolyMath.dll",
+                "ordner": false,
+                "groesse_byte": 37559024
+              },
+              {
+                "name": "PolyMEScopeExport.dll",
+                "ordner": false,
+                "groesse_byte": 10946800
+              },
+              {
+                "name": "PolyNiDaq.dll",
+                "ordner": false,
+                "groesse_byte": 392944
+              },
+              {
+                "name": "PolyParser.dll",
+                "ordner": false,
+                "groesse_byte": 435952
+              },
+              {
+                "name": "PolyPositioningDevice.dll",
+                "ordner": false,
+                "groesse_byte": 1161968
+              },
+              {
+                "name": "PolyProperties.dll",
+                "ordner": false,
+                "groesse_byte": 1464560
+              },
+              {
+                "name": "PolyPureGEVWrapper2x_v143_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 878320
+              },
+              {
+                "name": "PolyPureGEVWrapper2x_v145_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 886512
+              },
+              {
+                "name": "PolyPureGEVWrapper4x_v143_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 881392
+              },
+              {
+                "name": "PolyPureGEVWrapper4x_v145_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 889584
+              },
+              {
+                "name": "PolyPureGEVWrapper6x_v143_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 881392
+              },
+              {
+                "name": "PolyPureGEVWrapper6x_v145_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 889072
+              },
+              {
+                "name": "PolyPylonWrapper3x_v143_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 860912
+              },
+              {
+                "name": "PolyPylonWrapper3x_v145_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 862448
+              },
+              {
+                "name": "PolyPylonWrapper4x_v143_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 1117424
+              },
+              {
+                "name": "PolyPylonWrapper4x_v145_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 1114352
+              },
+              {
+                "name": "PolyPylonWrapper5x_v143_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 1181936
+              },
+              {
+                "name": "PolyPylonWrapper5x_v145_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 1189616
+              },
+              {
+                "name": "PolyPylonWrapper6x_v143_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 1016048
+              },
+              {
+                "name": "PolyPylonWrapper6x_v145_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 1029872
+              },
+              {
+                "name": "PolyPylonWrapper7x_v143_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 1016560
+              },
+              {
+                "name": "PolyPylonWrapper7x_v145_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 1029872
+              },
+              {
+                "name": "PolyScanHead.dll",
+                "ordner": false,
+                "groesse_byte": 8479984
+              },
+              {
+                "name": "PolyScanRenderer.dll",
+                "ordner": false,
+                "groesse_byte": 4481776
+              },
+              {
+                "name": "PolyScope.dll",
+                "ordner": false,
+                "groesse_byte": 540400
+              },
+              {
+                "name": "PolyShellExt.dll",
+                "ordner": false,
+                "groesse_byte": 17682160
+              },
+              {
+                "name": "PolySignal.dll",
+                "ordner": false,
+                "groesse_byte": 927472
+              },
+              {
+                "name": "PolySignalGenerator.dll",
+                "ordner": false,
+                "groesse_byte": 1624304
+              },
+              {
+                "name": "PolySigPro.dll",
+                "ordner": false,
+                "groesse_byte": 1085168
+              },
+              {
+                "name": "PolySpectrumDaq.dll",
+                "ordner": false,
+                "groesse_byte": 317168
+              },
+              {
+                "name": "PolyTask.dll",
+                "ordner": false,
+                "groesse_byte": 315632
+              },
+              {
+                "name": "PolyTimer.dll",
+                "ordner": false,
+                "groesse_byte": 76016
+              },
+              {
+                "name": "PolyUFFExport.dll",
+                "ordner": false,
+                "groesse_byte": 11149040
+              },
+              {
+                "name": "PolyUFFImport.dll",
+                "ordner": false,
+                "groesse_byte": 8022768
+              },
+              {
+                "name": "PolyVideoBCAM.dll",
+                "ordner": false,
+                "groesse_byte": 2561264
+              },
+              {
+                "name": "PolyVideoGigE.dll",
+                "ordner": false,
+                "groesse_byte": 4828400
+              },
+              {
+                "name": "PolyVideoSimulation.dll",
+                "ordner": false,
+                "groesse_byte": 3907312
+              },
+              {
+                "name": "PolyVideoWDM.dll",
+                "ordner": false,
+                "groesse_byte": 2218736
+              },
+              {
+                "name": "PolyVimbaWrapper_v143_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 443120
+              },
+              {
+                "name": "PolyVimbaWrapper_v145_Win32.dll",
+                "ordner": false,
+                "groesse_byte": 460016
+              },
+              {
+                "name": "PolyWaveforms.dll",
+                "ordner": false,
+                "groesse_byte": 453872
+              },
+              {
+                "name": "SignalDescription.dll",
+                "ordner": false,
+                "groesse_byte": 298224
+              },
+              {
+                "name": "VES_File.dll",
+                "ordner": false,
+                "groesse_byte": 417792
+              },
+              {
+                "name": "Vibrometer.dll",
+                "ordner": false,
+                "groesse_byte": 781040
+              },
+              {
+                "name": "WindowFunction.dll",
+                "ordner": false,
+                "groesse_byte": 223984
+              }
+            ]
+          }
+        }
+      },
+      "auffaelligkeiten": [],
+      "dauer_s": 0.047,
+      "exception": null
+    },
+    {
+      "id": "P1-5-prozess",
+      "stufe": "0",
+      "titel": "Läuft PSV (Prozessliste)?",
+      "beleg_ref": "I5 10 P1-5",
+      "status": "ok",
+      "kernwert": "1 passende Prozesse",
+      "hinweis": "",
+      "werte": {
+        "psv_prozesse": [
+          {
+            "name": "PSV.exe",
+            "pid": "8932"
+          }
+        ]
+      },
+      "auffaelligkeiten": [],
+      "dauer_s": 0.312,
+      "exception": null
+    }
+  ],
+  "abweichungen": [],
+  "whitelist_aufrufe": [],
+  "verweigert": [],
+  "dateien": {}
+}
