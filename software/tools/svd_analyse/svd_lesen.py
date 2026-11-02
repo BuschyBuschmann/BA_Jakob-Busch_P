@@ -57,13 +57,22 @@ SICHERHEIT: dict[str, Sicherheit] = {
     "signale.formel": "gesichert",
     "signale.einheit": "plausibel",
     "signale.skalierung_spitzenwert": "plausibel",
-    "signale.cp_phasenvorzeichen": "offen",
+    # M1 bestätigt 2026-11-02: Golden File, H1 aus CP/AP_Ref1 der Datei = PSV-H1 (nicht konjugiert)
+    "signale.cp_phasenvorzeichen": "gesichert",
     "signale.cph_bedeutung": "plausibel",
     "signale.zeitstempel": "plausibel",
+    # K-ACHSE (2026-11-02): Achse und Fft-Felder an der Datei mehrfach unabhängig belegt
+    # (Polytec File Access XAxis Min 0,625 / Max 1000 Hz, GetMidX; Golden-File-Export, Spalte f
+    # exakt 0,625·k; Erfassungseinstellungen am Messrechner; Regression Punktabstand gegen
+    # Blockzahl (Feld +0x3C): Steigung 1,600 ± 0,017 s).
+    "fft.abtastfrequenz_hz": "gesichert",
     "fft.bandbreite_hz": "gesichert",
     "fft.linien": "gesichert",
-    "fft.abtastwerte": "plausibel",
-    "frequenz_hz": "plausibel",
+    "fft.abtastwerte": "gesichert",
+    "fft.startfrequenz_hz": "plausibel",
+    "fft.endfrequenz_hz": "plausibel",
+    "frequenz_hz": "gesichert",
+    "satz.feld_34": "offen",
     "punkte.label": "plausibel",
     "punkte.koordinaten_m": "plausibel",
     "punkte.statusfelder": "offen",
@@ -82,8 +91,9 @@ SATZ_LINIEN = 0x08
 SATZ_PUNKT = 0x20
 SATZ_ZEIT_A = 0x6C
 SATZ_ZEIT_B = 0x74
-#: Blockdauer ``float64`` in s (beobachtet 0,64 s = 1/Δf).
-SATZ_BLOCKDAUER = 0x34
+#: ``float64``, Bedeutung **unbekannt** (an der Beispieldatei 0,64). Es ist **nicht** die
+#: Blockdauer: diese ist T = N/f_s = 1,6 s = 1/Δf (K-ACHSE). Wird roh durchgereicht.
+SATZ_FELD_34 = 0x34
 #: ``float64`` je Punkt (Bedeutung offen). Als float32 bitgleich mit dem Messpunktfeld
 #: +0x08 desselben Punkts; dient als Anker der Punktzuordnung (``svd_pruefung``).
 SATZ_KENNFELD = 0x8C
@@ -284,8 +294,9 @@ class Punktdaten:
         Anzahl FFT-Linien laut Datensatzkopf.
     zeit_a, zeit_b : list of datetime.datetime
         Zwei FILETIME-Felder je Punkt, naiv (Zeitzone offen; Bedeutung plausibel).
-    blockdauer_s : float
-        Blockdauer laut Datensatzkopf in s (in allen Sätzen gleich).
+    feld_34 : float
+        Rohwert des Satzfeldes +0x34 (``float64``, **Bedeutung unbekannt**, in allen Sätzen
+        bitgleich). Keine Blockdauer, nicht für Rechnungen verwenden.
     platz : tuple of int
         Ablageplatz (Scanreihenfolge) je Punktindex.
     kennfeld : numpy.ndarray
@@ -296,7 +307,7 @@ class Punktdaten:
     linien: int
     zeit_a: list[dt.datetime]
     zeit_b: list[dt.datetime]
-    blockdauer_s: float
+    feld_34: float
     platz: tuple[int, ...]
     kennfeld: FloatArray
 
@@ -319,7 +330,7 @@ def dekodiere_punktdaten(daten: bytes, info: StromInfo, sig: SignalInfo) -> Punk
     zeit_a: list[dt.datetime | None] = [None] * n
     zeit_b: list[dt.datetime | None] = [None] * n
     linien: int | None = None
-    blockdauer: float | None = None
+    feld_34: float | None = None
     kennfeld = np.full(n, np.nan, dtype=np.float64)
     for platz in range(n):
         basis = DATENSTROM_KOPF + platz * info.satzlaenge
@@ -332,11 +343,11 @@ def dekodiere_punktdaten(daten: bytes, info: StromInfo, sig: SignalInfo) -> Punk
             linien = satz_linien
         elif satz_linien != linien:
             raise SvdFormatFehler(f"Datensatz {platz}: Linienzahl {satz_linien} != {linien}")
-        satz_dauer = _f64(daten, basis + SATZ_BLOCKDAUER)
-        if blockdauer is None:
-            blockdauer = satz_dauer
-        elif satz_dauer != blockdauer:  # Bitgleichheit: Kopffeld ist kopiert, nicht gerechnet
-            raise SvdFormatFehler(f"Datensatz {platz}: Blockdauer {satz_dauer} != {blockdauer}")
+        satz_feld_34 = _f64(daten, basis + SATZ_FELD_34)
+        if feld_34 is None:
+            feld_34 = satz_feld_34
+        elif satz_feld_34 != feld_34:  # Bitgleichheit: Kopffeld ist kopiert, nicht gerechnet
+            raise SvdFormatFehler(f"Datensatz {platz}: Feld +0x34 {satz_feld_34} != {feld_34}")
         punkt = _i32(daten, basis + SATZ_PUNKT)
         if not 0 <= punkt < n or zeit_a[punkt] is not None:
             raise SvdFormatFehler(f"Datensatz {platz}: Punktindex {punkt} ungültig/doppelt")
@@ -348,13 +359,13 @@ def dekodiere_punktdaten(daten: bytes, info: StromInfo, sig: SignalInfo) -> Punk
         ta, tb = struct.unpack_from("<QQ", daten, basis + SATZ_ZEIT_A)
         zeit_a[punkt] = filetime_zu_datetime(ta)
         zeit_b[punkt] = filetime_zu_datetime(tb)
-    assert linien is not None and blockdauer is not None  # n > 0 durch StromInfo garantiert
+    assert linien is not None and feld_34 is not None  # n > 0 durch StromInfo garantiert
     return Punktdaten(
         werte,
         linien,
         [z for z in zeit_a if z is not None],
         [z for z in zeit_b if z is not None],
-        blockdauer,
+        feld_34,
         info.platz_je_punkt,
         kennfeld,
     )
@@ -592,42 +603,144 @@ def dekodiere_statische_info(daten: bytes) -> StatischeInfo:
 
 @dataclass(frozen=True)
 class FftEinstellungen:
-    """Inhalt von ``Info/DAQ_Settings_Fft/Fft`` (Auszug).
+    r"""Inhalt von ``Info/DAQ_Settings_Fft/Fft`` (Auszug).
+
+    Die Frequenzauflösung folgt aus Abtastfrequenz und Blocklänge, :math:`\Delta f = f_s/N = 1/T`
+    mit :math:`T = N/f_s`. Das Feld bei +4 ist die **Abtastfrequenz**, nicht die Bandbreite
+    (K-ACHSE, 2026-11-02; Beispieldatei: 2500 Hz, N = 4000, T = 1,6 s, Δf = 0,625 Hz, Bandbreite
+    1000 Hz).
 
     Attributes
     ----------
-    bandbreite_hz : float
-        Bandbreite in Hz.
+    abtastfrequenz_hz : float
+        Abtastfrequenz :math:`f_s` in Hz (+4).
     linien : int
-        Anzahl FFT-Linien.
+        Anzahl FFT-Linien (+12).
     abtastwerte : int
-        Abtastwerte je Block (plausibel: 2,5 · Linien).
+        Abtastwerte :math:`N` je Block (+16).
+    startfrequenz_hz : float
+        Startfrequenz in Hz (+20); der Leser verlangt 0 (Zoom-FFT ungeprüft).
+    bandbreite_hz : float
+        Bandbreite in Hz (+28), = Linien · Δf.
+    endfrequenz_hz : float
+        Endfrequenz in Hz (+36), = Startfrequenz + Bandbreite.
     """
 
-    bandbreite_hz: float
+    abtastfrequenz_hz: float
     linien: int
     abtastwerte: int
+    startfrequenz_hz: float
+    bandbreite_hz: float
+    endfrequenz_hz: float
 
     @property
     def delta_f_hz(self) -> float:
-        """Frequenzauflösung in Hz (Bandbreite / Linien)."""
-        return self.bandbreite_hz / self.linien
+        """Frequenzauflösung in Hz, :math:`f_s/N = 1/T`."""
+        return self.abtastfrequenz_hz / self.abtastwerte
+
+    @property
+    def blockdauer_s(self) -> float:
+        """Blockdauer :math:`T = N/f_s` in s (Beispieldatei: 1,6 s)."""
+        return self.abtastwerte / self.abtastfrequenz_hz
+
+
+#: Relative Toleranz der Konsistenzprüfungen der Fft-Felder (float64 aus denselben
+#: Einstellungen, Abweichung nur durch Rundung ~1e-16).
+_FFT_RTOL = 1e-9
 
 
 def dekodiere_fft_einstellungen(daten: bytes) -> FftEinstellungen:
     """Dekodiert ``Info/DAQ_Settings_Fft/Fft`` (Auszug).
 
-    Layout: ``int32`` Version 2, ``float64`` Bandbreite, ``int32`` Linien, ``int32``
-    Abtastwerte; der Rest bleibt offen.
+    Layout: ``int32`` Version 2, ``float64`` Abtastfrequenz (+4), ``int32`` Linien (+12),
+    ``int32`` Abtastwerte (+16), ``float64`` Startfrequenz (+20), ``float64`` Bandbreite (+28),
+    ``float64`` Endfrequenz (+36); der Rest bleibt offen.
+
+    Raises
+    ------
+    SvdFormatFehler
+        Bei unbekannter Version, zu kurzem Stream, unplausiblen Werten, Startfrequenz ≠ 0
+        (Zoom-FFT nicht geprüft) oder wenn Bandbreite/Endfrequenz nicht zu Linien · Δf passen.
     """
-    if len(daten) < 20 or _i32(daten, 0) != 2:
+    if len(daten) < 44 or _i32(daten, 0) != 2:
         raise SvdFormatFehler("Fft-Einstellungen: unbekannte Version oder zu kurz")
-    bw = _f64(daten, 4)
+    fs = _f64(daten, 4)
     linien = _i32(daten, 12)
     abtast = _i32(daten, 16)
-    if not (np.isfinite(bw) and bw > 0 and linien > 0 and abtast > 0):
-        raise SvdFormatFehler(f"Fft-Einstellungen unplausibel: {bw}, {linien}, {abtast}")
-    return FftEinstellungen(bw, linien, abtast)
+    start = _f64(daten, 20)
+    bw = _f64(daten, 28)
+    ende = _f64(daten, 36)
+    if not (
+        np.isfinite(fs)
+        and fs > 0
+        and linien > 0
+        and abtast > 0
+        and np.isfinite(start)
+        and np.isfinite(bw)
+        and bw > 0
+        and np.isfinite(ende)
+    ):
+        raise SvdFormatFehler(
+            f"Fft-Einstellungen unplausibel: fs={fs}, Linien={linien}, N={abtast}, "
+            f"Start={start}, Bandbreite={bw}, Ende={ende}"
+        )
+    if start != 0.0:
+        raise SvdFormatFehler(
+            f"Fft-Einstellungen: Startfrequenz {start} Hz ≠ 0 (Zoom-FFT ist nicht geprüft)"
+        )
+    if not np.isclose(ende, start + bw, rtol=_FFT_RTOL, atol=0.0):
+        raise SvdFormatFehler(f"Fft-Einstellungen: Endfrequenz {ende} Hz ≠ Start + Bandbreite")
+    delta_f = fs / abtast
+    if not np.isclose(bw / linien, delta_f, rtol=_FFT_RTOL, atol=0.0):
+        raise SvdFormatFehler(
+            f"Fft-Einstellungen: Bandbreite/Linien = {bw / linien} Hz passt nicht zu "
+            f"fs/N = {delta_f} Hz"
+        )
+    return FftEinstellungen(fs, linien, abtast, start, bw, ende)
+
+
+#: Länge des entpackten ``Band_Data/.../BandInfo-0`` an der Beispieldatei.
+_BANDINFO_LAENGE = 36
+
+#: Ergebnisse der Gegenprobe gegen ``BandInfo-0`` (Feld :attr:`SvdMessung.band_info`).
+BAND_INFO_GEPRUEFT = "geprüft"
+BAND_INFO_NICHT_PRUEFBAR = "nicht prüfbar (Layout unbekannt)"
+BAND_INFO_FEHLT = "nicht prüfbar (BandInfo-0 fehlt)"
+BAND_INFO_WIDERSPRUCH = "Widerspruch (Linien, Δf oder Obergrenze weichen von Fft ab)"
+
+
+def pruefe_band_info(daten: bytes, fft: FftEinstellungen) -> str:
+    """Gegenprobe der Frequenzachse gegen ``Band_Data/Entire_Bandwidth/FB0/BandInfo-0``.
+
+    Layout (an der Beispieldatei erschlossen, sonst offen): ``uint32`` Länge, zlib-Daten;
+    entpackt 36 Byte mit ``int32`` Linien bei +2, ``float32`` untere Bandgrenze bzw. erste
+    Linie bei +20 (hier = Δf, 0,625 Hz) und ``float32`` Obergrenze bei +28 (1000 Hz).
+
+    Returns
+    -------
+    str
+        :data:`BAND_INFO_GEPRUEFT`, :data:`BAND_INFO_NICHT_PRUEFBAR` (Layout nicht erkannt)
+        oder :data:`BAND_INFO_WIDERSPRUCH`. Es gibt keinen Abbruch: der Leser meldet den
+        Befund nur (Feld ``SvdMessung.band_info`` und Übersicht).
+    """
+    if len(daten) < 5:
+        return BAND_INFO_NICHT_PRUEFBAR
+    try:
+        roh = zlib.decompress(daten[4:])
+    except zlib.error:
+        return BAND_INFO_NICHT_PRUEFBAR
+    if len(roh) != _BANDINFO_LAENGE:
+        return BAND_INFO_NICHT_PRUEFBAR
+    linien = _i32(roh, 2)
+    erste, obergrenze = struct.unpack_from("<f", roh, 20)[0], struct.unpack_from("<f", roh, 28)[0]
+    # float32-Darstellung: relative Genauigkeit 6e-8, Toleranz 1e-6
+    if not (
+        linien == fft.linien
+        and np.isclose(erste, fft.delta_f_hz, rtol=1e-6, atol=0.0)
+        and np.isclose(obergrenze, fft.endfrequenz_hz, rtol=1e-6, atol=0.0)
+    ):
+        return BAND_INFO_WIDERSPRUCH
+    return BAND_INFO_GEPRUEFT
 
 
 @dataclass(frozen=True)
@@ -851,10 +964,10 @@ class SvdMessung:
     pfad : pathlib.Path
         Gelesene Datei.
     fft : FftEinstellungen
-        Bandbreite, Linien, Abtastwerte.
+        Abtastfrequenz, Linien, Abtastwerte, Start-/Bandbreite/Endfrequenz.
     frequenz_hz : numpy.ndarray
-        **Vorläufige** Frequenzachse ``k · Δf``, ``k = 1 … Linien`` (KONVENTIONEN; ob
-        Index 0 die Linie 1 ist, ist an der Datei nicht belegt).
+        Frequenzachse ``k · Δf``, ``k = 1 … Linien`` (gesichert; Beispieldatei
+        0,625 … 1000 Hz, Δf = 0,625 Hz; Index 0 ist die Linie 1, DC fehlt).
     punkte : Messpunkte
         Geometrie.
     elemente : list of tuple of int
@@ -873,6 +986,13 @@ class SvdMessung:
         Ablageplatz (Scanreihenfolge) je Punktindex, in allen Signalen gleich.
     satz_kennfeld : numpy.ndarray
         Satzfeld +0x8C je Punktindex, in allen Signalen gleich (Bedeutung offen).
+    satz_feld_34 : float or None
+        Rohwert des Satzfeldes +0x34, in allen Sätzen und Signalen bitgleich (Bedeutung
+        **unbekannt**, keine Blockdauer).
+    band_info : str
+        Ergebnis der Gegenprobe gegen ``BandInfo-0`` (:data:`BAND_INFO_GEPRUEFT`,
+        :data:`BAND_INFO_NICHT_PRUEFBAR`, :data:`BAND_INFO_FEHLT`, :data:`BAND_INFO_WIDERSPRUCH`).
+        Ein Widerspruch bricht nicht ab, wird aber in :func:`uebersicht` ausdrücklich gemeldet.
     """
 
     pfad: Path
@@ -887,6 +1007,8 @@ class SvdMessung:
     hardware_texte: tuple[str, ...]
     scan_platz: tuple[int, ...] = ()
     satz_kennfeld: FloatArray = field(default_factory=lambda: np.zeros(0, dtype=np.float64))
+    satz_feld_34: float | None = None
+    band_info: str = BAND_INFO_NICHT_PRUEFBAR
 
 
 def _strom(ole: Any, pfad: str) -> bytes:
@@ -951,6 +1073,12 @@ def lese_container(ole: Any, pfad: Path) -> SvdMessung:
         Gelesene Daten und Metadaten.
     """
     fft = dekodiere_fft_einstellungen(_strom(ole, "Info/DAQ_Settings_Fft/Fft"))
+    pfad_band_info = "Band_Data/Entire_Bandwidth/FB0/BandInfo-0"
+    band_info = (
+        pruefe_band_info(_strom(ole, pfad_band_info), fft)
+        if ole.exists(pfad_band_info)
+        else BAND_INFO_FEHLT
+    )
     punkte = dekodiere_messpunkte(_strom(ole, "Info/Geometry/MeasPoints"))
     n = len(punkte.index)
     elemente = (
@@ -972,24 +1100,22 @@ def lese_container(ole: Any, pfad: Path) -> SvdMessung:
     )
     scan_platz: tuple[int, ...] | None = None
     kennfeld: FloatArray = np.zeros(0, dtype=np.float64)
+    feld_34: float | None = None
     for nr in _nummerierte_storages(ole, "Polytec_Data"):
         basis = f"Polytec_Data/M{nr}"
         sig = dekodiere_signal_info(_strom(ole, f"{basis}/Signal_Info"))
         info = dekodiere_strom_info(_strom(ole, f"{basis}/ManyStreamsInfo"))
         daten = dekodiere_punktdaten(_strom(ole, f"{basis}/ManyStreamsData-0"), info, sig)
-        # Blockdauer im Datensatz muss 1/Δf sein (rtol 1e-9: beide Werte sind float64
-        # aus denselben Einstellungen, Abweichung nur durch Rundung ~1e-16).
-        if not np.isclose(daten.blockdauer_s * fft.delta_f_hz, 1.0, rtol=1e-9, atol=0.0):
-            raise SvdFormatFehler(
-                f"M{nr}: Blockdauer {daten.blockdauer_s} s passt nicht zu Δf {fft.delta_f_hz} Hz"
-            )
         if scan_platz is None:
             scan_platz = daten.platz
             kennfeld = daten.kennfeld
+            feld_34 = daten.feld_34
         elif daten.platz != scan_platz:
             raise SvdFormatFehler(f"M{nr}: Scanreihenfolge weicht von M0 ab")
         elif not np.array_equal(daten.kennfeld, kennfeld, equal_nan=True):
             raise SvdFormatFehler(f"M{nr}: Satzfeld +0x8C weicht von M0 ab")
+        elif daten.feld_34 != feld_34:
+            raise SvdFormatFehler(f"M{nr}: Satzfeld +0x34 weicht von M0 ab")
         stat = dekodiere_statische_info(_strom(ole, f"{basis}/Static_Info"))
         art = signalart(stat.formel)
         if daten.linien != fft.linien or sig.anzahl_punkte != n:
@@ -1047,6 +1173,8 @@ def lese_container(ole: Any, pfad: Path) -> SvdMessung:
         tuple(hw),
         scan_platz or (),
         kennfeld,
+        feld_34,
+        band_info,
     )
 
 
@@ -1055,10 +1183,13 @@ def uebersicht(messung: SvdMessung) -> str:
     f = messung.fft
     zeilen = [
         f"Datei: {messung.pfad.name}",
-        f"FFT: Bandbreite {f.bandbreite_hz:g} Hz, {f.linien} Linien, Δf = {f.delta_f_hz:g} Hz, "
-        f"{f.abtastwerte} Abtastwerte/Block [{SICHERHEIT['fft.linien']}]",
-        f"Frequenzachse (vorläufig): {messung.frequenz_hz[0]:g} … {messung.frequenz_hz[-1]:g} Hz "
+        f"FFT: Abtastfrequenz {f.abtastfrequenz_hz:g} Hz, Bandbreite {f.bandbreite_hz:g} Hz, "
+        f"{f.linien} Linien, Δf = {f.delta_f_hz:g} Hz, {f.abtastwerte} Abtastwerte/Block "
+        f"(T = {f.blockdauer_s:g} s) [{SICHERHEIT['fft.linien']}]",
+        f"Frequenzachse: {messung.frequenz_hz[0]:g} … {messung.frequenz_hz[-1]:g} Hz "
         f"[{SICHERHEIT['frequenz_hz']}]",
+        ("WARNUNG " if messung.band_info == BAND_INFO_WIDERSPRUCH else "")
+        + f"Gegenprobe BandInfo-0 (Δf 0,625 Hz / Obergrenze): {messung.band_info}",
         f"Messpunkte: {len(messung.punkte.index)} (Label {messung.punkte.label.min()} … "
         f"{messung.punkte.label.max()}), Elemente: {len(messung.elemente)}",
     ]

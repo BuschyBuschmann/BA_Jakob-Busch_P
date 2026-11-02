@@ -43,7 +43,6 @@ from .annahmen import AnnahmeEintrag, Schwellen, SchwellenStufe2
 from .daten import BoolArray, ComplexArray, FloatArray
 from .gesamt import Auswertung, PaarAuswertung
 from .spitzen import (
-    GUELTIGKEIT_OFFEN_M7,
     KOHAERENZ_NIEDRIG,
     NACHBARMODE,
     UEBERLAPPEND,
@@ -347,7 +346,6 @@ def kennzeichen_fit(
     f_band_hz: tuple[float, float],
     delta_f_hz: float,
     schwellen2: SchwellenStufe2,
-    m7_grenze_hz: float | None = None,
     mobilitaetsbezug: bool = True,
 ) -> tuple[tuple[str, ...], ...]:
     r"""Kennzeichen je Mode nach FG-03 3.4.
@@ -356,7 +354,8 @@ def kennzeichen_fit(
     gelten für alle Moden des Fits; ``unsicher`` (:math:`\sigma_\zeta/\zeta` >
     ``sd_zeta_rel_max`` oder :math:`\sigma_{f_r} > 0{,}5\,\Delta f`, auch bei nicht bestimmbarer
     Standardabweichung), ``ausserhalb_band`` (:math:`f_r` außerhalb ``f_band_hz``, ζ >= ζ_max
-    oder ζ < ζ_min) und ``gueltigkeit_offen_m7`` (:math:`f_r` > M7-Grenze) je Mode.
+    oder ζ < ζ_min) je Mode. Das frühere Kennzeichen ``gueltigkeit_offen_m7`` entfällt
+    (K-ACHSE, FG-03 3.4).
     """
     gemeinsam: list[str] = []
     if roh.rho > schwellen2.rho_max:
@@ -385,8 +384,6 @@ def kennzeichen_fit(
             or z < schwellen2.zeta_min
         ):
             k.append(AUSSERHALB_BAND)
-        if m7_grenze_hz is not None and fr > m7_grenze_hz:
-            k.append(GUELTIGKEIT_OFFEN_M7)
         ergebnis.append(tuple(k))
     return tuple(ergebnis)
 
@@ -732,7 +729,6 @@ def fit_punkt(
     delta_f_hz: float,
     schwellen2: SchwellenStufe2,
     gewicht: FloatArray | None = None,
-    m7_grenze_hz: float | None = None,
     mobilitaetsbezug: bool = True,
     zusatz: Sequence[tuple[str, ...]] | None = None,
     kohaerenz: FloatArray | None = None,
@@ -811,7 +807,6 @@ def fit_punkt(
         f_band_hz=(float(frequenz_hz[gruppe.k_von]), float(frequenz_hz[gruppe.k_bis])),
         delta_f_hz=delta_f_hz,
         schwellen2=schwellen2,
-        m7_grenze_hz=m7_grenze_hz,
         mobilitaetsbezug=mobilitaetsbezug,
     )
     vertauscht = vertauschte_moden(fr0, roh.fr_hz, kennzeichen)
@@ -1030,7 +1025,6 @@ def schaetze_daempfung(
             raise ValueError(f"Punktindex außerhalb 0..{p_anzahl - 1}: {list(punkte)}")
     ergebnisse: list[ModenErgebnis] = []
     zusammen: list[Zusammenfassung] = []
-    m7 = auswertung.annahmen.m7_grenze_hz
     kandidat = gueltig.copy()
     if punkte is not None:
         kandidat &= np.isin(np.arange(gueltig.shape[0]), np.asarray(list(punkte), dtype=np.int64))
@@ -1064,7 +1058,6 @@ def schaetze_daempfung(
                     delta_f_hz=df,
                     schwellen2=schwellen2,
                     gewicht=None if gewicht is None else gewicht[p],
-                    m7_grenze_hz=m7,
                     mobilitaetsbezug=art != "andere",
                     zusatz=zusatz,
                     kohaerenz=pa.frf.kohaerenz[p],

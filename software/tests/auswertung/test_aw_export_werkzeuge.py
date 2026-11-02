@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 from ldv_automation.auswertung import Annahmen, werte_aus
+from ldv_automation.auswertung.annahmen import Schwellen
 from ldv_automation.auswertung.export import (
     FORMAT,
     _json_wert,
@@ -102,7 +103,7 @@ def test_export_pflichtinhalt_und_rundreise(messdatei: Path, tmp_path: Path) -> 
     assert k["kreuzspektrum"] == "CP_ab = <A B*>, a = Antwort, b = Referenz"
     assert (k["k0"], k["k0_status"], k["w_rbw"], k["n_d"], k["delta_f_hz"]) == (
         1,
-        "Annahme",
+        "bestätigt am 2026-11-02",
         1.0,
         7,
         0.5,
@@ -110,7 +111,8 @@ def test_export_pflichtinhalt_und_rundreise(messdatei: Path, tmp_path: Path) -> 
     assert meta["herkunft"]["messdatei_sha256"] == sha256_datei(messdatei)
     assert meta["herkunft"]["software"]["git_hash"] == "a" * 40
     assert meta["herkunft"]["erstellt"] == "2026-10-29T12:00:00+00:00"
-    assert {e["nr"] for e in meta["annahmen"]} >= {"M1", "M2", "M5", "M6", "M7", "M8", "M10"}
+    assert {e["nr"] for e in meta["annahmen"]} >= {"M1", "M2", "M5", "M6", "M8", "M10"}
+    assert "M7" not in {e["nr"] for e in meta["annahmen"]}  # K-ACHSE: M7 erledigt
     # 1./2.: Achse, Linienindex, Punkte
     np.testing.assert_array_equal(felder["frequenz_hz"], daten.frequenz_hz)
     assert felder["linienindex"][0] == 0 and felder["punkte.label"][0] == 132
@@ -209,7 +211,7 @@ def test_abbildungen_aus_export(messdatei: Path, tmp_path: Path) -> None:
     assert all(p.stat().st_size > 1000 for p in pfade)
     _, meta = abbildungen.lese(basis)
     zeile = abbildungen.fusszeile(meta)
-    assert "bbbbbbbbbb+Änderungen" in zeile and "Annahmen offen: M1, M2" in zeile
+    assert "bbbbbbbbbb+Änderungen" in zeile and "Annahmen offen: M5, M8, M11" in zeile
     assert abbildungen.SKRIPT in zeile
     with pytest.raises(abbildungen.ExportFehler, match="Paare"):
         abbildungen.erzeuge(basis, tmp_path / "abb", ["gibt_es_nicht"])
@@ -292,7 +294,8 @@ def test_json_wert_und_doppelte_felder() -> None:
 
 def test_abbildung_mit_niedriger_kohaerenz_und_kennzeichen(messdatei: Path, tmp_path: Path) -> None:
     m = ref.fake_svd_messung(messdatei, rauschen=1e-4)
-    a = werte_aus(aus_svd_messung(m), annahmen=Annahmen(m7_grenze_hz=120.0))
+    # B/Δf = 4,0 / 6,0 / 10,5 an den drei Spitzen: n_min = 5 kennzeichnet nur die erste
+    a = werte_aus(aus_svd_messung(m), schwellen=Schwellen(n_min_linien=5.0))
     pa = a.paare[("Vib Z", "Ref1")]
     assert np.any(pa.frf.kohaerenz < 0.9)
     kennzeichen = [s.kennzeichen for s in pa.spitzen.spitzen]

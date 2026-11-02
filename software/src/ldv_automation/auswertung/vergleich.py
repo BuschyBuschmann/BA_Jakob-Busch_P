@@ -831,7 +831,7 @@ def drift_verwendbar(e: ModenErgebnis, mode: int, schwellen2: SchwellenStufe2) -
     ``drift_ausschluss`` (Voreinstellung ``ausserhalb_band``, ``unsicher``,
     ``moden_vertauscht``); ``nicht_konvergiert`` nur bei n = 1
     (``drift_nicht_konvergiert_einzelmode``). Nicht ausgeschlossen: ``modell_passt_nicht``,
-    ``gueltigkeit_offen_m7``, ``kohaerenz_niedrig``, ``kein_mobilitaetsbezug``.
+    ``kohaerenz_niedrig``, ``kein_mobilitaetsbezug``.
     """
     if not e.gefittet:
         return False

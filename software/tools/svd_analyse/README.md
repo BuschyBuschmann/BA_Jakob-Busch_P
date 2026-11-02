@@ -29,7 +29,7 @@ from svd_pruefung import pruefe
 
 m = lese_svd("../Input/20261012_ref_Mitte.svd")
 cp = m.signale["M0"].werte  # complex128, (135 Punkte, 1600 Linien), Zeile = Punktindex
-f_hz = m.frequenz_hz  # vorläufige Achse k·Δf, k = 1 … 1600
+f_hz = m.frequenz_hz  # Achse k·Δf, k = 1 … 1600 (0,625 … 1000 Hz, gesichert)
 assert all(e.bestanden for e in pruefe(m))
 ```
 
@@ -37,7 +37,7 @@ assert all(e.bestanden for e in pruefe(m))
 
 - `float64`/`complex128` an der Grenze, Punktindex 0-basiert; `m.punkte.label` ist die in
   PSV angezeigte Punktnummer (getrennt vom Index). Phasen nur als komplexe Werte;
-  `numpy.angle` liefert rad. **Das Vorzeichen der Kreuzspektren-Phase ist offen.**
+  `numpy.angle` liefert rad. Die Kreuzspektren-Phase der Datei ist nicht konjugiert (M1, am 2026-11-02 mit dem Golden File bestätigt).
 - Rolle Antwort/Referenz kommt aus der Signalformel; Kanalnamen werden über die
   Kanaleinstellungen und die Namensordnung (Vib X < … < Ref1 < Ref2) zugeordnet, Banddaten
   dienen nur als Gegenprobe (Widerspruch oder fehlender Anker → `SvdFormatFehler`).

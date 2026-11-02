@@ -45,7 +45,6 @@ AUFLOESUNGSBEGRENZT = "aufloesungsbegrenzt"
 UEBERLAPPEND = "ueberlappend"
 NACHBARMODE = "nachbarmode"
 KOHAERENZ_NIEDRIG = "kohaerenz_niedrig"
-GUELTIGKEIT_OFFEN_M7 = "gueltigkeit_offen_m7"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -215,7 +214,7 @@ def suche_spitzen(
         :math:`p_\mathrm{min}`, W, :math:`f_\mathrm{min}`, :math:`n_\mathrm{min}`, γ²_min,
         Faktor Nachbarmode.
     annahmen : Annahmen, optional
-        M7-Grenze für ``gueltigkeit_offen_m7``.
+        Geltende Annahmen (P-11, Export); ``None`` bedeutet die Voreinstellungen.
     delta_f_hz : float, optional
         Linienabstand; Voreinstellung :math:`(f_{K-1} - f_0)/(K-1)`.
     groesse, einheit : str
@@ -303,8 +302,6 @@ def suche_spitzen(
             with np.errstate(invalid="ignore"):
                 if np.any(g2[bereich] < schwellen.kohaerenz_min):
                     kennzeichen.append(KOHAERENZ_NIEDRIG)
-        if annahmen.m7_grenze_hz is not None and f_sp > annahmen.m7_grenze_hz:
-            kennzeichen.append(GUELTIGKEIT_OFFEN_M7)
         spitzen.append(
             Spitze(
                 k=k,

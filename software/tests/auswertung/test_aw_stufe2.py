@@ -185,7 +185,7 @@ def test_werkzeug_stufe2(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> 
     assert meta["schwellen_stufe2"]["drift_nicht_konvergiert_einzelmode"] is False
     assert meta["drift"][0]["n_modell_passt_nicht"] == 0
     assert "M1–M15" in aus and "B-1 Vib Z/Ref1" in aus and "Drift (B-5)" in aus
-    assert "B-8: 1 Elemente" in aus and "η 150–500 Hz" in aus
+    assert "B-8: 1 Elemente" in aus and "η 60–200 Hz" in aus
     assert (tmp_path / "ex" / "w_stufe2.npz").is_file()
     # Stufe-2-Export existiert schon: Fehler 2 (Stufe 1 wird überschrieben)
     (tmp_path / "ex" / "w.npz").unlink()
@@ -211,39 +211,70 @@ def test_werkzeug_stufe2(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> 
 
 @pytest.mark.skipif(not DATEI.is_file(), reason="Messdatei nicht vorhanden")
 def test_befunde_beispieldatei() -> None:
-    """FG-03 Abschnitt 7 [D] an der Beispieldatei (Vib Z/Ref1, 20 stärkste Punkte).
+    """FG-03 Abschnitt 7 [D] mit korrigierter Achse (K-ACHSE, Δf = 0,625 Hz), Vib Z/Ref1.
 
-    Toleranzen: FG-03 nennt die Werte auf drei bzw. fünf Nachkommastellen; das Prüfskript sucht
-    die Spitzenlinie je Punkt in ±2 Linien neu, die Umsetzung nutzt die Stufe-1-Linie (3.3).
-    Daher f_r ±0,002 Hz, ζ ±5e-6, rho ±0,003.
+    Sollwerte aus FG-03 Abschnitt 7 bzw. dem Prüfskript ``k_achse.py`` (Anhang; die Skriptausgabe
+    hat vier Nachkommastellen bei f_r, die Tabelle drei). Toleranzen = halbe letzte angegebene
+    Stelle des Sollwerts (Tabelle: 0,0005 Hz bei 3 Stellen; Skript: 0,00005 Hz bei 4 Stellen),
+    ζ ±5e-6 und rho ±0,003 bzw. ±0,0005 (dimensionslos, unverändert). Beobachtete Abweichungen
+    ≤ 0,0004 Hz bzw. ≤ 0,00004 Hz; die Rechnung ist auf ~1e-9 reproduzierbar.
+    Das Prüfskript sucht die Spitzenlinie je Punkt in ±2 Linien neu,
+    die Umsetzung nutzt die Stufe-1-Linie (3.3).
     """
     vorher = sha256_datei(DATEI)
     messung = beispiel_svd.lese_svd_werkzeug(DATEI)
+    assert messung.fft.delta_f_hz == 0.625 and messung.frequenz_hz[-1] == 1000.0
     aw = werte_aus(aus_svd_messung(messung, sha256=vorher))
     sp = aw.paare[("Vib Z", "Ref1")].spitzen.spitzen
-    wahl = [int(np.argmin([abs(s.f_sp_hz - f) for s in sp])) for f in (401.6, 618.9, 262.6)]
+    # FG-03 7: 114 Spitzen, davon 67 aufloesungsbegrenzt; kein M7-Kennzeichen mehr (FG-02 3.9)
+    assert len(sp) == 114 and sum("aufloesungsbegrenzt" in s.kennzeichen for s in sp) == 67
+    assert not any("gueltigkeit_offen_m7" in s.kennzeichen for s in sp)
+    wahl = [int(np.argmin([abs(s.f_sp_hz - f) for s in sp])) for f in (160.64, 247.56, 105.04)]
     r = schaetze_daempfung(aw, ("Vib Z", "Ref1"), spitzen=wahl)
-    for f, fr, zeta, rho in ((401.6, 401.324, 0.00142, 0.054), (618.9, 619.015, 0.00146, 0.078)):
+    for f, f_sp, fr, zeta, rho in (
+        (160.64, 160.627, 160.530, 0.00142, 0.054),
+        (247.56, 247.572, 247.606, 0.00146, 0.078),
+    ):
         z = r.zusammenfassung_bei(f)
-        assert abs(z.fr_median_hz - fr) <= 0.002
+        assert abs(z.f_sp_hz - f_sp) <= 0.0005
+        assert abs(z.fr_median_hz - fr) <= 0.0005
         assert abs(z.zeta_median - zeta) <= 5e-6
         assert abs(z.rho_median - rho) <= 0.003
-    gruppe = [r.zusammenfassung_bei(f) for f in (262.6, 265.0, 270.0)]
+    gruppe = [r.zusammenfassung_bei(f) for f in (105.04, 106.0, 108.0)]
     assert len({z.gruppe for z in gruppe}) == 1
     # FG-03 Abschnitt 7 nach K2-3 (Punktauswahl je Spitze, Bandkürzung, rho als Median der
-    # verwendeten Punkte); Angaben auf 3 bzw. 5 Stellen → halbe letzte Stelle als Toleranz.
+    # verwendeten Punkte); f_r aus der Skriptausgabe (4 Stellen: die Tabelle rundet 106,4615 auf
+    # 106,462 und liegt damit um 0,0005 neben dem Skriptwert), Toleranz 0,00005 (halbe 4. Stelle).
     for z, fr, zeta, rho in zip(
         gruppe,
-        (262.720, 266.154, 270.267),
+        (105.0881, 106.4615, 108.1067),
         (0.00214, 0.00116, 0.00190),
         (0.007, 0.012, 0.008),
         strict=True,
     ):
-        assert abs(z.fr_median_hz - fr) <= 0.0005
+        assert abs(z.fr_median_hz - fr) <= 0.00005
         assert abs(z.zeta_median - zeta) <= 5e-6
         assert abs(z.rho_median - rho) <= 0.0005
         assert z.n_punkte == 20
-    assert r.zusammenfassung_bei(618.9).n_punkte == 19
+    assert r.zusammenfassung_bei(247.56).n_punkte == 19
+    # Fitband der Gruppe 101,875 ... 111,875 Hz, 17 Linien (FG-03 7)
+    g = next(x for x in r.gruppen if any(abs(v - 105.03) < 0.1 for v in x.f_sp_hz))
+    assert messung.frequenz_hz[g.k_von] == 101.875 and messung.frequenz_hz[g.k_bis] == 111.875
+    assert g.k_bis - g.k_von + 1 == 17
+    # N1-Tabelle, Spalte „nachher“ (Regeln a und b): N, f_r, ζ
+    r_alle = schaetze_daempfung(aw, ("Vib Z", "Ref1"))
+    for f, n, fr, zeta in (
+        (402.564, 14, 402.640, 0.00135),
+        (531.74, 10, 531.751, 0.00146),
+        (338.02, 3, 338.144, 0.00303),
+    ):
+        z = r_alle.zusammenfassung_bei(f)
+        assert z.n_punkte == n
+        assert abs(z.fr_median_hz - fr) <= 0.0005
+        assert abs(z.zeta_median - zeta) <= 5e-6
+    mehr = [e for e in r_alle.ergebnisse if e.n_moden >= 2]
+    assert len({(e.punkt, e.gruppe) for e in mehr}) == 801
+    assert sum(any("moden_vertauscht" in k for k in e.kennzeichen) for e in mehr) == 61
     kb = werte_stufe2_aus(aw, elemente=elemente_aus_svd_messung(messung)).komponenten
     assert kb is not None and len(kb.elemente.elemente) == 112
     w = np.degrees(np.arccos(np.clip(kb.normale_punkt[:, 2], -1, 1)))
@@ -254,12 +285,34 @@ def test_befunde_beispieldatei() -> None:
 
 
 @pytest.mark.skipif(not DATEI.is_file(), reason="Messdatei nicht vorhanden")
-def test_drift_beispieldatei() -> None:
-    """FG-03 Abschnitt 7 (K2-1): Drift Ref2/Ref1 mit Ausschluss je gewählter Mode.
+def test_eta_baender_beispieldatei() -> None:
+    """FG-03 Abschnitt 7 B-8: η in den umbenannten Bändern 60–200 / 200–400 / 400–1000 Hz.
 
-    Sollwerte -0,129 ± 0,010 / -0,068 ± 0,010 / -0,482 ± 0,016 Hz/h, N 135/125/135, davon
-    ``modell_passt_nicht`` 90/0/0. Toleranz 0,0005 Hz/h (halbe letzte angegebene Stelle,
-    5 % des Standardfehlers); N exakt.
+    Gleiche Linien wie früher 150–500 / 500–1000 / 1000–2500 Hz (Nutzerentscheidung 2026-11-02),
+    Werte unverändert. FG nennt Median auf drei, 10-%-Quantil auf zwei Stellen → halbe letzte
+    Stelle als Toleranz.
+    """
+    messung = beispiel_svd.lese_svd_werkzeug(DATEI)
+    aw = werte_aus(aus_svd_messung(messung, sha256="0" * 64))
+    e = werte_stufe2_aus(aw, elemente=elemente_aus_svd_messung(messung))
+    baender = beispiel_svd.eta_baender(e)
+    soll = ((60.0, 200.0, 0.995, 0.90), (200.0, 400.0, 0.983, 0.71), (400.0, 1000.0, 0.967, 0.65))
+    assert len(baender) == 3
+    for (f_u, f_o, med, q10), (s_u, s_o, s_med, s_q10) in zip(baender, soll, strict=True):
+        assert (f_u, f_o) == (s_u, s_o)
+        assert abs(med - s_med) <= 0.0005 and abs(q10 - s_q10) <= 0.005
+
+
+@pytest.mark.skipif(not DATEI.is_file(), reason="Messdatei nicht vorhanden")
+def test_drift_beispieldatei() -> None:
+    """FG-03 Abschnitt 7 (K2-1, K-ACHSE): Drift Ref2/Ref1 mit Ausschluss je gewählter Mode.
+
+    Spitzen (167,52; 252,48; 603,12) Hz; Sollwerte -0,0517 ± 0,0041 / -0,0275 ± 0,0044 /
+    -0,1930 ± 0,0062 Hz/h, N 135/122/135, davon ``modell_passt_nicht`` 90/0/0. Toleranz
+    0,00005 Hz/h = halbe letzte angegebene (4.) Nachkommastelle der FG-Werte; beobachtete
+    Abweichung ≤ 0,00004 Hz/h, die Rechnung ist auf ~1e-9 reproduzierbar. N exakt.
+    Bei 252,7 Hz werden mit der korrigierten Achse 122 statt der früheren 125 Punkte verwendet
+    (FG-03 7): Grenzfälle von ``unsicher`` im Gruppenfit mit weglaufender Partnermode.
     """
     vorher = sha256_datei(DATEI)
     messung = beispiel_svd.lese_svd_werkzeug(DATEI)
@@ -268,12 +321,12 @@ def test_drift_beispieldatei() -> None:
         aw,
         zeit_s=zeit_s_aus_svd_messung(messung),
         drift_paar=("Ref2", "Ref1"),
-        drift_spitzen_hz=(418.8, 631.2, 1507.8),
+        drift_spitzen_hz=(167.52, 252.48, 603.12),
     )
-    soll = ((-0.129, 0.010, 135, 90), (-0.068, 0.010, 125, 0), (-0.482, 0.016, 135, 0))
+    soll = ((-0.0517, 0.0041, 135, 90), (-0.0275, 0.0044, 122, 0), (-0.1930, 0.0062, 135, 0))
     for d, (b1, sd, n, mpn) in zip(e.drift, soll, strict=True):
-        assert abs(d.steigung_hz_h - b1) <= 0.0005
-        assert abs(d.sd_steigung_hz_h - sd) <= 0.0005
+        assert abs(d.steigung_hz_h - b1) <= 0.00005
+        assert abs(d.sd_steigung_hz_h - sd) <= 0.00005
         assert d.n_punkte == n and d.n_modell_passt_nicht == mpn
         assert d.signifikant
     assert sha256_datei(DATEI) == vorher

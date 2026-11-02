@@ -89,20 +89,22 @@ def test_k1_7_kohaerenz_vollstaendig_nan_gibt_hinweis() -> None:
     assert any(h.startswith(KOHAERENZ_NICHT_PRUEFBAR) for h in ohne.hinweise)
 
 
-# --- K1-8: PSV-Vergleich mit reinem M7-Kennzeichen --------------------------------------------
+# --- FG-02 8 (K-ACHSE): PSV-Vergleich; K1-8 (Kennzeichen M7) entfällt -----------------------
 
 
-def test_k1_8_vergleich_bei_nur_m7() -> None:
+def test_psv_vergleich_ohne_m7_und_nur_bericht_bei_warnkennzeichen() -> None:
     t = Toleranzen()
-    assert t.spitze_stimmt(1000.2, 1000.0, 1.0, ("gueltigkeit_offen_m7",)) is True
-    assert t.spitze_stimmt(1000.3, 1000.0, 1.0, ("gueltigkeit_offen_m7",)) is False
-    assert (
-        t.spitze_stimmt(1000.45, 1000.0, 1.0, ("aufloesungsbegrenzt", "gueltigkeit_offen_m7"))
-        is True
-    )
-    assert t.spitze_stimmt(1000.0, 1000.0, 1.0, ("gueltigkeit_offen_m7", "nachbarmode")) is None
-    assert t.breite_stimmt(2.19, 2.0, ("gueltigkeit_offen_m7",)) is True
-    assert t.breite_stimmt(2.0, 2.0, ("gueltigkeit_offen_m7", "ueberlappend")) is None
+    # ohne Kennzeichen: f_sp <= 0,25·Δf, B ±10 %
+    assert t.spitze_stimmt(1000.2, 1000.0, 1.0, ()) is True
+    assert t.spitze_stimmt(1000.3, 1000.0, 1.0, ()) is False
+    assert t.breite_stimmt(2.19, 2.0, ()) is True and t.breite_stimmt(2.3, 2.0, ()) is False
+    # aufloesungsbegrenzt: Frequenz bleibt Prüfgrenze (<= 0,5·Δf), B/ζ nur Bericht (None)
+    assert t.spitze_stimmt(1000.45, 1000.0, 1.0, ("aufloesungsbegrenzt",)) is True
+    assert t.spitze_stimmt(1000.55, 1000.0, 1.0, ("aufloesungsbegrenzt",)) is False
+    assert t.breite_stimmt(2.0, 2.0, ("aufloesungsbegrenzt",)) is None
+    # andere Warnkennzeichen: kein Vergleich
+    assert t.spitze_stimmt(1000.0, 1000.0, 1.0, ("aufloesungsbegrenzt", "nachbarmode")) is None
+    assert t.breite_stimmt(2.0, 2.0, ("ueberlappend",)) is None
 
 
 # --- MAJOR: jede Prüfung erscheint mit Status -------------------------------------------------

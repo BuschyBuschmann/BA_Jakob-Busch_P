@@ -5,6 +5,11 @@ Erzeugung nach der Skalierungsvorschrift FG-02 2.1 und dem Prüfskript im Anhang
 :math:`k = 1 … 1600` (:math:`k_0 = 1`), :math:`BW = 2500` Hz, :math:`N = 4000`,
 :math:`f_s = 6250` Hz, :math:`\\Delta f = 1{,}5625` Hz. Die Software selbst rechnet keine
 Spektren aus Zeitdaten; diese Funktionen erzeugen nur Testdaten.
+
+**Synthetische Testdaten, nicht die Beispieldatei** (FG-03 9.1, K-ACHSE): Die Parameter
+(BW 2500 Hz, f_s 6250 Hz, Δf 1,5625 Hz) stammen aus der früheren Fehldeutung der Beispieldatei.
+Sie sind in sich stimmig und prüfen Algorithmen; die Sollwerte bleiben gültig. Die Beispieldatei
+hat f_s 2500 Hz, BW 1000 Hz, Δf 0,625 Hz.
 """
 
 from __future__ import annotations

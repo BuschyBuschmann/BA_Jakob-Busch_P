@@ -1,6 +1,8 @@
 """Referenzfälle B-1 (FG-03 9.1, RF-F1 bis RF-F7) und Randfälle 6.3 des Moden-Fits.
 
 Toleranzen wie FG-03 9.1; Begründung je Test. Sollwerte unverändert aus FG-03.
+Raster, Δf = 1,5625 Hz und Burst-Parameter sind synthetische Testdaten, nicht die Beispieldatei
+(FG-03 9.1, K-ACHSE).
 """
 
 from __future__ import annotations
@@ -35,7 +37,6 @@ from ldv_automation.auswertung.modenfit import (
     schaetze_daempfung,
 )
 from ldv_automation.auswertung.spitzen import (
-    GUELTIGKEIT_OFFEN_M7,
     KOHAERENZ_NIEDRIG,
     NACHBARMODE,
     UEBERLAPPEND,
@@ -410,10 +411,9 @@ def test_kennzeichen_einzeln() -> None:
         f_band_hz=(f[0], f[-1]),
         delta_f_hz=DF,
         schwellen2=S2,
-        m7_grenze_hz=50.0,
         mobilitaetsbezug=False,
     )
-    assert KEIN_MOBILITAETSBEZUG in k[0] and GUELTIGKEIT_OFFEN_M7 in k[0]
+    assert KEIN_MOBILITAETSBEZUG in k[0] and "gueltigkeit_offen_m7" not in k[0]
 
 
 def test_basis_iqr_frf_art() -> None:

@@ -15,11 +15,10 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
-from ldv_automation.auswertung.annahmen import Annahmen, Schwellen
+from ldv_automation.auswertung.annahmen import Schwellen
 from ldv_automation.auswertung.spitzen import (
     AUFLOESUNGSBEGRENZT,
     GRENZE_VERFAHREN,
-    GUELTIGKEIT_OFFEN_M7,
     HINWEIS_K_KLEIN,
     HINWEIS_OHNE_KOHAERENZ,
     KOHAERENZ_NIEDRIG,
@@ -198,7 +197,7 @@ def test_k_kleiner_drei() -> None:
     assert erg.spitzen == () and erg.hinweise == (HINWEIS_K_KLEIN,)
 
 
-def test_ueberlappend_am_achsenende_und_kohaerenz_niedrig_und_m7() -> None:
+def test_ueberlappend_am_achsenende_und_kohaerenz_niedrig_ohne_m7() -> None:
     f = (np.arange(1, 13) * 100.0).astype(np.float64)
     y = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5, 4.0, 3.9])
     g2 = np.ones(12)
@@ -208,10 +207,11 @@ def test_ueberlappend_am_achsenende_und_kohaerenz_niedrig_und_m7() -> None:
     assert UEBERLAPPEND in s.kennzeichen and math.isnan(s.breite_3db_hz) and math.isnan(s.q)
     assert math.isnan(s.f_r_hz) and math.isfinite(s.f_l_hz)
     assert KOHAERENZ_NIEDRIG in s.kennzeichen
-    assert GUELTIGKEIT_OFFEN_M7 in s.kennzeichen
-    ohne_m7 = suche_spitzen(f, y, schwellen=OHNE_PROMINENZ, annahmen=Annahmen(m7_grenze_hz=None))
-    assert GUELTIGKEIT_OFFEN_M7 not in ohne_m7.spitzen[0].kennzeichen
-    assert HINWEIS_OHNE_KOHAERENZ in ohne_m7.hinweise
+    # K-ACHSE: Spitze bei 1100 Hz (> alter M7-Grenze 1000 Hz) trägt kein M7-Kennzeichen mehr
+    assert s.f_sp_hz > 1000.0 and "gueltigkeit_offen_m7" not in s.kennzeichen
+    ohne = suche_spitzen(f, y, schwellen=OHNE_PROMINENZ)
+    assert "gueltigkeit_offen_m7" not in ohne.spitzen[0].kennzeichen
+    assert HINWEIS_OHNE_KOHAERENZ in ohne.hinweise
 
 
 def test_ueberlappend_durch_lokales_minimum() -> None:

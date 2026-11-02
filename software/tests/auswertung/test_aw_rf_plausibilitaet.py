@@ -156,18 +156,29 @@ def test_p09_referenzstabilitaet() -> None:
 
 
 def test_p10_und_p11() -> None:
-    assert p10_punktstatus(Annahmen(), 3).status == "hinweis"
+    # M6 ist seit 2026-11-02 bestätigt (FG-02 11): ohne ungültige Punkte "ok"
+    assert p10_punktstatus(Annahmen(), 3).status == "ok"
+    offen6 = Annahmen(status={"M6": "Annahme"})
+    assert p10_punktstatus(offen6, 3).status == "hinweis"
     bestaetigt = Annahmen(status={"M6": "bestätigt am 2026-11-02"})
     assert p10_punktstatus(bestaetigt, 3).status == "ok"
     p10 = p10_punktstatus(Annahmen(gueltig=(True, False, True)), 3)
     assert p10.status == "hinweis" and p10.wert == 1.0
     p11 = p11_annahmen(Annahmen())
-    assert p11.status == "hinweis" and p11.wert == 10.0
-    for teil in ("M1 konjugieren", "M2 k0", "M8 vorzeichen_kanal", "M10 bandregel", "M7", "M5 n_d"):
+    # offen: M5 n_d, M8, M11 (FG-02 11, Stand 2026-11-02); M7 entfällt (K-ACHSE)
+    assert p11.status == "hinweis" and p11.wert == 3.0
+    for teil in ("M5 n_d", "M8 vorzeichen_kanal", "M11 toleranzen"):
         assert teil in p11.grund
+    for teil in ("M1 konjugieren", "M2 k0", "M10 bandregel", "M5 w_rbw"):
+        assert teil not in p11.grund
+    alle_offen = Annahmen(
+        status=dict.fromkeys(("M1", "M2", "M4", "M5", "M6", "M8", "M10", "M11"), "Annahme")
+    )
+    assert p11_annahmen(alle_offen).wert == 9.0
+    assert "M7" not in p11.grund  # K-ACHSE: M7 erledigt
     alle = Annahmen(
         status=dict.fromkeys(
-            ("M1", "M2", "M4", "M5", "M6", "M7", "M8", "M10", "M11"),
+            ("M1", "M2", "M4", "M5", "M6", "M8", "M10", "M11"),
             "bestätigt am 2026-11-02",
         )
     )

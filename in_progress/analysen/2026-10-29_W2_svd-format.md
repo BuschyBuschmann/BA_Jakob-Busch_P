@@ -1,5 +1,7 @@
 <!-- Analysebericht W2: Aufbau der Polytec-PSV-Messdatei (.svd) und Prototyp-Leser ohne Polytec File Access; erstellt im Paket W2 von software-engineer. Stand 2026-10-29, überarbeitet nach Review R-W2 (Korrekturpaket K-W2). -->
 
+> **Korrekturvermerk K-ACHSE (KA-14, 2026-11-02).** Die Frequenzachse der Beispieldatei war in diesem Bericht um den Faktor 2,5 zu hoch: Das Feld `Fft` @4 (2500) ist die **Abtastfrequenz**, nicht die Bandbreite. Richtig sind Δf = 0,625 Hz, Achse 0,625 … 1000 Hz, Blockdauer T = 1,6 s (siehe `in_progress/fachgrundlagen/FG-02_auswertung-stufe1.md` Abschnitt 2.3). Alle **Frequenzangaben in Hz** (und Hz/h) in diesem Bericht sind mit **0,4** zu multiplizieren (z. B. 1,5625 Hz → 0,625 Hz, 2500 Hz → 1000 Hz); ζ, Q, Linienzahlen und Verhältnisse bleiben gleich. Die Abbildungen unter `in_progress/analysen/abbildungen/` wurden am 2026-11-02 mit der korrigierten Achse neu erzeugt. Der ursprüngliche Text ist unverändert.
+
 # W2 – Aufbau einer PSV-Messdatei (`.svd`) und Prototyp-Leser
 
 **Gegenstand.** `Input/20261012_ref_Mitte.svd` (27 115 520 Byte,

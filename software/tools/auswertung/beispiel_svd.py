@@ -26,7 +26,7 @@ Aufruf (aus ``software/``)::
     uv run python tools/auswertung/beispiel_svd.py ../Input/20261012_ref_Mitte.svd \
         --export <ordner> --abbildungen <ordner>
     uv run python tools/auswertung/beispiel_svd.py ../Input/20261012_ref_Mitte.svd \
-        --export <ordner> --stufe2 --drift-f 418.8 631.2 1507.8
+        --export <ordner> --stufe2 --drift-f 167.52 252.48 603.12
 """
 
 from __future__ import annotations
@@ -60,9 +60,9 @@ PAAR_SCHWINGFORM = ("Vib Z", "Ref1")
 PAARE_STUFE2: tuple[tuple[str, str], ...] = (("Vib Z", "Ref1"), ("Ref2", "Ref1"))
 DRIFT_PAAR = ("Ref2", "Ref1")
 BAENDER_ETA_HZ: tuple[tuple[float, float], ...] = (
-    (150.0, 500.0),
-    (500.0, 1000.0),
-    (1000.0, 2500.0),
+    (60.0, 200.0),
+    (200.0, 400.0),
+    (400.0, 1000.0),
 )
 
 Leser = Callable[[Path], Any]

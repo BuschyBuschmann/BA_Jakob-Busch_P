@@ -21,6 +21,7 @@ from ldv_automation.auswertung.modenfit import (
     AUSSERHALB_BAND,
     GRUPPE_ZU_GROSS,
     HINWEIS_KOHAERENZ_NAN,
+    KEIN_MOBILITAETSBEZUG,
     MODELL_PASST_NICHT,
     MODEN_VERTAUSCHT,
     NICHT_KONVERGIERT,
@@ -32,7 +33,7 @@ from ldv_automation.auswertung.modenfit import (
     schaetze_daempfung,
     vertauschte_moden,
 )
-from ldv_automation.auswertung.spitzen import GUELTIGKEIT_OFFEN_M7, KOHAERENZ_NIEDRIG, Spitze
+from ldv_automation.auswertung.spitzen import KOHAERENZ_NIEDRIG, Spitze
 from ldv_automation.auswertung.svd_adapter import aus_svd_messung
 from ldv_automation.auswertung.vergleich import (
     HINWEIS_MAC_1D,
@@ -160,7 +161,9 @@ def _rf_v6(n: int) -> list[ModenErgebnis]:
             k1.append(MODELL_PASST_NICHT)
             k2.append(MODELL_PASST_NICHT)
         if n == 2 and p == 5:
-            k1.append(GUELTIGKEIT_OFFEN_M7)
+            # RF-V6: `kein_mobilitaetsbezug` ersetzt das entfallene Kennzeichen
+            # `gueltigkeit_offen_m7` (K-ACHSE): ein nicht ausschließendes Kennzeichen der Mode
+            k1.append(KEIN_MOBILITAETSBEZUG)
         if n == 2 and p == 6:
             k1.append(KOHAERENZ_NIEDRIG)
         kz = [tuple(k1), tuple(k2)][:n]

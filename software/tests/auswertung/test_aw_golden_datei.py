@@ -127,6 +127,20 @@ def test_bandnorm_h1_s17_punkt_0(ergebnis: tuple[Any, Auswertung, str]) -> None:
     assert b.bandnorm[0] == pytest.approx(0.01851376, rel=1e-5)
 
 
+def test_bandnorm_h1_vib_z_band_158_75_bis_163_75(ergebnis: tuple[Any, Auswertung, str]) -> None:
+    """FG-02 9.9 (K-ACHSE), M10: PSV-Anzeige 50,48 mm/s/N = geschlossen 50,478 (9 Linien).
+
+    Label 132 = Punktindex 0. Toleranz 0,0005 mm/s/N = halbe letzte Stelle von 50,478;
+    beobachtet 50,4776 (Abweichung 0,0004). Offen bzw. halboffen ergäben 49,686 / 49,731 / 50,433.
+    """
+    _, a, _ = ergebnis
+    d = a.daten
+    h1_z = a.paare[("Vib Z", "Ref1")].frf.h1
+    b = band_frf(h1_z, d.frequenz_hz, 158.75, 163.75)
+    assert b.n_linien == 9 and b.bandnorm is not None
+    assert abs(float(b.bandnorm[0]) * 1e3 - 50.478) <= 0.0005
+
+
 def test_plausibilitaet_an_der_datei(ergebnis: tuple[Any, Auswertung, str]) -> None:
     _, a, _ = ergebnis
     nach_id: dict[tuple[str, str], Any] = {(e.id, e.bezug): e for e in a.pruefungen}

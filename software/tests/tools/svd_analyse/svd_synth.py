@@ -46,7 +46,7 @@ def punktdaten(
     linien: int,
     plaetze: Sequence[int],
     filetime0: int,
-    blockdauer_s: float = 0.1,
+    feld_34: float = 0.64,
 ) -> bytes:
     """``zeilen[p]`` = float32-Nutzdaten von Punkt ``p``; Ablage an ``plaetze[p]``.
 
@@ -63,7 +63,7 @@ def punktdaten(
         struct.pack_into("<i", daten, b + sl.SATZ_PUNKT, p)
         t = filetime0 + plaetze[p] * 10_000_000
         struct.pack_into("<QQ", daten, b + sl.SATZ_ZEIT_A, t, t + 1_000_000)
-        struct.pack_into("<d", daten, b + sl.SATZ_BLOCKDAUER, blockdauer_s)
+        struct.pack_into("<d", daten, b + sl.SATZ_FELD_34, feld_34)
         struct.pack_into("<d", daten, b + sl.SATZ_KENNFELD, kennwert(p))
         struct.pack_into("<i", daten, b + sl.SATZ_NUTZLAENGE, nbytes)
         daten[b + sl.SATZ_DATEN : b + sl.SATZ_DATEN + nbytes] = zeilen[p].astype("<f4").tobytes()
@@ -75,8 +75,31 @@ def static_info(kanaele: Sequence[tuple[str, str]], formel: str) -> bytes:
     return struct.pack("<i", 2) + bytes(20) + teil + teil
 
 
-def fft(bw_hz: float, linien: int, abtast: int) -> bytes:
-    return struct.pack("<idii", 2, bw_hz, linien, abtast) + bytes(32)
+def fft(
+    fs_hz: float,
+    linien: int,
+    abtast: int,
+    *,
+    bw_hz: float | None = None,
+    start_hz: float = 0.0,
+    end_hz: float | None = None,
+) -> bytes:
+    """``Fft``-Stream (K-ACHSE): Abtastfrequenz @4, Linien @12, N @16, Start @20, BW @28, Ende @36.
+
+    Voreinstellung wie PSV: Bandbreite = Linien · fs/N, Endfrequenz = Start + Bandbreite.
+    """
+    bw = linien * fs_hz / abtast if bw_hz is None else bw_hz
+    ende = start_hz + bw if end_hz is None else end_hz
+    return struct.pack("<idiidddd", 2, fs_hz, linien, abtast, start_hz, bw, ende, 0.0)
+
+
+def band_info(linien: int, df_hz: float, obergrenze_hz: float) -> bytes:
+    """``BandInfo-0`` im Layout der Beispieldatei (36 Byte entpackt, zlib mit Längenkopf)."""
+    roh = bytearray(36)
+    struct.pack_into("<i", roh, 2, linien)
+    struct.pack_into("<f", roh, 20, df_hz)
+    struct.pack_into("<f", roh, 28, obergrenze_hz)
+    return struct.pack("<I", len(roh)) + zlib.compress(bytes(roh))
 
 
 def messpunkte(labels: Sequence[int], xyz: npt.NDArray[np.float64]) -> bytes:
@@ -210,7 +233,7 @@ def messung_stroeme(
     if raster is not None:
         plaetze, xyz = raster_scan(*raster)
     st: dict[str, bytes] = {
-        "Info/DAQ_Settings_Fft/Fft": fft(10.0 * linien, linien, int(2.5 * linien)),
+        "Info/DAQ_Settings_Fft/Fft": fft(25.0 * linien, linien, int(2.5 * linien)),
         # Ohne Raster: Punkte auf einer Linie, 0,1 m Abstand, Scan in umgekehrter Folge.
         "Info/Geometry/MeasPoints": messpunkte([100 + 3 * i for i in range(n)], xyz),
         "Info/Geometry/Elements": elemente([tuple(range(n))]),
@@ -234,6 +257,7 @@ def messung_stroeme(
         st[f"{b}/ManyStreamsData-0"] = punktdaten(zeilen, linien, plaetze, 133_000_000_000_000_000)
         st[f"{b}/Static_Info"] = static_info(kan, formel)
     bk = "Band_Data/Entire_Bandwidth/FB0"
+    st[f"{bk}/BandInfo-0"] = band_info(linien, 10.0, 10.0 * linien)
     st[f"{bk}/S0-0"] = band(
         "CP Kraft * Geschwindigkeit",
         [("Vib X", "Geschwindigkeit", "m/s"), ("Ref1", "Kraft", "N")],

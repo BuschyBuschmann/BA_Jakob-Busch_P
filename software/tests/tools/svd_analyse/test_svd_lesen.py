@@ -92,7 +92,7 @@ def test_punktdaten_ordnet_nach_punktindex() -> None:
     assert pd.werte.dtype == np.float64
     assert pd.linien == 2
     assert pd.zeit_a[1] - pd.zeit_a[0] == dt.timedelta(seconds=-2)  # Platz 0 vs. Platz 2
-    assert pd.blockdauer_s == 0.1 and pd.platz == (2, 0, 1)
+    assert pd.feld_34 == 0.64 and pd.platz == (2, 0, 1)
 
 
 def _punktdaten_fall(aendern: str) -> tuple[bytes, sl.StromInfo, sl.SignalInfo]:
@@ -119,8 +119,8 @@ def _punktdaten_fall(aendern: str) -> tuple[bytes, sl.StromInfo, sl.SignalInfo]:
         struct.pack_into("<i", daten, b1 + sl.SATZ_PUNKT, 0)
     elif aendern == "platz":
         info = sl.StromInfo(satz, 2, (1, 0))
-    elif aendern == "blockdauer":
-        struct.pack_into("<d", daten, b1 + sl.SATZ_BLOCKDAUER, 0.2)
+    elif aendern == "feld_34":
+        struct.pack_into("<d", daten, b1 + sl.SATZ_FELD_34, 0.2)
     return bytes(daten), info, sig
 
 
@@ -135,7 +135,7 @@ def _punktdaten_fall(aendern: str) -> tuple[bytes, sl.StromInfo, sl.SignalInfo]:
         "linien",
         "doppelt",
         "platz",
-        "blockdauer",
+        "feld_34",
     ],
 )
 def test_punktdaten_fehler(aendern: str) -> None:
@@ -165,13 +165,49 @@ def test_signalart_und_statische_info() -> None:
 
 
 def test_fft_einstellungen() -> None:
+    """K-ACHSE: @4 = Abtastfrequenz 2500 Hz, N = 4000 -> Δf = 0,625 Hz, T = 1,6 s, BW 1000 Hz."""
     fft = sl.dekodiere_fft_einstellungen(syn.fft(2500.0, 1600, 4000))
-    assert (fft.bandbreite_hz, fft.linien, fft.abtastwerte) == (2500.0, 1600, 4000)
-    assert fft.delta_f_hz == pytest.approx(1.5625, rel=1e-15)  # exakt darstellbar
+    assert (fft.abtastfrequenz_hz, fft.linien, fft.abtastwerte) == (2500.0, 1600, 4000)
+    assert (fft.startfrequenz_hz, fft.bandbreite_hz, fft.endfrequenz_hz) == (0.0, 1000.0, 1000.0)
+    # 0,625 = 5/8 und 1,6 = 8/5 sind als Quotient zweier exakter Zahlen auf 1 ulp genau
+    assert fft.delta_f_hz == pytest.approx(0.625, rel=1e-15, abs=0.0)
+    assert fft.blockdauer_s == pytest.approx(1.6, rel=1e-15, abs=0.0)
+    assert fft.delta_f_hz * fft.blockdauer_s == pytest.approx(1.0, rel=1e-15, abs=0.0)
     with pytest.raises(sl.SvdFormatFehler):
         sl.dekodiere_fft_einstellungen(b"\x00" * 52)
-    with pytest.raises(sl.SvdFormatFehler):
+    with pytest.raises(sl.SvdFormatFehler, match="zu kurz"):
+        sl.dekodiere_fft_einstellungen(syn.fft(2500.0, 1600, 4000)[:40])
+    with pytest.raises(sl.SvdFormatFehler, match="unplausibel"):
         sl.dekodiere_fft_einstellungen(syn.fft(-1.0, 1600, 4000))
+
+
+def test_fft_einstellungen_konsistenzpruefungen() -> None:
+    with pytest.raises(sl.SvdFormatFehler, match="Startfrequenz"):  # Zoom ungeprüft
+        sl.dekodiere_fft_einstellungen(syn.fft(2500.0, 1600, 4000, start_hz=100.0))
+    with pytest.raises(sl.SvdFormatFehler, match="Endfrequenz"):
+        sl.dekodiere_fft_einstellungen(syn.fft(2500.0, 1600, 4000, end_hz=1200.0))
+    # Bandbreite/Linien (1250 Hz / 1600) passt nicht zu fs/N = 0,625 Hz
+    with pytest.raises(sl.SvdFormatFehler, match="Bandbreite/Linien"):
+        sl.dekodiere_fft_einstellungen(syn.fft(2500.0, 1600, 4000, bw_hz=1250.0))
+
+
+def test_band_info_gegenprobe() -> None:
+    fft = sl.dekodiere_fft_einstellungen(syn.fft(2500.0, 1600, 4000))
+    assert sl.pruefe_band_info(syn.band_info(1600, 0.625, 1000.0), fft) == sl.BAND_INFO_GEPRUEFT
+    # alte Fehldeutung 1,5625 / 2500, falsche Linienzahl, falsche Obergrenze: Widerspruch
+    for fehl in (
+        syn.band_info(1600, 1.5625, 2500.0),
+        syn.band_info(7, 0.625, 1000.0),
+        syn.band_info(1600, 0.625, 2500.0),
+    ):
+        assert sl.pruefe_band_info(fehl, fft) == sl.BAND_INFO_WIDERSPRUCH
+    # Layout nicht erkannt -> nicht prüfbar, kein Fehler
+    assert sl.pruefe_band_info(b"abc", fft) == sl.BAND_INFO_NICHT_PRUEFBAR
+    unbekannt = struct.pack("<I", 4) + zlib.compress(b"abcd")
+    assert sl.pruefe_band_info(unbekannt, fft) == sl.BAND_INFO_NICHT_PRUEFBAR
+    assert (
+        sl.pruefe_band_info(struct.pack("<I", 4) + b"kein zlib", fft) == sl.BAND_INFO_NICHT_PRUEFBAR
+    )
 
 
 def test_messpunkte() -> None:
@@ -281,7 +317,9 @@ def test_lese_container_widerspruechliche_daten() -> None:
     with pytest.raises(sl.SvdFormatFehler, match="widerspricht"):
         sl.lese_container(syn.FakeOle(st), Path("x"))
     st, _ = syn.messung_stroeme()
-    st["Info/DAQ_Settings_Fft/Fft"] = syn.fft(50.0, 5, 10)  # Δf = 10 Hz passt zur Blockdauer
+    st["Info/DAQ_Settings_Fft/Fft"] = syn.fft(
+        125.0, 5, 10
+    )  # in sich stimmig, aber 5 statt 4 Linien
     with pytest.raises(sl.SvdFormatFehler, match="Linien"):
         sl.lese_container(syn.FakeOle(st), Path("x"))
     st, _ = syn.messung_stroeme()
@@ -522,8 +560,15 @@ def test_echte_datei_plausibel_und_unveraendert() -> None:
     vorher = kp.sha256_datei(ECHTE_DATEI)
     m = sl.lese_svd(ECHTE_DATEI)
     assert kp.sha256_datei(ECHTE_DATEI) == vorher  # nur gelesen
-    assert (m.fft.bandbreite_hz, m.fft.linien) == (2500.0, 1600)
-    assert m.fft.delta_f_hz == pytest.approx(1.5625, rel=1e-15)
+    # K-ACHSE: Abtastfrequenz 2500 Hz (@4), Bandbreite 1000 Hz, Δf = 0,625 Hz, T = 1,6 s
+    assert (m.fft.abtastfrequenz_hz, m.fft.bandbreite_hz, m.fft.linien) == (2500.0, 1000.0, 1600)
+    assert m.fft.abtastwerte == 4000 and m.fft.startfrequenz_hz == 0.0
+    assert m.fft.delta_f_hz == pytest.approx(0.625, rel=1e-15, abs=0.0)
+    assert m.fft.blockdauer_s == pytest.approx(1.6, rel=1e-15, abs=0.0)
+    np.testing.assert_allclose(m.frequenz_hz, 0.625 * np.arange(1, 1601), rtol=1e-15, atol=0.0)
+    assert m.frequenz_hz[0] == 0.625 and m.frequenz_hz[-1] == 1000.0
+    assert m.satz_feld_34 == pytest.approx(0.64)  # unbekanntes Feld, roh durchgereicht
+    assert m.band_info == sl.BAND_INFO_GEPRUEFT
     assert len(m.signale) == 17 and len(m.punktmittel) == 35 and len(m.baender) == 29
     assert all(s.werte.shape == (135, 1600) for s in m.signale.values())
     assert len(m.elemente) == 112 and len(set(m.punkte.label.tolist())) == 135
@@ -604,10 +649,44 @@ def test_synthetisch_vertauschte_baender_fuehren_zum_abbruch() -> None:
         sl.lese_container(syn.FakeOle(st), Path("x"))
 
 
-def test_synthetisch_bandbreite_widerspricht_blockdauer() -> None:
+def test_synthetisch_fft_widerspricht_sich() -> None:
     st, _ = syn.messung_stroeme(linien=4)
-    st["Info/DAQ_Settings_Fft/Fft"] = syn.fft(5000.0, 4, 10)  # Δf 1250 Hz, Block 0,1 s
-    with pytest.raises(sl.SvdFormatFehler, match="Blockdauer"):
+    st["Info/DAQ_Settings_Fft/Fft"] = syn.fft(100.0, 4, 10, bw_hz=50.0)  # Δf 10 Hz ≠ 12,5 Hz
+    with pytest.raises(sl.SvdFormatFehler, match="Bandbreite/Linien"):
+        sl.lese_container(syn.FakeOle(st), Path("x"))
+
+
+def test_synthetisch_band_info_status_und_uebersicht() -> None:
+    """BandInfo-Gegenprobe: nur melden, kein Abbruch (Nutzerentscheidung 2026-11-02)."""
+    st, _ = syn.messung_stroeme(linien=4)
+    m = sl.lese_container(syn.FakeOle(st), Path("x"))
+    assert m.band_info == sl.BAND_INFO_GEPRUEFT
+    assert f"Gegenprobe BandInfo-0 (Δf 0,625 Hz / Obergrenze): {sl.BAND_INFO_GEPRUEFT}" in (
+        sl.uebersicht(m)
+    )
+    bk = "Band_Data/Entire_Bandwidth/FB0/BandInfo-0"
+    st[bk] = syn.band_info(4, 1.5625, 2500.0)
+    m = sl.lese_container(syn.FakeOle(st), Path("x"))  # kein Abbruch
+    assert m.band_info == sl.BAND_INFO_WIDERSPRUCH
+    assert "WARNUNG Gegenprobe BandInfo-0" in sl.uebersicht(m)
+    np.testing.assert_allclose(m.frequenz_hz, [10.0, 20.0, 30.0, 40.0])  # Achse aus Fft
+    st[bk] = struct.pack("<I", 4) + zlib.compress(b"abcd")
+    assert sl.lese_container(syn.FakeOle(st), Path("x")).band_info == sl.BAND_INFO_NICHT_PRUEFBAR
+    del st[bk]
+    m = sl.lese_container(syn.FakeOle(st), Path("x"))
+    assert m.band_info == sl.BAND_INFO_FEHLT and "BandInfo-0 fehlt" in sl.uebersicht(m)
+
+
+def test_synthetisch_frequenzachse_und_feld_34() -> None:
+    """Achse k·Δf aus fs/N; das Feld +0x34 hat keinen Einfluss auf die Achse (K-ACHSE)."""
+    st, _ = syn.messung_stroeme(linien=4)
+    m = sl.lese_container(syn.FakeOle(st), Path("x"))
+    np.testing.assert_allclose(m.frequenz_hz, [10.0, 20.0, 30.0, 40.0], rtol=1e-15, atol=0.0)
+    assert m.satz_feld_34 == 0.64  # 1/Δf wäre 0,1 s: keine Prüfung "Blockdauer · Δf = 1" mehr
+    st["Polytec_Data/M1/ManyStreamsData-0"] = syn.punktdaten(
+        np.ones((3, 8), dtype=np.float32), 4, list(reversed(range(3))), 0, feld_34=0.5
+    )
+    with pytest.raises(sl.SvdFormatFehler, match="0x34"):
         sl.lese_container(syn.FakeOle(st), Path("x"))
 
 
@@ -659,13 +738,96 @@ def test_echte_kopie_vertauschte_baender_s8_s12(echte_stroeme: dict[str, bytes])
         sl.lese_container(syn.FakeOle(st), ECHTE_DATEI)
 
 
-def test_echte_kopie_bandbreite_5000_hz_bricht_ab(echte_stroeme: dict[str, bytes]) -> None:
+def test_echte_kopie_abtastfrequenz_5000_hz_bricht_ab(echte_stroeme: dict[str, bytes]) -> None:
     st = dict(echte_stroeme)
     fft = bytearray(st["Info/DAQ_Settings_Fft/Fft"])
-    struct.pack_into("<d", fft, 4, 5000.0)
+    struct.pack_into("<d", fft, 4, 5000.0)  # Δf 1,25 Hz ≠ Bandbreite/Linien 0,625 Hz
     st["Info/DAQ_Settings_Fft/Fft"] = bytes(fft)
-    with pytest.raises(sl.SvdFormatFehler, match="Blockdauer"):
+    with pytest.raises(sl.SvdFormatFehler, match="Bandbreite/Linien"):
         sl.lese_container(syn.FakeOle(st), ECHTE_DATEI)
+
+
+def test_echte_kopie_band_info_gegenprobe(echte_stroeme: dict[str, bytes]) -> None:
+    """BandInfo der Beispieldatei: 0,625 Hz und 1000 Hz bestätigen die Achse (Layout erkannt)."""
+    fft = sl.dekodiere_fft_einstellungen(echte_stroeme["Info/DAQ_Settings_Fft/Fft"])
+    info = echte_stroeme["Band_Data/Entire_Bandwidth/FB0/BandInfo-0"]
+    assert sl.pruefe_band_info(info, fft) == sl.BAND_INFO_GEPRUEFT
+    st = dict(echte_stroeme)
+    st["Band_Data/Entire_Bandwidth/FB0/BandInfo-0"] = syn.band_info(1600, 1.5625, 2500.0)
+    m = sl.lese_container(syn.FakeOle(st), ECHTE_DATEI)  # kein Abbruch, nur Meldung
+    assert m.band_info == sl.BAND_INFO_WIDERSPRUCH
+
+
+GOLDEN_CSV = (
+    Path(__file__).resolve().parents[4]
+    / "in_progress"
+    / "versuche"
+    / "2026-11-02_prototyp"
+    / "golden_punkt1_label132.csv"
+)
+
+
+@pytest.mark.skipif(
+    not (ECHTE_DATEI.is_file() and GOLDEN_CSV.is_file()),
+    reason="Messdatei oder Golden File (PSV-Export, Label 132) nicht vorhanden",
+)
+def test_golden_file_label_132() -> None:
+    """FG-02 9.9 (K-ACHSE): Leser gegen den PSV-Export (Polytec File Access), Label 132.
+
+    Toleranzen nach FG-02 Abschnitt 8: Achse exakt (atol 1e-9 Hz), Spektren und H1 rtol 1e-5
+    (float32-Daten; beobachtet CPH bitgleich, H1 rel. <= 5,8e-8). Bandnorm (50,478 mm/s/N) und
+    3D-Gesamtwert (1,349 mm/s) sind PSV-Anzeigewerte mit drei Nachkommastellen; Toleranz = halbe
+    letzte angezeigte Stelle = 0,0005 (beobachtet 50,4776 bzw. 1,34902: Abweichung 0,0004 bzw.
+    0,00002). Vib Z allein (1,332454 mm/s) = Banddaten S5, rtol 1e-5.
+    """
+    g = np.genfromtxt(GOLDEN_CSV, delimiter=";", skip_header=1)
+    assert g.shape == (1600, 13)
+
+    def komplex(spalte: int) -> np.ndarray:  # Re bei spalte, Im bei spalte + 1
+        return np.asarray(g[:, spalte] + 1j * g[:, spalte + 1])
+
+    m = sl.lese_svd(ECHTE_DATEI)
+    p = 0  # Label 132 = Punktindex 0
+    assert int(m.punkte.label[p]) == 132
+    np.testing.assert_allclose(g[:, 0], m.frequenz_hz, rtol=0.0, atol=1e-9)
+    np.testing.assert_allclose(g[:, 0], 0.625 * np.arange(1, 1601), rtol=0.0, atol=1e-9)
+
+    def w(name: str) -> np.ndarray:
+        return np.asarray(m.signale[name].werte[p])
+
+    zuordnung = {
+        n: (m.signale[n].art, m.signale[n].kanaele[0])
+        for n in ("M0", "M1", "M3", "M4", "M5", "M7", "M12")
+    }
+    assert zuordnung == {
+        "M0": ("CP", "Vib X"),
+        "M1": ("CPH", "Vib X"),
+        "M3": ("CPH", "Vib Y"),
+        "M4": ("CP", "Vib Z"),
+        "M5": ("CPH", "Vib Z"),
+        "M7": ("CPH", "Ref2"),
+        "M12": ("AP", "Ref1"),
+    }
+    # CPH Vib X, Y, Z und Ref2 (Beschleunigung) gegen die Datei
+    for spalte, signal in ((1, "M1"), (3, "M3"), (5, "M5"), (7, "M7")):
+        np.testing.assert_allclose(w(signal), komplex(spalte), rtol=1e-5, atol=0.0)
+    # H1 Vib X & Ref1 = CP/AP_Ref1, Vib Z & Ref1 (nicht konjugiert, M1 bestätigt)
+    h1_x = w("M0") / w("M12")
+    h1_z = w("M4") / w("M12")
+    np.testing.assert_allclose(h1_x, komplex(9), rtol=1e-5, atol=0.0)
+    np.testing.assert_allclose(h1_z, komplex(11), rtol=1e-5, atol=0.0)
+    # bandnorm H1 Vib Z/Ref1, Band [158,75; 163,75] Hz geschlossen: 50,478 mm/s/N, 9 Linien
+    df = 0.625
+    maske = (m.frequenz_hz >= 158.75 - 1e-6 * df) & (m.frequenz_hz <= 163.75 + 1e-6 * df)
+    assert int(maske.sum()) == 9
+    bandnorm = np.sqrt(np.sum(np.abs(h1_z[maske]) ** 2) / 2.0) * 1e3
+    assert abs(bandnorm - 50.478) <= 0.0005
+    # 3D-Gesamtwert aus CPH X, Y, Z über alle Linien (Label 132): 1,349 mm/s; Vib Z allein
+    # 1,332454 mm/s = Banddaten S5 der Datei
+    rms = [np.sqrt(np.sum(np.abs(w(s)) ** 2) / 2.0) for s in ("M1", "M3", "M5")]
+    assert abs(np.sqrt(sum(r**2 for r in rms)) * 1e3 - 1.349) <= 0.0005
+    assert rms[2] * 1e3 == pytest.approx(1.332454, rel=1e-5, abs=0.0)
+    np.testing.assert_allclose(rms[2], m.baender["S5"].werte[p], rtol=1e-5, atol=0.0)
 
 
 def test_scanreihenfolge_muss_in_allen_signalen_gleich_sein() -> None:

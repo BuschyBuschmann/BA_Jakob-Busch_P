@@ -1,4 +1,7 @@
-"""Datenvertrag FG-02 6.1/6.3, Annahmen M1–M11 (A2), Toleranzen (Abschnitt 8), Gesamtauswertung."""
+"""Datenvertrag FG-02 6.1/6.3, Annahmen M1–M11 (A2), Toleranzen (Abschnitt 8), Gesamtauswertung.
+
+Die Testdaten (z. B. Δf = 1,5625 Hz) sind synthetisch, nicht die Beispieldatei (FG-03 9.1).
+"""
 
 from __future__ import annotations
 
@@ -41,11 +44,30 @@ def _punkte(p: int = 1) -> Punkte:
 def test_voreinstellungen_nach_fg02() -> None:
     a = Annahmen()
     assert (a.k0, a.konjugieren, a.w_rbw, a.n_d, a.bandregel) == (1, False, 1.0, 7, "geschlossen")
-    assert a.vorzeichen("Ref1") == 1 and a.m7_grenze_hz == 1000.0
+    assert a.vorzeichen("Ref1") == 1 and "M7" not in ANNAHME_NUMMERN  # K-ACHSE: M7 erledigt
     assert a.gueltig_je_punkt(3).tolist() == [True, True, True]
     eintraege = a.eintraege()
     assert {e.nr for e in eintraege} == set(ANNAHME_NUMMERN)
-    assert all(e.status == ANNAHME and e.ist_annahme for e in eintraege)
+    # FG-02 11 (Stand 56dce6c): bestätigt am 2026-11-02 sind M1, M2, M4, M5 (nur Fenster), M6, M10;
+    # offen bleiben M5 n_d, M8 und M11
+    status = {(e.nr, e.parameter): e.status for e in eintraege}
+    bestaetigt = {
+        ("M1", "konjugieren"),
+        ("M2", "k0"),
+        ("M4", "skalierung"),
+        ("M5", "w_rbw"),
+        ("M6", "gueltig"),
+        ("M10", "bandregel"),
+    }
+    assert {k for k, v in status.items() if v == "bestätigt am 2026-11-02"} == bestaetigt
+    assert {k for k, v in status.items() if v == ANNAHME} == {
+        ("M5", "n_d"),
+        ("M8", "vorzeichen_kanal"),
+        ("M11", "toleranzen"),
+    }
+    assert a.status_von("M1") == "bestätigt am 2026-11-02" and a.status_von("M5") == ANNAHME
+    assert a.status_von("M5", "w_rbw") == "bestätigt am 2026-11-02"
+    assert a.status_von("M8") == ANNAHME
     s = Schwellen()
     assert (s.kohaerenz_min, s.prominenz_min, s.fenster_linien, s.n_min_linien, s.k_eps) == (
         0.9,
@@ -62,7 +84,6 @@ def test_annahmen_status_und_werte_im_text() -> None:
         vorzeichen_kanal={"Ref2": -1},
         n_d=[7, 25],
         gueltig=[True, False],
-        m7_grenze_hz=None,
         status={"M1": "bestätigt am 2026-11-02"},
     )
     texte = {(e.nr, e.parameter): e for e in a.eintraege()}
@@ -71,7 +92,7 @@ def test_annahmen_status_und_werte_im_text() -> None:
     assert texte[("M8", "vorzeichen_kanal")].wert == "Ref2: -1; übrige +1"
     assert texte[("M5", "n_d")].wert == "je Punkt 7 … 25"
     assert texte[("M6", "gueltig")].wert == "1 von 2 ungültig"
-    assert texte[("M7", "m7_grenze_hz")].wert == "aus"
+    assert not [nr for nr, _ in texte if nr == "M7"]
     assert a.n_d_je_punkt(2).tolist() == [7, 25]
     with pytest.raises(ValueError, match="P"):
         a.n_d_je_punkt(3)
@@ -92,7 +113,6 @@ def test_annahmen_status_und_werte_im_text() -> None:
         {"n_d": [7, 0]},
         {"n_d": []},
         {"vorzeichen_kanal": {"Ref1": 2}},
-        {"m7_grenze_hz": 0.0},
         {"bandregel": "halboffen"},
         {"status": {"M3": "x"}},
         {"status": {"M1": " "}},

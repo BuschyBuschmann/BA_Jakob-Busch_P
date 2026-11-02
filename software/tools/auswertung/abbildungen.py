@@ -267,11 +267,11 @@ def bild_schwingform(felder: dict[str, npt.NDArray[Any]], meta: dict[str, Any]) 
         ax2.set_aspect("equal")
     fig.text(
         0.01,
-        0.06,
+        0.1,
         f"f = {sf['f_hz']:.4g} Hz, Quelle {sf['quelle']}, Referenz {sf['referenz'] or 'keine'}",
         fontsize=7,
     )
-    fig.tight_layout(rect=(0, 0.1, 1, 1))
+    fig.tight_layout(rect=(0, 0.14, 1, 1))
     _fusszeile(fig, meta)
     return fig
 

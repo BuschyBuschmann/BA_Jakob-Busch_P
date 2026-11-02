@@ -21,8 +21,25 @@ import numpy.typing as npt
 ANNAHME = "Annahme"
 """Status eines nicht bestätigten Parameters."""
 
+STATUS_BESTAETIGT_2026_11_02 = "bestätigt am 2026-11-02"
+"""Status der am Messrechner bestätigten Annahmen (FG-02 Abschnitt 11, Stand 56dce6c)."""
+
+#: Voreingestellter Status je (Annahmennummer, Parameter) nach FG-02 Abschnitt 11. Bestätigt:
+#: M1 (Golden File), M2 (PFA XAxis, Golden File), M4 (Golden File, Bandwerte), M5 nur das Fenster
+#: ``w_rbw`` (Rechteck; ``n_d`` bleibt Annahme: ob bei Signal Enhancement alle 7 Blöcke gemittelt
+#: werden, ist offen), M6 (Statusfeld gegen PSV), M10 (Band-Cursor). M8 und M11 bleiben offen;
+#: M3 und M9 gibt es in FG-02 Abschnitt 11 nicht.
+STATUS_VORGABE: dict[tuple[str, str], str] = {
+    ("M1", "konjugieren"): STATUS_BESTAETIGT_2026_11_02,
+    ("M2", "k0"): STATUS_BESTAETIGT_2026_11_02,
+    ("M4", "skalierung"): STATUS_BESTAETIGT_2026_11_02,
+    ("M5", "w_rbw"): STATUS_BESTAETIGT_2026_11_02,
+    ("M6", "gueltig"): STATUS_BESTAETIGT_2026_11_02,
+    ("M10", "bandregel"): STATUS_BESTAETIGT_2026_11_02,
+}
+
 #: Nummern der einstellbaren Annahmen nach FG-02 Abschnitt 11.
-ANNAHME_NUMMERN: tuple[str, ...] = ("M1", "M2", "M4", "M5", "M6", "M7", "M8", "M10", "M11")
+ANNAHME_NUMMERN: tuple[str, ...] = ("M1", "M2", "M4", "M5", "M6", "M8", "M10", "M11")
 
 #: Kanäle mit festem Vorzeichen +1 (Richtungskonvention KONVENTIONEN, FG-02 2.4/6.1).
 KANAELE_VORZEICHEN_FEST: tuple[str, ...] = ("Vib X", "Vib Y", "Vib Z")
@@ -88,9 +105,6 @@ class Annahmen:
         Mittelungsanzahl je Messung oder je Punkt (M5), ``>= 1``. Voreinstellung 7.
     gueltig : sequence of bool or None
         Gültigkeit je Punktindex (M6). ``None``: alle Punkte gültig (Voreinstellung).
-    m7_grenze_hz : float or None
-        Oberhalb dieser Frequenz in Hz ist die Gültigkeit offen (M7), Kennzeichen
-        ``gueltigkeit_offen_m7``. ``None`` schaltet das Kennzeichen ab. Voreinstellung 1000.
     bandregel : {"geschlossen", "offen"}
         Bandzugehörigkeit der Grenzlinien (M10). Voreinstellung ``"geschlossen"``.
     skalierung : str
@@ -115,7 +129,6 @@ class Annahmen:
     w_rbw: float = 1.0
     n_d: int | Sequence[int] = 7
     gueltig: Sequence[bool] | None = None
-    m7_grenze_hz: float | None = 1000.0
     bandregel: Bandregel = "geschlossen"
     skalierung: str = SKALIERUNG_SPITZENWERT
     toleranzen: Toleranzen = field(default_factory=lambda: Toleranzen())
@@ -143,8 +156,6 @@ class Annahmen:
         object.__setattr__(self, "vorzeichen_kanal", dict(self.vorzeichen_kanal))
         if self.gueltig is not None:
             object.__setattr__(self, "gueltig", tuple(bool(g) for g in self.gueltig))
-        if self.m7_grenze_hz is not None and not (self.m7_grenze_hz > 0):
-            raise ValueError(f"m7_grenze_hz muss > 0 sein: {self.m7_grenze_hz!r}")
         if self.bandregel not in ("geschlossen", "offen"):
             raise ValueError(f"unbekannte Bandregel {self.bandregel!r}")
         unbekannt = set(self.status) - set(ANNAHME_NUMMERN)
@@ -158,11 +169,23 @@ class Annahmen:
         """Vorzeichen :math:`s_c` des Kanals (M8), Voreinstellung +1."""
         return self.vorzeichen_kanal.get(kanal, 1)
 
-    def status_von(self, nr: str) -> str:
-        """Status der Annahme ``nr`` (``"Annahme"``, solange nicht bestätigt)."""
+    def status_von(self, nr: str, parameter: str | None = None) -> str:
+        """Status der Annahme ``nr`` (ggf. des Parameters ``parameter``).
+
+        Ein ausdrücklich gesetzter Status in ``status`` gilt für die ganze Nummer. Sonst gilt
+        die Voreinstellung :data:`STATUS_VORGABE`; ohne Parameter nur, wenn sie für alle
+        Parameter der Nummer gleich ist (M5: ``w_rbw`` bestätigt, ``n_d`` Annahme → ``"Annahme"``).
+        """
         if nr not in ANNAHME_NUMMERN:
             raise ValueError(f"unbekannte Annahmennummer {nr!r}")
-        return self.status.get(nr, ANNAHME)
+        if nr in self.status:
+            return self.status[nr]
+        if parameter is not None:
+            return STATUS_VORGABE.get((nr, parameter), ANNAHME)
+        werte = {v for (n, _), v in STATUS_VORGABE.items() if n == nr}
+        if nr == "M5":  # n_d ist unbestätigt
+            return ANNAHME
+        return werte.pop() if len(werte) == 1 else ANNAHME
 
     def n_d_je_punkt(self, anzahl_punkte: int) -> npt.NDArray[np.int64]:
         """Mittelungsanzahl als Feld der Form ``(P,)``.
@@ -210,7 +233,6 @@ class Annahmen:
             if self.gueltig is None
             else f"{sum(1 for g in self.gueltig if not g)} von {len(self.gueltig)} ungültig"
         )
-        m7 = "aus" if self.m7_grenze_hz is None else f"{self.m7_grenze_hz:g} Hz"
         zeilen = (
             ("M1", "konjugieren", str(self.konjugieren), "Kreuzspektren konjugieren (PSV-Anzeige)"),
             ("M2", "k0", str(self.k0), "Frequenzachse f_k = (k + k0)·Δf"),
@@ -218,7 +240,6 @@ class Annahmen:
             ("M5", "w_rbw", f"{self.w_rbw:g}", "Bandbreitenfaktor des Fensters W_RBW"),
             ("M5", "n_d", nd, "Mittelungsanzahl (Blöcke je Punkt)"),
             ("M6", "gueltig", gueltig, "Punktstatus (Statusbits nicht gedeutet)"),
-            ("M7", "m7_grenze_hz", m7, "Gültigkeit oberhalb dieser Frequenz offen"),
             ("M8", "vorzeichen_kanal", vz, "Vorzeichen s_c je Kanal (CP ← s_a·s_b·C(CP))"),
             ("M10", "bandregel", self.bandregel, "Bandgrenzen: Grenzlinien zählen mit"),
             (
@@ -229,7 +250,9 @@ class Annahmen:
             ),
         )
         return tuple(
-            AnnahmeEintrag(nr=nr, parameter=p, wert=w, status=self.status_von(nr), beschreibung=b)
+            AnnahmeEintrag(
+                nr=nr, parameter=p, wert=w, status=self.status_von(nr, p), beschreibung=b
+            )
             for nr, p, w, b in zeilen
         )
 
@@ -349,10 +372,10 @@ class Toleranzen:
     ) -> bool | None:
         """Vergleich der Spitzenfrequenz; ``None`` = kein Vergleich (anderes Warnkennzeichen).
 
-        ``gueltigkeit_offen_m7`` verhindert den Vergleich nicht (FG-02 K1-8): M7 betrifft die
-        physikalische Gültigkeit, nicht die Übereinstimmung mit PSV an denselben Daten.
+        ``aufloesungsbegrenzt`` verhindert den Vergleich nicht (Toleranz
+        ``f_spitze_df_aufloesung``·Δf, FG-02 Abschnitt 8); jedes andere Kennzeichen schon.
         """
-        andere = set(kennzeichen) - {"aufloesungsbegrenzt", "gueltigkeit_offen_m7"}
+        andere = set(kennzeichen) - {"aufloesungsbegrenzt"}
         if andere:
             return None
         grenze = (
@@ -367,9 +390,10 @@ class Toleranzen:
     ) -> bool | None:
         """Vergleich der -3-dB-Breite; mit einem Warnkennzeichen kein Vergleich (``None``).
 
-        Ausnahme: nur ``gueltigkeit_offen_m7`` (FG-02 K1-8).
+        Auch ``aufloesungsbegrenzt`` (B < 3 Δf) wird nur berichtet, nicht verglichen
+        (FG-02 Abschnitt 8, Annahme K-ACHSE); gilt ebenso für ζ.
         """
-        if set(kennzeichen) - {"gueltigkeit_offen_m7"}:
+        if kennzeichen:
             return None
         return abs(breite_hz / breite_psv_hz - 1.0) <= self.breite_rel
 
@@ -380,8 +404,9 @@ class Toleranzen:
 ANNAHME_NUMMERN_STUFE2: tuple[str, ...] = ("M12", "M13", "M14", "M15")
 
 Zeitstempelfeld = Literal["zeit_a", "zeit_b"]
-"""Zeitstempel je Punkt im Datensatz (M15); beide Felder unterscheiden sich in der
-Beispieldatei um eine Blockdauer, ihre Differenzen zwischen Punkten sind gleich."""
+"""Zeitstempel je Punkt im Datensatz (M15); die Differenz ``zeit_b - zeit_a`` ist in der
+Beispieldatei 0,64 s (= Satzfeld +0x34, Bedeutung offen), die Differenzen zwischen Punkten sind
+für beide Felder gleich."""
 
 #: Grenze der Orthogonalitätsprüfung der Komponentendrehung (M12), absolut.
 DREHUNG_ATOL = 1e-9

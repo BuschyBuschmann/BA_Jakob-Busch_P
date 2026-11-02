@@ -75,7 +75,7 @@ def bild_spektren(messung: SvdMessung, quelle: str) -> Figure:
                     lw=0.8,
                     label=f"sqrt(AP {ap.kanaele[0]})",
                 )
-    unten.set_xlabel("Frequenz (vorläufige Achse k·Δf) [Hz]")
+    unten.set_xlabel("Frequenz (Achse k·Δf) [Hz]")
     unten.set_ylabel("Betrag, Median [Einheit lt. Datei]")
     unten.legend(fontsize=7)
     _fusszeile(fig, quelle)
@@ -98,8 +98,8 @@ def bild_komplex(messung: SvdMessung, quelle: str, punkt: int = 0) -> Figure:
     label = int(messung.punkte.label[punkt])
     oben.set_ylabel(f"Betrag, Punktindex {punkt} (Label {label}) [lt. Datei]")
     oben.legend(fontsize=7)
-    unten.set_ylabel("Phase (Vorzeichen offen) [rad]")
-    unten.set_xlabel("Frequenz (vorläufige Achse k·Δf) [Hz]")
+    unten.set_ylabel("Phase (Datei, nicht konjugiert, M1 bestätigt) [rad]")
+    unten.set_xlabel("Frequenz (Achse k·Δf) [Hz]")
     _fusszeile(fig, quelle)
     fig.tight_layout(rect=(0, 0.02, 1, 1))
     return fig
@@ -121,7 +121,7 @@ def bild_punktmittel(messung: SvdMessung, quelle: str, nummern: Sequence[int]) -
         ax.set_ylabel(f"AvgSeq {nr} [Einheit lt. Formel]", fontsize=8)
         ax.set_title(pm.formel, fontsize=6, loc="left")
         ax.legend(fontsize=6)
-    achsen_liste[-1].set_xlabel("Frequenz (vorläufige Achse k·Δf) [Hz]")
+    achsen_liste[-1].set_xlabel("Frequenz (Achse k·Δf) [Hz]")
     _fusszeile(fig, quelle)
     fig.tight_layout(rect=(0, 0.02, 1, 1))
     return fig

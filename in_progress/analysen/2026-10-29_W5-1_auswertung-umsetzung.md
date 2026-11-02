@@ -1,5 +1,7 @@
 <!-- Bericht W5-1 (Umsetzung): Auswertung Stufe 1 nach FG-02; erstellt im Paket W5-1 von software-engineer, Stand 2026-10-29; nachgeführt im Korrekturpaket K-W5-1 am 2026-10-30 (FG-02 mit K1). Nicht committet. -->
 
+> **Korrekturvermerk K-ACHSE (KA-14, 2026-11-02).** Die Frequenzachse der Beispieldatei war in diesem Bericht um den Faktor 2,5 zu hoch: Das Feld `Fft` @4 (2500) ist die **Abtastfrequenz**, nicht die Bandbreite. Richtig sind Δf = 0,625 Hz, Achse 0,625 … 1000 Hz, Blockdauer T = 1,6 s (siehe `in_progress/fachgrundlagen/FG-02_auswertung-stufe1.md` Abschnitt 2.3). Alle **Frequenzangaben in Hz** (und Hz/h) in diesem Bericht sind mit **0,4** zu multiplizieren (z. B. 1,5625 Hz → 0,625 Hz, 2500 Hz → 1000 Hz); ζ, Q, Linienzahlen und Verhältnisse bleiben gleich. Die Abbildungen unter `in_progress/analysen/abbildungen/` wurden am 2026-11-02 mit der korrigierten Achse neu erzeugt. Der ursprüngliche Text ist unverändert.
+
 # W5-1 – Umsetzung der Auswertung Stufe 1 (FG-02)
 
 **Grundlage.** Freigegebene Fachgrundlage `in_progress/fachgrundlagen/FG-02_auswertung-stufe1.md`
