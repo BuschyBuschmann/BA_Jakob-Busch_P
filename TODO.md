@@ -48,10 +48,10 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☐ | Vor Ort: Wiederholungsmessung (T8) für B-5, möglichst auch mit neu abgeglichenem Raster | Jakob | Mo 02.11. | Ablaufplan 8, nur nach eigener Entscheidung |
 | ❗ | **Frequenzachse korrigieren:** Polytec File Access liefert für `20261012_ref_Mitte.svd` Δf = 0,625 Hz, 0,625 … 1000 Hz (1600 Linien), nicht 1,5625 … 2500 Hz. Leser (`svd_lesen.py`), FG-02/FG-03 (Sollwerte in Hz, Abschnitt 7), Befunde W5 neu; ζ, MAC, Amplituden unverändert | strukturdynamik-experte, software-engineer | nach 02.11. | Erkundung 1b 2026-11-02 16:11, PSV-RMS 1,349 mm/s = CPH über alle 1600 Linien |
 | ☑ | PSV-Einblicke vom 02.11. ausgewertet; Übersicht und Entscheidungen | – | – | `in_progress/analysen/2026-11-02_nach-termin_uebersicht.md` |
-| ◐ | P1 Laborbuch 02.11. (mit Fotos), Tagesanalyse final, Register | Jakob, `/laborbuch` | – | Entwurf `in_progress/versuche/2026-11-02_prototyp/tagesanalyse_entwurf.md` |
-| ◐ | P2 K-ACHSE: KA-1 bis KA-15 (Bänder umbenennen, M7-Kennzeichen entfällt); Ablauf E | strukturdynamik-experte → software-engineer | – | Übersicht 02.11., Abschnitt 1 |
-| ◐ | Recherche: Datenblatt PCB 288D01 (Polarität, entscheidet M8), PSV-Peak-Anpassung, Decoder-Amplitudengang, Signal Enhancement | literatur-rechercheur | – | M8 bis dahin offen |
-| ◐ | P4 Lese-Skripte: MAJOR, MINOR, 8 Tests, README, statischer Test | software-engineer | – | Review P0a |
+| ☑ | P1 Laborbuch 02.11., Tagesanalyse, Register | – | – | 1ed1172 |
+| ☑ | P2 K-ACHSE abgeschlossen (Fachabnahme, Review, Auflagen) | – | – | Laborbuch 2026-11-02_k-achse-frequenzachse |
+| ◐ | Recherche R-0211: Peak-Anpassung und SE belegt; **PCB 288D01 und Decoder: Volltext von Jakob benötigt** (Input/literatur/pcb/, Leseliste) | Jakob, literatur-rechercheur | – | M8 bis dahin offen |
+| ☑ | P4/P4b Lese-Skripte korrigiert und reviewt | – | – | 4279382, 0129b75 |
 | ◐ | P3 Ablaufplan nächster Termin mit Ersatzplänen und Prüfzettel (Entwurf `in_progress/versuche/naechster-termin_messrechner/`, Fachdurchsicht läuft) (Übersicht 2a: Registrierung, Mini-Scan mit Zeitdaten, Messpunkt Impedanzkopf, Zwei-Amplituden-Test, Wiegen, Handbücher, M11 ohne Kennzeichen, Golden v2 …) | software-engineer, `/versuchsplanung` | nach P1 | |
 | ☐ | Vor dem nächsten Termin: Version 0.2.0, Wheel nach Abschluss K-ACHSE bauen und pushen (SHA-256 notieren); aktuelle Skripte; Fragen F1–F8 an Daniel (Ablaufplan 3.2) | Orchestrator, Jakob | vor Termin | Nutzerentscheidung 02.11.: Version erhöhen |
 | ☐ | Anforderungsvorschläge aus PSV-Einblicken (Übersicht 2b) | `/anforderungs-analyst`, Jakob | – | |
