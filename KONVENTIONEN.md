@@ -104,6 +104,13 @@ Quelle: Analyseberichte I1, I2, I5 und I5-F unter `in_progress/analysen/`.
   weitergereicht. Hilfswerkzeuge liegen unter `software/tools/` und importieren nicht
   aus dem Hauptpaket.
 
+## Arbeitsweise bei Terminen vor Ort
+- Bei Terminen am Messrechner arbeitet der Orchestrator direkt mit dem Nutzer, damit schnell
+  Ergebnisse entstehen (Skripte, Auswertungen, Anleitungen ohne Arbeitsgruppe und ohne Review).
+- Danach werden diese Ergebnisse über die Arbeitsgruppe geprüft (Review, Fachprüfung) und
+  dokumentiert (Laborbuch), bevor darauf aufgebaut wird.
+- Außerhalb solcher Termine gilt strikt der Ablauf über Aufbereitung, Freigaben und Review.
+
 ## Thesis-Formalien
 Quelle: SLA-LaTeX-Vorlage unter `Input/Templates/LaTeX-Vorlage Wissenschaftliche Arbeit/`
 (insbesondere `APPENDIX/` und `CHAPTERS_*`), siehe Analysebericht I3. Bis zur Klärung
