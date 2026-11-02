@@ -270,3 +270,248 @@ def test_alle_signale_leer_exit_1_ohne_csv(
     assert not (tmp_path / "g.csv.fehlend.txt").exists()
     assert "Keine Daten gelesen." in capsys.readouterr().out
     assert log.geschlossen
+
+
+# --- Konfigurierbare Auswahl, Domäne, Amplitude, --liste (Golden File v2) ---
+
+ZIEL_SIG = ("Ref1 & Ref2", "Kohärenz")
+
+
+def v2_signale() -> dict[tuple[str, str], dict[str, object]]:
+    signale = alle_signale()
+    signale[ZIEL_SIG] = {"abs": [0.9, 0.8, 0.7, 0.6, 0.5], "typen": (1,), "df": DF}
+    return signale
+
+
+def cli_lauf(
+    monkeypatch: pytest.MonkeyPatch,
+    signale: dict[tuple[str, str], dict[str, object]],
+    argv: list[str],
+    **kw: object,
+) -> int:
+    installiere_fake_win32(monkeypatch, daten_datei(Protokoll(), signale, **kw))  # type: ignore[arg-type]
+    return daten_lesen.cli(argv)
+
+
+def test_signal_option_waehlt_aus_und_amplitude_rueckfall(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    ziel = tmp_path / "g.csv"
+    argv = [
+        "k.svd",
+        str(ziel),
+        "--signal",
+        "Vib Y | Geschwindigkeit",
+        "--signal",
+        "Ref1 & Ref2|Kohärenz",
+    ]
+    assert cli_lauf(monkeypatch, v2_signale(), argv) == 0
+    zeilen = lies_csv(ziel)
+    assert zeilen[0] == [
+        "f_Hz",
+        "Vib Y | Geschwindigkeit | Re",
+        "Vib Y | Geschwindigkeit | Im",
+        "Ref1 & Ref2 | Kohärenz | Abs",
+    ]
+    assert [float(z[3]) for z in zeilen[1:]] == [0.9, 0.8, 0.7, 0.6, 0.5]
+
+
+def test_auswahl_datei_mit_kommentaren(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    datei = tmp_path / "auswahl.txt"
+    datei.write_text(
+        "# v2\n\nVib X | Geschwindigkeit\n   # eingerückter Kommentar\nRef1 & Ref2 | Kohärenz\n",
+        encoding="utf-8",
+    )
+    ziel = tmp_path / "g.csv"
+    code = cli_lauf(monkeypatch, v2_signale(), ["k.svd", str(ziel), "--auswahl", str(datei)])
+    assert code == 0
+    assert len(lies_csv(ziel)[0]) == 1 + 2 + 1
+
+
+def test_auswahl_und_signal_werden_kombiniert(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    datei = tmp_path / "a.txt"
+    datei.write_text("Vib X | Geschwindigkeit\n", encoding="utf-8")
+    ziel = tmp_path / "g.csv"
+    argv = ["k.svd", str(ziel), "--auswahl", str(datei), "--signal", "Vib Y|Geschwindigkeit"]
+    assert cli_lauf(monkeypatch, v2_signale(), argv) == 0
+    assert len(lies_csv(ziel)[0]) == 1 + 4
+
+
+@pytest.mark.parametrize(
+    "argv_extra",
+    [
+        ["--signal", "ohne_trenner"],
+        ["--signal", "Kanal | "],
+        ["--signal", "A|B", "--signal", "A | B"],
+        ["--auswahl", "gibt_es_nicht.txt"],
+    ],
+)
+def test_ungueltige_auswahl_exit_2(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, argv_extra: list[str]
+) -> None:
+    log = Protokoll()
+    installiere_fake_win32(monkeypatch, daten_datei(log, alle_signale()))
+    assert daten_lesen.cli(["k.svd", str(tmp_path / "g.csv"), *argv_extra]) == 2
+    assert not log.pfade  # nichts geöffnet
+
+
+def test_auswahl_datei_fehlerzeile_und_leere_auswahl(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    schlecht = tmp_path / "s.txt"
+    schlecht.write_text("# ok\nkaputt\n", encoding="utf-8")
+    leer = tmp_path / "l.txt"
+    leer.write_text("# nur Kommentar\n", encoding="utf-8")
+    installiere_fake_win32(monkeypatch, daten_datei(Protokoll(), alle_signale()))
+    ziel = str(tmp_path / "g.csv")
+    assert daten_lesen.cli(["k.svd", ziel, "--auswahl", str(schlecht)]) == 2
+    assert "Zeile 2" in capsys.readouterr().out
+    assert daten_lesen.cli(["k.svd", ziel, "--auswahl", str(leer)]) == 2
+    assert "leer" in capsys.readouterr().out
+
+
+def test_domaene_gefunden(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    terz = {("Vib X", "Terz"): {"abs": [1.0, 2.0], "typen": (1,), "df": 2.0}}
+    ziel = tmp_path / "g.csv"
+    argv = ["k.svd", str(ziel), "--domaene", "Terzen", "--signal", "Vib X | Terz"]
+    assert cli_lauf(monkeypatch, alle_signale(), argv, weitere={"Terzen": terz}) == 0
+    zeilen = lies_csv(ziel)
+    assert zeilen[0] == ["f_Hz", "Vib X | Terz | Abs"]
+    assert [float(z[0]) for z in zeilen[1:]] == [0.0, 2.0]
+
+
+def test_domaene_nicht_gefunden_exit_2(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    log = Protokoll()
+    installiere_fake_win32(monkeypatch, daten_datei(log, alle_signale(), weitere={"Terzen": {}}))
+    ziel = tmp_path / "g.csv"
+    assert daten_lesen.cli(["k.svd", str(ziel), "--domaene", "PSD"]) == 2
+    ausgabe = capsys.readouterr().out
+    assert "Domäne 'PSD' nicht gefunden. Vorhanden: FFT, Terzen" in ausgabe
+    assert not ziel.exists()
+    assert log.geschlossen
+
+
+def test_domaene_name_nicht_lesbar_wird_uebersprungen(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    log = Protokoll()
+    pf = daten_datei(log, alle_signale())
+    erste = pf.GetPointDomains().Item(1)
+    object.__setattr__(erste, "_fehler", {"Name": OSError("weg")})
+    installiere_fake_win32(monkeypatch, pf)
+    assert daten_lesen.waehle_domaene(pf, "X") is None
+    assert "(nicht lesbar: OSError)" in capsys.readouterr().out
+    assert daten_lesen.waehle_domaene(pf, None) is erste
+    assert "(nicht lesbar: OSError)" in capsys.readouterr().out
+
+
+def test_domaene_explizit_fft_ohne_warnung_standard_mit(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    argv = ["k.svd", str(tmp_path / "g.csv"), "--domaene", "Zeit"]
+    assert cli_lauf(monkeypatch, alle_signale(), argv, domaenenname="Zeit") == 0
+    assert "WARNUNG" not in capsys.readouterr().out  # ausdrücklich gewählt
+
+
+def test_amplitude_schalter_erzwingt_abs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    signale = alle_signale()
+    signale[("Ref1", "Kraft")] = {"re": RE, "im": IM, "abs": [9.0] * N, "typen": (7, 8, 1)}
+    ziel = tmp_path / "g.csv"
+    argv = ["k.svd", str(ziel), "--signal", "Ref1|Kraft", "--amplitude"]
+    assert cli_lauf(monkeypatch, signale, argv) == 0
+    zeilen = lies_csv(ziel)
+    assert zeilen[0] == ["f_Hz", "Ref1 | Kraft | Abs"]
+    assert [float(z[1]) for z in zeilen[1:]] == [9.0] * N
+
+
+def test_amplitude_schalter_ohne_typ1_fehlt(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    argv = ["k.svd", str(tmp_path / "g.csv"), "--signal", "Vib X|Geschwindigkeit", "--amplitude"]
+    assert cli_lauf(monkeypatch, alle_signale(), argv) == 1  # einziges Signal fehlt
+
+
+def test_kein_rueckfall_wenn_nur_imag_vorhanden(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    signale = {("A", "S"): {"im": IM, "abs": RE, "typen": (8, 1), "df": DF}}
+    ziel = tmp_path / "g.csv"
+    assert cli_lauf(monkeypatch, signale, ["k.svd", str(ziel), "--signal", "A|S"]) == 1
+
+
+def test_amplitude_laenge_abweichend_meldet_fehlend(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    signale = v2_signale()
+    signale[("X", "Leer")] = {"abs": [], "typen": (1,)}
+    ziel = tmp_path / "g.csv"
+    argv = ["k.svd", str(ziel), "--signal", "Ref1 & Ref2|Kohärenz", "--signal", "X|Leer"]
+    assert cli_lauf(monkeypatch, signale, argv) == 3
+    assert "X | Leer\tValueError: keine Werte" in (tmp_path / "g.csv.fehlend.txt").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_liste_gibt_alles_aus_und_schreibt_nichts(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    log = Protokoll()
+    installiere_fake_win32(monkeypatch, daten_datei(log, v2_signale(), weitere={"Terzen": {}}))
+    assert daten_lesen.cli(["k.svd", "--liste"]) == 0
+    ausgabe = capsys.readouterr().out
+    assert "Domänen: 1: FFT; 2: Terzen" in ausgabe
+    assert "Kanal 1: Vib X" in ausgabe
+    assert "  Signal 1: Geschwindigkeit  [Typ 7 Display7; Typ 8 Display8]" in ausgabe
+    assert "Kanal 9: Ref1 & Ref2" in ausgabe
+    assert "Signal 1: Kohärenz  [Typ 1 Display1]" in ausgabe
+    assert log.geschlossen
+    assert log.zuweisungen == [("ReadOnly", True, False)]
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_liste_domaene_nicht_gefunden_und_gefunden(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    terz = {("K", "T"): {"abs": [1.0], "typen": (1,)}}
+    installiere_fake_win32(monkeypatch, daten_datei(Protokoll(), {}, weitere={"Terzen": terz}))
+    assert daten_lesen.cli(["k.svd", "--liste", "--domaene", "Nein"]) == 2
+    assert "nicht gefunden" in capsys.readouterr().out
+    assert daten_lesen.cli(["k.svd", "--liste", "--domaene", "Terzen"]) == 0
+    assert "Signal 1: T  [Typ 1 Display1]" in capsys.readouterr().out
+
+
+def test_liste_nicht_lesbare_namen_und_typen(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    log = Protokoll()
+    pf = daten_datei(log, {("K", "S"): {"re": RE, "im": IM}})
+    dom = pf.GetPointDomains().Item(1)
+    signal = dom.Channels.Item(1).Signals.Item(1)
+    disp = signal.Displays.Item(1)
+    object.__setattr__(signal, "_fehler", {"Name": OSError("x")})
+    object.__setattr__(disp, "_fehler", {"Type": OSError("y")})
+    installiere_fake_win32(monkeypatch, pf)
+    assert daten_lesen.liste("k.svd") == 0
+    ausgabe = capsys.readouterr().out
+    assert "Signal 1: (nicht lesbar: OSError)" in ausgabe
+    assert "Typ ? (OSError)" in ausgabe
+
+
+def test_ziel_fehlt_ohne_liste_exit_2(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    installiere_fake_win32(monkeypatch, daten_datei(Protokoll(), alle_signale()))
+    assert daten_lesen.cli(["k.svd"]) == 2
+    assert "Ziel-CSV fehlt" in capsys.readouterr().out
+
+
+def test_standard_auswahl_unveraendert(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    ziel = tmp_path / "g.csv"
+    assert cli_lauf(monkeypatch, alle_signale(), ["k.svd", str(ziel)]) == 0
+    kopf = lies_csv(ziel)[0]
+    erwartet = [f"{k} | {s} | {x}" for k, s in daten_lesen.AUSWAHL for x in ("Re", "Im")]
+    assert kopf == ["f_Hz", *erwartet]

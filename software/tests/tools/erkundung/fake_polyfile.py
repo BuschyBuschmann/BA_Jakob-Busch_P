@@ -93,38 +93,37 @@ def installiere_fake_win32(monkeypatch: pytest.MonkeyPatch, pf: Knoten) -> None:
     monkeypatch.setitem(sys.modules, "win32com.client", client)
 
 
-Signaldaten = dict[str, Any]  # re, im (Listen), df (float), typen (Display-Typen), n_achse
+Signaldaten = dict[str, Any]  # re, im, abs (Listen), df (float), typen (Display-Typen)
 
 
-def daten_datei(
-    log: Protokoll,
-    signale: dict[tuple[str, str], Signaldaten],
-    domaenenname: str = "FFT",
-) -> Knoten:
-    """Baut ein PolyFile mit einer Domäne, einem Datenpunkt und den angegebenen Signalen."""
+def _domaene(log: Protokoll, signale: dict[tuple[str, str], Signaldaten], name: str) -> Knoten:
+    """Baut eine Domäne mit einem Datenpunkt und den angegebenen Signalen."""
     kanaele: dict[str, dict[str, Knoten]] = {}
-    displays_je_signal: dict[tuple[str, str], list[Knoten]] = {}
-    for (kanal, name), s in signale.items():
+    for (kanal, signal_name), s in signale.items():
         displays = []
         for typ in s.get("typen", (7, 8)):
-            d = Knoten(log, {"Type": typ})
-            object.__setattr__(d, "_daten", s["re"] if typ == 7 else s["im"])
+            d = Knoten(log, {"Type": typ, "Name": f"Display{typ}"})
+            daten = {7: s.get("re", []), 8: s.get("im", []), 1: s.get("abs", [])}
+            object.__setattr__(d, "_daten", daten.get(typ, []))
             object.__setattr__(d, "_df", s.get("df", 0.5))
             displays.append(d)
-        displays_je_signal[(kanal, name)] = displays
-        kanaele.setdefault(kanal, {})[name] = Knoten(
-            log, {"Displays": sammlung(log, list(displays))}
+        kanaele.setdefault(kanal, {})[signal_name] = Knoten(
+            log, {"Displays": sammlung(log, displays), "Name": signal_name}
         )
 
-    def kanal_item(kanal: str) -> Knoten:
-        if kanal not in kanaele:
-            raise KeyError(kanal)
+    def kanal_knoten(kanal: str) -> Knoten:
         eintraege = kanaele[kanal]
+        namen = list(eintraege)
 
-        def signal_item(name: str) -> Knoten:
-            return eintraege[name]
+        def signal_item(ref: int | str) -> Knoten:
+            return eintraege[namen[ref - 1] if isinstance(ref, int) else ref]
 
-        return Knoten(log, {"Signals": Knoten(log, methoden={"Item": signal_item})})
+        signals = Knoten(log, {"Count": len(namen)}, {"Item": signal_item})
+        return Knoten(log, {"Signals": signals, "Name": kanal})
+
+    def kanal_item(ref: int | str) -> Knoten:
+        kanal_namen = list(kanaele)
+        return kanal_knoten(kanal_namen[ref - 1] if isinstance(ref, int) else ref)
 
     def get_x_axis(disp: Knoten) -> Knoten:
         df = disp._df
@@ -136,11 +135,11 @@ def daten_datei(
         {"MeasPoint": Knoten(log, {"Label": 132})},
         {"GetData": lambda disp, _x: tuple(disp._daten)},
     )
-    domaene = Knoten(
+    return Knoten(
         log,
         {
-            "Name": domaenenname,
-            "Channels": Knoten(log, methoden={"Item": kanal_item}),
+            "Name": name,
+            "Channels": Knoten(log, {"Count": len(kanaele)}, {"Item": kanal_item}),
             "DataPoints": Knoten(log, methoden={"Item": lambda i: datenpunkt}),
         },
         {
@@ -148,9 +147,24 @@ def daten_datei(
             "GetYAxes": lambda disp: Knoten(log, methoden={"Item": lambda i: einheit}),
         },
     )
+
+
+def daten_datei(
+    log: Protokoll,
+    signale: dict[tuple[str, str], Signaldaten],
+    domaenenname: str = "FFT",
+    weitere: dict[str, dict[tuple[str, str], Signaldaten]] | None = None,
+) -> Knoten:
+    """Baut ein PolyFile mit Domäne 1 (``signale``) und optional weiteren benannten Domänen."""
+    domaenen = [_domaene(log, signale, domaenenname)]
+    domaenen += [_domaene(log, sig, name) for name, sig in (weitere or {}).items()]
     return polyfile(
         log,
-        methoden={"GetPointDomains": lambda: Knoten(log, methoden={"Item": lambda i: domaene})},
+        methoden={
+            "GetPointDomains": lambda: Knoten(
+                log, {"Count": len(domaenen)}, {"Item": lambda i: domaenen[i - 1]}
+            )
+        },
     )
 
 

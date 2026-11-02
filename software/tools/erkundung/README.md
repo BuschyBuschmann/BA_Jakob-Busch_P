@@ -219,7 +219,7 @@ bzw. Spektren eines Scanpunkts.
   `ReadOnly = True` (einzige Zuweisung) und dem Verzicht auf Schreib- und Messaufrufe (per
   Test über den Quelltext abgesichert).
 - Sie lesen nur und sollen **nur auf Kopien** der Messdatei laufen, die nicht in PSV geöffnet sind.
-- `daten_lesen.py <kopie.svd> <ziel.csv> [Punkt] [--ueberschreiben]`: eine vorhandene Zieldatei
+- `daten_lesen.py <kopie.svd> <ziel.csv> [Punkt] [--ueberschreiben] [Auswahl-Optionen]`: eine vorhandene Zieldatei
   (und Begleitdatei) wird nicht überschrieben. Exit-Codes: 0 vollständig, 1 nichts gelesen
   (keine CSV), 2 Aufruffehler oder Ziel existiert, 3 unvollständig. Bei 3 liegt neben der CSV
   `<ziel.csv>.fehlend.txt` (UTF-8, erste Zeile `# Fehlende Signale`, danach je Zeile
@@ -231,6 +231,35 @@ bzw. Spektren eines Scanpunkts.
   mit Traceback und Python-Exit-Code 1; dieser Code steht dann nicht für „nichts gelesen“, und
   es wird keine CSV geschrieben. Bricht das Skript vor dem Schreiben ab, bleiben bei
   `--ueberschreiben` alte Ziel- und Begleitdatei stehen.
+- Konfigurierbare Auswahl (Golden File v2): Ohne weitere Optionen gilt die feste `AUSWAHL` (8
+  Paare). Mit `--signal "Kanal|Signal"` (mehrfach) und/oder `--auswahl DATEI` (UTF-8, eine Zeile
+  je Paar `Kanal | Signal`, `#` am Zeilenanfang und Leerzeilen werden ignoriert) wird stattdessen
+  die angegebene Auswahl gelesen (Datei zuerst, dann `--signal`; leer, doppelt oder falsch
+  geformt: Exit 2, es wird nichts geöffnet). `--domaene NAME` sucht die Domäne nach Namen
+  (nicht gefunden: Meldung mit den vorhandenen Namen, Exit 2); ohne die Option gilt Domäne 1
+  mit Warnung, wenn sie nicht „FFT“ heißt. Signale ohne Real-/Imaginärteil, aber mit
+  Amplitude-Display (Typ 1), werden automatisch als Betragsgröße gelesen (Spalte `... | Abs`
+  statt `... | Re`/`... | Im`); `--amplitude` erzwingt das für alle gewählten Signale.
+  `--liste` gibt Domänen sowie Kanäle, Signale und Display-Typen der gewählten Domäne
+  vollständig aus und schreibt keine CSV (Ziel entfällt, nur lesend).
+
+  ```text
+  python daten_lesen.py kopie.svd --liste
+  python daten_lesen.py kopie.svd --liste --domaene Terzen
+  python daten_lesen.py kopie.svd golden_v2.csv 1 --auswahl signale_v2.txt
+  python daten_lesen.py kopie.svd golden_v2.csv --signal "Vib X|Geschwindigkeit" ^
+      --signal "Ref2 & Ref1|Kohärenz" --signal "Ref1|Kraft"
+  python daten_lesen.py kopie.svd terzen.csv --domaene Terzen --auswahl terzen.txt
+  ```
+
+  Beispiel `signale_v2.txt` (Namen vor Ort mit `--liste` ablesen):
+
+  ```text
+  # Kanal | Signal
+  Vib X | Geschwindigkeit
+  Ref2 & Ref1 | H1 Beschleunigung / Kraft
+  ```
+
 - `einstellungen_lesen.py <kopie.svd>`: meldet nicht lesbare, nicht vorhandene und
   übersprungene (aufrufbare) Eigenschaften. Die Waveform-Parameter sind eventuell nur nach einem
   Cast lesbar; das ist am Gerät zu prüfen und nicht umgesetzt.
