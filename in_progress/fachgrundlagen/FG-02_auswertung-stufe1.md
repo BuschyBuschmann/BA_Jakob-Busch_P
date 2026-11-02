@@ -534,9 +534,7 @@ Das Kennzeichen `gueltigkeit_offen_m7` und die Regel K1-8 entfallen (K-ACHSE).
 
 **Annahme [ANN K-ACHSE]:** „Bei Spitzen mit $B < 3\,\Delta f$ wird der PSV-Vergleich nur
 berichtet“ ist eine Empfehlung aus der Fachanalyse P0b, die der Nutzer am 2026-11-02 übernommen
-hat; am 2026-11-02 vom Nutzer bestätigt: Sie gilt für B und ζ, die Frequenztoleranz (≤ 0,5 Δf) bleibt Prüfgrenze. Die
-Frequenzzeile mit `aufloesungsbegrenzt` (≤ 0,5 Δf) bleibt als freigegebene Toleranz stehen, bis
-der Nutzer entscheidet, ob auch sie nur berichtet wird.
+hat; am 2026-11-02 vom Nutzer bestätigt: Sie gilt für B und ζ, die Frequenztoleranz (≤ 0,5 Δf) bleibt Prüfgrenze.
 
 **Anzeigerundung in PSV:** Die PSV-Oberfläche zeigt $f_\mathrm{max}$ auf 0,1 Hz. Bei Δf = 0,625 Hz
 sind das ±0,05 Hz = ±0,08 Δf; die Toleranz 0,25 Δf = 0,156 Hz behält davon nur etwa 0,17 Δf.
@@ -1041,3 +1039,4 @@ B/Δf 0,89 und 247,605 Hz / 0,897 Hz / 1,811·10⁻³ / 1,44; B-1 160,563 Hz / 1
 | 2026-10-29 | Erstfassung (Paket W4-1) | Nutzer, 2026-10-29 |
 | 2026-10-30 | K1 eingearbeitet, Nutzerfreigabe (`FG-02_korrekturvorschlag-K1.md`). K1-1: Vorzeichen je Kanal $s_a s_b$ (2.4, 3.6, 4 P-11, 5, 6.1, 9.2 RF-H8, 11 M8). K1-2: RF-P5-Grenze (9.4). K1-3: Tabelle Diskretisierungsfehler in voller Stellenzahl (3.9). K1-4: „höchstens +5,21 %“ (3.9, 8). K1-5: Linienauswahl P-09 und Datei-Wert 0,0108 (4). K1-6: Fehlerband unten bei 0 begrenzt und gekennzeichnet (3.4, 6.3, RF-U7). K1-7: γ² des Punktmittels für die Spitzensuche, Hinweis bei vollständig NaN-γ² (3.9, 6.3). K1-8: PSV-Vergleich auch bei reinem `gueltigkeit_offen_m7` (8) | Nutzer, 2026-10-30 |
 | 2026-11-02 | **Korrektur K-ACHSE** (KA-7 bis KA-11, Fachanalyse P0b; Korrekturliste vom Nutzer am 2026-11-02 freigegeben). KA-7: Frequenzachse der Beispieldatei Δf = 0,625 Hz, BW 1000 Hz, f_s 2500 Hz, T 1,6 s, M2 bestätigt, Belege (2.3). KA-8: Fensterbreite ±12,5 Hz (3.9); Kennzeichen `gueltigkeit_offen_m7` entfällt (3.9). KA-9: P-08-Beleg achsunabhängig (4), P-09-Bandangabe (4), P-11 ohne M7 (4), Gültigkeit (7), Abschnitt 11 mit Ergebnissen des Termins 2026-11-02 (M1, M2, M4, M5, M6, M7, M10 bestätigt bzw. erledigt; M8 offen, $s_c$ unverändert; M11 teilweise), offene Punkte 1, 6, 7 (12). KA-10: Abschnitt 8 ohne M7-Bezug und ohne K1-8, Annahme „bei B < 3 Δf nur Bericht“ für B/ζ, Anzeigerundung, M11-Ergebnis. KA-11: Testdaten in 9 als synthetisch gekennzeichnet, Golden-File-Sollwerte in 9.9 | **offen** (Freigabe durch den Nutzer ausstehend) |
+| 2026-11-02 | Nachtrag K-ACHSE-b aus FA-K-ACHSE, vom Nutzer am 2026-11-02 freigegeben: widersprüchlicher Satz im Absatz „Annahme [ANN K-ACHSE]“ (8) gestrichen; die Frequenztoleranz ≤ 0,5 Δf bleibt Prüfgrenze | Nutzer, 2026-11-02 |

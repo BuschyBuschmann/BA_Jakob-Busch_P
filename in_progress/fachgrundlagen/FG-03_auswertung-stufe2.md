@@ -165,7 +165,7 @@ Option: Gewichte $1/(\lvert H_{1,k}\rvert\,\varepsilon_k)^2$ aus FG-02 3.4.
 | Kennzeichen | Bedingung | Begründung |
 |---|---|---|
 | `modell_passt_nicht` | ρ > ρ_max, **Vorschlag ρ_max = 0,10** | Synthetisch: ρ ≤ 0,04 bei ≤ 2,4 % Fehler von ζ (RF-F5); erzwungener Ein-Moden-Fit an zwei Moden: ρ = 0,096 bis 0,112 bei Fehlern −12 % bis +106 % (RF-F3). Datei: isolierte Spitzen ρ = 0,05 bis 0,08, unaufgelöste Gruppe 0,22 [D] |
-| `unsicher` | $\sigma_\zeta/\zeta > 0{,}2$ oder $\sigma_{f_r} > \Delta f/2$ | Die Unsicherheit der Schätzung übersteigt die Aussage |
+| `unsicher` | $\sigma_\zeta/\zeta > 0{,}2$ oder $\sigma_{f_r} > \Delta f/2$, oder σ nicht bestimmbar (Kovarianz singulär oder nicht positiv definit, σ = NaN) (K-ACHSE-b) | Die Unsicherheit der Schätzung übersteigt die Aussage bzw. ist nicht angebbar |
 | `nicht_konvergiert` | Levenberg-Marquardt ohne Abbruch nach 200 Schritten, λ > 10¹² oder singuläre Normalgleichung | Beispiel: konjugierte Daten treiben ζ gegen 0 (RF-F6) |
 | `ausserhalb_band` | $f_r$ außerhalb des Fitbands, oder ζ ≥ 0,2, oder ζ < 10⁻⁵ | Schwache Dämpfung ist Voraussetzung der lokalen Modellform |
 | `kein_mobilitaetsbezug` | FRF ist weder Mobilität noch Akzeleranz | 2 |
@@ -477,7 +477,7 @@ stammen aus der Umsetzung W5-2 und wurden in der Fachabnahme FA-W5-2 nachgerechn
 |---|---|---|---|
 | ≈ 160,6 Hz (401,6 Hz) | $f_\mathrm{sp}$ = 160,627 Hz, B = 0,572 Hz, ζ = 0,00178, `aufloesungsbegrenzt` | $f_r$ = 160,530 Hz (IQR 0,003), ζ = 0,00142 (IQR 0,00003), 20 Punkte | 0,054 |
 | ≈ 247,6 Hz (618,9 Hz) | $f_\mathrm{sp}$ = 247,572 Hz, B = 0,768 Hz, ζ = 0,00155, `aufloesungsbegrenzt` | $f_r$ = 247,606 Hz (IQR 0,006), ζ = 0,00146 (IQR 0,00004), 19 Punkte (1 × `modell_passt_nicht`) | 0,078 (über alle 20: 0,080 [unverändert, nicht neu gerechnet]) |
-| ≈ 105,0 Hz (262,6 Hz; Gruppe 105,0/106,0/108,0 Hz, früher 262,6/265,0/270,0 Hz) | $f_\mathrm{sp}$ = 105,033 Hz, B = 0,595 Hz, `aufloesungsbegrenzt`, `nachbarmode`; 106,0 Hz `ueberlappend` | 3 Moden, Fitband 101,875–111,875 Hz (17 Linien): $f_r$ = 105,088 / 106,462 / 108,107 Hz, ζ = 0,00214 / 0,00116 / 0,00190, je 20 Punkte | 0,007 / 0,012 / 0,008 |
+| ≈ 105,0 Hz (262,6 Hz; Gruppe 105,0/106,0/108,0 Hz, früher 262,6/265,0/270,0 Hz) | $f_\mathrm{sp}$ = 105,033 Hz, B = 0,595 Hz, `aufloesungsbegrenzt`, `nachbarmode`; 106,0 Hz `ueberlappend` | 3 Moden, Fitband 101,875–111,875 Hz (17 Linien): $f_r$ = 105,088 / 106,461 / 108,107 Hz, ζ = 0,00214 / 0,00116 / 0,00190, je 20 Punkte | 0,007 / 0,012 / 0,008 |
 
 Kontrolle: Die neu gerechneten Frequenzen stimmen mit den Werten der früheren Achse × 0,4 auf
 ≤ 0,001 Hz überein (z. B. 401,324 × 0,4 = 160,530; 619,015 × 0,4 = 247,606); ζ, ρ und die
@@ -536,9 +536,16 @@ gewählter Mode nach 4.5, K2-1) [neu]:**
 - Neu gerechnet mit `drift_spitzen_hz` = (167,52; 252,48; 603,12) Hz. Bei 167,5 und 603,2 Hz
   stimmen die Werte mit der früheren Tabelle × 0,4 überein (−0,0516 / −0,1928 Hz/h; N gleich).
   **Bei 252,7 Hz** werden 122 statt 125 Punkte verwendet (Dauer 39,3 statt 39,1 min), $b_1$ =
-  −0,0275 statt −0,0272 Hz/h (× 0,4). Ursache sind Grenzfälle der Ausschlusskennzeichen im
-  Gruppenfit mit weglaufender Partnermode; sie ist nicht im Einzelnen untersucht (offener
-  Punkt 7). Die Abweichung liegt weit unter dem Standardfehler.
+  −0,0275 statt −0,0272 Hz/h (× 0,4). Ursache (FA-K-ACHSE, K-ACHSE-b): Das Fitproblem ist
+  skaleninvariant (3.6), die Gleitkommarechnung nicht, weil der Faktor 0,4 bzw. 2,5 keine
+  Zweierpotenz ist. Im Gruppenfit läuft an diesen Punkten die Partnermode weg ($f_r$ ≈ 17 700 Hz,
+  ζ ≈ 4000); ihre Basisspalte wird im Fitband nahezu proportional zu iω bzw. zur Konstanten und
+  damit fast kollinear mit dem Residuum C. $J^\mathsf{T}J$ ist dann fast singulär; ob die
+  Inversion scheitert oder negative Diagonalelemente liefert (σ = NaN → `unsicher`, 3.4), hängt
+  von der Rundung ab. Dadurch fallen 9 Punkte heraus und 6 kommen hinzu (Angabe des Umsetzers,
+  am Code nachvollzogen). Wirkung auf die Steigung: 0,0003 Hz/h bei einem Standardfehler von
+  0,0044 Hz/h. **N ist bei weglaufender Partnermode nur auf einzelne Punkte genau
+  reproduzierbar**; die Drift selbst ist davon nicht merklich betroffen.
 - Alle drei Steigungen sind signifikant und bestätigen W3 2.7.
 - Die Streuung um die Gerade (0,009 bis 0,014 Hz [neu]) ist kleiner als die mittlere
   Fit-Standardabweichung der verwendeten Punkte (0,014 bis 0,033 Hz [× 0,4]). Die
@@ -634,7 +641,7 @@ $L_x = 8d$, $L_y = 14d$.
 | RF-V3 | $f^A$ = (100,0; 150,2; 260,5) Hz, $f^B$ = (100,3; 149,9; 261,4; 300,0) Hz, $\Delta f_\mathrm{tol}$ = 1,5 Hz | Paare (0,0; +0,3), (1,1; −0,3), (2,2; +0,9); 300 Hz ohne Partner | atol 1e-12 |
 | RF-V4 | SDOF 100 Hz, ζ = 0,01, Linien 90 … 110 Hz, Δf = 0,25 Hz; (a) $H_B$ = 1,1 $H_A$; (b) $f_n^B$ = 101 Hz; (c) $\zeta^B$ = 0,012 | (a) frac = 1, pegel_db = 0,8278537032, diff_rel = 0,1. (b) 0,8024872570; −0,0518051640; 0,6489671289. (c) 0,9917806594; −0,8499289122; 0,1271162285 | rtol 1e-9 |
 | RF-V5 | $f_r(t)$ = 418,9 Hz − 2·10⁻⁵ Hz/s · t, 135 Punkte gleichverteilt über 0 … 2376 s | $b_1$ = −0,072 Hz/h; Gesamtdrift −0,04752 Hz; relativ −1,1344·10⁻⁴; σ_b1 = 0 → `drift_signifikant` | rtol 1e-9 |
-| RF-V6 (Drift-Ausschluss je Mode, K2-1) | Vorgegebene Fit-Ergebnisse je Punkt (Prüfung der Ausschlusslogik, ohne Fit): 20 Punkte, $t_p = 120\,p$ s ($p = 0 \dots 19$), $f_{r,p}$ der gewählten Mode = 631,7 Hz − 2·10⁻⁵ Hz/s · $t_p$; jeder Punkt, der ausgeschlossen werden muss, trägt stattdessen $f_{r,p}$ + 1,0 Hz. **(a) Gruppe n = 2, gewählte Mode 1:** Punkte 0–9 `nicht_konvergiert` (gemeinsam) und Mode 2 `ausserhalb_band`; Punkte 10, 11 Mode 1 `unsicher`; Punkt 12 Mode 1 `ausserhalb_band`; Punkte 13–19 `modell_passt_nicht`; zusätzlich Punkt 5 `gueltigkeit_offen_m7`, Punkt 6 `kohaerenz_niedrig`. Ausgeschlossen (+1,0 Hz): 10, 11, 12. **(b) n = 1:** Punkte 0–2 `nicht_konvergiert`, 10–12 wie (a), 13–19 `modell_passt_nicht`. Ausgeschlossen (+1,0 Hz): 0, 1, 2, 10, 11, 12 | (a) N = 17, davon `modell_passt_nicht` 7; $b_1$ = −0,072 Hz/h; Gesamtdrift −0,0456 Hz; relativ −7,2186164318·10⁻⁵; $b_0$ = 631,7 Hz; `drift_signifikant`. (b) N = 14, davon `modell_passt_nicht` 7; $b_1$ = −0,072 Hz/h; Gesamtdrift −0,0384 Hz; relativ −6,0789041762·10⁻⁵; $b_0$ = 631,6928 Hz (Zeit auf den ersten verwendeten Punkt bezogen); `drift_signifikant` | rtol 1e-9; N exakt. Ein falsch einbezogener Punkt verschiebt $b_1$ um mehr als 1e-3 relativ und fällt sicher auf |
+| RF-V6 (Drift-Ausschluss je Mode, K2-1) | Vorgegebene Fit-Ergebnisse je Punkt (Prüfung der Ausschlusslogik, ohne Fit): 20 Punkte, $t_p = 120\,p$ s ($p = 0 \dots 19$), $f_{r,p}$ der gewählten Mode = 631,7 Hz − 2·10⁻⁵ Hz/s · $t_p$; jeder Punkt, der ausgeschlossen werden muss, trägt stattdessen $f_{r,p}$ + 1,0 Hz. **(a) Gruppe n = 2, gewählte Mode 1:** Punkte 0–9 `nicht_konvergiert` (gemeinsam) und Mode 2 `ausserhalb_band`; Punkte 10, 11 Mode 1 `unsicher`; Punkt 12 Mode 1 `ausserhalb_band`; Punkte 13–19 `modell_passt_nicht`; zusätzlich Punkt 5 `kein_mobilitaetsbezug` (nicht ausschließend; ersetzt das entfallene `gueltigkeit_offen_m7`, K-ACHSE-b), Punkt 6 `kohaerenz_niedrig`. Ausgeschlossen (+1,0 Hz): 10, 11, 12. **(b) n = 1:** Punkte 0–2 `nicht_konvergiert`, 10–12 wie (a), 13–19 `modell_passt_nicht`. Ausgeschlossen (+1,0 Hz): 0, 1, 2, 10, 11, 12 | (a) N = 17, davon `modell_passt_nicht` 7; $b_1$ = −0,072 Hz/h; Gesamtdrift −0,0456 Hz; relativ −7,2186164318·10⁻⁵; $b_0$ = 631,7 Hz; `drift_signifikant`. (b) N = 14, davon `modell_passt_nicht` 7; $b_1$ = −0,072 Hz/h; Gesamtdrift −0,0384 Hz; relativ −6,0789041762·10⁻⁵; $b_0$ = 631,6928 Hz (Zeit auf den ersten verwendeten Punkt bezogen); `drift_signifikant` | rtol 1e-9; N exakt. Ein falsch einbezogener Punkt verschiebt $b_1$ um mehr als 1e-3 relativ und fällt sicher auf |
 | RF-V7 (σ der Spitzenpaarung, K2-3) | Zusammenfassung A: $f^A$ = 100,00 Hz, $\sigma_{f_r}$ der verwendeten Punkte (0,02; 0,04; 0,05) Hz. B: (i) $f^B$ = 100,15 Hz, (ii) $f^B$ = 100,09 Hz, jeweils $\sigma_{f_r}$ (0,03; 0,03; 0,09) Hz; $\Delta f_\mathrm{tol}$ = 1 Hz | $\sigma_A$ = 0,04 Hz, $\sigma_B$ = 0,03 Hz (Mediane), $\sqrt{\sigma_A^2+\sigma_B^2}$ = 0,05 Hz, Grenze 0,10 Hz. (i) Δf = +0,15 Hz → `signifikant`; (ii) Δf = +0,09 Hz → nicht `signifikant` | atol 1e-12 |
 
 ### 9.3 B-8
@@ -1387,3 +1394,4 @@ N 135 / 125 / 135 (wie die frühere Tabelle).
 | 2026-10-30 | Korrektur K3 aus der Re-Abnahme RFA-W5-2: Kennzeichen `moden_vertauscht` mit Rangregel (a) und Näheregel (b) (3.4, K3-1), Ausschluss aus der Zusammenfassung (3.4, K3-2) und aus der Drift (4.5, K3-3), Referenzfall RF-F9 (9.1, K3-4), Vermerk zur Wirkung an der Beispieldatei (7, K3-5); Prüfskript `vertauscht.py` im Anhang | Nutzer, 2026-10-30 |
 | 2026-10-30 | Datennachtrag N1 (Abschnitt 7, Vermerk K3-5): nachgerechnete Wirkung von Regel (b) auf die Zusammenfassungen 1006,41 Hz und 1329,35 Hz; 845,05 Hz unverändert mit Begründung; keine weitere Zusammenfassung betroffen. Keine Regeländerung | Nutzer, 2026-10-30 |
 | 2026-11-02 | **Korrektur K-ACHSE** (KA-12, KA-13, Fachanalyse P0b; Korrekturliste vom Nutzer am 2026-11-02 freigegeben, mit Nutzerentscheidungen: feste Bänder bei gleichen Linien umbenannt, `gueltigkeit_offen_m7` entfällt, M8 bleibt offen). KA-12: Abschnitt 7 mit korrigierter Achse (Δf = 0,625 Hz) neu gerechnet (B-1-Tabelle, Gruppe, N1-Tabelle Spalte „nachher“, Drift-Tabelle); nicht neu gerechnete Werte als „× 0,4 skaliert“ vermerkt; B-8-Bänder umbenannt (60–200 / 200–400 / 400–1000 Hz, Werte unverändert); Absatz Begründung in 4.5 skaliert. KA-13: 3.6 Maßstabsfehler der Achse mit Herleitung; Kennzeichen `gueltigkeit_offen_m7` aus 3.4 und 4.5 entfernt; 9.1/9.2 Testparameter als synthetisch gekennzeichnet; Abschnitt 11 (M2, M5, M8, M11, M12, M13) und 12 nachgeführt; Prüfskript `k_achse.py` im Anhang | **offen** (Freigabe durch den Nutzer ausstehend) |
+| 2026-11-02 | Nachtrag K-ACHSE-b aus FA-K-ACHSE, vom Nutzer am 2026-11-02 freigegeben: σ nicht bestimmbar → `unsicher` (3.4); Ursache N = 122 bei 252,7 Hz und Hinweis zur Reproduzierbarkeit (7); Rundung Gruppenwert 106,462 → 106,461 Hz (7); RF-V6 Punkt 5 `kein_mobilitaetsbezug` statt `gueltigkeit_offen_m7`, Erwartungswerte unverändert (9.2) | Nutzer, 2026-11-02 |
