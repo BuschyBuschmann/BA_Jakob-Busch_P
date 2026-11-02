@@ -33,6 +33,7 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☑ | Erkundungsskript (nur lesend) mit Prüfanleitung | – | – | `software/tools/erkundung/` |
 | ☐ | Vor Ort in PSV: kleine Test-Einstellungsdatei (.set, z. B. 3×3 Punkte, Generator aus) und Prüfling vorbereiten | Jakob | Mo 02.11. | Anleitung im Montags-Paket |
 | ☐ | Vor Ort: Python 3.11 + pywin32 installieren; Erkundung Stufe 0 → 1 → 1b; Prototyp testen (echte Messung nur nach Bestätigung) | Jakob | Mo 02.11. | Ergebnisse nach `in_progress/versuche/erkundung/`, danach `/laborbuch` |
+| ☐ | Update-Skript für den Messrechner (Version aus Git ziehen, in `C:\ldv\venv` installieren, nur Tests ohne PSV-Zugriff, Protokoll) – erst nach Klärung F30, als Paket mit Plan und Review | software-engineer | nach F30 | Wunsch Jakob 2026-11-02 |
 
 ## 3 Auswertung (Schritt 2)
 
@@ -67,6 +68,7 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | F10 | Wird die Anregungskraft gemessen? |
 | F11 | Zulässiger KI-Einsatz und Kennzeichnung |
 | F13 | SLA-Vorlage oder Richtlinien-PDF? |
+| **F30** | **Fernzugriff auf den Messrechner (VPN + Remotedesktop) erlaubt? Darf der Messrechner ins Internet bzw. auf GitHub?** (Voraussetzung für Updates aus der Ferne) |
 
 Vollständige Liste: `in_progress/planung/erwartungsmanagement.md`, Abschnitt 9.
 
