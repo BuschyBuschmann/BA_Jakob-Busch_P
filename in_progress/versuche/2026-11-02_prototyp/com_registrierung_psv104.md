@@ -15,7 +15,6 @@ Befehl *PSV.exe /regserver* eingeben“. Alternative laut Polytec: Reparaturinst
 ## Vor dem Start mit Daniel klären
 - [ ] Nutzt jemand PSV 10.2 oder 10.3 noch (Makros, Basic Engine)?
 - [ ] Ist es in Ordnung, dass 10.4 die registrierte Version wird? (Es kann immer nur eine Version registriert sein.)
-- [ ] Ist die externe Automatisierung lizenziert?
 
 ## Schritte
 1. [ ] Keine Messung läuft. PSV schließen; `Get-Process PSV` findet nichts.
@@ -41,7 +40,7 @@ Befehl *PSV.exe /regserver* eingeben“. Alternative laut Polytec: Reparaturinst
 
 ## Falls es nicht klappt
 - Weiterhin kein `PSV.AcquisitionInstance`: Reparaturinstallation von PSV 10.4 (Einstellungen → Apps → PSV 10.4 → Ändern → Reparieren), dann Schritt 4.
-- Registriert, aber Verbinden scheitert in Stufe 1: vermutlich Lizenz oder Desktop-Modus → Daniel/Polytec-Support.
+- Registriert, aber Verbinden scheitert in Stufe 1: prüfen, ob PSV im Desktop-Modus läuft (dort ist `AcquisitionInstance` laut Basic Engine Manual nicht verfügbar). Sonst Daniel/Polytec-Support fragen, ob Optionen oder Lizenzen nötig sind. Einen Lizenzbedarf belegt keine unserer Quellen.
 
 ## Fürs Protokoll
 | Zeit | Befehl / Aktion | ausgeführt von | Ergebnis |
