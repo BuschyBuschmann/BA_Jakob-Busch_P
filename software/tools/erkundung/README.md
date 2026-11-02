@@ -224,7 +224,13 @@ bzw. Spektren eines Scanpunkts.
   (keine CSV), 2 Aufruffehler oder Ziel existiert, 3 unvollständig. Bei 3 liegt neben der CSV
   `<ziel.csv>.fehlend.txt` (UTF-8, erste Zeile `# Fehlende Signale`, danach je Zeile
   `<Kanal> | <Signal><TAB><Grund>`). Signale mit abweichender Länge (`len(Re) == len(Im)`,
-  Achse) oder abweichender Achse gelten als fehlend.
+  Achse) oder abweichender Achse gelten als fehlend. Liefert `GetData` für Re oder Im keinen
+  Wert, gilt das Signal als fehlend (Grund `ValueError: keine Werte`). Wird kein Signal gelesen,
+  endet das Skript mit Exit-Code 1 und schreibt keine CSV.
+  Unerwartete Ausnahmen außerhalb der Signalschleife (z. B. in `Open`, `GetPointDomains`) enden
+  mit Traceback und Python-Exit-Code 1; dieser Code steht dann nicht für „nichts gelesen“, und
+  es wird keine CSV geschrieben. Bricht das Skript vor dem Schreiben ab, bleiben bei
+  `--ueberschreiben` alte Ziel- und Begleitdatei stehen.
 - `einstellungen_lesen.py <kopie.svd>`: meldet nicht lesbare, nicht vorhandene und
   übersprungene (aufrufbare) Eigenschaften. Die Waveform-Parameter sind eventuell nur nach einem
   Cast lesbar; das ist am Gerät zu prüfen und nicht umgesetzt.

@@ -20,11 +20,18 @@ Annahmen (am Gerät nur durch Erkundung 1b vom 2026-11-02 belegt, hier nicht neu
   Je Signal wird die Achse des eigenen Real-Displays gelesen und mit der des ersten
   übernommenen Signals verglichen (Werte, ``rtol`` 1e-12).
 
-Ein Signal gilt als „fehlt“, wenn ein Lesefehler auftritt, ein Display fehlt, ``len(Re)``,
-``len(Im)`` oder die Länge der ersten Referenz abweichen oder die Achse abweicht.
+Ein Signal gilt als „fehlt“, wenn ein Lesefehler auftritt, ein Display fehlt, ``GetData`` für Re
+oder Im keinen Wert liefert (Grund „keine Werte“), ``len(Re)``, ``len(Im)`` oder die Länge der
+ersten Referenz abweichen oder die Achse abweicht.
 
 Exit-Codes: 0 vollständig, 1 nichts gelesen (keine CSV), 2 Aufruffehler oder Zieldatei existiert
 (ohne ``--ueberschreiben``), 3 unvollständig (CSV ohne die fehlenden Signale).
+
+Unerwartete Ausnahmen außerhalb der Signalschleife (z. B. in ``Open``, ``GetPointDomains``)
+werden nicht abgefangen: Das Skript gibt einen Traceback aus und endet mit Python-Exit-Code 1.
+Dieser Exit-Code bedeutet dann also „Abbruch durch Ausnahme“ und nicht „nichts gelesen“; eine
+CSV wird in diesem Fall nicht geschrieben. Bricht das Skript vor dem Schreiben ab, bleiben bei
+``--ueberschreiben`` alte Ziel- und Begleitdatei stehen.
 
 Begleitdatei bei Exit-Code 3: ``<ziel.csv>.fehlend.txt`` (UTF-8), erste Zeile
 ``# Fehlende Signale``, danach je Signal eine Zeile ``<Kanal> | <Signal><TAB><Grund>``.
@@ -87,13 +94,16 @@ def lies_signal(domaene: Any, datenpunkt: Any, kanal: str, signal_name: str) -> 
     LookupError
         Display vom Typ 7 oder 8 fehlt.
     ValueError
-        Längen von Re, Im und Achse stimmen nicht überein.
+        Re oder Im ist leer (``keine Werte``), oder Längen von Re, Im und Achse stimmen nicht
+        überein.
     """
     signal = domaene.Channels.Item(kanal).Signals.Item(signal_name)
     d_re = display_nach_typ(signal, REAL)
     d_im = display_nach_typ(signal, IMAG)
     re = [float(v) for v in datenpunkt.GetData(d_re, 0)]
     im = [float(v) for v in datenpunkt.GetData(d_im, 0)]
+    if not re or not im:
+        raise ValueError("keine Werte")
     achse = domaene.GetXAxis(d_re)
     f = [float(achse.GetMidX(i)) for i in range(len(re))]
     if not len(re) == len(im) == len(f):
@@ -156,11 +166,13 @@ def main(pfad: str, ziel: str, punkt: int, ueberschreiben: bool = False) -> int:
                 daten = lies_signal(domaene, datenpunkt, kanal_name, signal_name)
                 if frequenz is None:
                     frequenz = daten["f"]
-                elif not achsen_gleich(daten["f"], frequenz):
+                elif len(daten["f"]) != len(frequenz):
                     raise ValueError(
-                        f"Achse/Länge weicht von der ersten ab ({len(daten['f'])} statt "
-                        f"{len(frequenz)} Werten)"
+                        f"Frequenzachse hat {len(daten['f'])} Werte, das erste Signal hat "
+                        f"{len(frequenz)}"
                     )
+                elif not achsen_gleich(daten["f"], frequenz):
+                    raise ValueError("Frequenzachse weicht von der des ersten Signals ab")
                 spalten[f"{schluessel} | Re"] = daten["re"]
                 spalten[f"{schluessel} | Im"] = daten["im"]
                 print(f"ok    {schluessel}: {len(daten['re'])} Werte {daten['einheit']}")

@@ -218,3 +218,55 @@ def test_quelltext_ohne_verbotene_namen() -> None:
         if isinstance(t, ast.Attribute)
     ]
     assert zuweisungen == ["ReadOnly"]  # einzige Zuweisung an ein Attribut: ReadOnly = True
+
+
+@pytest.mark.parametrize(
+    ("variante", "erwartet"),
+    [
+        ("re_laenge_anders", "Frequenzachse hat 3 Werte, das erste Signal hat 5"),
+        ("achse_anders", "Frequenzachse weicht von der des ersten Signals ab"),
+    ],
+)
+def test_meldetext_trennt_laenge_und_achswerte(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, variante: str, erwartet: str
+) -> None:
+    signale = alle_signale()
+    ziel_sig = ("Vib Y", "Geschwindigkeit")
+    if variante == "re_laenge_anders":
+        signale[ziel_sig]["re"] = RE[:3]
+        signale[ziel_sig]["im"] = IM[:3]
+    else:
+        signale[ziel_sig]["df"] = 1.0  # gleiche Länge, andere Achse
+    ziel = tmp_path / "g.csv"
+    assert lauf(monkeypatch, signale, ziel, Protokoll()) == 3
+    text = (tmp_path / "g.csv.fehlend.txt").read_text(encoding="utf-8")
+    assert f"Vib Y | Geschwindigkeit\tValueError: {erwartet}" in text
+    assert "(3 statt 3" not in text
+
+
+@pytest.mark.parametrize("leer", ["re", "im"])
+def test_leeres_signal_fehlt_mit_grund_keine_werte(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, leer: str
+) -> None:
+    signale = alle_signale()
+    ziel_sig = ("Vib Y", "Geschwindigkeit")
+    signale[ziel_sig][leer] = []
+    ziel = tmp_path / "g.csv"
+    assert lauf(monkeypatch, signale, ziel, Protokoll()) == 3
+    kopf = lies_csv(ziel)[0]
+    assert not any(s.startswith("Vib Y | Geschwindigkeit") for s in kopf)
+    text = (tmp_path / "g.csv.fehlend.txt").read_text(encoding="utf-8")
+    assert "Vib Y | Geschwindigkeit\tValueError: keine Werte" in text
+
+
+def test_alle_signale_leer_exit_1_ohne_csv(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    signale = {sig: {"re": [], "im": [], "df": DF} for sig in daten_lesen.AUSWAHL}
+    ziel = tmp_path / "g.csv"
+    log = Protokoll()
+    assert lauf(monkeypatch, signale, ziel, log) == 1
+    assert not ziel.exists()
+    assert not (tmp_path / "g.csv.fehlend.txt").exists()
+    assert "Keine Daten gelesen." in capsys.readouterr().out
+    assert log.geschlossen
