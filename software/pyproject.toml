@@ -1,6 +1,6 @@
 [project]
 name = "ldv-automation"
-version = "0.1.0"
+version = "0.2.0"
 description = "Automatisierung von Strukturtests mit einem 3D-Laser-Doppler-Vibrometer (Bachelorarbeit, SLA, RWTH Aachen)"
 readme = "README.md"
 requires-python = ">=3.11,<3.12"

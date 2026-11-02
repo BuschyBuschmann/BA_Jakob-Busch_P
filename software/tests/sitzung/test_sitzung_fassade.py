@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+import ldv_automation
 from ldv_automation.ablauf.steuerung import (
     DurchgangErgebnis,
     DurchgangZustand,
@@ -462,7 +463,7 @@ def test_threads_starten_und_beenden(tmp_path: Path) -> None:
 def test_standardwerte_echtzeituhr_und_build_info(tmp_path: Path) -> None:
     s = Sitzung(geraete_fabrik=Fabrik(Testuhr()))
     bild = s.zustandsbild()
-    assert bild.paket_version == "0.1.0"
+    assert bild.paket_version == ldv_automation.__version__
     assert bild.betriebsart is Betriebsart.SIMULATOR
     assert bild.waechter_s is None  # Gerät noch nicht erzeugt
     assert s.beende_threads()

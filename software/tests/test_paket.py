@@ -4,4 +4,4 @@ import ldv_automation
 
 
 def test_version_ist_gesetzt() -> None:
-    assert ldv_automation.__version__ == "0.1.0"
+    assert ldv_automation.__version__ == "0.2.0"
