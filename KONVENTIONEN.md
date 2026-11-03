@@ -47,6 +47,8 @@ uv run pytest --cov --cov-fail-under=90
 
 ## Messdaten
 - Messdaten werden in Dateien gespeichert, zusammen mit der Softwareversion (Git-Hash).
+- Jeder an den Messrechner ausgelieferte Stand erhält eine neue Versionsnummer
+  (`version` in `software/pyproject.toml`).
 - Rohdaten werden nie überschrieben.
 - Exporte der Auswertung tragen je Stufe eine eigene Formatkennung
   (`ldv_automation.auswertung.export[.stufeN]`) und nutzen den gemeinsamen Schreibweg
@@ -76,13 +78,15 @@ Quelle: Analyseberichte I1, I2, I5 und I5-F unter `in_progress/analysen/`.
 - Punkt- und Collection-Indizes sind intern 0-basiert. Die Umrechnung von bzw. zu den
   1-basierten Polytec-Indizes erfolgt nur im Adapter; der Originalindex der Messpunkte
   wird mitgeführt.
-- Frequenzachse von Polytec-FFT-Daten: **vorläufig** $f_k = k\,\Delta f$ mit
-  $\Delta f = BW/n_\mathrm{FFT}$ und $k = k_\mathrm{min} \dots k_\mathrm{max}$; im Vollbereich
-  $k = 1 \dots n_\mathrm{FFT}$, DC nicht enthalten. Bei eingeschränktem Bereich (Von/Bis)
-  enthält die Datei möglicherweise weniger Linien. Die Achse wird deshalb immer aus den
-  Achsdaten der Datei (`XAxis`) gebildet und gegen $k\,\Delta f$ geprüft. An einer realen
-  Messdatei zu bestätigen. Stützen: Matlab-Beispiel zu Polytec File Access
-  (`Input/literatur/polytec/Schulungsunterlagen/11.2 Polytec-File-Access_Matlab.pdf`,
+- Frequenzachse von Polytec-FFT-Daten: **bestätigt** (`20261012_ref_Mitte.svd`, PSV 10.4,
+  2026-11-02; Laborbuch 2026-11-02_k-achse-frequenzachse) $f_k = k\,\Delta f$ mit
+  $\Delta f = f_s/N = BW/n_\mathrm{FFT} = 1/T$ und $k = k_\mathrm{min} \dots k_\mathrm{max}$;
+  im Vollbereich $k = 1 \dots n_\mathrm{FFT}$, DC nicht enthalten. Das Feld `Fft` @4 der
+  `.svd` ist die Abtastfrequenz $f_s$, nicht die Bandbreite. Das Satzfeld +0x34 ist keine
+  Blockdauer, seine Bedeutung ist offen. Bei eingeschränktem Bereich (Von/Bis) enthält die
+  Datei möglicherweise weniger Linien. Die Achse wird deshalb immer gegen die Achsdaten der
+  Datei (`XAxis`) oder ein Golden File geprüft. Stützen: Matlab-Beispiel zu Polytec File
+  Access (`Input/literatur/polytec/Schulungsunterlagen/11.2 Polytec-File-Access_Matlab.pdf`,
   Folie 8), Software-Handbuch PSV 7-16/7-17.
 - Spektren von Polytec sind einseitig und amplitudentreu auf die Spitzenamplitude
   (0-to-peak) skaliert. Real/Imag entsprechen $A\,e^{i\varphi_0}$ bei Zeitabhängigkeit
@@ -99,16 +103,26 @@ Quelle: Analyseberichte I1, I2, I5 und I5-F unter `in_progress/analysen/`.
   in Richtung Scankopf. Bei den 3D-Komponenten X/Y/Z bedeutet positiv Bewegung entlang
   der jeweiligen Achse des Koordinatensystems aus dem 3D-Abgleich (vorläufig, am Gerät
   zu bestätigen).
+- Polarität der Referenzkanäle (vorläufig, nach Messung D2 und Datenblatt PCB 288D01 zu
+  bestätigen): Sie wird bei jedem neuen Aufbau am Treibpunkt relativ zu den anderen Kanälen
+  geprüft (Soll: v/a = −90°, Re{v/F} ≥ 0). `vorzeichen_kanal` beschreibt die Korrektur. Die
+  absolute Richtung belegt das Datenblatt.
 - Jeder COM-Zugriff, auch in Hilfsskripten, läuft über einen Whitelist-Proxy
   (Default deny): Nur ausdrücklich freigegebene Objekte, Methoden und Properties werden
   weitergereicht. Hilfswerkzeuge liegen unter `software/tools/` und importieren nicht
-  aus dem Hauptpaket.
+  aus dem Hauptpaket. **Ausnahme:** Reine Lesewerkzeuge für Polytec File Access (derzeit
+  `software/tools/erkundung/einstellungen_lesen.py` und `daten_lesen.py`) dürfen ohne Proxy
+  arbeiten. Voraussetzung ist ein statischer Test, der erzwingt, dass `ReadOnly = True` die
+  einzige Zuweisung an ein COM-Objekt ist (Nutzerentscheidung 2026-11-03).
 
 ## Arbeitsweise bei Terminen vor Ort
 - Bei Terminen am Messrechner arbeitet der Orchestrator direkt mit dem Nutzer, damit schnell
   Ergebnisse entstehen (Skripte, Auswertungen, Anleitungen ohne Arbeitsgruppe und ohne Review).
 - Danach werden diese Ergebnisse über die Arbeitsgruppe geprüft (Review, Fachprüfung) und
   dokumentiert (Laborbuch), bevor darauf aufgebaut wird.
+- Termine am Messrechner folgen einem Ablaufplan mit Entscheidungsbaum und Ersatzplänen.
+  Abweichungen werden im Entscheidungsprotokoll festgehalten.
+- Messdaten und Skriptausgaben werden nicht unter `PyCharmProject` abgelegt.
 - Außerhalb solcher Termine gilt strikt der Ablauf über Aufbereitung, Freigaben und Review.
 
 ## Thesis-Formalien

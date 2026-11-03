@@ -1,6 +1,6 @@
 # ADR-006: Datenweg für die Auswertung (vorläufig)
 
-**Datum:** 2026-10-26 · **Status:** angenommen
+**Datum:** 2026-10-26 · **Status:** ersetzt durch ADR-020 (2026-11-03)
 **Bezug:** Prototyp Mess-Warteschlange (Lastenheft R-001, R-010–R-031); Entscheidung des Nutzers vom 2026-10-26
 
 ## Kontext

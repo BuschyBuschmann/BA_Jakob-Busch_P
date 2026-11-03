@@ -214,7 +214,7 @@ Nie gestrichen: A0, A1 (mindestens I1 bis I4), B1 bei funktionierender COM, A2.
 ### 4.2 Fall: Termin doch nur ca. 150 min
 
 Entscheidung beim Termin (K8) nach A0, spätestens nach B1. Verkürzte Reihenfolge nach der Fachprüfung (Vorschlag, bitte bestätigen):
-1. **A1 kürzen** auf I1 bis I4 und Skripte kopieren (ca. 10 min). Das Wheel-Update (0.2.0) ist für T0 bis T2 nicht nötig (Adapter unverändert, Annahme); es entfällt oder wird nachgeholt. **B2** nur so weit, wie T1/T2 die Konfigurationsdatei brauchen.
+1. **A1 kürzen** auf I1 bis I4 und Skripte kopieren (ca. 10 min). Das Wheel-Update (0.2.0) bleibt **Pflicht vor T0** (ca. 5 min; Nutzerentscheidung 2026-11-03: Der COM-Adapter hat sich mit K-2D geändert, die neuen Hinweise werden am Gerät mitgetestet). **B2** nur so weit, wie T1/T2 die Konfigurationsdatei brauchen.
 2. **Bei freigegebener Anregung (F2 ja): D2 vor B3/T2** (und D3 A-B-A am Kopfpunkt gleich dahinter). B3 und T2 (60 min) sind nur Einstellungstests; D2 ist nur dort möglich. Reihenfolge: **A0, B1, T1, D2 (+ D3), dann B3/T2 nach Zeit, E1, E2, A2.**
 3. **D4 und D5 entfallen** (Folgetermin).
 4. Weitere Soll-Punkte nach der Rangfolge oben, soweit Zeit bleibt. **Sichtbarkeitsprüfung von D2 höchstens 10 min**, sonst Ersatzpunkt.
@@ -261,7 +261,7 @@ Ohne Freigabe der Anregung (F2 nein): normaler Muss-Block, danach C2, E1, C3, E2
 `D:\Messdaten\DAL\BA Jakob Busch\PyCharmProject\.venv`, Python 3.11.9, pywin32 312 und die gepinnten Pakete aus dem Internet; Wheel 530af41 installiert
 (Laborbuch 2026-11-02). **Voraussetzung:** keine; PSV darf laufen. **Nicht** PySide6 6.12.0 installieren (ADR-001); deshalb beim Wheel immer `--no-deps`.
 
-**Erst klären, ob ein Update nötig ist:** Für T0 bis T2 (COM-Adapter) genügt der vorhandene Stand 530af41 **[Annahme, gestützt auf: Adapter seit 530af41 unverändert]**; bei knapper Zeit wird A1 deshalb gekürzt (4.2).
+**Update vor T0 Pflicht** (Nutzerentscheidung 2026-11-03): Seit 530af41 hat sich der COM-Adapter geändert (K-2D: Hinweise bei fehlender Registrierung bzw. Desktop-Modus, SignalDelay lesen). Die frühere Annahme, für T0 bis T2 genüge der alte Stand, gilt nicht mehr; A1 wird auch in der gekürzten Reihenfolge nicht ausgelassen.
 Das Update bringt die Frequenzachsen-Korrektur der Auswertung (K-ACHSE) und die überarbeiteten Skripte. Ist das Update nicht erreichbar, entfällt nur die Auswertung, nicht der Termin (EP-3).
 
 **Weg G (Git, bevorzugt, Internet nötig; F7):**
@@ -572,7 +572,7 @@ Läuft PSV (versehentlich oder bewusst) im Desktop-Modus:
 | Symptom | Ersatz |
 |---|---|
 | Kein Internet / GitHub nicht erreichbar / Repo privat | Weg S (Stick). Kein Stick: alten Stand 530af41 weiternutzen |
-| `pip install` Fehler (Meldung wörtlich notieren) | Ohne Update weiter mit Stand 530af41 (I5, I6 prüfen: Hash `530af419`). Für T0 bis T2 genügt er **[Annahme: Adapter unverändert]**; Auswertung/K-ACHSE bleibt dann außen vor |
+| `pip install` Fehler (Meldung wörtlich notieren) | Ohne Update weiter mit Stand 530af41 (I5, I6 prüfen: Hash `530af419`). T0 bis T2 laufen dann mit dem alten Adapter; die K-2D-Hinweise (Registrierung, Desktop-Modus) sind nicht testbar, Auswertung/K-ACHSE bleibt außen vor (im Entscheidungsprotokoll vermerken) |
 | pip meldet „already satisfied“ oder I3/I6 zeigen noch 0.1.0 bzw. den alten Hash | Rückfall: `--upgrade --force-reinstall --no-deps` mit dem 0.2.0-Wheel; Dateiname und SHA-256 prüfen, Hash in I6 prüfen |
 | I1 bis I4 schlagen fehl (z. B. Python 32-Bit, pywin32 fehlt) | Nicht weiter installieren; `erkundung.py` braucht nur Python 3.11 (Stufe 0) bzw. pywin32 (Stufe 1) und läuft auch **ohne** das Wheel; Prototyp dann nur als Befund |
 | I5 oder I7 scheitern (Selbsttest, GUI) | Erkundung und COM-Tests der Erkundung bleiben möglich; Prototyp als Befund (nur CLI/Selbsttest) |
