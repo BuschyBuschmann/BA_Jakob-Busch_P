@@ -938,6 +938,28 @@ def test_datei_zeit_nicht_verfuegbar_bei_abweichendem_layout(stream: bytes) -> N
     assert sl.dekodiere_file_version(stream) is None
 
 
+@pytest.mark.parametrize(
+    "filetime",
+    [0, 1, 864_000_000_000 - 1],  # 0; 100 ns; 100 ns knapp vor 1601-01-02 (je FILETIME-Einheit)
+    ids=["null", "eins", "knapp_vor_untergrenze"],
+)
+def test_datei_zeit_nicht_gesetzt_wird_none(filetime: int) -> None:
+    """FILETIME 0 (bzw. alles auf 1601-01-01) ist keine Dateizeit: Export meldet nichts."""
+    assert sl.dekodiere_file_version(syn.file_version(filetime)) is None
+
+
+def test_datei_zeit_untergrenze_selbst_ist_gueltig() -> None:
+    assert sl.dekodiere_file_version(syn.file_version(864_000_000_000)) == dt.datetime(1601, 1, 2)
+
+
+def test_datei_zeit_null_im_export_nicht_verfuegbar() -> None:
+    st, _ = syn.messung_stroeme()
+    st["FileVersion"] = syn.file_version(0)
+    m = sl.lese_container(syn.FakeOle(st), Path("x"))
+    assert m.datei_zeit is None
+    assert "Dateizeit (FileVersion, naiv, vermutlich UTC): nicht verfügbar" in sl.uebersicht(m)
+
+
 def test_datei_zeit_nicht_verfuegbar_ohne_stream() -> None:
     st, _ = syn.messung_stroeme()
     del st["FileVersion"]

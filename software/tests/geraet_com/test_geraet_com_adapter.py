@@ -22,6 +22,7 @@ from ldv_automation.geraet.com.adapter import (
     PsvComGeraet,
 )
 from ldv_automation.geraet.com.richtlinie import PRODUKTIV
+from ldv_automation.geraet.com.whitelist import ComFehler
 from ldv_automation.geraet.schnittstelle import (
     AbweichungFehler,
     GeraeteFehler,
@@ -273,6 +274,39 @@ def test_verbinde_fehlende_objekte() -> None:
         geraet.verbinde()
     assert HINWEIS_DESKTOP_MODUS in info.value.text
     assert "Verknüpfung \u201aPSV 10.4 Deutsch\u2018 = /Acquisition verwenden" in info.value.text
+
+
+def test_verbinde_acquisition_com_fehler_traegt_desktop_verdacht() -> None:
+    """Wirft der Zugriff auf ``Application.Acquisition`` einen ComFehler, bleibt die
+    Originalmeldung erhalten und der Desktop-Hinweis steht als Verdacht dabei."""
+    geraet, fake, _ = _geraet()
+    fake.welt.fehler[("Application", "Acquisition")] = FakeComError(
+        "Zugriff verweigert", hresult=-2147352567
+    )
+    with pytest.raises(GeraeteFehler) as info:
+        geraet.verbinde()
+    fehler = info.value
+    assert type(fehler) is GeraeteFehler
+    assert "Zugriff verweigert" in fehler.text  # Originalmeldung unverändert enthalten
+    assert "Möglicherweise (Verdacht, ungeprüft): " in fehler.text
+    assert HINWEIS_DESKTOP_MODUS in fehler.text
+    assert fehler.text.index("Zugriff verweigert") < fehler.text.index("Möglicherweise")
+    assert fehler.methode == "Application.Acquisition"
+    assert fehler.hresult == -2147352567
+    assert fehler.excepinfo == "Zugriff verweigert"
+    assert isinstance(fehler.__cause__, ComFehler)  # Fehlerkette bleibt erhalten
+    assert isinstance(fehler.__cause__.__cause__, FakeComError)
+    with pytest.raises(GeraeteFehler, match="Nicht mit PSV verbunden"):  # kein halber Zustand
+        geraet.zustand()
+
+
+def test_verbinde_acquisition_ohne_fehler_ohne_zusatz() -> None:
+    """Ohne COM-Fehler bleibt die Meldung bei ``acq is None`` wie bisher."""
+    geraet, fake, _ = _geraet()
+    fake.app._props["Acquisition"] = None
+    with pytest.raises(GeraeteFehler) as info:
+        geraet.verbinde()
+    assert "Möglicherweise" not in info.value.text
 
 
 def _dispatch_scheitert(registriert: bool | None) -> tuple[PsvComGeraet, FakeBindung]:

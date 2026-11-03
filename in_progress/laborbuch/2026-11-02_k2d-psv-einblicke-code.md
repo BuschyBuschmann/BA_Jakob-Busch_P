@@ -26,6 +26,8 @@ Review R-K2D: FREIGABE MIT AUFLAGEN, kein BLOCKER/MAJOR. Vom Reviewer selbst aus
 - MINOR 2: „nicht registriert“ beruht auf einem Registry-Blick; 32/64-Bit-Sicht am Gerät ungeprüft.
 - NITPICK: Desktop-Hinweis fehlt, falls `Acquisition` einen COM-Fehler wirft statt `None`.
 
+**Nachtrag 2026-11-03:** Alle drei Befunde vom Nutzer zur Korrektur gewählt (dazu R-V1 MINOR-1/2 und Nitpicks zu `daten_lesen.py`). Umsetzung K-MINOR (software-engineer, haiku), Re-Review RR-KMINOR (reviewer, sonnet): FREIGABE, 1555 passed, 99 %. FILETIME vor 1601-01-02 → „nicht verfügbar“; Desktop-Hinweis bei COM-Fehler als Verdacht. Offen nur zwei NITPICKs (doppelter Punkt möglich, kein Test für PermissionError auf Acquisition).
+
 ## Offene Punkte
 - Gerätetest beider Meldungen (eine registrierte, eine fehlende ProgID; Desktop-Modus) am nächsten Termin. Nicht bestanden, bis Jakob bestätigt.
 - Zeitzone der Dateizeit mit weiteren Dateien klären; KONVENTIONEN-Vorschlag erst danach.

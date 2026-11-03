@@ -1030,21 +1030,29 @@ FILE_VERSION_LAENGE = 32
 FILE_VERSION_FILETIME_OFFSET = 24
 """Offset der FILETIME im Stream ``FileVersion`` (fünf ``int32`` und zwei ``uint16`` davor)."""
 
+FILE_VERSION_UNTERGRENZE = dt.datetime(1601, 1, 2)
+"""Früheste plausible Dateizeit aus ``FileVersion``. Werte davor (FILETIME 0 bzw. alles
+auf 1601-01-01) gelten als nicht gesetzt und ergeben ``None``. Annahme, kein Mindestdatum."""
+
 
 def dekodiere_file_version(daten: bytes) -> dt.datetime | None:
     """FILETIME aus dem Stream ``FileVersion``; ``None``, wenn das Layout nicht passt.
 
     Layout (Beispieldatei, W2 Abschnitt 1.1): ``int32`` 2, 4, 2624, 2, 1, ``uint16`` 4, 10,
     ``uint64`` FILETIME. Geprüft werden Länge und die erste ``int32`` (2); bei Abweichung
-    oder unplausibler FILETIME wird nichts geraten.
+    oder unplausibler FILETIME wird nichts geraten. FILETIME 0 (und alles, was vor
+    :data:`FILE_VERSION_UNTERGRENZE` fällt) ist „nicht gesetzt“ und ergibt ``None``.
     """
     if len(daten) != FILE_VERSION_LAENGE or _i32(daten, 0) != 2:
         return None
     (filetime,) = struct.unpack_from("<Q", daten, FILE_VERSION_FILETIME_OFFSET)
     try:
-        return filetime_zu_datetime(filetime)
+        zeit = filetime_zu_datetime(filetime)
     except SvdFormatFehler:
         return None
+    if zeit < FILE_VERSION_UNTERGRENZE:
+        return None
+    return zeit
 
 
 def _strom(ole: Any, pfad: str) -> bytes:

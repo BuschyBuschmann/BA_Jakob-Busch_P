@@ -56,9 +56,9 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☑ | Wheel 0.2.0 gebaut (f66af80, sauber), mit Skripten und SHA-256 abgelegt | – | – | `in_progress/versuche/naechster-termin_messrechner/stick/LIESMICH.txt` |
 | ☐ | Fragen F1–F8 an Daniel (Ablaufplan 3.2) | Jakob | vor Termin | |
 | ☐ | Anforderungsvorschläge aus PSV-Einblicken (Übersicht 2b) | `/anforderungs-analyst`, Jakob | – | |
-| ☐ | ADR-006 Datenweg abschließen (eigener Leser / File Access / beides) | Jakob | – | Übersicht 2c |
+| ☑ | Datenweg entschieden: ADR-020 (eigener Leser, File Access als Gegenprobe), ersetzt ADR-006 | – | – | Nutzerentscheidung 03.11. |
 | ☑ | Kleine Code-Aufgaben aus PSV-Einblicken (Übersicht 2d), reviewt; MINORs zur Entscheidung, Gerätetest offen | – | – | Laborbuch 2026-11-02_k2d-psv-einblicke-code |
-| ☐ | KONVENTIONEN-Vorschläge (Achse bestätigt, Polaritätsprüfung) und Thesis-Bausteine in kapitel-map | Orchestrator, Jakob | – | Übersicht 2f |
+| ☑ | KONVENTIONEN-Vorschläge übernommen (Achse, Polarität vorläufig, Proxy-Ausnahme, Termine, Version); Thesis-Bausteine in kapitel-map | – | – | b29584e |
 | ☐ | Nach Montag: M1–M15 in FG-02/FG-03 nachführen, Golden-File-Test, Abbildungen mit sauberem Git-Hash neu erzeugen | Orchestrator, strukturdynamik-experte | nach 02.11. | |
 
 ## 4 Thesis

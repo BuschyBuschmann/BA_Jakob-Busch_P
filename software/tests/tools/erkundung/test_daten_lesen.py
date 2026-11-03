@@ -515,3 +515,102 @@ def test_standard_auswahl_unveraendert(monkeypatch: pytest.MonkeyPatch, tmp_path
     kopf = lies_csv(ziel)[0]
     erwartet = [f"{k} | {s} | {x}" for k, s in daten_lesen.AUSWAHL for x in ("Re", "Im")]
     assert kopf == ["f_Hz", *erwartet]
+
+
+def test_auswahl_leerer_wert_exit_2_ohne_zugriff(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``--auswahl ""`` fiel früher still auf die Standardauswahl zurück (Befund R-V1)."""
+    log = Protokoll()
+    installiere_fake_win32(monkeypatch, daten_datei(log, alle_signale()))
+    ziel = tmp_path / "g.csv"
+    assert daten_lesen.cli(["k.svd", str(ziel), "--auswahl", ""]) == 2
+    assert "--auswahl ist leer" in capsys.readouterr().out
+    assert not log.pfade  # nichts geöffnet, keine Standardauswahl
+    assert not ziel.exists()
+
+
+def test_auswahl_leerer_wert_ist_auch_mit_signal_fehler(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    log = Protokoll()
+    installiere_fake_win32(monkeypatch, daten_datei(log, alle_signale()))
+    argv = ["k.svd", str(tmp_path / "g.csv"), "--auswahl", "", "--signal", "A|B"]
+    assert daten_lesen.cli(argv) == 2
+    assert not log.pfade
+
+
+def test_punktnummer_nach_optionen_exit_2_ohne_zugriff(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Festgehalten: argparse lehnt die Punktnummer hinter den Optionen ab (README-Hinweis)."""
+    log = Protokoll()
+    installiere_fake_win32(monkeypatch, daten_datei(log, alle_signale()))
+    ziel = tmp_path / "g.csv"
+    assert daten_lesen.cli(["k.svd", str(ziel), "--ueberschreiben", "3"]) == 2
+    assert "unrecognized arguments: 3" in capsys.readouterr().err
+    assert not log.pfade
+
+
+def test_punktnummer_vor_optionen_ist_korrekt(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    ziel = tmp_path / "g.csv"
+    assert cli_lauf(monkeypatch, alle_signale(), ["k.svd", str(ziel), "3", "--ueberschreiben"]) == 0
+
+
+def test_standardpunkt_ist_1_wenn_nicht_angegeben(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    ziel = tmp_path / "g.csv"
+    assert cli_lauf(monkeypatch, alle_signale(), ["k.svd", str(ziel)]) == 0
+    assert "Punkt 1: Label" in capsys.readouterr().out
+
+
+def test_liste_mit_anderen_optionen_gibt_hinweis_und_schreibt_nichts(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    log = Protokoll()
+    installiere_fake_win32(monkeypatch, daten_datei(log, v2_signale(), weitere={"Terzen": {}}))
+    ziel = tmp_path / "g.csv"
+    argv = ["k.svd", str(ziel), "--liste", "--ueberschreiben", "--signal", "Vib X|Geschwindigkeit"]
+    assert daten_lesen.cli(argv) == 0
+    ausgabe = capsys.readouterr().out
+    assert (
+        "HINWEIS: --liste ignoriert die Ziel-CSV, --ueberschreiben, die Signalauswahl "
+        "(--signal/--auswahl); es wird keine CSV geschrieben.\n" in ausgabe
+    )
+    assert "die Punktnummer" not in ausgabe  # Punkt nicht angegeben, also nichts zu melden
+    assert "Kanal 1: Vib X" in ausgabe
+    assert not ziel.exists()
+    assert log.geschlossen
+
+
+def test_liste_ohne_andere_optionen_ohne_hinweis(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    installiere_fake_win32(monkeypatch, daten_datei(Protokoll(), v2_signale()))
+    assert daten_lesen.cli(["k.svd", "--liste"]) == 0
+    assert "HINWEIS" not in capsys.readouterr().out
+
+
+def test_liste_domaene_unbekannt_exit_2_mit_hinweis_auf_option(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    installiere_fake_win32(monkeypatch, daten_datei(Protokoll(), v2_signale()))
+    assert daten_lesen.cli(["k.svd", "--liste", "--domaene", "Gibt_es_nicht"]) == 2
+    assert "nicht gefunden" in capsys.readouterr().out
+
+
+def test_liste_meldet_punkt_und_amplitude_als_ignoriert(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    installiere_fake_win32(monkeypatch, daten_datei(Protokoll(), v2_signale()))
+    ziel = tmp_path / "g.csv"
+    assert daten_lesen.cli(["k.svd", str(ziel), "2", "--liste", "--amplitude"]) == 0
+    ausgabe = capsys.readouterr().out
+    assert (
+        "HINWEIS: --liste ignoriert die Ziel-CSV, die Punktnummer, --amplitude; "
+        "es wird keine CSV geschrieben.\n" in ausgabe
+    )
+    assert not ziel.exists()

@@ -220,8 +220,12 @@ bzw. Spektren eines Scanpunkts.
   Test über den Quelltext abgesichert).
 - Sie lesen nur und sollen **nur auf Kopien** der Messdatei laufen, die nicht in PSV geöffnet sind.
 - `daten_lesen.py <kopie.svd> <ziel.csv> [Punkt] [--ueberschreiben] [Auswahl-Optionen]`: eine vorhandene Zieldatei
-  (und Begleitdatei) wird nicht überschrieben. Exit-Codes: 0 vollständig, 1 nichts gelesen
-  (keine CSV), 2 Aufruffehler oder Ziel existiert, 3 unvollständig. Bei 3 liegt neben der CSV
+  (und Begleitdatei) wird nicht überschrieben. Die Punktnummer steht direkt hinter der Ziel-CSV,
+  also **vor** den Optionen: `kopie.svd ziel.csv 3 --ueberschreiben` ist korrekt; die Reihenfolge
+  `kopie.svd ziel.csv --ueberschreiben 3` lehnt argparse mit Exit 2 ab („unrecognized arguments: 3“),
+  ohne dass etwas geöffnet wird. Fehlt die Punktnummer, gilt Punkt 1. Exit-Codes: 0 vollständig, 1 nichts gelesen
+  (keine CSV), 2 Aufruffehler (u. a. leerer `--auswahl`-Pfad, `--auswahl ""`, Domäne nicht gefunden)
+  oder Ziel existiert, 3 unvollständig. Bei 3 liegt neben der CSV
   `<ziel.csv>.fehlend.txt` (UTF-8, erste Zeile `# Fehlende Signale`, danach je Zeile
   `<Kanal> | <Signal><TAB><Grund>`). Signale mit abweichender Länge (`len(Re) == len(Im)`,
   Achse) oder abweichender Achse gelten als fehlend. Liefert `GetData` für Re oder Im keinen
@@ -235,13 +239,15 @@ bzw. Spektren eines Scanpunkts.
   Paare). Mit `--signal "Kanal|Signal"` (mehrfach) und/oder `--auswahl DATEI` (UTF-8, eine Zeile
   je Paar `Kanal | Signal`, `#` am Zeilenanfang und Leerzeilen werden ignoriert) wird stattdessen
   die angegebene Auswahl gelesen (Datei zuerst, dann `--signal`; leer, doppelt oder falsch
-  geformt: Exit 2, es wird nichts geöffnet). `--domaene NAME` sucht die Domäne nach Namen
+  geformt oder ein leerer Pfad (`--auswahl ""`): Exit 2, es wird nichts geöffnet). `--domaene NAME` sucht die Domäne nach Namen
   (nicht gefunden: Meldung mit den vorhandenen Namen, Exit 2); ohne die Option gilt Domäne 1
   mit Warnung, wenn sie nicht „FFT“ heißt. Signale ohne Real-/Imaginärteil, aber mit
   Amplitude-Display (Typ 1), werden automatisch als Betragsgröße gelesen (Spalte `... | Abs`
   statt `... | Re`/`... | Im`); `--amplitude` erzwingt das für alle gewählten Signale.
   `--liste` gibt Domänen sowie Kanäle, Signale und Display-Typen der gewählten Domäne
-  vollständig aus und schreibt keine CSV (Ziel entfällt, nur lesend).
+  vollständig aus und schreibt keine CSV (Ziel entfällt, nur lesend). Andere Optionen
+  (Ziel-CSV, Punktnummer, `--ueberschreiben`, `--signal`/`--auswahl`, `--amplitude`) werden dabei
+  ignoriert; das Skript gibt dann eine Zeile `HINWEIS: --liste ignoriert ...` aus. Nur `--domaene` wirkt bei `--liste`.
 
   ```text
   python daten_lesen.py kopie.svd --liste

@@ -36,8 +36,10 @@ Ein Signal gilt als „fehlt“, wenn ein Lesefehler auftritt, ein Display fehlt
 oder Im keinen Wert liefert (Grund „keine Werte“), ``len(Re)``, ``len(Im)`` oder die Länge der
 ersten Referenz abweichen oder die Achse abweicht.
 
-Exit-Codes: 0 vollständig, 1 nichts gelesen (keine CSV), 2 Aufruffehler oder Zieldatei existiert
-(ohne ``--ueberschreiben``), 3 unvollständig (CSV ohne die fehlenden Signale).
+Exit-Codes: 0 vollständig, 1 nichts gelesen (keine CSV), 2 Aufruffehler (u. a. leerer
+``--auswahl``-Pfad, Punktnummer nach den Optionen, unbekannte Domäne mit ``--domaene``, auch bei
+``--liste``) oder Zieldatei existiert (ohne ``--ueberschreiben``), 3 unvollständig (CSV ohne die
+fehlenden Signale).
 
 Unerwartete Ausnahmen außerhalb der Signalschleife (z. B. in ``Open``, ``GetPointDomains``)
 werden nicht abgefangen: Das Skript gibt einen Traceback aus und endet mit Python-Exit-Code 1.
@@ -347,6 +349,22 @@ def main(
     return 3
 
 
+def _bei_liste_ignoriert(args: argparse.Namespace) -> list[str]:
+    """Optionen, die ``--liste`` nicht auswertet (nur für den Hinweis; ``--domaene`` wirkt)."""
+    ignoriert: list[str] = []
+    if args.ziel is not None:
+        ignoriert.append("die Ziel-CSV")
+    if args.punkt is not None:
+        ignoriert.append("die Punktnummer")
+    if args.ueberschreiben:
+        ignoriert.append("--ueberschreiben")
+    if args.signal or args.auswahl is not None:
+        ignoriert.append("die Signalauswahl (--signal/--auswahl)")
+    if args.amplitude:
+        ignoriert.append("--amplitude")
+    return ignoriert
+
+
 def cli(argv: list[str]) -> int:
     """Wertet die Kommandozeile aus und ruft ``main`` bzw. ``liste`` auf."""
     parser = argparse.ArgumentParser(
@@ -354,13 +372,17 @@ def cli(argv: list[str]) -> int:
     )
     parser.add_argument("svd", help="Kopie der .svd-Datei (nicht in PSV geöffnet)")
     parser.add_argument("ziel", nargs="?", help="Ziel-CSV (darf nicht existieren)")
-    parser.add_argument("punkt", nargs="?", type=int, default=1, help="Punktnummer (Standard 1)")
+    parser.add_argument("punkt", nargs="?", type=int, help="Punktnummer (Standard 1)")
     parser.add_argument("--ueberschreiben", action="store_true", help="vorhandene Ziele ersetzen")
     parser.add_argument(
         "--signal", action="append", default=[], metavar="KANAL|SIGNAL", help="Paar (mehrfach)"
     )
     parser.add_argument("--auswahl", metavar="DATEI", help="Textdatei, je Zeile 'Kanal | Signal'")
-    parser.add_argument("--domaene", metavar="NAME", help="Domäne nach Namen (Standard: Nr. 1)")
+    parser.add_argument(
+        "--domaene",
+        metavar="NAME",
+        help="Domäne nach Namen (Standard: Nr. 1); unbekannter Name: Exit 2",
+    )
     parser.add_argument(
         "--amplitude", action="store_true", help="alle Signale als Amplitude (Typ 1) lesen"
     )
@@ -372,14 +394,22 @@ def cli(argv: list[str]) -> int:
     except SystemExit as exc:  # argparse beendet mit 2 (Aufruffehler) bzw. 0 (--help)
         return int(exc.code) if isinstance(exc.code, int) else 2
     if args.liste:
+        ignoriert = _bei_liste_ignoriert(args)
+        if ignoriert:
+            print(
+                f"HINWEIS: --liste ignoriert {', '.join(ignoriert)}; es wird keine CSV geschrieben."
+            )
         return liste(args.svd, args.domaene)
     if args.ziel is None:
         print("Aufruffehler: Ziel-CSV fehlt (oder --liste verwenden).")
         return 2
+    if args.auswahl is not None and not args.auswahl.strip():
+        print("Aufruffehler: --auswahl ist leer (Dateipfad fehlt).")
+        return 2
     auswahl: list[tuple[str, str]] | None = None
-    if args.signal or args.auswahl:
+    if args.signal or args.auswahl is not None:
         try:
-            auswahl = lies_auswahl_datei(Path(args.auswahl)) if args.auswahl else []
+            auswahl = lies_auswahl_datei(Path(args.auswahl)) if args.auswahl is not None else []
             auswahl += [parse_paar(t) for t in args.signal]
         except (OSError, ValueError) as exc:
             print(f"Aufruffehler: {exc}")
@@ -390,8 +420,9 @@ def cli(argv: list[str]) -> int:
         if len(set(auswahl)) != len(auswahl):
             print("Aufruffehler: Signalauswahl enthält doppelte Paare.")
             return 2
+    punkt = 1 if args.punkt is None else args.punkt
     return main(
-        args.svd, args.ziel, args.punkt, args.ueberschreiben, auswahl, args.domaene, args.amplitude
+        args.svd, args.ziel, punkt, args.ueberschreiben, auswahl, args.domaene, args.amplitude
     )
 
 

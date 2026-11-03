@@ -485,7 +485,17 @@ class PsvComGeraet:
         version = app.Version
         modus = app.Mode
         unterdrueckt = app.SuppressMessagesForAutomation is True
-        acq: WhitelistProxy | None = app.Acquisition
+        try:
+            acq: WhitelistProxy | None = app.Acquisition
+        except ComFehler as exc:
+            # Originalmeldung bleibt erhalten; der Desktop-Modus-Hinweis ist nur ein Verdacht.
+            raise GeraeteFehler(
+                f"{exc.text}. Möglicherweise (Verdacht, ungeprüft): {HINWEIS_DESKTOP_MODUS}",
+                methode=exc.pfad,
+                argumente=exc.argumente,
+                hresult=exc.hresult,
+                excepinfo=exc.excepinfo,
+            ) from exc
         if acq is None:
             raise GeraeteFehler(
                 f"Acquisition nicht verfügbar. {HINWEIS_DESKTOP_MODUS}",
