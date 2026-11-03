@@ -54,6 +54,10 @@ uv run pytest --cov --cov-fail-under=90
   (`ldv_automation.auswertung.export[.stufeN]`) und nutzen den gemeinsamen Schreibweg
   `schreibe_export` (SHA-256 der Datendatei, Git-Hash, Herkunft der Messdatei). Eine neue Stufe
   ändert das Format einer bestehenden Stufe nicht.
+- Jede inhaltliche Änderung an einem Export (auch neue Felder) erhöht dessen `format_version`;
+  dasselbe gilt für die `schema_version` des Messprotokolls (Nutzerentscheidung 2026-11-03).
+- Jede Dämpfungsangabe trägt `zeta`, die Bandgrenzen `band_u_hz` und `band_o_hz` und die
+  `methode`, mit der sie bestimmt wurde (R-055).
 
 ## Verifikation
 - Jede Auswertefunktion wird gegen einen analytischen Referenzfall aus
