@@ -269,6 +269,7 @@ def test_frequenzachse_vollstaendig() -> None:
     assert fa["blockdauer_s"] == 0.256
     assert fa["nicht_lesbar"] == {}
     assert "unbestätigt" in str(fa["hinweis"])
+    assert "Zoom-FFT" in str(fa["hinweis"])  # Vorbehalt der Einheit von blockdauer_s
 
 
 def test_frequenzachse_nicht_lesbar_mit_grund() -> None:
@@ -331,3 +332,22 @@ def test_frequenzachse_ungueltige_werte() -> None:
     assert ganz["linien_anzahl"] == 50 and ganz["delta_f_berechnet_hz"] == 2.0
     null = frequenzachse_zu_dict(_stand({"bandbreite_hz": 100.0, "linien": 0}))
     assert null["linien_anzahl"] is None and null["delta_f_berechnet_hz"] is None
+
+
+def test_frequenzachse_quotient_unterlauf_wird_null() -> None:
+    """Unterlauf: 1e-300 / 1e308 ergibt 0.0 und verletzt die Regel > 0 -> null mit Grund."""
+    fft: dict[str, object] = {
+        "aufloesung_hz": 1.0,
+        "bandbreite_hz": 1e-300,
+        "end_frequenz_hz": 1.0,
+        "linien": 1e308,
+        "messzeit_s": 1.0,
+    }
+    fa = frequenzachse_zu_dict(_stand(fft))
+    assert fa["f_max_bandbreite_hz"] == 1e-300  # Eingabe selbst ist > 0 und bleibt erhalten
+    assert fa["delta_f_berechnet_hz"] is None
+    grund = fa["nicht_lesbar"]
+    assert isinstance(grund, dict)
+    assert "nicht verwendbar" in grund["delta_f_berechnet_hz"]
+    assert "> 0 und endlich" in grund["delta_f_berechnet_hz"]
+    assert set(grund) == {"delta_f_berechnet_hz"}

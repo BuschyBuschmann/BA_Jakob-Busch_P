@@ -42,8 +42,8 @@ from .export import (
     schreibe_export,
 )
 from .gesamt import Auswertung
-from .modenfit import Gruppe, ModenfitErgebnis, schaetze_daempfung
-from .vergleich import Drift, Vergleich, drift_aus
+from .modenfit import ModenfitErgebnis, fitband_hz, schaetze_daempfung
+from .vergleich import Drift, SpitzenDaempfung, Vergleich, drift_aus
 
 FORMAT_STUFE2 = "ldv_automation.auswertung.export.stufe2"
 FORMAT_STUFE2_VERSION = 2
@@ -55,6 +55,10 @@ Version 1: Grundformat (B-1, B-5, B-8, Annahmen, Herkunft). Die Messdatei-Angabe
 Version 2 (R-055): im Block ``b1`` je Ergebnis und Zusammenfassung ``daempfung`` mit ``zeta``,
 ``band_u_hz``, ``band_o_hz`` (Fitband) und ``methode``; je Gruppe ``f_von_hz``/``f_bis_hz``;
 ``daempfung_beschreibung`` je Kanalpaar; ``hinweise`` nennen Moden mit unbekannter Gruppe.
+Im Block ``b5`` je Spitzenpaar ``daempfung_a``/``daempfung_b`` (``zeta`` = Median der B-1-
+Zusammenfassung, ``band_u_hz``, ``band_o_hz`` = Fitband der Gruppe auf der Frequenzachse der
+jeweiligen Messung, ``methode``); ``null`` ohne B-1-Ergebnis der Spitze. ``delta_zeta`` bleibt;
+der Block ``drift`` (Frequenzdrift) trägt kein Dämpfungsobjekt.
 """
 
 
@@ -188,12 +192,12 @@ FITBAND_BESCHREIBUNG = (
 )
 
 
-def _fitband_hz(frequenz_hz: npt.NDArray[Any], g: Gruppe) -> tuple[float | None, float | None]:
-    """Fitband der Gruppe in Hz aus der Frequenzachse (``None`` bei Index außerhalb)."""
-    n = frequenz_hz.shape[0]
-    if not (0 <= g.k_von < n and 0 <= g.k_bis < n):
-        return None, None
-    return float(frequenz_hz[g.k_von]), float(frequenz_hz[g.k_bis])
+DAEMPFUNG_B5_BESCHREIBUNG = (
+    "spitzenpaare[].daempfung_a/daempfung_b: zeta = Median der B-1-Zusammenfassung der Spitze; "
+    "band_u_hz/band_o_hz = Fitband der Gruppe in Hz auf der Frequenzachse der jeweiligen "
+    "Messung; methode = Verfahren. delta_zeta = daempfung_b.zeta - daempfung_a.zeta; "
+    "Bandgrenzen und Methode stehen in daempfung_a/daempfung_b."
+)
 
 
 def _komplex(z: complex) -> list[float]:
@@ -201,7 +205,7 @@ def _komplex(z: complex) -> list[float]:
 
 
 def _b1_meta(b1: ModenfitErgebnis, frequenz_hz: npt.NDArray[Any]) -> dict[str, Any]:
-    band = {g.nummer: _fitband_hz(frequenz_hz, g) for g in b1.gruppen}
+    band = {g.nummer: fitband_hz(frequenz_hz, g) for g in b1.gruppen}
     leer: tuple[float | None, float | None] = (None, None)
 
     def daempfung(gruppe: int, zeta: Any) -> dict[str, Any]:
@@ -275,6 +279,19 @@ def _komponenten(s: Sammler, kb: Komponentenbezug) -> dict[str, Any]:
     }
 
 
+def _paar_daempfung(liste: Sequence[SpitzenDaempfung | None], n: int) -> dict[str, Any] | None:
+    """Dämpfungsangabe (``zeta``, Fitband, ``methode``) des Spitzenpaars ``n`` oder ``None``."""
+    d = liste[n] if n < len(liste) else None
+    if d is None:
+        return None
+    return {
+        "zeta": d.zeta,
+        "band_u_hz": d.band_u_hz,
+        "band_o_hz": d.band_o_hz,
+        "methode": METHODE_B1,
+    }
+
+
 def _vergleich(s: Sammler, v: Vergleich) -> dict[str, Any]:
     z = v.zuordnung
     s.reell("b5.index_a", z.index_a, groesse="Punktindex A", einheit="1")
@@ -293,6 +310,7 @@ def _vergleich(s: Sammler, v: Vergleich) -> dict[str, Any]:
         s.reell(f"b5.band{i}.n_linien", b.n_linien, groesse="n_linien", einheit="1", **band)
     return {
         "paar": list(v.paar),
+        "daempfung_beschreibung": DAEMPFUNG_B5_BESCHREIBUNG,
         "achsen_gleich": v.achsen_gleich,
         "mac_3d": v.mac_3d,
         "zuordnung": {
@@ -304,7 +322,14 @@ def _vergleich(s: Sammler, v: Vergleich) -> dict[str, Any]:
             "kennzeichen": list(z.kennzeichen),
             "hinweise": list(z.hinweise),
         },
-        "spitzenpaare": [asdict(p) for p in v.spitzen.paare],
+        "spitzenpaare": [
+            {
+                **asdict(p),
+                "daempfung_a": _paar_daempfung(v.daempfung_a, n),
+                "daempfung_b": _paar_daempfung(v.daempfung_b, n),
+            }
+            for n, p in enumerate(v.spitzen.paare)
+        ],
         "spitzen_ohne_partner_a": list(v.spitzen.ohne_partner_a),
         "spitzen_ohne_partner_b": list(v.spitzen.ohne_partner_b),
         "df_tol_hz": v.spitzen.df_tol_hz,

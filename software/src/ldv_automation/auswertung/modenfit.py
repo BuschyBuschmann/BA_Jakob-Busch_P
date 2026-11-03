@@ -427,6 +427,14 @@ class Gruppe:
     kennzeichen: tuple[str, ...]
 
 
+def fitband_hz(frequenz_hz: FloatArray, g: Gruppe) -> tuple[float | None, float | None]:
+    """Fitband der Gruppe in Hz aus der Frequenzachse (``None`` bei Index außerhalb)."""
+    n = frequenz_hz.shape[0]
+    if not (0 <= g.k_von < n and 0 <= g.k_bis < n):
+        return None, None
+    return float(frequenz_hz[g.k_von]), float(frequenz_hz[g.k_bis])
+
+
 def _verbunden(a: Spitze, b: Spitze, faktor: float, n_fit_hz: float) -> bool:
     abstand = abs(a.f_sp_hz - b.f_sp_hz)
     for s in (a, b):

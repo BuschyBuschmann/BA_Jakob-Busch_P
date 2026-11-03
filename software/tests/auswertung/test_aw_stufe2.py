@@ -18,10 +18,11 @@ import pytest
 from ldv_automation.auswertung import Auswertung, werte_aus
 from ldv_automation.auswertung.annahmen import AnnahmenStufe2
 from ldv_automation.auswertung.export import exportiere, lese_export, sha256_datei
-from ldv_automation.auswertung.modenfit import schaetze_daempfung
+from ldv_automation.auswertung.modenfit import Gruppe, fitband_hz, schaetze_daempfung
 from ldv_automation.auswertung.stufe2 import (
     FORMAT_STUFE2,
     _b1_meta,
+    _paar_daempfung,
     exportiere_stufe2,
     werte_stufe2_aus,
 )
@@ -30,7 +31,11 @@ from ldv_automation.auswertung.svd_adapter import (
     elemente_aus_svd_messung,
     zeit_s_aus_svd_messung,
 )
-from ldv_automation.auswertung.vergleich import vergleiche_messungen
+from ldv_automation.auswertung.vergleich import (
+    SpitzenDaempfung,
+    _spitzen_daempfung,
+    vergleiche_messungen,
+)
 from ldv_automation.protokoll.version import BuildInfo
 
 BUILD = BuildInfo(paket_version="0.1.0", git_hash="b" * 40, git_dirty=False, quelle="git")
@@ -164,6 +169,13 @@ def test_stufe2_gesamt_und_export(aw: Auswertung, tmp_path: Path) -> None:
         assert z["daempfung"]["band_o_hz"] == gr[z["gruppe"]]["f_bis_hz"]
     assert meta["format_version"] == 2
     assert meta["b5"]["spitzenpaare"] and meta["drift"][0]["pruefbar"]
+    for sp in meta["b5"]["spitzenpaare"]:
+        for seite in ("daempfung_a", "daempfung_b"):
+            d = sp[seite]
+            assert set(d) == {"zeta", "band_u_hz", "band_o_hz", "methode"}
+            assert d["methode"].startswith("Modenfit B-1") and d["band_u_hz"] < d["band_o_hz"]
+        assert sp["delta_zeta"] == sp["daempfung_b"]["zeta"] - sp["daempfung_a"]["zeta"]
+    assert all("daempfung" not in d for d in meta["drift"])
     assert "b8.v_normal.re" in felder and "b5.band0.frac" in felder
     np.testing.assert_allclose(felder["b5.mac"], 1.0, atol=1e-12)
     with pytest.raises(ValueError, match="kein Export"):
@@ -368,3 +380,106 @@ def test_drift_beispieldatei() -> None:
         assert d.n_punkte == n and d.n_modell_passt_nicht == mpn
         assert d.signifikant
     assert sha256_datei(DATEI) == vorher
+
+
+def test_vergleich_daempfung_baender_beider_messungen(aw: Auswertung, tmp_path: Path) -> None:
+    """R-055: daempfung_a/_b je Spitzenpaar; Bänder auf der Achse der jeweiligen Messung.
+
+    B-1 der Messung B weicht bewusst ab (anderes ζ), damit ein Vertauschen von b1_a und b1_b
+    an den Werten auffällt.
+    """
+    e = werte_stufe2_aus(aw, paare=[("Vib Z", "Ref1")])
+    b1 = e.daempfung[("Vib Z", "Ref1")]
+    b1_b = dataclasses.replace(
+        b1,
+        zusammenfassung=tuple(
+            dataclasses.replace(z, zeta_median=z.zeta_median * 1.5) for z in b1.zusammenfassung
+        ),
+    )
+    verschoben = dataclasses.replace(
+        aw, daten=dataclasses.replace(aw.daten, frequenz_hz=aw.daten.frequenz_hz + 0.37)
+    )
+    v = vergleiche_messungen(aw, verschoben, ("Vib Z", "Ref1"), b1_a=b1, b1_b=b1_b)
+    assert len(v.daempfung_a) == len(v.daempfung_b) == len(v.spitzen.paare) > 0
+    ohne = vergleiche_messungen(aw, aw, ("Vib Z", "Ref1"))
+    assert ohne.daempfung_a == ohne.daempfung_b == tuple(None for _ in ohne.spitzen.paare)
+    gr_a = {g.nummer: g for g in b1.gruppen}
+    gr_b = {g.nummer: g for g in b1_b.gruppen}
+    za = {z.spitze: z for z in b1.zusammenfassung}
+    zb = {z.spitze: z for z in b1_b.zusammenfassung}
+    for n, p in enumerate(v.spitzen.paare):
+        da, db = v.daempfung_a[n], v.daempfung_b[n]
+        assert da is not None and db is not None
+        ga, gb = gr_a[za[p.index_a].gruppe], gr_b[zb[p.index_b].gruppe]
+        assert da.zeta == za[p.index_a].zeta_median and db.zeta == zb[p.index_b].zeta_median
+        assert da.zeta != db.zeta  # B-1 der Messung B ist verschieden: Vertauschen fiele auf
+        assert da.band_u_hz == aw.daten.frequenz_hz[ga.k_von]
+        assert da.band_o_hz == aw.daten.frequenz_hz[ga.k_bis]
+        assert db.band_u_hz == verschoben.daten.frequenz_hz[gb.k_von]
+        assert db.band_o_hz == verschoben.daten.frequenz_hz[gb.k_bis]
+        assert db.band_u_hz is not None and da.band_u_hz is not None
+        assert math.isclose(db.band_u_hz - da.band_u_hz, 0.37, abs_tol=1e-9)
+    _, js = exportiere_stufe2(
+        e, tmp_path / "s5", vergleich=v, vergleich_auswertung=verschoben, build_info=BUILD
+    )
+    b5 = json.loads(js.read_text(encoding="utf-8"))["b5"]
+    assert "delta_zeta = daempfung_b.zeta - daempfung_a.zeta" in b5["daempfung_beschreibung"]
+    assert "daempfung_a" in b5["daempfung_beschreibung"]
+    assert "daempfung_b" in b5["daempfung_beschreibung"]
+    sp = b5["spitzenpaare"][0]
+    assert sp["daempfung_b"]["band_u_hz"] == v.daempfung_b[0].band_u_hz  # type: ignore[union-attr]
+    assert sp["daempfung_a"]["zeta"] == v.daempfung_a[0].zeta  # type: ignore[union-attr]
+    assert sp["daempfung_b"]["zeta"] == v.daempfung_b[0].zeta  # type: ignore[union-attr]
+    assert sp["daempfung_a"]["zeta"] != sp["daempfung_b"]["zeta"]
+
+
+def test_export_paar_daempfung_none_wird_null(aw: Auswertung, tmp_path: Path) -> None:
+    """Spitzen ohne B-1-Ergebnis erscheinen im Export als ``null`` (je Seite)."""
+    e = werte_stufe2_aus(aw, paare=[("Vib Z", "Ref1")])
+    b1 = e.daempfung[("Vib Z", "Ref1")]
+    v = vergleiche_messungen(aw, aw, ("Vib Z", "Ref1"), b1_a=b1, b1_b=b1)
+    n = len(v.spitzen.paare)
+    assert n > 0 and v.daempfung_a[0] is not None
+    gemischt = dataclasses.replace(v, daempfung_a=(None, *v.daempfung_a[1:]))
+    _, js = exportiere_stufe2(
+        e, tmp_path / "s6", vergleich=gemischt, vergleich_auswertung=aw, build_info=BUILD
+    )
+    sp = json.loads(js.read_text(encoding="utf-8"))["b5"]["spitzenpaare"]
+    assert sp[0]["daempfung_a"] is None
+    assert all(p["daempfung_b"] is not None for p in sp)
+    assert all(p["daempfung_a"] is not None for p in sp[1:])
+    assert _paar_daempfung((), 0) is None  # Index außerhalb der Liste
+
+
+def test_fitband_hz_index_ausserhalb_der_achse() -> None:
+    """Fitband: Linienindizes außerhalb der Frequenzachse ergeben ``(None, None)``."""
+    f = np.linspace(0.0, 10.0, 11)
+    g = Gruppe(nummer=0, spitzen=(0,), f_sp_hz=(5.0,), k_von=2, k_bis=4, kennzeichen=())
+    u, o = fitband_hz(f, g)
+    assert u is not None and o is not None
+    assert math.isclose(u, 2.0, rel_tol=0.0, abs_tol=1e-12)
+    assert math.isclose(o, 4.0, rel_tol=0.0, abs_tol=1e-12)
+    assert fitband_hz(f, dataclasses.replace(g, k_bis=11)) == (None, None)
+    assert fitband_hz(f, dataclasses.replace(g, k_von=-1)) == (None, None)
+
+
+def test_spitzen_daempfung_ohne_b1_und_nicht_endlich(aw: Auswertung) -> None:
+    """Spitze ohne B-1-Zusammenfassung oder mit nicht endlichem ``fr_median_hz`` hat keine ζ."""
+    e = werte_stufe2_aus(aw, paare=[("Vib Z", "Ref1")])
+    b1 = e.daempfung[("Vib Z", "Ref1")]
+    f = aw.daten.frequenz_hz
+    z0 = b1.zusammenfassung[0]
+    assert _spitzen_daempfung(None, f, [0, 1]) == (None, None)
+    fehlt = _spitzen_daempfung(b1, f, [10**6])
+    assert fehlt == (None,)
+    for wert in (math.nan, math.inf):
+        kaputt = dataclasses.replace(
+            b1,
+            zusammenfassung=(dataclasses.replace(z0, fr_median_hz=wert), *b1.zusammenfassung[1:]),
+        )
+        assert _spitzen_daempfung(kaputt, f, [z0.spitze]) == (None,)
+    ok = _spitzen_daempfung(b1, f, [z0.spitze])[0]
+    assert isinstance(ok, SpitzenDaempfung)
+    assert ok.zeta == z0.zeta_median
+    ohne_gruppe = _spitzen_daempfung(dataclasses.replace(b1, gruppen=()), f, [z0.spitze])[0]
+    assert ohne_gruppe == SpitzenDaempfung(zeta=z0.zeta_median, band_u_hz=None, band_o_hz=None)

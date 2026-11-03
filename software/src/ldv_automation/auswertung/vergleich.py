@@ -50,6 +50,7 @@ from .modenfit import (
     ModenErgebnis,
     ModenfitErgebnis,
     Zusammenfassung,
+    fitband_hz,
     schaetze_daempfung,
 )
 
@@ -882,6 +883,24 @@ def drift_aus_ergebnissen(
     return dataclasses.replace(drift, n_modell_passt_nicht=n_mpn)
 
 
+@dataclass(frozen=True, kw_only=True)
+class SpitzenDaempfung:
+    """B-1-Dämpfung einer Spitze einer Messung mit Fitband (R-055).
+
+    Attributes
+    ----------
+    zeta : float
+        Median von ζ der Spitze (Zusammenfassung B-1).
+    band_u_hz, band_o_hz : float or None
+        Fitband der Gruppe in Hz (Frequenz an ``k_von``/``k_bis`` der Frequenzachse dieser
+        Messung); ``None``, wenn die Gruppe fehlt oder ein Index außerhalb der Achse liegt.
+    """
+
+    zeta: float
+    band_u_hz: float | None
+    band_o_hz: float | None
+
+
 @dataclass(frozen=True, kw_only=True, eq=False)
 class Vergleich:
     """B-5-Vergleich zweier Messungen (FG-03 4, Datenvertrag 6.2).
@@ -906,6 +925,9 @@ class Vergleich:
         Auto-MAC über die Spitzen je Messung (alle Punkte).
     hinweise : tuple of str
         Hinweise.
+    daempfung_a, daempfung_b : tuple of SpitzenDaempfung or None
+        Je Spitzenpaar (gleiche Reihenfolge wie ``spitzen.paare``) ζ mit Fitband der Spitze
+        in A bzw. B; ``None`` ohne B-1-Ergebnis der Spitze. Leer, wenn nicht gebildet.
     """
 
     paar: tuple[str, str]
@@ -918,6 +940,8 @@ class Vergleich:
     auto_mac_a: FloatArray
     auto_mac_b: FloatArray
     hinweise: tuple[str, ...]
+    daempfung_a: tuple[SpitzenDaempfung | None, ...] = ()
+    daempfung_b: tuple[SpitzenDaempfung | None, ...] = ()
 
 
 def _b1_werte(
@@ -934,6 +958,30 @@ def _b1_werte(
                 sd[i] = z.sd_fr_median_hz
                 zeta[i] = z.zeta_median
     return f, sd, zeta
+
+
+def _spitzen_daempfung(
+    b1: ModenfitErgebnis | None, frequenz_hz: FloatArray, spitzen: Sequence[int]
+) -> tuple[SpitzenDaempfung | None, ...]:
+    """ζ (Median der Zusammenfassung) mit Fitband der Gruppe je Spitze.
+
+    Wie :func:`_b1_werte` zählen nur Spitzen mit endlichem ``fr_median_hz``; das Fitband ist
+    das der Gruppe der Spitze (``k_von``/``k_bis`` auf der Achse ``frequenz_hz``).
+    """
+    if b1 is None:
+        return tuple(None for _ in spitzen)
+    je_spitze = {z.spitze: z for z in b1.zusammenfassung}
+    gruppen = {g.nummer: g for g in b1.gruppen}
+    aus: list[SpitzenDaempfung | None] = []
+    for i in spitzen:
+        z = je_spitze.get(i)
+        if z is None or not math.isfinite(z.fr_median_hz):
+            aus.append(None)
+            continue
+        g = gruppen.get(z.gruppe)
+        u, o = fitband_hz(frequenz_hz, g) if g is not None else (None, None)
+        aus.append(SpitzenDaempfung(zeta=z.zeta_median, band_u_hz=u, band_o_hz=o))
+    return tuple(aus)
 
 
 def vergleiche_messungen(
@@ -1080,4 +1128,10 @@ def vergleiche_messungen(
         auto_mac_a=auto_a,
         auto_mac_b=auto_b,
         hinweise=tuple(dict.fromkeys(hinweise)),
+        daempfung_a=_spitzen_daempfung(
+            b1_a, a.daten.frequenz_hz, [p.index_a for p in paarung.paare]
+        ),
+        daempfung_b=_spitzen_daempfung(
+            b1_b, b.daten.frequenz_hz, [p.index_b for p in paarung.paare]
+        ),
     )

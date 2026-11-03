@@ -1,6 +1,6 @@
 """Messprotokoll je Messung und Ereignisprotokoll je Durchgang (R-020, Plan P2 4.3).
 
-Messprotokoll: JSON, ``schema_version`` 1, eine Datei je Messversuch, Modus ``"x"``.
+Messprotokoll: JSON, ``schema_version`` 2, eine Datei je Messversuch, Modus ``"x"``.
 Pflichtfelder siehe :data:`PFLICHTFELDER`; jedes Feld ist immer vorhanden, auch bei
 ``fehler`` und ``abgebrochen`` (dann ggf. mit ``null``). Einheiten stehen im Feldnamen.
 
@@ -24,7 +24,9 @@ Messung aus ``einstellungen_ist.gruppen.fft``, jeweils als eigenes Feld mit Einh
 ``linien_anzahl``
     Linienzahl (COM ``Lines``), dimensionslos.
 ``blockdauer_s``
-    Blockdauer (COM ``SampleTime``) in s.
+    Blockdauer (COM ``SampleTime``). Die Einheit s ist nur über das Zoom-FFT-Thema belegt
+    (I5-Analysebericht, ``in_progress/analysen/2026-10-23_I5_com-referenz.md``: „s laut
+    Zoom-FFT-Thema; hier ohne Einheit“) und am Gerät unbestätigt.
 ``nicht_lesbar``
     Zuordnung Feldname → Grund für jedes Feld mit Wert ``null`` (leer, wenn alle lesbar).
 ``hinweis``
@@ -50,6 +52,11 @@ from ldv_automation.geraet.schnittstelle import EinstellungsStand, GeraeteFehler
 from ldv_automation.protokoll.ablage import haenge_an, schreibe_neu
 
 SCHEMA_VERSION = 2
+"""Version 2 (noch nicht ausgeliefert): Feld ``frequenzachse`` (R-023). Vorbehalt der Einheit
+von ``blockdauer_s`` im Hinweistext; ``delta_f_berechnet_hz`` ist ``null`` (mit Grund in
+``nicht_lesbar``), wenn der Quotient nicht > 0 und endlich ist (Unterlauf bei sehr kleiner
+Bandbreite und sehr großer Linienzahl).
+"""
 
 PFLICHTFELDER: tuple[str, ...] = (
     "schema_version",
@@ -147,7 +154,9 @@ def einstellungsstand_zu_dict(stand: EinstellungsStand) -> dict[str, object]:
 
 FREQUENZACHSE_HINWEIS = (
     "Werte aus einstellungen_ist.gruppen.fft; delta_f_psv_hz ist COM SampleResolution "
-    "(Einheit Hz laut I5 2.5, am Gerät unbestätigt), delta_f_berechnet_hz = Bandbreite/Linien."
+    "(Einheit Hz laut I5 2.5, am Gerät unbestätigt), delta_f_berechnet_hz = Bandbreite/Linien. "
+    "blockdauer_s ist COM SampleTime; die Einheit s ist nur über das Zoom-FFT-Thema belegt "
+    "und am Gerät unbestätigt."
 )
 
 
@@ -175,7 +184,8 @@ def frequenzachse_zu_dict(einstellungen_ist: Mapping[str, object] | None) -> dic
         Grund in ``nicht_lesbar``. Nicht endliche oder unpassende Werte (NaN, ±Inf, ``bool``,
         ``Linien`` nicht ganzzahlig oder < 1, ``delta_f_psv_hz``, ``f_max_bandbreite_hz``,
         ``f_max_end_hz`` oder ``blockdauer_s`` <= 0) gelten als nicht lesbar; alle vier sind
-        physikalisch positive Größen.
+        physikalisch positive Größen. ``delta_f_berechnet_hz`` ist ``None``, wenn der Quotient
+        Bandbreite/Linien nicht > 0 und endlich ist (z. B. Unterlauf auf 0.0).
     """
     gruppen = einstellungen_ist.get("gruppen") if einstellungen_ist is not None else None
     fft = gruppen.get("fft") if isinstance(gruppen, Mapping) else None
@@ -220,11 +230,18 @@ def frequenzachse_zu_dict(einstellungen_ist: Mapping[str, object] | None) -> dic
             nicht_lesbar[feld] = grund
     bandbreite = werte["f_max_bandbreite_hz"]
     linien = werte["linien_anzahl"]
+    berechnet: float | None = None
     if bandbreite is not None and linien is not None:
-        werte["delta_f_berechnet_hz"] = float(bandbreite) / linien
+        quotient = float(bandbreite) / linien
+        if quotient > 0 and math.isfinite(quotient):
+            berechnet = quotient
+        else:
+            nicht_lesbar["delta_f_berechnet_hz"] = (
+                f"Ergebnis {quotient!r} nicht verwendbar (muss > 0 und endlich sein)"
+            )
     else:
-        werte["delta_f_berechnet_hz"] = None
         nicht_lesbar["delta_f_berechnet_hz"] = "Bandbreite (> 0) oder Linienzahl nicht lesbar"
+    werte["delta_f_berechnet_hz"] = berechnet
     return {
         "delta_f_psv_hz": werte["delta_f_psv_hz"],
         "delta_f_berechnet_hz": werte["delta_f_berechnet_hz"],
