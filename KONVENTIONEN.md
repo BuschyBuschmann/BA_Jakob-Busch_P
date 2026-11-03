@@ -153,6 +153,9 @@ mit dem Betreuer hat die SLA-Vorlage Vorrang vor
 - **Formeln:** Multiplikationspunkt statt Stern; Differentialoperator und Einheiten
   aufrecht; im Fließtext Schrägstrich statt Bruch; Dezimalkomma.
 - **Zitieren** numerisch mit biblatex/biber (`\cite`, `\textcite`).
+- **Plots in der Oberfläche (ADR-021):** nie `pyplot`, nur `matplotlib.figure.Figure` mit
+  `FigureCanvasQTAgg`. Je Abbildung gibt es eine gemeinsame Zeichenfunktion für Oberfläche und
+  Thesis-Abbildung (Nutzerentscheidung 2026-11-03).
 - **Abbildungen:** Farbe darf im Graustufendruck keine Information tragen, kein Gelb,
   Rot-Grün-Schwäche beachten; inklusive Bildunterschrift auf A5 lesbar; Achsen
   „Größe [Einheit]“; kein Diagrammtitel.
