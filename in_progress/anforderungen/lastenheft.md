@@ -7,6 +7,8 @@
 - **E**: Erwartungsmanagement (`in_progress/planung/erwartungsmanagement.md`, Antworten des Nutzers vom 2026-10-23)
 - **N**: Entscheidung Nutzer vom 2026-10-26 (Vorstellung zu Schritt 1 und 2, Interview)
 - **K**: `KONVENTIONEN.md` (vom Nutzer freigegeben)
+- **L**: Laborbuch `2026-11-02_messrechner-erster-termin` und Übersicht `in_progress/analysen/2026-11-02_nach-termin_uebersicht.md` (Abschnitt 2b)
+- **N3**: Entscheidung Nutzer vom 2026-11-03 (Lastenheft-Ergänzung)
 
 **Priorität:** Muss (Kern der Arbeit) · Soll (wichtig) · Kann (falls Zeit bleibt).
 **Status:** offen · abgestimmt · gestrichen.
@@ -21,6 +23,7 @@ Technischer Hintergrund zur Machbarkeit (keine Anforderungsquelle):
 | ID | Anforderung | Priorität | Quelle | Akzeptanzkriterium | Status |
 |---|---|---|---|---|---|
 | R-001 | Die Software steuert die PSV-Software über die COM-Schnittstelle: Verbindung herstellen, Einstellungen laden bzw. setzen, Scan starten, Fortschritt überwachen, Messdatei speichern. | Muss | A, N | Am Messrechner führt die Software eine Messung mit vorgegebener Einstellung aus; die Messdatei liegt danach am vorgegebenen Pfad. Derselbe Ablauf läuft automatisiert gegen den Simulator (siehe R-061). | offen |
+| R-002 | Vor dem Start eines Durchgangs warnt die Software, wenn mehr als ein PSV-Prozess läuft; die Prozess-IDs stehen im Messprotokoll. | Soll | L, N3 | Bei zwei laufenden PSV-Prozessen erscheint vor dem Start eine Warnung und beide PIDs stehen im Protokoll; bei genau einem Prozess erscheint keine Warnung. | offen |
 
 ## 2 Mess-Warteschlange (Schritt 1)
 
@@ -44,6 +47,8 @@ Technischer Hintergrund zur Machbarkeit (keine Anforderungsquelle):
 | R-020 | Zu jeder Messung wird automatisch ein Messprotokoll erstellt: Einstellungen (wie von der PSV-Software übernommen), geänderte Parameter, Version der PSV-Software und des eigenen Pakets, Zeitstempel, Status, Pfad der Messdatei. | Muss | E (U3), N | Nach einem Durchgang existiert zu jeder Messung ein Protokoll mit allen genannten Angaben; ein Protokoll lässt sich einer Messdatei eindeutig zuordnen. | offen |
 | R-021 | Eine Warteschlange lässt sich als Datei speichern und später wieder laden. | Soll | N | Eine gespeicherte und neu geladene Warteschlange enthält dieselben Messungen in derselben Reihenfolge mit denselben Einstellungen. | offen |
 | R-022 | Die Messdaten werden aus den Messdateien nach Python übernommen. | Muss | A, E (U4) | Spektren einer Messdatei liegen in Python mit Frequenzachse und Einheiten vor und stimmen mit der Anzeige in der PSV-Software überein. | offen |
+| R-023 | Das Messprotokoll (R-020) enthält ausdrücklich Δf, f_max, Linienzahl und Blockdauer (SampleTime). | Muss | L, N3 | Die vier Angaben stehen mit Einheit in jedem Protokoll. | offen |
+| R-024 | Nach jedem Scan wird die Frequenzachse der Messdatei mit der Einstellung abgeglichen; Abweichungen werden gemeldet. | Muss | L, N3 | Linienzahl und Δf der Datei werden mit der Einstellung verglichen; bei Abweichung steht eine Warnung im Protokoll, bei Übereinstimmung der Vermerk „Achse geprüft“. Toleranz für Δf: offene Frage O7. | offen |
 
 ## 4 Oberfläche
 
@@ -51,6 +56,7 @@ Technischer Hintergrund zur Machbarkeit (keine Anforderungsquelle):
 |---|---|---|---|---|---|
 | R-030 | Eine grafische Oberfläche ermöglicht die Bedienung der Warteschlange (R-010 bis R-018, R-021). | Muss | N, E (U5) | Alle genannten Funktionen sind über die Oberfläche bedienbar, ohne Skript oder Kommandozeile. | offen |
 | R-031 | Die Oberfläche zeigt je Messung den Status (wartend, läuft, fertig, Fehler) und den Fortschritt der laufenden Messung. | Muss | N | Statuswechsel einer Messung erscheinen in der Oberfläche; während eines Scans ist der Fortschritt sichtbar. | offen |
+| R-032 | Die Auswertungsoberfläche zeigt das Spektrum direkt an, dazu eine Parameterzeile aus den Einstellungen der Datei. | Soll | L, N3 | Nach dem Öffnen einer Messdatei ist ohne weitere Bedienschritte ein Spektrum sichtbar; die Parameterzeile zeigt mindestens Bandbreite, Linien, Δf, Mittelung und Fenster. Gestaltung über Ablauf C. | offen |
 
 ## 5 KI-Assistent
 
@@ -67,6 +73,9 @@ Technischer Hintergrund zur Machbarkeit (keine Anforderungsquelle):
 | R-052 | Betriebsschwingformen werden bei gewählter Frequenz auf der Messgeometrie dargestellt. | Muss | A, N | Bei gewählter Frequenz wird die Schwingform auf der Geometrie dargestellt; ohne Referenz oder Trigger wird nur der Betrag gezeigt und das kenntlich gemacht. | offen |
 | R-053 | Peak-Suche mit Resonanzfrequenz und Dämpfungsschätzung (−3-dB-Breite) sowie Frequenzbänder mit RMS-Werten. | Muss | A, N | Für eine Messdatei werden Peaks mit Frequenz und Dämpfungsschätzung sowie Band-RMS-Werte ausgegeben; Werte stimmen mit der PSV-Software bzw. mit analytischen Referenzfällen überein. | offen |
 | R-054 | Weitergehende Auswertung (z. B. Plausibilitätsprüfungen, Vergleich von Messungen, Modalanalyse). | gestuft | E (U6) | Umfang wird am Entscheidungspunkt nach der Machbarkeitsphase festgelegt. | offen |
+| R-055 | Jede Dämpfungsangabe nennt die Bandgrenzen und die Methode (z. B. −3-dB-Breite, Modenfit). | Muss | L, N3 | Zu jedem ausgegebenen ζ stehen untere und obere Bandgrenze in Hz und der Name der Methode. | offen |
+| R-056 | Gespeicherte Zeitdaten werden gelesen; Spektren und H1 werden unabhängig von PSV berechnet. | Kann | L, N3 | Für eine Messdatei mit Zeitdaten stimmen die eigenen Spektren bzw. H1 mit PSV überein. Toleranz: offene Frage O8. | offen |
+| R-057 | Plausibilitätsprüfung: Masse aus der Massenlinie geschätzt und gegen die gewogene Masse gestellt. | Kann | L, N3 | Geschätzte und gewogene Masse werden gemeinsam mit ihrer Abweichung ausgegeben. Toleranz: offene Frage O8. | offen |
 
 ## 7 Qualität und Rahmen
 
@@ -85,14 +94,17 @@ Noch nicht festgelegt; mit dem Betreuer zu klären (Erwartungsmanagement F19).
 | Nr. | Frage | Auswirkung | Bezug |
 |---|---|---|---|
 | **O1** | **WICHTIG – mit dem Betreuer abzuklären:** Was soll passieren, wenn eine Messung fehlschlägt (Fehlermeldung von PSV, Zeitüberschreitung)? Pausieren und nachfragen, überspringen, ganz abbrechen oder einstellbar? Was passiert mit der gerade laufenden Messung beim Abbrechen? | Kern der Ablaufsteuerung und des unbeaufsichtigten Betriebs | R-018, R-019 |
-| O2 | Hat der Messrechner Internetzugang, und welcher KI-Dienst darf genutzt werden (Datenschutz, Institutsvorgaben)? | Machbarkeit des KI-Assistenten | R-040 |
+| O2 | Hat der Messrechner Internetzugang, und welcher KI-Dienst darf genutzt werden (Datenschutz, Institutsvorgaben)? **Teilweise beantwortet (L, 02.11.):** Internet vorhanden (Pakete aus dem Internet installiert); zulässiger KI-Dienst offen. | Machbarkeit des KI-Assistenten | R-040 |
 | O3 | Welche Parameter sollen je Messung gegenüber der Einstellungsdatei änderbar sein (z. B. Bandbreite, Linien, Mittelung, Anregung)? | Umfang von R-011 und der Oberfläche | R-011 |
-| O4 | Wird die Anregungskraft gemessen (Kraftsensor, Impulshammer)? | Einheit und Aussagekraft der Übertragungsfunktionen | R-051, Erwartungsmanagement F10 |
-| O5 | Wie sollen Messdateien und Protokolle benannt und abgelegt werden? | Datenhaltung, Wiederfinden | R-020 |
-| O6 | Darf Python 3.11 mit pywin32 auf dem Messrechner installiert werden? | Voraussetzung für R-001 am Gerät | Erwartungsmanagement F4 |
+| O4 | Wird die Anregungskraft gemessen (Kraftsensor, Impulshammer)? **Beantwortet (L, 02.11.):** ja, Impedanzkopf PCB 288D01, Kraft auf Ref1 (40,31 N/V), Beschleunigung auf Ref2; Polarität offen (M8). | Einheit und Aussagekraft der Übertragungsfunktionen | R-051, Erwartungsmanagement F10 |
+| O5 | Wie sollen Messdateien und Protokolle benannt und abgelegt werden? **Teilweise beantwortet (L, K):** Ablage unter `D:\Messdaten\DAL\BA Jakob Busch`, nicht unter `PyCharmProject`; Benennung offen. | Datenhaltung, Wiederfinden | R-020 |
+| O6 | Darf Python 3.11 mit pywin32 auf dem Messrechner installiert werden? **Beantwortet (L, 02.11.):** ja, Python 3.11.9 und pywin32 312 installiert, I1–I7 bestanden. | Voraussetzung für R-001 am Gerät | Erwartungsmanagement F4 |
+| O7 | Mit welcher Toleranz gilt Δf aus der Datei als gleich der Einstellung? | Prüfkriterium von R-024 | R-024 |
+| O8 | Welche Abweichung ist bei R-056 (Spektren/H1 gegen PSV) und R-057 (Masse) zulässig? | Prüfkriterien der Kann-Anforderungen | R-056, R-057 |
 
 ## Änderungsprotokoll
 
 | Datum | Änderung | Quelle |
 |---|---|---|
 | 2026-10-26 | Erstfassung (R-001 bis R-062, O1 bis O6) | A, E, N, K |
+| 2026-11-03 | R-002, R-023, R-024, R-032, R-055, R-056, R-057 ergänzt; O2, O5 teilweise und O4, O6 beantwortet; O7, O8 neu | L, N3 |

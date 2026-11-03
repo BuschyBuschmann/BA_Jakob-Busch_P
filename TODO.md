@@ -55,7 +55,7 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☑ | P3 Ablaufplan nächster Termin mit Ersatzplänen und Prüfzettel, fachlich durchgesehen und freigegeben (`in_progress/versuche/naechster-termin_messrechner/`) (Übersicht 2a: Registrierung, Mini-Scan mit Zeitdaten, Messpunkt Impedanzkopf, Zwei-Amplituden-Test, Wiegen, Handbücher, M11 ohne Kennzeichen, Golden v2 …) | software-engineer, `/versuchsplanung` | nach P1 | |
 | ☑ | Wheel 0.2.0 gebaut (f66af80, sauber), mit Skripten und SHA-256 abgelegt | – | – | `in_progress/versuche/naechster-termin_messrechner/stick/LIESMICH.txt` |
 | ☐ | Fragen F1–F8 an Daniel (Ablaufplan 3.2) | Jakob | vor Termin | |
-| ☐ | Anforderungsvorschläge aus PSV-Einblicken (Übersicht 2b) | `/anforderungs-analyst`, Jakob | – | |
+| ☑ | Anforderungsvorschläge aus PSV-Einblicken ins Lastenheft (R-002, R-023, R-024, R-032, R-055–R-057; O7, O8 neu) | – | – | Nutzerentscheidung 03.11. |
 | ☑ | Datenweg entschieden: ADR-020 (eigener Leser, File Access als Gegenprobe), ersetzt ADR-006 | – | – | Nutzerentscheidung 03.11. |
 | ☑ | Kleine Code-Aufgaben aus PSV-Einblicken (Übersicht 2d), reviewt; MINORs zur Entscheidung, Gerätetest offen | – | – | Laborbuch 2026-11-02_k2d-psv-einblicke-code |
 | ☑ | KONVENTIONEN-Vorschläge übernommen (Achse, Polarität vorläufig, Proxy-Ausnahme, Termine, Version); Thesis-Bausteine in kapitel-map | – | – | b29584e |
