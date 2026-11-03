@@ -262,6 +262,36 @@ def _baender(
     return tuple(werte)
 
 
+def berechne_baender(
+    daten: Messdaten,
+    paare: dict[tuple[str, str], PaarAuswertung],
+    mittel_ap: dict[str, Punktmittel],
+    grenzen: Sequence[tuple[float, float]],
+    annahmen: Annahmen | None = None,
+) -> tuple[Bandwert, ...]:
+    """Band-Effektivwerte (FG-02 3.8) für vorhandene Paar-Auswertungen, ohne :func:`werte_aus`.
+
+    Öffentlicher Wrapper um dieselbe Rechnung, die :func:`werte_aus` für ``baender`` ausführt;
+    die Oberfläche kann damit Bänder aus bereits berechneten Paaren bilden (Bänder sind billig,
+    die Plausibilitätsprüfung ist der teure Teil).
+
+    Parameters
+    ----------
+    daten : Messdaten
+        Eingangsdaten.
+    paare : dict
+        Paar-Auswertungen je ``(Antwort, Referenz)``, z. B. aus :func:`werte_paar_aus`.
+    mittel_ap : dict
+        Arithmetische Punktmittel von AP je Kanal (Schlüssel wie ``daten.ap``).
+    grenzen : sequence of tuple of float
+        Bandgrenzen ``(f_u, f_o)`` in Hz.
+    annahmen : Annahmen, optional
+        Voreinstellung wie in :func:`werte_aus`.
+    """
+    annahmen = annahmen if annahmen is not None else Annahmen()
+    return _baender(daten, paare, mittel_ap, grenzen, annahmen)
+
+
 def schwingform_aus(
     daten: Messdaten,
     f_wahl_hz: float,

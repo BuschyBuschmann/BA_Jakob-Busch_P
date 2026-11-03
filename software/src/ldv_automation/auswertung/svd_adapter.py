@@ -1,9 +1,10 @@
 r"""Schmale Anbindung an das Ergebnis des W2-Lesers für PSV-Dateien (``.svd``).
 
-Der Leser liegt als Werkzeug unter ``software/tools/svd_analyse/svd_lesen.py``
-(:func:`lese_svd` → ``SvdMessung``) und gehört nicht zum Hauptpaket. Dieses Modul
-importiert ihn deshalb **nicht**, sondern beschreibt die benötigten Attribute als
-:class:`typing.Protocol` (strukturelle Typisierung). Der Leser bleibt unverändert.
+Der Leser liegt als :mod:`ldv_automation.auswertung.svd_lesen`
+(:func:`lese_svd` → ``SvdMessung``). Dieses Modul importiert ihn bewusst **nicht**, sondern
+beschreibt die benötigten Attribute als :class:`typing.Protocol` (strukturelle Typisierung);
+so bleiben Adapter und Rechenkern mit Ersatzobjekten testbar. Verbunden werden beide in
+:mod:`ldv_automation.auswertung.laden`.
 
 Abbildung (Datenvertrag FG-02 6.1):
 

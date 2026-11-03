@@ -10,11 +10,12 @@ Aufruf (aus ``software/``)::
     python tools/wheelhouse/erzeuge_wheelhouse.py --nur-anzeigen
     python tools/wheelhouse/erzeuge_wheelhouse.py --ziel wheelhouse
 
-Die Versionen entsprechen ``software/uv.lock`` (Stand 2026-10-27). Ändert sich das Lockfile,
-müssen die Konstanten unten angepasst werden. Die Plattformangaben erzwingen Wheels für
-Windows x64 und CPython 3.11, unabhängig vom Rechner, auf dem das Skript läuft. Hinweis:
-``pip`` wertet Umgebungsmarker (z. B. ``sys_platform == 'win32'``) auf dem laufenden Rechner
-aus; deshalb stehen die Pakete hier als feste Pins ohne Marker.
+Die Versionen entsprechen ``software/uv.lock`` (Stand 2026-11-03). Ändert sich das Lockfile,
+müssen die Konstanten unten angepasst werden; ein Test (``test_wheelhouse_pins.py``)
+erzwingt das. Die Plattformangaben erzwingen Wheels für Windows x64 und CPython 3.11,
+unabhängig vom Rechner, auf dem das Skript läuft. Hinweis: ``pip`` wertet Umgebungsmarker
+(z. B. ``sys_platform == 'win32'``) auf dem laufenden Rechner aus; deshalb stehen die Pakete
+hier als feste Pins ohne Marker.
 """
 
 from __future__ import annotations
@@ -25,11 +26,27 @@ import sys
 from collections.abc import Sequence
 
 PINS: tuple[str, ...] = (
+    "numpy==2.4.6",  # pyproject.toml, uv.lock (fehlte bis P-AUSW T1.1 in dieser Liste)
     "pyside6-essentials==6.11.3",  # pyproject.toml; ADR-001 (Nachtrag), nicht 6.12.0
     "shiboken6==6.11.3",  # Abhängigkeit von pyside6-essentials, uv.lock
     "pywin32==312",  # Extra "com" (pywin32>=306), Stand uv.lock
+    # Auswertungsoberfläche (P-AUSW T1.1): matplotlib und seine Abhängigkeiten laut uv.lock
+    "matplotlib==3.11.2",  # pyproject.toml
+    "contourpy==1.3.3",
+    "cycler==0.12.1",
+    "fonttools==4.68.0",
+    "kiwisolver==1.5.1",
+    "packaging==26.3",
+    "pillow==13.0.0",
+    "pyparsing==3.3.3",
+    "python-dateutil==3.0.0",
+    "six==1.17.0",  # Abhängigkeit von python-dateutil
+    "tzdata==2026.6",  # Abhängigkeit von python-dateutil 3.0.0 (im Plan P-AUSW nicht genannt)
+    "olefile==0.47",  # pyproject.toml: .svd-Leser im Paket (ADR-020)
 )
-"""Feste Pins aus ``pyproject.toml`` und ``uv.lock``."""
+"""Feste Pins aus ``pyproject.toml`` und ``uv.lock``.
+
+``tests/tools/wheelhouse/test_wheelhouse_pins.py`` gleicht die Liste mit ``uv.lock`` ab."""
 
 OPTIONAL_UV = "uv"
 """Nur mit ``--mit-uv``; nicht im Lockfile, ungepinnt (uv ist für den Messrechner optional)."""

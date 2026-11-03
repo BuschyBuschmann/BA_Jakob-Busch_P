@@ -1,8 +1,9 @@
 """Prototyp-Leser für Polytec-PSV-Messdateien (``.svd``) ohne Polytec File Access.
 
-Werkzeug aus Paket W2 (Analyse mit Prototyp). Es liest eine PSV-Messdatei **nur lesend**
-und liefert die Messdaten als NumPy-Arrays plus Metadaten. Es gehört nicht zum Hauptpaket
-``ldv_automation`` und importiert nichts daraus.
+Leser aus Paket W2 (Analyse mit Prototyp), seit P-AUSW T1.1 Teil des Pakets
+(``ldv_automation.auswertung``, ADR-020; zuvor ``tools/svd_analyse``). Er liest eine
+PSV-Messdatei **nur lesend** und liefert die Messdaten als NumPy-Arrays plus Metadaten. Er
+importiert außer ``numpy`` und ``olefile`` nichts.
 
 Grundlage
 ---------
@@ -71,6 +72,11 @@ SICHERHEIT: dict[str, Sicherheit] = {
     "fft.abtastwerte": "gesichert",
     "fft.startfrequenz_hz": "plausibel",
     "fft.endfrequenz_hz": "plausibel",
+    # P-AUSW T1.2: Mittelung (Typ und Anzahl) aus Info/DAQ_Settings_Fft/Average. An einer Datei
+    # belegt: [1, 2, 0, 7] = Version 1, ptcAverageComplex, Feld 0 (offen), Anzahl 7 stimmt mit
+    # den File-Access-Werten vom 2026-11-02 überein (ergebnisse_7b, M5). Eine zweite Datei mit
+    # anderer Einstellung fehlt noch, daher nicht „gesichert“.
+    "fft.mittelung": "plausibel",
     "frequenz_hz": "gesichert",
     "satz.feld_34": "offen",
     "punkte.label": "plausibel",
@@ -699,6 +705,84 @@ def dekodiere_fft_einstellungen(daten: bytes) -> FftEinstellungen:
     return FftEinstellungen(fs, linien, abtast, start, bw, ende)
 
 
+#: Ob das Fenster (``WindowFunction``) aus der Datei lesbar ist. **Nein**: In File Access ist es
+#: eine Kanaleigenschaft (``ChannelAcqProperties.WindowFunction``), vermutlich im Stream
+#: ``Info/DAQ_Settings_Fft/Channels`` (je Kanal ein Satz). Das Fenster der Beispieldatei ist
+#: Rechteck, also Code 0; dieser Wert steckt aber in allen Streams unter ``DAQ_Settings_Fft``
+#: (``Average``, ``Fft``, ``Global``, ``SignalEnhancement``, ``Trigger``, ``FrontEnd``,
+#: ``Channels``) in sehr vielen Nullfeldern, ein Feld lässt sich nicht herausgreifen. Eine
+#: zweite Datei mit anderem Fenster (z. B. Hanning, Code 7) würde die Zuordnung per Diff
+#: ermöglichen. Bis dahin liefert der Leser kein Fenster-Feld (kein toter Platzhalter); die
+#: Oberfläche zeigt „–“ mit Tooltip (P-AUSW U-1).
+FENSTER_IN_DATEI_LESBAR = False
+
+MITTELUNG_LAENGE = 16
+"""Länge des Streams ``Info/DAQ_Settings_Fft/Average`` an der Beispieldatei (vier ``int32``)."""
+
+MITTELUNG_VERSION = 1
+"""Erste ``int32`` des Streams ``Average`` (Layoutversion)."""
+
+#: Mittelungsarten laut ``PTCAverageType`` (Polytec File Access / Basic Engine, Enum 0–4).
+MITTELUNG_TYPEN: dict[int, str] = {
+    0: "aus",
+    1: "Betrag",
+    2: "komplex",
+    3: "Zeit",
+    4: "Peak Hold",
+}
+
+
+@dataclass(frozen=True)
+class Mittelung:
+    """Mittelungseinstellung der Messung (``Info/DAQ_Settings_Fft/Average``).
+
+    Sicherheitsgrad „plausibel“ (:data:`SICHERHEIT`, Schlüssel ``fft.mittelung``).
+
+    Attributes
+    ----------
+    typ : int
+        Mittelungsart nach ``PTCAverageType``: 0 aus, 1 Betrag, 2 komplex, 3 Zeit, 4 Peak Hold.
+    anzahl : int
+        Anzahl der Mittelungen (≥ 1).
+    """
+
+    typ: int
+    anzahl: int
+
+    @property
+    def typ_name(self) -> str:
+        """Name der Mittelungsart (Schlüssel von :data:`MITTELUNG_TYPEN`)."""
+        return MITTELUNG_TYPEN[self.typ]
+
+
+def dekodiere_mittelung(daten: bytes) -> Mittelung | None:
+    """Dekodiert ``Info/DAQ_Settings_Fft/Average``; ``None``, wenn das Layout nicht passt.
+
+    Layout (Beispieldatei, W2 3.4): vier ``int32`` ``[Version, Typ, Feld, Anzahl]`` mit
+    Version 1, Typ nach :data:`MITTELUNG_TYPEN` (``PTCAverageType`` 0–4) und Anzahl ≥ 1; das
+    dritte Feld (+8, Beispieldatei 0) ist offen und wird nicht gelesen. Die Prüfung ist
+    **strikt**: Länge, Version, Typbereich und Anzahl müssen passen, sonst wird nichts
+    geraten und ``None`` zurückgegeben (die Oberfläche zeigt dann „–“).
+
+    Parameters
+    ----------
+    daten : bytes
+        Inhalt des Streams.
+
+    Returns
+    -------
+    Mittelung or None
+        ``None`` bei abweichender Länge, Version ≠ 1, Typ außerhalb 0–4 oder Anzahl < 1.
+    """
+    if len(daten) != MITTELUNG_LAENGE or _i32(daten, 0) != MITTELUNG_VERSION:
+        return None
+    typ = _i32(daten, 4)
+    anzahl = _i32(daten, 12)
+    if typ not in MITTELUNG_TYPEN or anzahl < 1:
+        return None
+    return Mittelung(typ, anzahl)
+
+
 #: Länge des entpackten ``Band_Data/.../BandInfo-0`` an der Beispieldatei.
 _BANDINFO_LAENGE = 36
 
@@ -993,6 +1077,10 @@ class SvdMessung:
         Ergebnis der Gegenprobe gegen ``BandInfo-0`` (:data:`BAND_INFO_GEPRUEFT`,
         :data:`BAND_INFO_NICHT_PRUEFBAR`, :data:`BAND_INFO_FEHLT`, :data:`BAND_INFO_WIDERSPRUCH`).
         Ein Widerspruch bricht nicht ab, wird aber in :func:`uebersicht` ausdrücklich gemeldet.
+    mittelung : Mittelung or None
+        Mittelungsart und -anzahl aus ``Info/DAQ_Settings_Fft/Average`` (Sicherheitsgrad
+        „plausibel“). ``None`` = Stream fehlt oder weicht vom erwarteten Layout ab. Das Fenster
+        ist nicht lesbar (:data:`FENSTER_IN_DATEI_LESBAR`), der Leser hat dafür kein Feld.
     datei_zeit : datetime.datetime or None
         FILETIME aus dem Stream ``FileVersion`` (Offset 24), naiv. Gegenprobe an der
         Beispieldatei: 09:32:52, die COM-Eigenschaft ``Version.FileTime`` meldet 11:32:52
@@ -1022,6 +1110,7 @@ class SvdMessung:
     satz_feld_34: float | None = None
     band_info: str = BAND_INFO_NICHT_PRUEFBAR
     datei_zeit: dt.datetime | None = None
+    mittelung: Mittelung | None = None
 
 
 FILE_VERSION_LAENGE = 32
@@ -1207,6 +1296,10 @@ def lese_container(ole: Any, pfad: Path) -> SvdMessung:
     datei_zeit = (
         dekodiere_file_version(_strom(ole, "FileVersion")) if ole.exists("FileVersion") else None
     )
+    pfad_mittelung = "Info/DAQ_Settings_Fft/Average"
+    mittelung = (
+        dekodiere_mittelung(_strom(ole, pfad_mittelung)) if ole.exists(pfad_mittelung) else None
+    )
     return SvdMessung(
         pfad,
         fft,
@@ -1223,6 +1316,7 @@ def lese_container(ole: Any, pfad: Path) -> SvdMessung:
         feld_34,
         band_info,
         datei_zeit,
+        mittelung,
     )
 
 
@@ -1236,6 +1330,13 @@ def uebersicht(messung: SvdMessung) -> str:
         f"(T = {f.blockdauer_s:g} s) [{SICHERHEIT['fft.linien']}]",
         f"Frequenzachse: {messung.frequenz_hz[0]:g} … {messung.frequenz_hz[-1]:g} Hz "
         f"[{SICHERHEIT['frequenz_hz']}]",
+        "Mittelung: "
+        + (
+            "nicht verfügbar"
+            if messung.mittelung is None
+            else f"{messung.mittelung.typ_name}, Anzahl {messung.mittelung.anzahl}"
+        )
+        + f" [{SICHERHEIT['fft.mittelung']}]; Fenster: nicht lesbar",
         ("WARNUNG " if messung.band_info == BAND_INFO_WIDERSPRUCH else "")
         + f"Gegenprobe BandInfo-0 (Δf 0,625 Hz / Obergrenze): {messung.band_info}",
         f"Messpunkte: {len(messung.punkte.index)} (Label {messung.punkte.label.min()} … "

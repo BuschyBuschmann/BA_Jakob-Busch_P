@@ -21,7 +21,8 @@ from itertools import pairwise
 
 import numpy as np
 import numpy.typing as npt
-from svd_lesen import (
+
+from ldv_automation.auswertung.svd_lesen import (
     ComplexArray,
     FloatArray,
     Signal,

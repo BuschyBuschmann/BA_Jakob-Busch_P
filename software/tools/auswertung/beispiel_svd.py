@@ -2,8 +2,9 @@
 
 Ablauf (Paket W5-1, A6):
 
-1. SHA-256 der Messdatei bilden, Datei mit dem W2-Leser ``svd_lesen.lese_svd`` nur lesend
-   einlesen (Werkzeug ``tools/svd_analyse``, unverändert).
+1. SHA-256 der Messdatei bilden, Datei mit dem W2-Leser
+   :func:`ldv_automation.auswertung.svd_lesen.lese_svd` nur lesend einlesen (Leser im Paket
+   seit P-AUSW T1.1).
 2. Über :func:`ldv_automation.auswertung.svd_adapter.aus_svd_messung` in den Datenvertrag
    überführen und mit :func:`ldv_automation.auswertung.werte_aus` auswerten
    (Voreinstellungen M1–M11 aus FG-02; Gesamtband; Antriebspunkt für P-08 wählbar).
@@ -33,7 +34,6 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
-import importlib
 import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -53,9 +53,9 @@ from ldv_automation.auswertung.svd_adapter import (
     elemente_aus_svd_messung,
     zeit_s_aus_svd_messung,
 )
+from ldv_automation.auswertung.svd_lesen import lese_svd
 from ldv_automation.auswertung.vergleich import amplituden
 
-SVD_WERKZEUG = Path(__file__).resolve().parents[1] / "svd_analyse"
 PAAR_SCHWINGFORM = ("Vib Z", "Ref1")
 PAARE_STUFE2: tuple[tuple[str, str], ...] = (("Vib Z", "Ref1"), ("Ref2", "Ref1"))
 DRIFT_PAAR = ("Ref2", "Ref1")
@@ -69,11 +69,8 @@ Leser = Callable[[Path], Any]
 
 
 def lese_svd_werkzeug(pfad: Path) -> Any:
-    """Ruft ``svd_lesen.lese_svd`` aus ``tools/svd_analyse`` auf (Modul unverändert)."""
-    if str(SVD_WERKZEUG) not in sys.path:
-        sys.path.insert(0, str(SVD_WERKZEUG))
-    modul = importlib.import_module("svd_lesen")
-    return modul.lese_svd(pfad)
+    """Ruft :func:`ldv_automation.auswertung.svd_lesen.lese_svd` auf (Name aus Kompatibilität)."""
+    return lese_svd(pfad)
 
 
 def zusammenfassung(auswertung: Auswertung, paar: tuple[str, str] = PAAR_SCHWINGFORM) -> str:

@@ -25,8 +25,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
-from svd_lesen import SvdFormatFehler, SvdMessung, lese_svd
 from svd_pruefung import Auswerter, teile_argumente
+
+from ldv_automation.auswertung.svd_lesen import SvdFormatFehler, SvdMessung, lese_svd
 
 SKRIPT = "software/tools/svd_analyse/kontrollplots.py"
 

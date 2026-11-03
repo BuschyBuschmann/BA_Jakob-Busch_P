@@ -2,8 +2,8 @@
 
 Umsetzung der vom Nutzer am 2026-10-29 freigegebenen Fachgrundlage
 ``in_progress/fachgrundlagen/FG-02_auswertung-stufe1.md`` (R-050 bis R-053). Qt-frei,
-abhängig nur von NumPy, der Standardbibliothek und ``ldv_automation.protokoll.version``
-(Git-Hash im Export).
+abhängig nur von NumPy, ``olefile`` (Leser), der Standardbibliothek und
+``ldv_automation.protokoll.version`` (Git-Hash im Export).
 
 Module (FG-02-Abschnitt in Klammern):
 
@@ -19,7 +19,10 @@ Module (FG-02-Abschnitt in Klammern):
 - :mod:`.plausibilitaet` – P-01 bis P-11 (4)
 - :mod:`.gesamt` – Gesamtauswertung einer Messung
 - :mod:`.export` – Export npz + JSON (5)
+- :mod:`.svd_lesen` – Leser für PSV-Messdateien (``.svd``, W2)
 - :mod:`.svd_adapter` – Anbindung an den W2-Leser
+- :mod:`.laden` – Datei laden: Leser, Prüfsumme, Adapter, Dateieinstellungen
+- :mod:`.jobs` – Aufträge für den Hintergrundprozess der Oberfläche
 """
 
 from .annahmen import ANNAHME, AnnahmeEintrag, Annahmen, Schwellen, Toleranzen

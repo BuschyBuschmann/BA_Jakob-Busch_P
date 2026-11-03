@@ -1,30 +1,32 @@
 # svd_analyse – PSV-Messdateien ohne Polytec File Access lesen (Prototyp, Paket W2)
 
-Werkzeug außerhalb des Hauptpakets `ldv_automation` (kein Import daraus). Es liest eine
-Polytec-PSV-Messdatei (`.svd`, OLE-Verbunddokument) **nur lesend** und liefert die
-gespeicherten Punktspektren, Punktmittel, Banddaten, Geometrie und Metadaten als
+Der **Leser** liegt seit P-AUSW T1.1 im Hauptpaket
+(`src/ldv_automation/auswertung/svd_lesen.py`, ADR-020; `olefile` ist Hauptabhängigkeit).
+Er liest eine Polytec-PSV-Messdatei (`.svd`, OLE-Verbunddokument) **nur lesend** und liefert
+die gespeicherten Punktspektren, Punktmittel, Banddaten, Geometrie und Metadaten als
 NumPy-Arrays. Das Format ist nicht offengelegt; Kodierung, Belege und Sicherheitsgrade
-stehen in `in_progress/analysen/2026-10-29_W2_svd-format.md`.
+stehen in `in_progress/analysen/2026-10-29_W2_svd-format.md`. Dieser Ordner enthält die
+Werkzeuge um den Leser (Prüfung, Kontrollbilder); sie importieren den Leser aus dem Paket.
 
 ## Dateien
 
 | Datei | Zweck |
 |---|---|
-| `svd_lesen.py` | Dekodierfunktionen (Bytes → Werte) und `lese_svd(pfad) -> SvdMessung`; Kommandozeile gibt eine Übersicht aus |
+| `../../src/ldv_automation/auswertung/svd_lesen.py` | (verschoben, nicht mehr hier) Dekodierfunktionen (Bytes → Werte) und `lese_svd(pfad) -> SvdMessung`; Kommandozeile gibt eine Übersicht aus |
 | `svd_pruefung.py` | Plausibilitätsprüfungen der Dekodierung gegen Größen, die PSV selbst in der Datei ablegt (Punktmittel, Bandwerte je Punkt), gegen Ungleichungen (Kohärenz ≤ 1) und die Punktzuordnung zur Geometrie (Scanreihenfolge, Zeitstempel); nicht durchführbare Prüfungen werden als solche gemeldet |
 | `kontrollplots.py` | Je Datenart ein Kontrollbild (PNG) mit Skriptname und SHA-256 der Eingangsdatei |
 
 ## Aufruf (aus `software/`)
 
 ```bash
-uv run python tools/svd_analyse/svd_lesen.py ../Input/20261012_ref_Mitte.svd
+uv run python -m ldv_automation.auswertung.svd_lesen ../Input/20261012_ref_Mitte.svd
 uv run python tools/svd_analyse/kontrollplots.py ../Input/20261012_ref_Mitte.svd ../in_progress/analysen/abbildungen
 ```
 
-Aus Python (mit `tools/svd_analyse` im Pfad):
+Aus Python (`svd_pruefung` mit `tools/svd_analyse` im Pfad):
 
 ```python
-from svd_lesen import lese_svd
+from ldv_automation.auswertung.svd_lesen import lese_svd
 from svd_pruefung import pruefe
 
 m = lese_svd("../Input/20261012_ref_Mitte.svd")
@@ -50,7 +52,7 @@ assert all(e.bestanden for e in pruefe(m))
 - Getestet ist das Layout nur an einer Datei (PSV-QTec-3D, FFT-Modus, 135 Punkte, zwei
   Referenzkanäle). Andere Messmodi (Zeit, Zoom-FFT, MultiFrame), gespeicherte Zeitdaten
   oder Benutzersignale sind nicht abgedeckt.
-- Abhängigkeiten: Gruppe `werkzeuge` in `pyproject.toml` (`numpy`, `olefile`, `matplotlib`).
+- Abhängigkeiten: Hauptabhängigkeiten in `pyproject.toml` (`numpy`, `olefile`, `matplotlib`); die frühere Gruppe `werkzeuge` entfällt.
 
 ## Tests
 

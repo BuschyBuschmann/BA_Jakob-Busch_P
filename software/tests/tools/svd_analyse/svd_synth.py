@@ -13,7 +13,8 @@ from collections.abc import Sequence
 
 import numpy as np
 import numpy.typing as npt
-import svd_lesen as sl
+
+from ldv_automation.auswertung import svd_lesen as sl
 
 SATZ_KOPF_REST = 16  # ManyStreamsInfo nennt Satzlänge - 16 als Nutzlänge (unbenutzt)
 
@@ -168,6 +169,14 @@ class FakeOle:
         return [p.split("/") for p in self.stroeme]
 
 
+def average(typ: int = 2, anzahl: int = 7, *, version: int = 1, feld: int = 0) -> bytes:
+    """``Average``-Stream (P-AUSW T1.2): vier ``int32`` ``[Version, Typ, Feld, Anzahl]``.
+
+    Voreinstellung wie die Beispieldatei (``[1, 2, 0, 7]``: komplex, 7 Mittelungen).
+    """
+    return struct.pack("<4i", version, typ, feld, anzahl)
+
+
 VIB = ("Vibrometer X", "Vib X")
 REF = ("Reference 1", "Ref1")
 F_CP = "AVG[CP[S[3DX[T[0]]],S[T[3]]]]"
@@ -244,6 +253,7 @@ def messung_stroeme(
         plaetze, xyz = raster_scan(*raster)
     st: dict[str, bytes] = {
         "Info/DAQ_Settings_Fft/Fft": fft(25.0 * linien, linien, int(2.5 * linien)),
+        "Info/DAQ_Settings_Fft/Average": average(),
         # Ohne Raster: Punkte auf einer Linie, 0,1 m Abstand, Scan in umgekehrter Folge.
         "Info/Geometry/MeasPoints": messpunkte([100 + 3 * i for i in range(n)], xyz),
         "Info/Geometry/Elements": elemente([tuple(range(n))]),

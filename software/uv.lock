@@ -191,7 +191,9 @@ name = "ldv-automation"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [
+    { name = "matplotlib" },
     { name = "numpy" },
+    { name = "olefile" },
     { name = "pyside6-essentials" },
 ]
 
@@ -209,15 +211,12 @@ dev = [
     { name = "pytest-qt" },
     { name = "ruff" },
 ]
-werkzeuge = [
-    { name = "matplotlib" },
-    { name = "numpy" },
-    { name = "olefile" },
-]
 
 [package.metadata]
 requires-dist = [
+    { name = "matplotlib", specifier = ">=3.11.2" },
     { name = "numpy", specifier = ">=2.4.6" },
+    { name = "olefile", specifier = ">=0.47" },
     { name = "pyside6-essentials", specifier = "==6.11.3" },
     { name = "pywin32", marker = "sys_platform == 'win32' and extra == 'com'", specifier = ">=306" },
 ]
@@ -231,11 +230,6 @@ dev = [
     { name = "pytest-cov", specifier = ">=5.0" },
     { name = "pytest-qt", specifier = "==4.5.0" },
     { name = "ruff", specifier = ">=0.5" },
-]
-werkzeuge = [
-    { name = "matplotlib", specifier = ">=3.11.2" },
-    { name = "numpy", specifier = ">=2.4.6" },
-    { name = "olefile", specifier = ">=0.47" },
 ]
 
 [[package]]

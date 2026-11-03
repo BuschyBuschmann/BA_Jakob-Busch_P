@@ -6,6 +6,10 @@ readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = [
     "numpy>=2.4.6",
+    # Auswertungsoberfläche (P-AUSW T1.1): Zeichenfunktionen in ``darstellung/`` (matplotlib)
+    # und der .svd-Leser im Paket (olefile, ADR-020).
+    "matplotlib>=3.11.2",
+    "olefile>=0.47",
     # 6.11.3 statt 6.12.0 nach ADR-001 (Nachtrag, Nutzerentscheidung 2026-10-27):
     # 6.12.0 verliert unter Python 3.11 bei jedem Qt-Aufruf ohne Rückgabewert eine
     # Referenz auf None (Absturz „none_dealloc“). Regressionstest in tests/gui.
@@ -26,17 +30,6 @@ dev = [
     "pytest-qt==4.5.0",
     "ruff>=0.5",
 ]
-# Werkzeuge außerhalb des Hauptpakets (tools/svd_analyse, Paket W2): OLE-Zugriff auf
-# PSV-Messdateien, Arrays und Kontrollplots. Über [tool.uv] default-groups immer installiert,
-# damit die Standard-Prüfung die Werkzeuge mit testet.
-werkzeuge = [
-    "matplotlib>=3.11.2",
-    "numpy>=2.4.6",
-    "olefile>=0.47",
-]
-
-[tool.uv]
-default-groups = ["dev", "werkzeuge"]
 
 [build-system]
 requires = ["hatchling"]
@@ -124,6 +117,6 @@ module = ["win32com", "win32com.*", "pythoncom", "winreg"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-# olefile (Werkzeug svd_analyse) liefert keine Typinformationen mit.
+# olefile (.svd-Leser in ldv_automation.auswertung) liefert keine Typinformationen mit.
 module = ["olefile", "olefile.*"]
 ignore_missing_imports = true

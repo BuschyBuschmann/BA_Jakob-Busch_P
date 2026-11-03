@@ -12,6 +12,11 @@ r"""Punktmittel (FG-02 3.2, A-3, B-9, R-050).
 (``AVGSEQ[AVG[AP]]``, ``AVGSEQ[COH]``): :func:`punktmittel_arithmetisch`. Es gilt
 :math:`M^\mathrm{quadr}(\sqrt{\mathrm{AP}}) = \sqrt{\overline{\mathrm{AP}}}`.
 
+Welche Formel zu welcher Größe gehört (FA-AUSW F-2, RF-UI-F2a/F2d), steht einmalig in den
+``HINWEIS_MITTEL_*``-Konstanten (Anzeigetexte der Oberfläche, ``{n}`` = Zahl der gültigen
+Punkte): Das Betragsmittel von :math:`\sqrt{\mathrm{AP}}` ist **nicht** PSV-konform und
+wird nie gezeichnet.
+
 Alle Gewichte sind gleich (flächengewichtete Mittel: Stufe 2). NaN-Linien eines Punkts
 zählen nicht mit; je Linie wird die Anzahl ``n_mittel`` ausgegeben, bei ``n = 0`` ist das
 Ergebnis NaN. Ein komplexes Punktmittel gehört nicht zu Stufe 1.
@@ -26,6 +31,26 @@ import numpy.typing as npt
 
 from .annahmen import AnnahmeEintrag, Annahmen
 from .daten import BoolArray, FloatArray, IntArray
+
+HINWEIS_MITTEL_KOHAERENT = (
+    "Mittel der Beträge |CPH| über {n} Punkte (Betragsmittel, wie PSV AVGSEQ[ABS[…]])"
+)
+"""Formel des Mittels der kohärenten Größe |CPH| (``mittel_betrag``, PSV-konform)."""
+
+HINWEIS_MITTEL_LEISTUNG = (
+    "Leistungsmittel √(Mittel von AP) über {n} Punkte (quadratisches Mittel von √AP, "
+    "Wurzel des PSV-Mittels AVGSEQ[AVG[AP]])"
+)
+"""Formel des Mittels von √AP (``mittel_quadratisch``, nicht das Betragsmittel)."""
+
+HINWEIS_MITTEL_3D = (
+    "3D-Mittel: Mittel der punktweisen 3D-Beträge √(Σ|X_c|²) über {n} Punkte, "
+    "nicht gegen PSV geprüft"
+)
+"""Formel des 3D-Mittels (Annahme der Fachanalyse FA-AUSW; der PSV-Abgleich fehlt)."""
+
+KENNZEICHEN_3D_MITTEL_UNGEPRUEFT = "nicht gegen PSV geprüft"
+"""Kurzkennzeichen für das 3D-Mittel in Legende und Tooltip."""
 
 
 @dataclass(frozen=True, kw_only=True, eq=False)

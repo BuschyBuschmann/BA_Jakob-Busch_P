@@ -25,7 +25,7 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-024 | – | – | – | – | offen |
 | R-030 | `gui/` (U4) | `tests/gui/*` (gui-Marker), Handtest-Checkliste U4 | Laborbuch 2026-10-27_u4 | – | umgesetzt (Handtest offen) |
 | R-031 | `sitzung.py` (U2), `gui/anzeige.py`, `gui/tabelle.py` (U4) | `test_u2_12_*`, UI-7/UI-8 | Laborbuch 2026-10-26_u2, 2026-10-27_u4 | – | getestet (Simulator) |
-| R-032 | – | – | – | – | offen |
+| R-032 | T1: `auswertung/laden.py` (`Dateieinstellungen`), Mittelung im Leser; GUI folgt (T3) | `test_aw_laden*.py`, `test_svd_lesen.py` | Laborbuch 2026-11-03_auswerten-t1 | – | in Arbeit (Fenster nicht lesbar, Mittelung plausibel) |
 | R-040 | – | – | – | – | offen |
 | R-050 | `auswertung/spektren.py`, `mittel.py` (W5-1) | RF-S, RF-B, Golden File (Punktmittel 35/35) | Laborbuch 2026-10-30_w5 | – | getestet (Datei; PSV-Anzeige offen) |
 | R-051 | `auswertung/frf.py` (W5-1) | RF-H, RF-U, RF-G, Bandnorm H1 | Laborbuch 2026-10-30_w5 | – | getestet (Datei; PSV-Anzeige offen) |

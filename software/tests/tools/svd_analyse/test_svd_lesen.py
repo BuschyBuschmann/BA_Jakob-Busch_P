@@ -12,16 +12,17 @@ import datetime as dt
 import hashlib
 import struct
 import zlib
-from dataclasses import replace
+from dataclasses import fields, replace
 from pathlib import Path
 
 import kontrollplots as kp
 import numpy as np
 import olefile
 import pytest
-import svd_lesen as sl
 import svd_pruefung as sp
 import svd_synth as syn
+
+from ldv_automation.auswertung import svd_lesen as sl
 
 ECHTE_DATEI = Path(__file__).resolve().parents[4] / "Input" / "20261012_ref_Mitte.svd"
 
@@ -976,3 +977,81 @@ def test_datei_zeit_der_beispieldatei() -> None:
     """Gegenprobe: COM ``Version.FileTime`` 11:32:52 (MESZ) = 09:32:52 UTC (Faktenliste C8)."""
     m = sl.lese_svd(BEISPIELDATEI)
     assert m.datei_zeit == dt.datetime(2026, 10, 12, 9, 32, 52)
+
+
+# --- Mittelung und Fenster (P-AUSW T1.2) ---------------------------------------------------
+
+
+def test_mittelung_dekodiert_beispiellayout() -> None:
+    """``[1, 2, 0, 7]`` (Beispieldatei): komplex, Anzahl 7; das Feld +8 bleibt unbeachtet."""
+    assert sl.dekodiere_mittelung(struct.pack("<4i", 1, 2, 0, 7)) == sl.Mittelung(2, 7)
+    assert sl.dekodiere_mittelung(syn.average(2, 7, feld=99)) == sl.Mittelung(2, 7)
+    assert sl.Mittelung(2, 7).typ_name == "komplex"
+
+
+@pytest.mark.parametrize(
+    ("typ", "name"),
+    [(0, "aus"), (1, "Betrag"), (2, "komplex"), (3, "Zeit"), (4, "Peak Hold")],
+)
+def test_mittelung_alle_typen_nach_ptc_average_type(typ: int, name: str) -> None:
+    m = sl.dekodiere_mittelung(syn.average(typ, 10))
+    assert m == sl.Mittelung(typ, 10)
+    assert m is not None and m.typ_name == name
+
+
+@pytest.mark.parametrize(
+    "daten",
+    [
+        b"",
+        syn.average()[:12],  # zu kurz
+        syn.average() + b"\x00\x00\x00\x00",  # zu lang
+        syn.average(version=2),  # unbekannte Version
+        syn.average(version=0),
+        syn.average(typ=5),  # außerhalb 0–4
+        syn.average(typ=9),
+        syn.average(typ=-1),
+        syn.average(anzahl=0),
+        syn.average(anzahl=-3),
+    ],
+)
+def test_mittelung_strikt_sonst_none(daten: bytes) -> None:
+    assert sl.dekodiere_mittelung(daten) is None
+
+
+def test_mittelung_grenzwerte_anzahl_1_und_typ_4_sind_gueltig() -> None:
+    assert sl.dekodiere_mittelung(syn.average(0, 1)) == sl.Mittelung(0, 1)
+    assert sl.dekodiere_mittelung(syn.average(4, 2**31 - 1)) == sl.Mittelung(4, 2**31 - 1)
+
+
+def test_mittelung_im_container_und_ohne_stream_oder_mit_falschem_layout() -> None:
+    st, _ = syn.messung_stroeme()
+    m = sl.lese_container(syn.FakeOle(st), Path("x"))
+    assert m.mittelung == sl.Mittelung(2, 7)
+    assert "Mittelung: komplex, Anzahl 7 [plausibel]" in sl.uebersicht(m)
+    st["Info/DAQ_Settings_Fft/Average"] = syn.average(typ=9)  # kein Abbruch, nichts geraten
+    m = sl.lese_container(syn.FakeOle(st), Path("x"))
+    assert m.mittelung is None and "Mittelung: nicht verfügbar [plausibel]" in sl.uebersicht(m)
+    del st["Info/DAQ_Settings_Fft/Average"]
+    assert sl.lese_container(syn.FakeOle(st), Path("x")).mittelung is None
+
+
+def test_mittelung_sicherheitsgrad_ist_plausibel_nicht_gesichert() -> None:
+    assert sl.SICHERHEIT["fft.mittelung"] == "plausibel"
+
+
+def test_fenster_ist_in_der_datei_nicht_lesbar() -> None:
+    """Das Fenster ist keine lesbare Dateigröße; der Leser führt dafür kein (totes) Feld."""
+    assert sl.FENSTER_IN_DATEI_LESBAR is False
+    namen = {f.name for f in fields(sl.SvdMessung)} | {f.name for f in fields(sl.Mittelung)}
+    assert not any("fenster" in n.lower() for n in namen)
+
+
+@pytest.mark.skipif(not ECHTE_DATEI.is_file(), reason="Messdatei des Betreuers nicht vorhanden")
+def test_echte_datei_mittelung_typ_2_anzahl_7() -> None:
+    """File-Access-Gegenprobe vom 2026-11-02 (M5): Typ 2 = komplex, Anzahl 7."""
+    with olefile.OleFileIO(str(ECHTE_DATEI)) as ole:
+        roh = ole.openstream("Info/DAQ_Settings_Fft/Average").read()
+    assert struct.unpack("<4i", roh) == (1, 2, 0, 7)
+    m = sl.lese_svd(ECHTE_DATEI)
+    assert m.mittelung == sl.Mittelung(typ=2, anzahl=7)
+    assert m.mittelung is not None and m.mittelung.typ_name == "komplex"

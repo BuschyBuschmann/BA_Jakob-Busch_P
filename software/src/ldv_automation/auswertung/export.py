@@ -40,7 +40,7 @@ from .baender import Bandwert
 from .daten import Herkunft, einheit_produkt, einheit_quadrat
 from .gesamt import Auswertung
 from .plausibilitaet import Pruefergebnis
-from .spitzen import Spitzenergebnis
+from .spitzen import Spitze, Spitzenergebnis
 
 FORMAT = "ldv_automation.auswertung.export"
 FORMAT_VERSION = 2
@@ -158,7 +158,7 @@ DAEMPFUNG_BESCHREIBUNG = (
 """Feldbeschreibung im Export: ``f_l_hz``/``f_r_hz`` sind die Bandgrenzen von ζ (R-055)."""
 
 
-def _daempfung_spitze(x: Any) -> dict[str, Any]:
+def daempfung_der_spitze(x: Spitze) -> dict[str, Any]:
     """Dämpfungsangabe einer Spitze mit Bandgrenzen in Hz und Methode (R-055)."""
     return {
         "zeta": x.zeta,
@@ -176,7 +176,7 @@ def _spitzen(s: Spitzenergebnis) -> dict[str, Any]:
         "hinweise": list(s.hinweise),
         "grenzen": list(s.grenzen),
         "daempfung_beschreibung": DAEMPFUNG_BESCHREIBUNG,
-        "spitzen": [{**asdict(x), "daempfung": _daempfung_spitze(x)} for x in s.spitzen],
+        "spitzen": [{**asdict(x), "daempfung": daempfung_der_spitze(x)} for x in s.spitzen],
     }
 
 
