@@ -1,7 +1,7 @@
 LIESMICH – Stick/Download-Paket nächster Termin am Messrechner
 =============================================================
-Software: ldv-automation 0.2.0, Git b5300e1876e5ad5278c23ccecfa80a0d45150197 (Build-Info im Wheel, git_dirty: false).
-Gebaut 2026-11-03 (06:52 UTC) in der Cloud (ersetzt den Build f66af80 vom Vorabend, der nie ausgeliefert wurde; enthält zusätzlich die Korrekturen K-MINOR), Wheel in frischer venv importiert (Version 0.2.0, Build-Info gelesen).
+Software: ldv-automation 0.2.0, Git 6d843187fb9b02e07c6f80316a91df7d78748bba (Build-Info im Wheel, git_dirty: false).
+Gebaut 2026-11-03 in der Cloud (ersetzt die nie ausgelieferten Builds f66af80 und b5300e1; enthält zusätzlich K-MINOR sowie R-023/R-055: Messprotokoll Schema 2 mit Block frequenzachse, Exporte Format 2 mit Dämpfungsangaben), Wheel in frischer venv importiert (Version 0.2.0, Build-Info gelesen).
 Nicht am Messrechner geprüft.
 
 Abhängigkeiten unverändert gegenüber 530af41 (pyproject: nur die Version geändert).
@@ -12,7 +12,7 @@ Update in die vorhandene PyCharm-venv: Ablaufplan Block A1, Schritt 3 (pip insta
 Skripte aus erkundung/ nach $ARB kopieren, alte Fassungen vorher als *_alt.py beiseitelegen (A1, Schritt 4).
 
 SHA-256 (prüfen mit Get-FileHash, ins Protokoll übernehmen):
-18ca44be9c291fc719e7b0f3024ff68c18460c42df447a2fc12786c79783fee7  wheelhouse/ldv_automation-0.2.0-py3-none-any.whl
+e6c3940830e81eb75fa5bd156b9d4563e1e838a5168c10be89f93e432f9bc96f  wheelhouse/ldv_automation-0.2.0-py3-none-any.whl
 ebea5825a7af80a9eaa1877350b2cbdbdd974e2e9c7df18eacc742ecad406bb4  erkundung/README.md
 d9779870b3743ade705e389bbc42d46f3e7778237397e0f9db30326b4f4a5181  erkundung/daten_lesen.py
 7bc6611a93213e171d4e8a10303e8a43d9c9420835c53bef4c7f2c72f31b2ad9  erkundung/einstellungen_lesen.py
