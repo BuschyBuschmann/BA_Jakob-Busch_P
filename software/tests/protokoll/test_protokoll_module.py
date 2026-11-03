@@ -27,6 +27,7 @@ from ldv_automation.protokoll.messprotokoll import (
     einstellungsstand_zu_dict,
     fehlende_pflichtfelder,
     fehler_zu_dict,
+    frequenzachse_zu_dict,
     schreibe_messprotokoll,
     zeitstempel,
 )
@@ -214,7 +215,7 @@ def test_einstellungsstand_zu_dict() -> None:
 
 def test_messprotokoll_schema_wird_erzwungen(tmp_path: Path) -> None:
     daten: dict[str, object] = dict.fromkeys(PFLICHTFELDER)
-    daten["schema_version"] = 1
+    daten["schema_version"] = 2
     assert fehlende_pflichtfelder(daten) == []
     pfad = tmp_path / "p.protokoll.json"
     schreibe_messprotokoll(pfad, daten)
@@ -228,7 +229,7 @@ def test_messprotokoll_schema_wird_erzwungen(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="extra"):
         schreibe_messprotokoll(tmp_path / "c.json", {**daten, "extra": 1})
     with pytest.raises(ValueError, match="schema_version"):
-        schreibe_messprotokoll(tmp_path / "d.json", {**daten, "schema_version": 2})
+        schreibe_messprotokoll(tmp_path / "d.json", {**daten, "schema_version": 1})
 
 
 def test_ereignisprotokoll_nur_anhaengend(tmp_path: Path) -> None:
@@ -242,3 +243,91 @@ def test_ereignisprotokoll_nur_anhaengend(tmp_path: Path) -> None:
     assert zeilen[1]["pfad"] == str(tmp_path)
     with pytest.raises(FileExistsError):
         Ereignisprotokoll(pfad)
+
+
+def _stand(fft: dict[str, object] | None) -> dict[str, object]:
+    return {"modus": "Fft", "gruppen": {} if fft is None else {"fft": fft}}
+
+
+def test_frequenzachse_vollstaendig() -> None:
+    fa = frequenzachse_zu_dict(
+        _stand(
+            {
+                "bandbreite_hz": 3125.0,
+                "linien": 800,
+                "aufloesung_hz": 3.90625,
+                "end_frequenz_hz": 3125.0,
+                "messzeit_s": 0.256,
+            }
+        )
+    )
+    assert fa["delta_f_psv_hz"] == 3.90625
+    # 3125 / 800 = 3.90625 (exakt in float64)
+    assert fa["delta_f_berechnet_hz"] == pytest.approx(3.90625, rel=1e-15)
+    assert fa["f_max_bandbreite_hz"] == 3125.0 and fa["f_max_end_hz"] == 3125.0
+    assert fa["linien_anzahl"] == 800 and isinstance(fa["linien_anzahl"], int)
+    assert fa["blockdauer_s"] == 0.256
+    assert fa["nicht_lesbar"] == {}
+    assert "unbestätigt" in str(fa["hinweis"])
+
+
+def test_frequenzachse_nicht_lesbar_mit_grund() -> None:
+    fa = frequenzachse_zu_dict(
+        _stand(
+            {
+                "bandbreite_hz": 3125.0,
+                "linien": 800,
+                "aufloesung_hz": None,
+                "aufloesung_hz__fehler": "kaputt",
+                "end_frequenz_hz": float("nan"),
+            }
+        )
+    )
+    assert fa["delta_f_psv_hz"] is None and "kaputt" in str(fa["nicht_lesbar"])
+    assert fa["f_max_end_hz"] is None and fa["blockdauer_s"] is None
+    assert fa["delta_f_berechnet_hz"] == pytest.approx(3.90625)
+    assert set(fa["nicht_lesbar"]) == {"delta_f_psv_hz", "f_max_end_hz", "blockdauer_s"}  # type: ignore[call-overload]
+
+
+@pytest.mark.parametrize(
+    ("stand", "grund"),
+    [(None, "nicht gelesen"), (_stand(None), "nicht vorhanden")],
+)
+def test_frequenzachse_ohne_fft(stand: dict[str, object] | None, grund: str) -> None:
+    fa = frequenzachse_zu_dict(stand)
+    nl = fa["nicht_lesbar"]
+    assert isinstance(nl, dict) and len(nl) == 6
+    assert all(grund in g for k, g in nl.items() if k != "delta_f_berechnet_hz")
+    assert "nicht lesbar" in nl["delta_f_berechnet_hz"]
+    assert all(fa[k] is None for k in nl)
+
+
+def test_frequenzachse_ungueltige_werte() -> None:
+    fa = frequenzachse_zu_dict(
+        _stand({"bandbreite_hz": 0.0, "linien": 12.5, "messzeit_s": True, "end_frequenz_hz": 1e3})
+    )
+    assert fa["linien_anzahl"] is None and fa["blockdauer_s"] is None
+    assert fa["delta_f_berechnet_hz"] is None
+    assert fa["f_max_end_hz"] == 1000.0
+    # Gültigkeitsregel > 0 für alle vier positiven Größen: Wert null, Grund vorhanden
+    for schlecht in (0.0, -5.0):
+        for schluessel, feld in (
+            ("aufloesung_hz", "delta_f_psv_hz"),
+            ("bandbreite_hz", "f_max_bandbreite_hz"),
+            ("end_frequenz_hz", "f_max_end_hz"),
+            ("messzeit_s", "blockdauer_s"),
+        ):
+            eingabe: dict[str, object] = {"bandbreite_hz": 100.0, "linien": 50.0}
+            eingabe[schluessel] = schlecht
+            fx = frequenzachse_zu_dict(_stand(eingabe))
+            grund = fx["nicht_lesbar"]
+            assert isinstance(grund, dict)
+            assert fx[feld] is None and "nicht verwendbar" in grund[feld]
+            nullfelder = {k for k, v in fx.items() if v is None}
+            assert set(grund) == nullfelder
+            if feld == "f_max_bandbreite_hz":
+                assert fx["delta_f_berechnet_hz"] is None
+    ganz = frequenzachse_zu_dict(_stand({"bandbreite_hz": 100.0, "linien": 50.0}))
+    assert ganz["linien_anzahl"] == 50 and ganz["delta_f_berechnet_hz"] == 2.0
+    null = frequenzachse_zu_dict(_stand({"bandbreite_hz": 100.0, "linien": 0}))
+    assert null["linien_anzahl"] is None and null["delta_f_berechnet_hz"] is None

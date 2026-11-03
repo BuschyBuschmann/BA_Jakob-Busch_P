@@ -436,7 +436,14 @@ def _alle_protokolle(ordner: Path) -> list[dict[str, object]]:
 def _pruefe_schema(daten: dict[str, object]) -> None:
     assert fehlende_pflichtfelder(daten) == []
     assert tuple(daten) == PFLICHTFELDER
-    assert daten["schema_version"] == 1
+    assert daten["schema_version"] == 2
+    fa = daten["frequenzachse"]  # R-023: immer vorhanden, auch bei fehler/abgebrochen
+    assert isinstance(fa, dict)
+    assert {"delta_f_psv_hz", "delta_f_berechnet_hz", "f_max_bandbreite_hz", "f_max_end_hz"} <= set(
+        fa
+    )
+    assert {"linien_anzahl", "blockdauer_s", "nicht_lesbar", "hinweis"} <= set(fa)
+    assert set(fa["nicht_lesbar"]) == {k for k, v in fa.items() if v is None}
     assert (daten["messdatei_sha256"] is None) != (daten["messdatei_sha256_grund"] is None)
     for feld in ("zeit_start", "zeit_ende"):
         zeit = daten[feld]

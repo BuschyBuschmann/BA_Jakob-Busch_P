@@ -9,6 +9,30 @@ verhindern das Protokoll nicht: Sie werden als Text ``"NaN"``, ``"Infinity"`` bz
 ``"-Infinity"`` geschrieben (gültiges JSON, Wert erkennbar). Auswertende Programme müssen
 diese Texte an numerischen Stellen erwarten.
 
+Feld ``frequenzachse`` (R-023, ab ``schema_version`` 2): Angaben zur Frequenzachse der
+Messung aus ``einstellungen_ist.gruppen.fft``, jeweils als eigenes Feld mit Einheit im Namen:
+
+``delta_f_psv_hz``
+    Δf wie von PSV gemeldet (COM ``SampleResolution``; Einheit Hz laut I5 2.5, am Gerät
+    unbestätigt).
+``delta_f_berechnet_hz``
+    Δf = Bandbreite / Linien (KONVENTIONEN, Auswertung).
+``f_max_bandbreite_hz``
+    Bandbreite (COM ``Bandwidth``) als f_max.
+``f_max_end_hz``
+    Endfrequenz (COM ``EndFrequency``) als f_max.
+``linien_anzahl``
+    Linienzahl (COM ``Lines``), dimensionslos.
+``blockdauer_s``
+    Blockdauer (COM ``SampleTime``) in s.
+``nicht_lesbar``
+    Zuordnung Feldname → Grund für jedes Feld mit Wert ``null`` (leer, wenn alle lesbar).
+``hinweis``
+    Text zur Herkunft und zum Vorbehalt der Einheit.
+
+Das Feld ist immer vorhanden, auch bei ``fehler`` und ``abgebrochen``; nicht lesbare Werte
+stehen als ``null`` mit Grund in ``nicht_lesbar``.
+
 Zeitstempel sind Objekte ``{"lokal": "<ISO 8601 mit Zone>", "utc": "<ISO 8601, UTC>"}``.
 
 Ereignisprotokoll: JSON Lines, eine Zeile je Ereignis, nur anhängend.
@@ -25,7 +49,7 @@ from pathlib import Path
 from ldv_automation.geraet.schnittstelle import EinstellungsStand, GeraeteFehler
 from ldv_automation.protokoll.ablage import haenge_an, schreibe_neu
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 PFLICHTFELDER: tuple[str, ...] = (
     "schema_version",
@@ -63,6 +87,8 @@ PFLICHTFELDER: tuple[str, ...] = (
     "lademaske",
     "geaenderte_parameter",
     "einstellungen_ist",
+    # Frequenzachse (R-023)
+    "frequenzachse",
     # Meldungen, Fortschritt, Einschränkungen
     "meldungen",
     "meldungen_hinweis",
@@ -116,6 +142,98 @@ def einstellungsstand_zu_dict(stand: EinstellungsStand) -> dict[str, object]:
         "generator_aktiv": stand.generator_aktiv,
         "generator_amplitude_v": stand.generator_amplitude_v,
         "gruppen": {name: dict(werte) for name, werte in stand.gruppen.items()},
+    }
+
+
+FREQUENZACHSE_HINWEIS = (
+    "Werte aus einstellungen_ist.gruppen.fft; delta_f_psv_hz ist COM SampleResolution "
+    "(Einheit Hz laut I5 2.5, am Gerät unbestätigt), delta_f_berechnet_hz = Bandbreite/Linien."
+)
+
+
+def _endlich(wert: object) -> float | None:
+    """``wert`` als endliche Zahl (ohne ``bool``), sonst ``None``."""
+    if isinstance(wert, bool) or not isinstance(wert, int | float):
+        return None
+    zahl = float(wert)
+    return zahl if math.isfinite(zahl) else None
+
+
+def frequenzachse_zu_dict(einstellungen_ist: Mapping[str, object] | None) -> dict[str, object]:
+    """Baut das Protokollfeld ``frequenzachse`` (R-023) aus dem Einstellungsstand.
+
+    Parameters
+    ----------
+    einstellungen_ist : mapping or None
+        Ergebnis von :func:`einstellungsstand_zu_dict` (oder ``None``, wenn der Stand nicht
+        gelesen wurde).
+
+    Returns
+    -------
+    dict
+        Felder siehe Moduldokumentation; nicht lesbare Werte sind ``None`` und stehen mit
+        Grund in ``nicht_lesbar``. Nicht endliche oder unpassende Werte (NaN, ±Inf, ``bool``,
+        ``Linien`` nicht ganzzahlig oder < 1, ``delta_f_psv_hz``, ``f_max_bandbreite_hz``,
+        ``f_max_end_hz`` oder ``blockdauer_s`` <= 0) gelten als nicht lesbar; alle vier sind
+        physikalisch positive Größen.
+    """
+    gruppen = einstellungen_ist.get("gruppen") if einstellungen_ist is not None else None
+    fft = gruppen.get("fft") if isinstance(gruppen, Mapping) else None
+    if einstellungen_ist is None:
+        pauschal: str | None = "Einstellungsstand nicht gelesen"
+    elif not isinstance(fft, Mapping):
+        pauschal = "FFT-Einstellungen im Einstellungsstand nicht vorhanden"
+    else:
+        pauschal = None
+    quelle: Mapping[str, object] = fft if isinstance(fft, Mapping) else {}
+
+    def lies(schluessel: str) -> tuple[float | None, str | None]:
+        if pauschal is not None:
+            return None, pauschal
+        wert = quelle.get(schluessel)
+        zahl = _endlich(wert)
+        if zahl is not None:
+            return zahl, None
+        fehler = quelle.get(f"{schluessel}__fehler")
+        if fehler is not None:
+            return None, f"COM-Fehler beim Lesen: {fehler}"
+        if schluessel not in quelle or wert is None:
+            return None, "Wert nicht geliefert"
+        return None, f"Wert {wert!r} nicht verwendbar"
+
+    nicht_lesbar: dict[str, str] = {}
+    werte: dict[str, float | int | None] = {}
+    for feld, schluessel in (
+        ("delta_f_psv_hz", "aufloesung_hz"),
+        ("f_max_bandbreite_hz", "bandbreite_hz"),
+        ("f_max_end_hz", "end_frequenz_hz"),
+        ("linien_anzahl", "linien"),
+        ("blockdauer_s", "messzeit_s"),
+    ):
+        zahl, grund = lies(schluessel)
+        if zahl is not None and feld != "linien_anzahl" and zahl <= 0:
+            zahl, grund = None, f"Wert {zahl!r} nicht verwendbar (muss > 0 sein)"
+        if zahl is not None and feld == "linien_anzahl" and (zahl < 1 or not zahl.is_integer()):
+            zahl, grund = None, f"Linienzahl {zahl!r} nicht verwendbar"
+        werte[feld] = int(zahl) if zahl is not None and feld == "linien_anzahl" else zahl
+        if grund is not None:
+            nicht_lesbar[feld] = grund
+    bandbreite = werte["f_max_bandbreite_hz"]
+    linien = werte["linien_anzahl"]
+    if bandbreite is not None and linien is not None:
+        werte["delta_f_berechnet_hz"] = float(bandbreite) / linien
+    else:
+        werte["delta_f_berechnet_hz"] = None
+        nicht_lesbar["delta_f_berechnet_hz"] = "Bandbreite (> 0) oder Linienzahl nicht lesbar"
+    return {
+        "delta_f_psv_hz": werte["delta_f_psv_hz"],
+        "delta_f_berechnet_hz": werte["delta_f_berechnet_hz"],
+        "f_max_bandbreite_hz": werte["f_max_bandbreite_hz"],
+        "f_max_end_hz": werte["f_max_end_hz"],
+        "linien_anzahl": werte["linien_anzahl"],
+        "blockdauer_s": werte["blockdauer_s"],
+        "nicht_lesbar": nicht_lesbar,
+        "hinweis": FREQUENZACHSE_HINWEIS,
     }
 
 

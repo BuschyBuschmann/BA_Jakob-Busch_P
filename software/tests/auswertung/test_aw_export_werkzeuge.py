@@ -139,6 +139,14 @@ def test_export_pflichtinhalt_und_rundreise(messdatei: Path, tmp_path: Path) -> 
     # Prüfungen, Spitzen, Bänder, Schwingform
     assert [e["id"] for e in meta["pruefungen"]][-1] == "P-11"
     assert meta["paare"][s]["spitzen"]["spitzen"]
+    # R-055: Dämpfungsangabe mit Bandgrenzen in Hz und Methode
+    sp_meta = meta["paare"][s]["spitzen"]
+    assert "f_l_hz" in sp_meta["daempfung_beschreibung"]
+    for sp in sp_meta["spitzen"]:
+        dp = sp["daempfung"]
+        assert dp["methode"] == "-3dB-Breite" and dp["zeta"] == sp["zeta"]
+        assert dp["band_u_hz"] == sp["f_l_hz"] and dp["band_o_hz"] == sp["f_r_hz"]
+    assert meta["format_version"] == 2
     assert meta["baender"][0]["n_linien"] == 41
     assert meta["schwingform"]["f_hz"] == 150.0 and "schwingform.amplitude.re" in felder
     # Text ist striktes JSON (kein NaN)

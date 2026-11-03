@@ -89,6 +89,7 @@ from ldv_automation.protokoll.messprotokoll import (
     Ereignisprotokoll,
     einstellungsstand_zu_dict,
     fehler_zu_dict,
+    frequenzachse_zu_dict,
     schreibe_messprotokoll,
     zeitstempel,
 )
@@ -1848,6 +1849,7 @@ class Steuerung:
                 for k, v in m.parameter.items()
             ],
             "einstellungen_ist": aktiv.einstellungen_ist,
+            "frequenzachse": frequenzachse_zu_dict(aktiv.einstellungen_ist),
             "meldungen": list(aktiv.meldungen),
             "meldungen_hinweis": MELDUNGEN_HINWEIS,
             "fortschritt_quelle": aktiv.fortschritt_quelle,

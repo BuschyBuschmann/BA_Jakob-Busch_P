@@ -42,11 +42,20 @@ from .export import (
     schreibe_export,
 )
 from .gesamt import Auswertung
-from .modenfit import ModenfitErgebnis, schaetze_daempfung
+from .modenfit import Gruppe, ModenfitErgebnis, schaetze_daempfung
 from .vergleich import Drift, Vergleich, drift_aus
 
 FORMAT_STUFE2 = "ldv_automation.auswertung.export.stufe2"
-FORMAT_STUFE2_VERSION = 1
+FORMAT_STUFE2_VERSION = 2
+"""Formatversion des Stufe-2-Exports.
+
+Version 1: Grundformat (B-1, B-5, B-8, Annahmen, Herkunft). Die Messdatei-Angaben
+(``messdatei_dateizeit``/``messdatei_programmversion``) kamen noch unter Version 1 hinzu
+(Paket K-2D).
+Version 2 (R-055): im Block ``b1`` je Ergebnis und Zusammenfassung ``daempfung`` mit ``zeta``,
+``band_u_hz``, ``band_o_hz`` (Fitband) und ``methode``; je Gruppe ``f_von_hz``/``f_bis_hz``;
+``daempfung_beschreibung`` je Kanalpaar; ``hinweise`` nennen Moden mit unbekannter Gruppe.
+"""
 
 
 @dataclass(frozen=True, kw_only=True, eq=False)
@@ -167,11 +176,45 @@ def werte_stufe2_aus(
     )
 
 
+METHODE_B1 = (
+    "Modenfit B-1 (komplexer Moden-Fit der Mobilität, Variablenprojektion, "
+    "Levenberg-Marquardt; FG-03)"
+)
+"""Methodenname der Dämpfungsangabe ζ aus B-1 (R-055)."""
+
+FITBAND_BESCHREIBUNG = (
+    "daempfung: ζ je Mode des Fits; band_u_hz/band_o_hz = Fitband der Gruppe in Hz "
+    "(Frequenz an den Linienindizes k_von/k_bis, beide inklusive); methode = Verfahren."
+)
+
+
+def _fitband_hz(frequenz_hz: npt.NDArray[Any], g: Gruppe) -> tuple[float | None, float | None]:
+    """Fitband der Gruppe in Hz aus der Frequenzachse (``None`` bei Index außerhalb)."""
+    n = frequenz_hz.shape[0]
+    if not (0 <= g.k_von < n and 0 <= g.k_bis < n):
+        return None, None
+    return float(frequenz_hz[g.k_von]), float(frequenz_hz[g.k_bis])
+
+
 def _komplex(z: complex) -> list[float]:
     return [z.real, z.imag]
 
 
-def _b1_meta(b1: ModenfitErgebnis) -> dict[str, Any]:
+def _b1_meta(b1: ModenfitErgebnis, frequenz_hz: npt.NDArray[Any]) -> dict[str, Any]:
+    band = {g.nummer: _fitband_hz(frequenz_hz, g) for g in b1.gruppen}
+    leer: tuple[float | None, float | None] = (None, None)
+
+    def daempfung(gruppe: int, zeta: Any) -> dict[str, Any]:
+        u, o = band.get(gruppe, leer)
+        return {"zeta": zeta, "band_u_hz": u, "band_o_hz": o, "methode": METHODE_B1}
+
+    hinweise = list(b1.hinweise)
+    unbekannt = sorted({e.gruppe for e in b1.ergebnisse} | {z.gruppe for z in b1.zusammenfassung})
+    hinweise.extend(
+        f"Gruppe {n} nicht in b1.gruppen: Fitband (band_u_hz/band_o_hz) nicht bestimmbar"
+        for n in unbekannt
+        if n not in band
+    )
     return {
         "antwort": b1.antwort,
         "referenz": b1.referenz,
@@ -179,7 +222,11 @@ def _b1_meta(b1: ModenfitErgebnis) -> dict[str, Any]:
         "einheit_fit": b1.einheit_fit,
         "einheit_modalkonstante": "1/kg (bei Mobilität)",
         "komplex": "[Realteil, Imaginärteil]",
-        "gruppen": [asdict(g) for g in b1.gruppen],
+        "daempfung_beschreibung": FITBAND_BESCHREIBUNG,
+        "gruppen": [
+            {**asdict(g), "f_von_hz": band[g.nummer][0], "f_bis_hz": band[g.nummer][1]}
+            for g in b1.gruppen
+        ],
         "ergebnisse": [
             {
                 **{
@@ -190,11 +237,15 @@ def _b1_meta(b1: ModenfitErgebnis) -> dict[str, Any]:
                 "modalkonstante": [_komplex(c) for c in e.modalkonstante],
                 "residuum": _komplex(e.residuum),
                 "kennzeichen": [list(k) for k in e.kennzeichen],
+                "daempfung": daempfung(e.gruppe, list(e.zeta)),
             }
             for e in b1.ergebnisse
         ],
-        "zusammenfassung": [asdict(z) for z in b1.zusammenfassung],
-        "hinweise": list(b1.hinweise),
+        "zusammenfassung": [
+            {**asdict(z), "daempfung": daempfung(z.gruppe, z.zeta_median)}
+            for z in b1.zusammenfassung
+        ],
+        "hinweise": hinweise,
         "grenzen": list(b1.grenzen),
     }
 
@@ -283,7 +334,10 @@ def baue_export_stufe2(
         "annahmen": [asdict(e) for e in ergebnis.annahmen_liste],
         "schwellen": asdict(a.schwellen),
         "schwellen_stufe2": asdict(ergebnis.schwellen2),
-        "b1": {paar_schluessel(*k): _b1_meta(v) for k, v in ergebnis.daempfung.items()},
+        "b1": {
+            paar_schluessel(*k): _b1_meta(v, a.daten.frequenz_hz)
+            for k, v in ergebnis.daempfung.items()
+        },
         "drift": [asdict(d) for d in ergebnis.drift],
         "b8": None if ergebnis.komponenten is None else _komponenten(s, ergebnis.komponenten),
         "b5": None if vergleich is None else _vergleich(s, vergleich),

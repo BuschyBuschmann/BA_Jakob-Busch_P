@@ -43,7 +43,15 @@ from .plausibilitaet import Pruefergebnis
 from .spitzen import Spitzenergebnis
 
 FORMAT = "ldv_automation.auswertung.export"
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
+"""Formatversion des Stufe-1-Exports.
+
+Version 1: Grundformat (Felder, Spitzen, Bandwerte, Herkunft). Die Messdatei-Angaben
+``messdatei_dateizeit``/``messdatei_programmversion`` (:func:`messdatei_angaben`) kamen noch
+unter Version 1 hinzu (Paket K-2D).
+Version 2 (R-055): je Spitze ``daempfung`` mit ``zeta``, ``band_u_hz``, ``band_o_hz`` und
+``methode`` sowie ``daempfung_beschreibung`` je Größe.
+"""
 
 ZEITKONVENTION = "exp(+i*omega*t)"
 KREUZSPEKTRUM = "CP_ab = <A B*>, a = Antwort, b = Referenz"
@@ -139,6 +147,27 @@ def _pruefung(e: Pruefergebnis) -> dict[str, Any]:
     return dict(asdict(e))
 
 
+METHODE_SPITZEN = "-3dB-Breite"
+"""Methodenname der Dämpfungsangabe ζ der Stufe-1-Spitzen (R-055)."""
+
+DAEMPFUNG_BESCHREIBUNG = (
+    "daempfung: ζ = B/(2·f_sp) mit der -3-dB-Breite B = f_r - f_l; die Bandgrenzen der "
+    "Dämpfungsangabe sind die interpolierten -3-dB-Kreuzungen f_l_hz (untere, band_u_hz) und "
+    "f_r_hz (obere, band_o_hz) in Hz; nicht bestimmte Grenzen sind null."
+)
+"""Feldbeschreibung im Export: ``f_l_hz``/``f_r_hz`` sind die Bandgrenzen von ζ (R-055)."""
+
+
+def _daempfung_spitze(x: Any) -> dict[str, Any]:
+    """Dämpfungsangabe einer Spitze mit Bandgrenzen in Hz und Methode (R-055)."""
+    return {
+        "zeta": x.zeta,
+        "band_u_hz": x.f_l_hz,
+        "band_o_hz": x.f_r_hz,
+        "methode": METHODE_SPITZEN,
+    }
+
+
 def _spitzen(s: Spitzenergebnis) -> dict[str, Any]:
     return {
         "groesse": s.groesse,
@@ -146,7 +175,8 @@ def _spitzen(s: Spitzenergebnis) -> dict[str, Any]:
         "delta_f_hz": s.delta_f_hz,
         "hinweise": list(s.hinweise),
         "grenzen": list(s.grenzen),
-        "spitzen": [asdict(x) for x in s.spitzen],
+        "daempfung_beschreibung": DAEMPFUNG_BESCHREIBUNG,
+        "spitzen": [{**asdict(x), "daempfung": _daempfung_spitze(x)} for x in s.spitzen],
     }
 
 

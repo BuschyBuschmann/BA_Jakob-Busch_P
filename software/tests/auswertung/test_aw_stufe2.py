@@ -21,6 +21,7 @@ from ldv_automation.auswertung.export import exportiere, lese_export, sha256_dat
 from ldv_automation.auswertung.modenfit import schaetze_daempfung
 from ldv_automation.auswertung.stufe2 import (
     FORMAT_STUFE2,
+    _b1_meta,
     exportiere_stufe2,
     werte_stufe2_aus,
 )
@@ -78,6 +79,29 @@ def test_adapter_zeit_und_elemente() -> None:
         zeit_s_aus_svd_messung(MessungStufe2({}, []))
 
 
+def test_b1_meta_unbekannte_gruppe_gibt_hinweis(aw: Auswertung) -> None:
+    m = _messung(12)
+    e = werte_stufe2_aus(
+        aw,
+        paare=[("Vib Z", "Ref1")],
+        zeit_s=zeit_s_aus_svd_messung(m),
+        elemente=m.elemente,
+    )
+    b1 = e.daempfung[("Vib Z", "Ref1")]
+    f = aw.daten.frequenz_hz
+    voll = _b1_meta(b1, f)
+    assert not any("nicht in b1.gruppen" in h for h in voll["hinweise"])
+    gekappt = dataclasses.replace(b1, gruppen=b1.gruppen[1:])
+    meta = _b1_meta(gekappt, f)  # keine Ausnahme
+    nummer = b1.gruppen[0].nummer
+    assert any(f"Gruppe {nummer} nicht in b1.gruppen" in h for h in meta["hinweise"])
+    betroffen = [x for x in meta["ergebnisse"] if x["gruppe"] == nummer]
+    assert betroffen
+    for x in betroffen:
+        assert x["daempfung"]["band_u_hz"] is None and x["daempfung"]["band_o_hz"] is None
+    assert len([h for h in meta["hinweise"] if f"Gruppe {nummer} " in h]) == 1
+
+
 def test_stufe2_gesamt_und_export(aw: Auswertung, tmp_path: Path) -> None:
     m = _messung(12)
     h1_vorher = aw.paare[("Vib Z", "Ref1")].frf.h1.copy()
@@ -125,6 +149,20 @@ def test_stufe2_gesamt_und_export(aw: Auswertung, tmp_path: Path) -> None:
     assert meta["schwellen_stufe2"]["rho_max"] == 0.1
     b1 = meta["b1"]["Vib_Z__Ref1"]
     assert b1["ergebnisse"] and len(b1["ergebnisse"][0]["residuum"]) == 2
+    # R-055: ζ mit Fitband in Hz (Frequenz an k_von/k_bis) und Methode
+    f_achse = felder["frequenz_hz"]
+    gr = {g["nummer"]: g for g in b1["gruppen"]}
+    for erg in b1["ergebnisse"]:
+        dp = erg["daempfung"]
+        g = gr[erg["gruppe"]]
+        assert dp["zeta"] == erg["zeta"] and dp["methode"].startswith("Modenfit B-1")
+        assert dp["band_u_hz"] == f_achse[g["k_von"]] == g["f_von_hz"]
+        assert dp["band_o_hz"] == f_achse[g["k_bis"]] == g["f_bis_hz"]
+        assert dp["band_u_hz"] < dp["band_o_hz"]
+    for z in b1["zusammenfassung"]:
+        assert z["daempfung"]["zeta"] == z["zeta_median"]
+        assert z["daempfung"]["band_o_hz"] == gr[z["gruppe"]]["f_bis_hz"]
+    assert meta["format_version"] == 2
     assert meta["b5"]["spitzenpaare"] and meta["drift"][0]["pruefbar"]
     assert "b8.v_normal.re" in felder and "b5.band0.frac" in felder
     np.testing.assert_allclose(felder["b5.mac"], 1.0, atol=1e-12)
