@@ -57,7 +57,8 @@ uv run pytest --cov --cov-fail-under=90
 - Jede inhaltliche Änderung an einem Export (auch neue Felder) erhöht dessen `format_version`;
   dasselbe gilt für die `schema_version` des Messprotokolls (Nutzerentscheidung 2026-11-03).
 - Jede Dämpfungsangabe trägt `zeta`, die Bandgrenzen `band_u_hz` und `band_o_hz` und die
-  `methode`, mit der sie bestimmt wurde (R-055).
+  `methode`, mit der sie bestimmt wurde (R-055). Das gilt für ζ-Angaben und ζ-Differenzen;
+  reine Frequenzangaben (z. B. Frequenzdrift in Hz/h) sind keine Dämpfungsangaben.
 
 ## Verifikation
 - Jede Auswertefunktion wird gegen einen analytischen Referenzfall aus
