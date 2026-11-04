@@ -98,6 +98,86 @@ def momentanwert(amplitude: npt.ArrayLike, theta_rad: npt.ArrayLike) -> FloatArr
     return ergebnis
 
 
+#: Toleranz, innerhalb derer ein Winkel am Umbruch -π als +π ausgegeben wird (rad).
+UMBRUCH_TOLERANZ_RAD = 1e-12
+
+
+def phase_relativ_rad(amplitude: npt.ArrayLike, bezug: int) -> FloatArray:
+    r"""Phase relativ zu einem Bezugspunkt :math:`\Delta\varphi_p = \arg(v_p\,v_\mathrm{ref}^{*})`.
+
+    Das gemeinsame Vorzeichen :math:`s_a s_b` (M8) kürzt sich heraus:
+    :math:`(s\,v_p)(s\,v_\mathrm{ref})^{*} = v_p\,v_\mathrm{ref}^{*}`. Die Größe ist daher
+    unabhängig von der Polarität der Referenz (FA-AUSW F-4a). Positives
+    :math:`\Delta\varphi` heißt: Punkt p eilt dem Bezugspunkt voraus (Zeitabhängigkeit
+    :math:`e^{+i\omega t}`, FG-02 3.6).
+
+    Parameters
+    ----------
+    amplitude : array_like
+        Komplexe Amplitude einer einzelnen Komponente, Form ``(P,)``.
+    bezug : int
+        0-basierter Index des Bezugspunkts.
+
+    Returns
+    -------
+    numpy.ndarray
+        :math:`\Delta\varphi_p` in rad, garantiert im Bereich :math:`(-\pi, \pi]`, Form
+        ``(P,)``; 180° wird einheitlich als :math:`+\pi` ausgegeben (Werte bis
+        :data:`UMBRUCH_TOLERANZ_RAD` über :math:`-\pi` werden auf :math:`+\pi` gesetzt, sie
+        liegen nur durch Rundung dort). NaN bleibt NaN.
+
+    Raises
+    ------
+    ValueError
+        Bei falscher Form oder ``bezug`` außerhalb ``0 … P-1``.
+    """
+    v = np.asarray(amplitude, dtype=np.complex128)
+    if v.ndim != 1 or not 0 <= bezug < v.shape[0]:
+        raise ValueError(f"amplitude (P,) und 0 <= bezug < P erwartet: {v.shape}, bezug={bezug}")
+    delta: FloatArray = np.angle(v * np.conj(v[bezug]))
+    # np.angle liefert (-π, π]; Werte am Umbruch -π (bis UMBRUCH_TOLERANZ_RAD darüber) werden
+    # auf +π gesetzt, damit 180° einheitlich und garantiert innerhalb (-π, π] ausgegeben wird.
+    ergebnis: FloatArray = np.where(delta <= -np.pi + UMBRUCH_TOLERANZ_RAD, np.pi, delta)
+    return ergebnis
+
+
+def waehle_bezugspunkt(
+    betrag: npt.ArrayLike, kohaerenz_ok: npt.ArrayLike, gueltig: npt.ArrayLike | None = None
+) -> int | None:
+    r"""Voreinstellung des Bezugspunkts (FA-AUSW F-4a).
+
+    Gewählt wird der Punkt mit dem größten :math:`|v|` unter den Punkten mit
+    :math:`\gamma^2 \ge \gamma^2_\mathrm{min}` und :math:`0 < |v| < \infty`. Ein Punkt mit
+    :math:`|v| = 0` kann keine Bezugsphase liefern (:math:`\arg(v_p \cdot v_\mathrm{ref}^*)`
+    ist dann undefiniert) und scheidet daher aus.
+
+    Parameters
+    ----------
+    betrag : array_like
+        :math:`|v_p|` der Komponente, ``(P,)``.
+    kohaerenz_ok : array_like
+        Maske :math:`\gamma^2 \ge \gamma^2_\mathrm{min}` je Punkt (FG-02 3.5), ``(P,)``.
+    gueltig : array_like, optional
+        Gültigkeit je Punkt (M6); ``None`` = alle gültig.
+
+    Returns
+    -------
+    int or None
+        0-basierter Index; bei Gleichstand der kleinste Index; ``None``, wenn kein Punkt
+        die Bedingung erfüllt (NaN-Beträge, Beträge null und unendliche Beträge zählen nicht).
+    """
+    b = np.asarray(betrag, dtype=np.float64)
+    ok = np.asarray(kohaerenz_ok, dtype=bool)
+    if gueltig is not None:
+        ok = ok & np.asarray(gueltig, dtype=bool)
+    if b.ndim != 1 or ok.shape != b.shape:
+        raise ValueError(f"betrag und Masken brauchen gleiche Form (P,): {b.shape}, {ok.shape}")
+    kandidaten = ok & np.isfinite(b) & (b > 0.0)
+    if not np.any(kandidaten):
+        return None
+    return int(np.argmax(np.where(kandidaten, b, -np.inf)))
+
+
 @dataclass(frozen=True, kw_only=True, eq=False)
 class Schwingform:
     r"""Betriebsschwingform (FG-02 3.6, Datenvertrag 6.2).

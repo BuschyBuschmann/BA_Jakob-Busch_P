@@ -23,6 +23,7 @@ from ldv_automation.auswertung.gesamt import berechne_baender
 from ldv_automation.auswertung.laden import referenzen_aus
 from ldv_automation.auswertung.mittel import (
     HINWEIS_MITTEL_3D,
+    HINWEIS_MITTEL_3D_LEISTUNG,
     HINWEIS_MITTEL_KOHAERENT,
     HINWEIS_MITTEL_LEISTUNG,
     KENNZEICHEN_3D_MITTEL_UNGEPRUEFT,
@@ -211,5 +212,10 @@ def test_berechne_baender_ohne_grenzen_ist_leer() -> None:
 
 @pytest.mark.parametrize("n", [1, 135])
 def test_hinweise_lassen_sich_formatieren(n: int) -> None:
-    for text in (HINWEIS_MITTEL_KOHAERENT, HINWEIS_MITTEL_LEISTUNG, HINWEIS_MITTEL_3D):
+    for text in (
+        HINWEIS_MITTEL_KOHAERENT,
+        HINWEIS_MITTEL_LEISTUNG,
+        HINWEIS_MITTEL_3D,
+        HINWEIS_MITTEL_3D_LEISTUNG,
+    ):
         assert str(n) in text.format(n=n)

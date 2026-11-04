@@ -68,9 +68,19 @@ beendet."""
 _EOF_WARTEN_S = 0.2
 """Kurze Wartezeit auf den Exitcode eines Prozesses, dessen Pipe abgebrochen ist."""
 
+_TERMINATE_WARTEN_S = 0.3
+"""Frist, die ``abbrechen`` dem Prozess nach ``terminate`` (SIGTERM) zum Enden lässt, bevor
+``kill`` (SIGKILL) folgt. Ein kooperativer Prozess endet in wenigen ms (gemessen etwa 2 ms);
+0,3 s ist weit darüber, bleibt aber unter der Wahrnehmungsschwelle einer sichtbar hängenden
+Oberfläche. Unter Windows ist ``terminate`` bereits hart (``TerminateProcess``), die Frist wird
+dort nur selten ausgeschöpft."""
+
+_KILL_WARTEN_S = 1.0
+"""Frist nach ``kill`` bis der Prozess eingesammelt ist (SIGKILL ist nicht abfangbar; die Frist
+deckt nur Prozesse im Kernel-Zustand ab, etwa bei hängendem Dateisystem)."""
+
 _KOPF = b"K"
 _FEHLER = b"F"
-_TRENNER = "\x00"
 
 
 class AuftragFehler(Exception):  # noqa: N818  (fachlicher Name)
@@ -199,6 +209,38 @@ def _sende_teile(verbindung: Connection, daten: memoryview, teil_bytes: int) -> 
         verbindung.send_bytes(daten[anfang : anfang + teil_bytes])
 
 
+def _text_sicher(erzeuger: Callable[[], str]) -> str:
+    """Ergebnis von ``erzeuger()``; wirft schon das Erzeugen (``__str__``), ein Ersatztext."""
+    try:
+        return erzeuger()
+    except Exception:
+        return "<Text nicht darstellbar>"
+
+
+def _fehlerrahmen(exc: BaseException) -> bytes:
+    r"""Fehlerrahmen: gepickeltes Tupel ``(typ, meldung, ablaufverfolgung)``.
+
+    Das Tupel ist unabhängig vom Inhalt der Texte (jedes Zeichen, auch ``\x00``). ``pickle``
+    überträgt auch einzelne Surrogate (z. B. ``\udcff`` aus einem Dateinamen, der mit
+    ``surrogateescape`` dekodiert wurde) verlustfrei, ``str.encode("utf-8")`` dagegen wirft
+    dafür eine Ausnahme und die Meldung ginge verloren.
+    """
+    meldung = _text_sicher(lambda: str(exc))
+    spur = _text_sicher(traceback.format_exc)
+    return pickle.dumps((type(exc).__name__, meldung, spur), protocol=5)
+
+
+def _fehlerrahmen_lesen(daten: bytes) -> tuple[str, str, str]:
+    """Gegenstück zu :func:`_fehlerrahmen`; ungültige Rahmen ergeben eine Ersatzmeldung."""
+    try:
+        typ, meldung, spur = pickle.loads(daten)
+        if all(isinstance(t, str) for t in (typ, meldung, spur)):
+            return typ, meldung, spur
+    except Exception:
+        pass
+    return "", "Fehlermeldung des Hintergrundprozesses nicht lesbar", ""
+
+
 def _worker(
     verbindung: Connection,
     funktion: Callable[..., Any],
@@ -219,8 +261,7 @@ def _worker(
             + b"".join(struct.pack("<Q", len(s)) for s in stuecke)
         )
     except Exception as exc:
-        text = _TRENNER.join((type(exc).__name__, str(exc), traceback.format_exc()))
-        verbindung.send_bytes(_FEHLER + text.encode("utf-8"))
+        verbindung.send_bytes(_FEHLER + _fehlerrahmen(exc))
         verbindung.close()
         return
     verbindung.send_bytes(kopf)
@@ -310,10 +351,8 @@ class _ProzessAuftrag:
             if nachricht[:1] == _KOPF:
                 self._kopf_lesen(nachricht)  # das Hauptstück (Pickle) ist nie leer
             elif nachricht[:1] == _FEHLER:
-                typ, meldung, spur = (nachricht[1:].decode("utf-8") + _TRENNER * 2).split(
-                    _TRENNER, 2
-                )
-                self._fehler_setzen(meldung, typ, spur.rstrip(_TRENNER))
+                typ, meldung, spur = _fehlerrahmen_lesen(nachricht[1:])
+                self._fehler_setzen(meldung, typ, spur)
             else:
                 self._fehler_setzen("unerwartete Nachricht vom Hintergrundprozess")
             return
@@ -330,7 +369,8 @@ class _ProzessAuftrag:
 
     def _prozess_ohne_ergebnis(self) -> None:
         code = self._prozess.exitcode
-        self._fehler_setzen(f"Hintergrundprozess unerwartet beendet (Exitcode {code})")
+        text = "unbekannt" if code is None else str(code)
+        self._fehler_setzen(f"Hintergrundprozess unerwartet beendet (Exitcode {text})")
 
     # -- Schnittstelle ------------------------------------------------------------------------
 
@@ -374,7 +414,12 @@ class _ProzessAuftrag:
             return
         self._abgebrochen = True
         self._prozess.terminate()
-        self._prozess.join(_ENDE_WARTEN_S)
+        self._prozess.join(_TERMINATE_WARTEN_S)
+        if self._prozess.exitcode is None:
+            # SIGTERM ignoriert oder abgefangen: hart beenden (unter Windows ist terminate
+            # bereits hart und kill identisch)
+            self._prozess.kill()
+            self._prozess.join(_KILL_WARTEN_S)
         self._empfang.close()
         self._puffer = []
 

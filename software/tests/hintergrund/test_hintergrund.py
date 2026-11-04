@@ -10,11 +10,14 @@ from __future__ import annotations
 
 import multiprocessing
 import os
+import pickle
 import signal
+import sys
 import threading
 import time
 from collections.abc import Callable
 from multiprocessing.connection import Connection
+from pathlib import Path
 from typing import Any
 
 import hg_hilfsjobs as jobs
@@ -204,6 +207,10 @@ class _ProzessAttrappe:
         self.aufrufe.append("terminate")
         self.exitcode = -15
 
+    def kill(self) -> None:
+        self.aufrufe.append("kill")
+        self.exitcode = -9
+
 
 def _pipe_paar() -> tuple[Connection, Connection]:
     return multiprocessing.get_context("spawn").Pipe(duplex=False)
@@ -221,11 +228,64 @@ def test_empfang_unerwartete_nachricht() -> None:
 def test_empfang_fehlernachricht_ohne_ablaufverfolgung() -> None:
     empfang, senden = _pipe_paar()
     auftrag = hg._ProzessAuftrag(empfang, _ProzessAttrappe())
-    senden.send_bytes(b"F" + b"KeyError\x00fehlt")
+    senden.send_bytes(b"F" + pickle.dumps(("KeyError", "fehlt", ""), protocol=5))
     assert auftrag.fertig() is True
     with pytest.raises(AuftragFehler, match="fehlt") as info:
         auftrag.ergebnis()
     assert (info.value.typ, info.value.traceback_text) == ("KeyError", "")
+
+
+@pytest.mark.parametrize("rahmen", [b"\x80kaputt", pickle.dumps((1, 2, 3)), pickle.dumps("x")])
+def test_empfang_ungueltiger_fehlerrahmen_gibt_ersatzmeldung(rahmen: bytes) -> None:
+    empfang, senden = _pipe_paar()
+    auftrag = hg._ProzessAuftrag(empfang, _ProzessAttrappe())
+    senden.send_bytes(b"F" + rahmen)
+    assert auftrag.fertig() is True
+    with pytest.raises(AuftragFehler, match="nicht lesbar"):
+        auftrag.ergebnis()
+
+
+def test_empfang_exitcode_unbekannt_statt_none() -> None:
+    empfang, senden = _pipe_paar()
+    auftrag = hg._ProzessAuftrag(empfang, _ProzessAttrappe(exitcode=None))
+    senden.close()
+    assert auftrag.fertig() is True
+    with pytest.raises(AuftragFehler, match=r"\(Exitcode unbekannt\)") as info:
+        auftrag.ergebnis()
+    assert "None" not in info.value.meldung
+
+
+def test_fehlerrahmen_mit_nicht_darstellbarem_str_hat_ersatztext() -> None:
+    class KaputtError(Exception):
+        def __str__(self) -> str:
+            raise RuntimeError("str kaputt")
+
+    try:
+        raise KaputtError
+    except KaputtError as exc:
+        typ, meldung, _ = hg._fehlerrahmen_lesen(hg._fehlerrahmen(exc))
+    assert typ == "KaputtError" and "nicht darstellbar" in meldung
+
+
+def test_abbrechen_legt_kill_nach_wenn_terminate_nicht_reicht() -> None:
+    class Stur(_ProzessAttrappe):
+        def terminate(self) -> None:
+            self.aufrufe.append("terminate")  # Prozess ignoriert SIGTERM
+
+    empfang, senden = _pipe_paar()
+    prozess = Stur(exitcode=None)
+    auftrag = hg._ProzessAuftrag(empfang, prozess)
+    auftrag.abbrechen()
+    assert prozess.aufrufe == ["terminate", "join", "kill", "join"]
+    senden.close()
+
+
+def test_abbrechen_ohne_kill_wenn_terminate_wirkt() -> None:
+    empfang, senden = _pipe_paar()
+    prozess = _ProzessAttrappe(exitcode=None)
+    hg._ProzessAuftrag(empfang, prozess).abbrechen()
+    assert prozess.aufrufe == ["terminate", "join"]
+    senden.close()
 
 
 def test_empfang_pipe_zu_ohne_ergebnis_meldet_exitcode() -> None:
@@ -392,3 +452,47 @@ def test_prozess_oberflaeche_bleibt_waehrend_langem_auftrag_bedienbar(
     assert abfragen > 10
     assert laengste < 0.2  # gemessen < 1 ms; großzügig für langsame Rechner
     auftrag.abbrechen()
+
+
+# --- Fehlerkanal mit beliebigem Text (echter Prozess) ----------------------------------------
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["/x/\udcff.svd: Datei nicht lesbar", "a\x00b", "a\x00b\x00c\x00d", "ü – 日本 \U0001f600", ""],
+)
+def test_prozess_fehlertext_beliebiger_inhalt_kommt_vollstaendig_an(
+    ausfuehrer: ProzessAusfuehrer, text: str
+) -> None:
+    auftrag = ausfuehrer.starte(jobs.wirf, text)
+    warte(auftrag)
+    with pytest.raises(AuftragFehler) as info:
+        auftrag.ergebnis()
+    assert info.value.typ == "ValueError"
+    assert info.value.meldung == text
+    assert "wirf" in info.value.traceback_text
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="SIGTERM ist unter Windows nicht abfangbar")
+def test_prozess_abbrechen_beendet_auch_prozess_der_sigterm_ignoriert(
+    ausfuehrer: ProzessAusfuehrer, tmp_path: Path
+) -> None:
+    """Der Auftrag ignoriert SIGTERM; ``abbrechen`` legt nach der Frist SIGKILL nach.
+
+    Unter Windows ist ``terminate`` bereits ``TerminateProcess`` (hart); dort nicht prüfbar
+    und als Risiko benannt (Messrechner).
+    """
+    bereit = tmp_path / "bereit"
+    auftrag = ausfuehrer.starte(jobs.ignoriere_sigterm_und_schlafe, 60.0, str(bereit))
+    ende = time.monotonic() + FRIST_S
+    while not bereit.exists():  # Marke: SIGTERM ist im Worker bereits ignoriert
+        assert time.monotonic() < ende, "Worker nicht rechtzeitig bereit"
+        time.sleep(0.01)
+    beginn = time.perf_counter()
+    auftrag.abbrechen()
+    dauer = time.perf_counter() - beginn
+    assert dauer < hg._TERMINATE_WARTEN_S + hg._KILL_WARTEN_S + 2.0  # Frist + Spielraum
+    assert dauer >= hg._TERMINATE_WARTEN_S * 0.9  # die Frist wurde abgewartet, dann kill
+    assert auftrag.fertig() is True
+    with pytest.raises(AuftragAbgebrochen):
+        auftrag.ergebnis()

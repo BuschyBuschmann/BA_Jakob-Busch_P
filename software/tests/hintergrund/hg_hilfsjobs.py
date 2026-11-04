@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import signal
 import time
 from typing import Any
 
@@ -27,6 +28,15 @@ def wirf(text: str) -> None:
 
 
 def schlafe(sekunden: float) -> str:
+    time.sleep(sekunden)
+    return "wach"
+
+
+def ignoriere_sigterm_und_schlafe(sekunden: float, bereit_pfad: str) -> str:
+    """Ignoriert SIGTERM, meldet das über eine Marke und schläft (nur ``kill`` beendet ihn)."""
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    with open(bereit_pfad, "w", encoding="utf-8") as f:
+        f.write("bereit")
     time.sleep(sekunden)
     return "wach"
 

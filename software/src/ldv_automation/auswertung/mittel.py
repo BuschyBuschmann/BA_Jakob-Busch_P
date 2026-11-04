@@ -49,6 +49,12 @@ HINWEIS_MITTEL_3D = (
 )
 """Formel des 3D-Mittels (Annahme der Fachanalyse FA-AUSW; der PSV-Abgleich fehlt)."""
 
+HINWEIS_MITTEL_3D_LEISTUNG = (
+    "3D-Mittel: quadratisches Mittel der punktweisen 3D-Beträge √(Σ_c AP_c) über {n} Punkte "
+    "= √(Σ_c Mittel AP_c), nicht gegen PSV geprüft"
+)
+"""Formel des 3D-Mittels bei √AP (``mittel_quadratisch`` von ``betrag_3d_ap``; ungeprüft)."""
+
 KENNZEICHEN_3D_MITTEL_UNGEPRUEFT = "nicht gegen PSV geprüft"
 """Kurzkennzeichen für das 3D-Mittel in Legende und Tooltip."""
 
