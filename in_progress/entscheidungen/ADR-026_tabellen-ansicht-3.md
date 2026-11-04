@@ -28,3 +28,8 @@ Brief K-AUSW Abschnitt 3.3 gilt in diesem Punkt als geändert; Test auf sichtbar
 **Anlass:** Design-Re-Abnahme DA-AUSW-T3b-2: Mit Standardhöhe ≥ 6 Tabellenzeilen bleibt bei 1366×768 nur ca. 140 px Plot; Beschriftungsstreifen (bis 50 %) und Dreizeilen-Kasten quetschen die Kurve auf ca. 40 px.
 **Alternativen:** Beschriftung in die Auswahlspalte AD (im Plot nur Ring, kein Streifen) · Tabelle einklappbar mit 4 Zeilen · zusätzlich Legende in den Plotkopf · nur Streifen begrenzen.
 **Entscheidung des Nutzers (2026-11-05):** In der Oberfläche stehen die Angaben der gewählten Spitze (f, ζ, Methode, Band, Kennzeichen) als Textblock in der Auswahlspalte; im Plot bleibt der Ring, der Beschriftungsstreifen entfällt; Tabelle 5–6 Zeilen, Plotachse ca. 220 px. Die Thesis-Abbildung behält Kasten und Streifen. Abweichung von UI-8 („Marker mit Beschriftung im Plot“) bewusst. Kanalpaarwahl bleibt für alle Ansichten gemeinsam (Nutzerentscheidung).
+
+## Nachtrag 2 2026-11-05: Legende in der Auswahlspalte, 4 Tabellenzeilen
+**Anlass:** Nach Nachtrag 1 blieb bei 1366×768 mit 5 Tabellenzeilen nur eine Plotachse von 98 px (Legende, Ticks und Werkzeugleiste kosten ca. 170 px); 220 px Achse und 5 Zeilen passen nicht gleichzeitig.
+**Alternativen:** Legende aus dem Plot und 4 Zeilen · 3 Zeilen Standard · unverändert (Splitter manuell).
+**Entscheidung des Nutzers (2026-11-05):** In der Oberfläche steht die Kurvenlegende (mit Mittelformel und Punktzahl) in der Auswahlspalte, Standard 4 Tabellenzeilen. Gemessen: Achse 203 px bei 1366×768, 115 px bei 1100×680. Thesis und Arbeitsbild behalten Legende, Streifen und Kasten (Voreinstellung der Zeichenfunktion). Beim späteren „Bild speichern“ (T4) sind die Voreinstellungen zu verwenden, nicht die GUI-Optionen.
