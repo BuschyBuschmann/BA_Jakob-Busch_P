@@ -12,6 +12,7 @@ import time
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from PySide6.QtCore import QSize, Qt, QTimer, QUrl
@@ -39,6 +40,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QSplitter,
+    QTabWidget,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -75,6 +77,7 @@ from ldv_automation.gui.anzeige import (
     zuruecksetzen_frage_text,
 )
 from ldv_automation.gui.anzeige import nummern_bild as nr_anzeige
+from ldv_automation.gui.anzeige_auswerten import reiterkopf_messen
 from ldv_automation.gui.dialoge import (
     DurchgangStartenDialog,
     EinstellungenDialog,
@@ -89,6 +92,7 @@ from ldv_automation.gui.fassade import SitzungsFassade
 from ldv_automation.gui.hinweisband import Hinweisband
 from ldv_automation.gui.stil import schrift, setze_eigenschaft
 from ldv_automation.gui.tabelle import Warteschlangentabelle
+from ldv_automation.hintergrund import Ausfuehrer, ProzessAusfuehrer
 from ldv_automation.sitzung import (
     Betriebsart,
     DurchgangZustand,
@@ -96,6 +100,9 @@ from ldv_automation.sitzung import (
     Fehlerentscheidung,
     Zustandsbild,
 )
+
+if TYPE_CHECKING:
+    from ldv_automation.gui.auswerten_reiter import AuswertenReiter
 
 Z = DurchgangZustand
 
@@ -105,6 +112,8 @@ BEFEHL_SPERRE_MAX_S = 2.0
 """Längste Sperre der Ablaufknöpfe nach einem Befehl, falls kein neues Zustandsbild kommt."""
 DATEIFILTER_WARTESCHLANGE = "Warteschlange (*.warteschlange.json)"
 ENDUNG_WARTESCHLANGE = ".warteschlange.json"
+REITER_MESSEN = 0
+REITER_AUSWERTEN = 1
 KONFLIKT_GESTARTET = (
     f"{t.symbol('fehler')} Der Eintrag wurde inzwischen gestartet. "
     "Deine Änderungen wurden nicht übernommen."
@@ -162,6 +171,11 @@ class Hauptfenster(QMainWindow):
         Parameterkatalog für Editor und Tabelle.
     takt_ms : int or None
         Abholtakt in ms; ``None`` startet keinen Timer (Tests rufen :meth:`aktualisiere`).
+    ausfuehrer : Ausfuehrer, optional
+        Startet die Hintergrundaufträge des Reiters „Auswerten“ (Lesen und Prüfen einer
+        ``.svd``-Datei im eigenen Prozess). ``None`` = :class:`ProzessAusfuehrer`, wenn der
+        Reiter zum ersten Mal aktiviert wird. Tests geben einen ``DirektAusfuehrer`` oder einen
+        Ausführer mit, der nie fertig wird.
     """
 
     def __init__(
@@ -170,6 +184,7 @@ class Hauptfenster(QMainWindow):
         *,
         katalog: Parameterkatalog = KATALOG,
         takt_ms: int | None = t.AKTUALISIERUNG_MS,
+        ausfuehrer: Ausfuehrer | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -191,6 +206,8 @@ class Hauptfenster(QMainWindow):
         self._in_zeige = False
         self._letzte_auswahl: UUID | None = None
         self._dateiname: str | None = None
+        self._ausfuehrer = ausfuehrer
+        self._auswerten: AuswertenReiter | None = None
 
         self.setMinimumSize(t.FENSTER_MIN_BREITE_PX, t.FENSTER_MIN_HOEHE_PX)
         self.resize(1366, 768)
@@ -237,6 +254,16 @@ class Hauptfenster(QMainWindow):
         self.act_abbrechen = self._aktion("Abbrechen …", "act_abbrechen", q("F8"), self._abbrechen)
         self.act_bestaetigen = self._aktion(
             "Pausenpunkt bestätigen (F7)", "act_bestaetigen", q("F7"), self._bestaetigen
+        )
+        self._messen_aktionen = (
+            self.act_messung_neu,
+            self.act_pausenpunkt_neu,
+            self.act_speichern,
+            self.act_laden,
+            self.act_start,
+            self.act_pause,
+            self.act_bestaetigen,
+            self.act_abbrechen,
         )
         self._tasten_hinweis = {
             "messung_neu": "Strg+N",
@@ -359,7 +386,12 @@ class Hauptfenster(QMainWindow):
         b.addWidget(self.btn_pause)
         b.addSpacing(16)
         b.addWidget(self.btn_abbrechen)
-        haupt.addWidget(self.werkzeugleiste)
+        messen_seite = QWidget()
+        messen_seite.setObjectName("messen")
+        messen_layout = QVBoxLayout(messen_seite)
+        messen_layout.setContentsMargins(0, 0, 0, 0)
+        messen_layout.setSpacing(0)
+        messen_layout.addWidget(self.werkzeugleiste)
 
         inhalt = QWidget()
         c = QVBoxLayout(inhalt)
@@ -419,17 +451,35 @@ class Hauptfenster(QMainWindow):
         self.protokoll.setFixedHeight(zeile * t.PROTOKOLL_MIN_ZEILEN + 12)
         c.addWidget(self.protokoll)
 
-        haupt.addWidget(inhalt, 1)
+        messen_layout.addWidget(inhalt, 1)
+
+        # Reiterrahmen (K-AUSW Abschnitt 1): Zone A bleibt darüber, „Messen“ enthält B bis G
+        # unverändert, „Auswerten“ wird erst beim ersten Aktivieren aufgebaut.
+        self.reiter = QTabWidget()
+        self.reiter.setObjectName("reiter")
+        self.reiter.setDocumentMode(True)
+        self.reiter.setAccessibleName("Bereich")
+        self.reiter.tabBar().setObjectName("reiter_leiste")
+        self.reiter.tabBar().setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.reiter.addTab(messen_seite, "Messen")
+        self.auswerten_seite = QWidget()
+        self.auswerten_seite.setObjectName("auswerten")
+        self._auswerten_layout = QVBoxLayout(self.auswerten_seite)
+        self._auswerten_layout.setContentsMargins(0, 0, 0, 0)
+        self.reiter.addTab(self.auswerten_seite, "Auswerten")
+        self.reiter.currentChanged.connect(self._reiter_gewechselt)
+        haupt.addWidget(self.reiter, 1)
         self.setCentralWidget(zentral)
         self._tab_reihenfolge()
 
     def _tab_reihenfolge(self) -> None:
-        """Tabulatorreihenfolge A → B → C → D → E → G (F ist nicht fokussierbar)."""
+        """Tabulatorreihenfolge A → Reiterleiste → B → C → D → E → G (F nicht fokussierbar)."""
         kette: list[QWidget] = [
             self.btn_betriebsart,
             self.btn_verbinden,
             self.btn_geraet,
             self.btn_einstellungen,
+            self.reiter.tabBar(),
             *self._werkzeugknoepfe,
         ]
         h = self.hinweisband.hinweis
@@ -457,6 +507,50 @@ class Hauptfenster(QMainWindow):
         self.editor.uebernehmen_angefordert.connect(self._uebernehmen)
         self.editor.verwerfen_angefordert.connect(self._verwerfen)
         self.editor.eingaben_verwerfen_angefordert.connect(self._eingaben_verwerfen)
+
+    # --- Reiter „Auswerten“ -------------------------------------------------------------------
+
+    @property
+    def auswerten(self) -> AuswertenReiter | None:
+        """Der Inhalt des Reiters „Auswerten“ (``None``, solange er nie aktiviert wurde)."""
+        return self._auswerten
+
+    def _reiter_gewechselt(self, index: int) -> None:
+        """Baut „Auswerten“ beim ersten Aktivieren auf und sperrt/entsperrt die Messaktionen."""
+        if index == REITER_AUSWERTEN:
+            self._baue_auswerten()
+        self._zeige(self._bild)
+
+    def _baue_auswerten(self) -> None:
+        """Baut den Reiter „Auswerten“ auf (matplotlib-Import, etwa 0,6 s, erst jetzt).
+
+        Schlägt der Aufbau fehl, zeigt der Reiter einen Fehlertext; Warteschlange, Sitzung und
+        der Reiter „Messen“ bleiben unberührt.
+        """
+        if self._auswerten is not None or self.auswerten_seite.findChild(
+            QLabel, "auswerten_fehler"
+        ):
+            return
+        try:
+            from ldv_automation.gui.auswerten_reiter import AuswertenReiter
+
+            if self._ausfuehrer is None:
+                self._ausfuehrer = ProzessAusfuehrer()
+            reiter = AuswertenReiter(self._ausfuehrer)
+        except Exception as fehler:  # Importfehler, Qt, Schrift: der Messbetrieb bleibt unberührt
+            text = QLabel(
+                f"{t.symbol('fehler')} Der Bereich „Auswerten“ konnte nicht aufgebaut werden: "
+                f"{fehler}"
+            )
+            text.setObjectName("auswerten_fehler")
+            text.setWordWrap(True)
+            text.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+            text.setMargin(t.FENSTERRAND_PX)
+            text.setProperty("art", "fehler")
+            self._auswerten_layout.addWidget(text)
+            return
+        self._auswerten = reiter
+        self._auswerten_layout.addWidget(reiter)
 
     # --- austauschbare Ausführung (Tests ersetzen diese Methoden) -------------------------
 
@@ -625,10 +719,15 @@ class Hauptfenster(QMainWindow):
                 knopf = Knopf(False, "Befehl wird ausgeführt …", knopf.text)
             self._setze_aktion(aktion, knopf, kuerzel)
         self.act_bestaetigen.setEnabled(z is Z.WARTET_AUF_BESTAETIGUNG and not gesperrt)
+        if self.reiter.currentIndex() == REITER_AUSWERTEN:
+            # F5 bis F8 und Strg+N/S/O bleiben dem Reiter „Messen“ vorbehalten (Brief K-AUSW 8).
+            for aktion in self._messen_aktionen:
+                aktion.setEnabled(False)
 
         # Zone C
         schluessel = bild.durchgangsordner or ""
         h = hinweis(bild, beendet_quittiert=self._beendet_quittiert == schluessel)
+        self.reiter.setTabText(REITER_MESSEN, reiterkopf_messen(h.fall if h else None, z))
         if self.hinweisband.zeige(h):
             self._tab_reihenfolge()
             if h is not None and h.alarm:
@@ -1204,5 +1303,9 @@ class Hauptfenster(QMainWindow):
             elif geklickt is not verwerfen:
                 event.ignore()
                 return
+        if self._auswerten is not None:
+            self._auswerten.beende()
+        if self._ausfuehrer is not None:
+            self._ausfuehrer.beende()
         self._timer.stop()
         event.accept()

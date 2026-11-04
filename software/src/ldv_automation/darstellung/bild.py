@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from matplotlib.figure import Figure
-from matplotlib.layout_engine import ConstrainedLayoutEngine
 
 from .stil import Plotstil
 from .zeichnung import Zeichnung
@@ -134,6 +133,9 @@ def speichere_arbeitsbild(
     if pfad.suffix.lower() not in (".png", ".pdf"):
         raise ValueError(f"Bildformat {pfad.suffix!r} nicht unterstützt (.png oder .pdf)")
     fig = neue_figure(stil, groesse_zoll)
+    # Rand für den Stempel **vor** dem Zeichnen: die Zeichenfunktionen messen in pt (Layout)
+    hoehe = 0.028 * len(stempel.zeilen) + 0.012
+    fig.set_layout_engine("constrained", rect=(0.0, hoehe, 1.0, 1.0 - hoehe))
     zeichnung = zeichne(fig)
     for index, (xlim, ylim) in (grenzen or {}).items():
         ax = zeichnung.achsen[index]
@@ -141,10 +143,6 @@ def speichere_arbeitsbild(
             ax.set_xlim(*xlim)
         if ylim is not None:
             ax.set_ylim(*ylim)
-    hoehe = 0.028 * len(stempel.zeilen) + 0.012
-    engine = fig.get_layout_engine()
-    if isinstance(engine, ConstrainedLayoutEngine):
-        engine.set(rect=(0.0, hoehe, 1.0, 1.0 - hoehe))
     for n, zeile in enumerate(reversed(stempel.zeilen)):
         fig.text(
             0.01,

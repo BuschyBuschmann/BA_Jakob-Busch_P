@@ -79,9 +79,37 @@ QLineEdit:disabled, QSpinBox:disabled, QComboBox:disabled, QPlainTextEdit:disabl
 }}
 *:focus {{ outline: none; }}
 QPushButton:focus, QToolButton:focus, QLineEdit:focus, QSpinBox:focus, QComboBox:focus,
-QPlainTextEdit:focus, QCheckBox:focus, QTableWidget:focus {{
+QPlainTextEdit:focus, QCheckBox:focus, QTableWidget:focus, QListWidget:focus,
+QRadioButton:focus {{
     border: 2px solid {t.C_AKZENT};
 }}
+QTabBar::tab {{
+    min-height: {t.KNOPF_MIN_HOEHE_PX - 8}px; padding: 2px 20px; background: {t.C_LEISTE};
+    border: 1px solid {t.C_LINIE}; border-bottom: none;
+}}
+QTabBar::tab:selected {{ background: {t.C_FLAECHE}; font-weight: bold; }}
+QTabBar:focus {{ border: 2px solid {t.C_AKZENT}; }}
+QTabWidget::pane {{ border: none; border-top: 1px solid {t.C_LINIE}; }}
+QPushButton[art="segment"] {{ padding: 0 12px; min-height: {t.KNOPF_MIN_HOEHE_PX - 12}px; }}
+QPushButton[art="segment"]:checked {{
+    border: 2px solid {t.C_AKZENT}; background: {t.C_AKTIV_BG}; font-weight: bold;
+}}
+QPushButton[art="segment"]:disabled:checked {{ border-color: {t.C_LINIE}; }}
+QListWidget {{
+    background: {t.C_FLAECHE}; border: 1px solid {t.C_LINIE};
+    selection-background-color: {t.C_AUSWAHL_BG}; selection-color: {t.C_TEXT};
+}}
+QListWidget:disabled {{ background: {t.C_DEAKTIVIERT_BG}; color: {t.C_DEAKTIVIERT_TEXT}; }}
+QCheckBox:disabled, QRadioButton:disabled {{ color: {t.C_DEAKTIVIERT_TEXT}; }}
+QFrame#dateileiste, QFrame#parameterzeile, QFrame#ansichtswahl, QFrame#fusszeile {{
+    background: {t.C_LEISTE};
+}}
+QFrame#parameterzeile {{ border-bottom: 1px solid {t.C_LINIE}; }}
+QFrame#fusszeile {{ border-top: 1px solid {t.C_LINIE}; }}
+QFrame#band_fehler {{ background: {t.C_FEHLER_BG}; border: 2px solid {t.C_FEHLER}; }}
+QFrame#band_fehler QLabel {{ color: {t.C_FEHLER}; }}
+QFrame#plot_rahmen {{ border: 2px solid transparent; background: {t.C_PLOT_FLAECHE}; }}
+QFrame#plot_rahmen[fokus="true"] {{ border: 2px solid {t.C_AKZENT}; }}
 QTableWidget {{
     background: {t.C_FLAECHE}; gridline-color: {t.C_LINIE_ZEILE};
     border: 1px solid {t.C_LINIE};

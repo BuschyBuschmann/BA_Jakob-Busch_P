@@ -105,6 +105,11 @@ omit = [
     "src/ldv_automation/gui/dialoge.py",
     "src/ldv_automation/gui/stil.py",
     "src/ldv_automation/gui/start.py",
+    # Auswertungsoberfläche (P-AUSW T3a): Widgets mit Qt und matplotlib-Canvas, nur offscreen
+    # prüfbar; Logik (Parameterzeile, Zustände, Prüftext, Reiterkopf, Plotstil) liegt Qt-frei in
+    # `gui/anzeige_auswerten.py` und `gui/plotstil.py` und wird im Standardlauf voll gemessen.
+    "src/ldv_automation/gui/auswerten_reiter.py",
+    "src/ldv_automation/gui/plotflaeche.py",
 ]
 
 [tool.coverage.report]

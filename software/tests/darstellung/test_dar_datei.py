@@ -154,7 +154,7 @@ def test_ansichten_2_bis_4_an_der_datei(geladen: Geladen, cache: PaarCache) -> N
     # Spitze 10 (65,121 Hz) ist auflösungsbegrenzt: ζ mit Bandgrenzen, Methode und Warnzeichen
     assert sp.spitzen[10].kennzeichen == ("aufloesungsbegrenzt",)
     assert beschriftet[0] == (
-        "f = 65,121 Hz · ζ ≈ 0,0058 (-3dB-Breite, 64,768 … 65,526 Hz)\n⚠ auflösungsbegrenzt"
+        "f = 65,121 Hz · ζ ≈ 0,0058\n-3dB-Breite, 64,768 … 65,526 Hz\n⚠ auflösungsbegrenzt"
     )
     assert HINWEIS_ZETA in z.hinweise
     sf = schwingform_daten(d, cache, 167.5, komponente="Z")

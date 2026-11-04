@@ -1151,6 +1151,7 @@ def test_ui_21_fokus_und_tabulatorreihenfolge(baue: Any, qtbot: QtBot) -> None:
         "btn_betriebsart",
         "btn_geraet",
         "btn_einstellungen",
+        "reiter_leiste",  # neu: die Reiterleiste „Messen | Auswerten“ liegt zwischen A und B
         "btn_messung_neu",
         "btn_pausenpunkt_neu",
         "btn_speichern",

@@ -4,6 +4,12 @@ Die Kurve (Betragsmittel ``|H1|`` bzw. ohne Referenz das Leistungsmittel ``√AP
 Marker an jeder Spitze; **beschriftet wird nur die gewählte Spitze** (in der Beispieldatei gibt
 es 111 Spitzen, alle Beschriftungen wären unlesbar). Bänder sind schattierte Flächen unterhalb
 der Kurve. Zahlen kommen aus den Ergebnisobjekten des Kerns, hier wird nichts gerechnet.
+
+Layout (K-AUSW-LAYOUT 3.1 bis 3.5): Oberhalb der höchsten Kurvenstelle bleibt ein leerer
+Streifen in der Achse (immer, sobald Spitzen existieren, damit die y-Skala beim Wechsel der
+Spitze nicht springt); dort steht der Kasten der gewählten Spitze, eine Leitlinie führt zur
+Spitze. Die Legende steht unterhalb der Achse. Alle Maße in pt werden nach dem Layout gemessen,
+die Figure muss deshalb vor dem Aufruf ihre endgültige Größe haben.
 """
 
 from __future__ import annotations
@@ -12,9 +18,12 @@ import math
 from dataclasses import dataclass
 
 from matplotlib import rc_context
+from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.legend import Legend
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
+from matplotlib.transforms import ScaledTranslation
 
 from ldv_automation.auswertung.export import METHODE_SPITZEN
 from ldv_automation.auswertung.spitzen import Spitze
@@ -22,7 +31,7 @@ from ldv_automation.auswertung.spitzen import Spitze
 from .auswahl import SpitzenDaten
 from .formate import MINUS, achsentitel, frequenz_text, zahl_signifikant_text, zahl_text
 from .stil import Plotstil
-from .zeichnung import Skala, Zeichnung, setze_achsenstil
+from .zeichnung import Skala, Zeichnung, achse_pt, constrained_layout, setze_achsenstil
 
 __all__ = ["HINWEIS_ZETA", "SpitzenOptionen", "beschriftung_der_spitze", "zeichne_spitzen"]
 
@@ -63,11 +72,17 @@ def beschriftung_der_spitze(
 ) -> str:
     """Beschriftung der gewählten Spitze mit ζ, Bandgrenzen, Methode und Warnkennzeichen.
 
-    Beispiel: ``f = 65,121 Hz · ζ ≈ 0,0058 (-3dB-Breite, 64,7 … 65,5 Hz)``; trägt die Spitze
-    Warnkennzeichen (``Spitze.kennzeichen``), folgt eine zweite Zeile ``⚠ auflösungsbegrenzt``.
-    Jede Dämpfungsangabe nennt ζ, Bandgrenzen und Methode (KONVENTIONEN, R-055); die Methode
-    ist :data:`~ldv_automation.auswertung.export.METHODE_SPITZEN`. Ohne bestimmte Breite
-    (ζ oder Bandgrenzen NaN) steht „ζ = –“ ohne Methodenangabe, denn es wird kein Wert angegeben.
+    Höchstens drei Zeilen::
+
+        f = 65,121 Hz · ζ ≈ 0,0058
+        -3dB-Breite, 64,768 … 65,526 Hz
+        ⚠ auflösungsbegrenzt
+
+    Die zweite Zeile nennt Methode (:data:`~ldv_automation.auswertung.export.METHODE_SPITZEN`)
+    und Bandgrenzen, die dritte alle Warnkennzeichen (``Spitze.kennzeichen``, kommagetrennt;
+    sie entfällt ohne Kennzeichen). Frequenzen haben feste drei Nachkommastellen, ζ zwei
+    signifikante Stellen (KONVENTIONEN). Ohne bestimmte Breite (ζ oder Bandgrenzen NaN) steht
+    „ζ = –“ ohne Methodenzeile, denn es wird kein Wert angegeben.
 
     Parameters
     ----------
@@ -82,16 +97,84 @@ def beschriftung_der_spitze(
     bestimmt = not any(math.isnan(w) for w in (spitze.zeta, spitze.f_l_hz, spitze.f_r_hz))
     if bestimmt:
         zeta = zahl_signifikant_text(spitze.zeta, 2, dezimalkomma=dezimalkomma)
-        unten = zahl_text(round(spitze.f_l_hz, 3), None, dezimalkomma=dezimalkomma)
+        unten = zahl_text(round(spitze.f_l_hz, 3) + 0.0, 3, dezimalkomma=dezimalkomma)
         oben = frequenz_text(spitze.f_r_hz, 3, dezimalkomma=dezimalkomma)
-        zeta_text = f"ζ ≈ {zeta} ({METHODE_SPITZEN}, {unten} … {oben})"
+        zeilen = [f"f = {f_text} · ζ ≈ {zeta}", f"{METHODE_SPITZEN}, {unten} … {oben}"]
     else:
-        zeta_text = "ζ = –"
-    text = f"f = {f_text} · {zeta_text}"
+        zeilen = [f"f = {f_text} · ζ = –"]
     if spitze.kennzeichen:
         worte = ", ".join(_KENNZEICHEN_TEXT.get(k, k) for k in spitze.kennzeichen)
-        text += f"\n{warn_symbol} {worte}"
-    return text
+        zeilen.append(f"{warn_symbol} {worte}")
+    return "\n".join(zeilen)
+
+
+STREIFEN_MIN = 0.10
+STREIFEN_MAX = 0.50
+"""Grenzen des Anteils der Achsenhöhe für den Beschriftungsstreifen.
+
+Das Layout nennt 0,10 … 0,30. Bei 11,5 cm mal 7 cm (Achsenhöhe ca. 116 pt) braucht der
+Dreizeilenkasten aber 0,46; mit 0,30 läge er auf den Daten (L3-2/L3-7). Die Obergrenze ist
+deshalb 0,50 (Abweichung vom Layout, im Bericht genannt)."""
+
+KASTEN_ABSTAND_OBEN_PT = 4.0
+"""Abstand der Kasten-Oberkante zur Achsenoberkante."""
+
+_ZEILENABSTAND = 1.25
+_KASTEN_PAD = 0.2
+_LUFT_UNTER_KASTEN_PT = 16.0
+_LEITLINIE_ENDE_PT = 7.0
+
+
+def streifen_anteil(achsenhoehe_pt: float, schrift_pt: float) -> float:
+    """Anteil der Achsenhöhe für den Beschriftungsstreifen (drei Zeilen plus 16 pt Luft).
+
+    ``s = (3 · 1,25 · schrift + 2 · 0,2 · schrift + 16 pt) / Achsenhöhe``, begrenzt auf
+    :data:`STREIFEN_MIN` … :data:`STREIFEN_MAX`.
+    """
+    kasten = 3 * _ZEILENABSTAND * schrift_pt + 2 * _KASTEN_PAD * schrift_pt
+    s = (kasten + _LUFT_UNTER_KASTEN_PT) / max(achsenhoehe_pt, 1e-9)
+    return min(max(s, STREIFEN_MIN), STREIFEN_MAX)
+
+
+def obere_grenze(unten: float, oben: float, anteil: float, *, log: bool) -> float:
+    """Obere y-Grenze, so dass über ``oben`` der Streifen ``anteil`` der Achsenhöhe frei bleibt."""
+    if log:
+        return float(math.exp(math.log(unten) + (math.log(oben) - math.log(unten)) / (1 - anteil)))
+    return unten + (oben - unten) / (1 - anteil)
+
+
+def _legende(ax: Axes, handles: list[Line2D | Patch], stil: Plotstil) -> Legend:
+    """Legende unterhalb der Achsenbeschriftung; einzeilig, wenn sie passt, sonst eine Spalte.
+
+    Die Legende hängt an der Achse (das Constrained Layout reserviert den Platz und achtet auf
+    den ``rect`` des Arbeitsbildes, anders als ``fig.legend(loc="outside lower center")``).
+    """
+    fig = ax.figure
+    assert isinstance(fig, Figure)
+    fig.draw_without_rendering()
+    titel = ax.xaxis.label.get_window_extent()
+    tiefe_pt = (float(ax.bbox.y0) - float(titel.y0)) * 72.0 / fig.dpi + 4.0
+    versatz = ScaledTranslation(0.0, -tiefe_pt / 72.0, fig.dpi_scale_trans)
+    ncol = max(len(handles), 1)
+    for _ in range(2):
+        legende = ax.legend(
+            handles=handles,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.0),
+            bbox_transform=ax.transAxes + versatz,
+            borderaxespad=0.0,
+            ncol=ncol,
+            fontsize=stil.schrift_pt,
+            framealpha=0.9,
+            numpoints=1,
+        )
+        if ncol == 1 or legende.get_window_extent().width <= 0.98 * fig.bbox.width:
+            fig.draw_without_rendering()
+            return legende
+        legende.remove()
+        ncol = 1
+    fig.draw_without_rendering()  # pragma: no cover
+    return legende  # pragma: no cover
 
 
 def zeichne_spitzen(
@@ -102,7 +185,7 @@ def zeichne_spitzen(
     Parameters
     ----------
     fig : Figure
-        Wird geleert und neu gefüllt.
+        Wird geleert und neu gefüllt; die Größe muss endgültig sein (Messung in pt).
     daten : SpitzenDaten
         Aus :func:`~ldv_automation.darstellung.auswahl.spitzen_daten_frf` bzw.
         :func:`~ldv_automation.darstellung.auswahl.spitzen_daten_spektrum`.
@@ -115,13 +198,16 @@ def zeichne_spitzen(
     -------
     Zeichnung
         ``linien["kurve"]``, ``marker["spitzen"]`` (alle Spitzen, nur bei vorhandenen Spitzen),
-        ``marker["gewaehlt"]`` (gewählte Spitze), ``hilfsobjekte["baender"]`` (Liste), ``texte``
-        mit der Beschriftung der gewählten Spitze bzw. dem Hinweis ohne Spitzen, ``hinweise``
-        mit :data:`HINWEIS_ZETA` (nur bei vorhandenen Spitzen).
+        ``marker["gewaehlt"]`` (gewählte Spitze), ``hilfsobjekte["baender"]`` (Liste),
+        ``hilfsobjekte["legende"]`` (Legende unterhalb der Achsenbeschriftung),
+        ``hilfsobjekte["leitlinie"]`` (nur mit gewählter Spitze), ``hilfsobjekte["streifen"]``
+        (Anteil der Achsenhöhe, nur mit Spitzen), ``texte`` mit dem Kasten der gewählten
+        Spitze bzw. dem Hinweis ohne Spitzen, ``hinweise`` mit :data:`HINWEIS_ZETA` (nur bei
+        vorhandenen Spitzen).
     """
     with rc_context(stil.rc()):
         fig.clear()
-        fig.set_layout_engine("constrained")
+        constrained_layout(fig)
         ax = fig.subplots()
         z = Zeichnung(figure=fig, achsen=(ax,), hinweise=(HINWEIS_ZETA,) if daten.spitzen else ())
         handles: list[Line2D | Patch] = []
@@ -168,36 +254,9 @@ def zeichne_spitzen(
                 zorder=4,
             )
             z.marker["gewaehlt"] = gew
-            # Beschriftung nahe dem linken/rechten Rand nach innen ausrichten (nicht abschneiden)
-            lage = (s.f_sp_hz - float(daten.frequenz_hz[0])) / max(
-                float(daten.frequenz_hz[-1] - daten.frequenz_hz[0]), 1e-300
-            )
-            ausrichtung = "left" if lage < 0.25 else "right" if lage > 0.75 else "center"
-            z.texte.append(
-                ax.annotate(
-                    beschriftung_der_spitze(
-                        s, dezimalkomma=stil.dezimalkomma, warn_symbol=stil.warn_symbol
-                    ),
-                    xy=(s.f_sp_hz, s.hoehe),
-                    xytext=(0, 16),
-                    textcoords="offset points",
-                    ha=ausrichtung,
-                    va="bottom",
-                    multialignment="left",
-                    fontsize=stil.schrift_pt,
-                    arrowprops={"arrowstyle": "-", "color": stil.achse, "linewidth": 0.8},
-                    bbox={
-                        "boxstyle": "square,pad=0.2",
-                        "facecolor": stil.flaeche,
-                        "edgecolor": stil.achse,
-                        "linewidth": 0.6,
-                    },
-                    zorder=5,
-                )
-            )
         if daten.baender:
             teile = "; ".join(
-                f"{zahl_text(u, None, dezimalkomma=stil.dezimalkomma)} … "
+                f"{zahl_text(u, 3, dezimalkomma=stil.dezimalkomma)} … "
                 f"{frequenz_text(o, 3, dezimalkomma=stil.dezimalkomma)}"
                 for u, o in daten.baender
             )
@@ -221,11 +280,78 @@ def zeichne_spitzen(
         ax.set_xlabel(achsentitel("Frequenz", "Hz"))
         ax.set_ylabel(achsentitel(daten.groesse, daten.einheit))
         setze_achsenstil(ax, stil)
-        z.hilfsobjekte["legende"] = ax.legend(
-            handles=handles,
-            loc="upper right",
-            fontsize=stil.schrift_pt,
-            framealpha=0.9,
-            numpoints=1,
-        )
+        z.hilfsobjekte["legende"] = _legende(ax, handles, stil)
+        if daten.spitzen:
+            _streifen_und_kasten(z, ax, daten, opt, stil)
     return z
+
+
+def _streifen_und_kasten(
+    z: Zeichnung, ax: Axes, daten: SpitzenDaten, opt: SpitzenOptionen, stil: Plotstil
+) -> None:
+    """Reserviert den Streifen über der Kurve und setzt Kasten und Leitlinie hinein."""
+    fig = ax.figure
+    assert isinstance(fig, Figure)
+    fig.draw_without_rendering()  # endgültiges Layout (Legende unten, Achsenbeschriftung)
+    _, hoehe_pt = achse_pt(ax)
+    unten, oben = ax.get_ylim()  # Autoskalierung von Kurve und Markern
+    anteil = streifen_anteil(hoehe_pt, stil.schrift_pt)
+    ax.set_ylim(unten, obere_grenze(unten, oben, anteil, log=opt.skala == "log"))
+    z.hilfsobjekte["streifen"] = anteil
+    if daten.gewaehlt is None:
+        return
+    s = daten.spitzen[daten.gewaehlt]
+    pt = ax.figure.dpi / 72.0  # px je pt
+    pad_pt = _KASTEN_PAD * stil.schrift_pt
+    kasten = ax.text(
+        0.0,
+        1.0,
+        beschriftung_der_spitze(s, dezimalkomma=stil.dezimalkomma, warn_symbol=stil.warn_symbol),
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        multialignment="left",
+        linespacing=_ZEILENABSTAND,
+        fontsize=stil.schrift_pt,
+        bbox={
+            "boxstyle": f"square,pad={_KASTEN_PAD}",
+            "facecolor": stil.flaeche,
+            "edgecolor": stil.achse,
+            "linewidth": 0.6,
+        },
+        zorder=5,
+    )
+    text_px = kasten.get_window_extent()
+    ges_breite_px = text_px.width + 2 * pad_pt * pt
+    ges_hoehe_pt = text_px.height / pt + 2 * pad_pt
+    x0 = float(ax.bbox.x0)
+    breite_px = float(ax.bbox.width)
+    x_spitze_px = float(ax.transData.transform((s.f_sp_hz, s.hoehe))[0])
+    links_px = min(
+        max(x_spitze_px - ges_breite_px / 2, x0 + 0.01 * breite_px),
+        x0 + 0.99 * breite_px - ges_breite_px,
+    )
+    kasten.set_position(
+        (
+            (links_px + pad_pt * pt - x0) / breite_px,
+            1.0 - (KASTEN_ABSTAND_OBEN_PT + pad_pt) / hoehe_pt,
+        )
+    )
+    z.texte.append(kasten)
+    start_px = min(max(x_spitze_px, links_px), links_px + ges_breite_px)
+    unterkante = 1.0 - (KASTEN_ABSTAND_OBEN_PT + ges_hoehe_pt) / hoehe_pt
+    z.hilfsobjekte["leitlinie"] = ax.annotate(
+        "",
+        xy=(s.f_sp_hz, s.hoehe),
+        xycoords="data",
+        xytext=((start_px - x0) / breite_px, unterkante),
+        textcoords="axes fraction",
+        arrowprops={
+            "arrowstyle": "-",
+            "color": stil.achse,
+            "linewidth": 0.8,
+            "shrinkA": 0,
+            "shrinkB": _LEITLINIE_ENDE_PT,
+        },
+        zorder=4.5,
+    )

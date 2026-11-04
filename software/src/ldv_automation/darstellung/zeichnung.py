@@ -13,6 +13,7 @@ from typing import Any, Literal
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
 
@@ -23,7 +24,10 @@ __all__ = [
     "Ansicht",
     "Skala",
     "Zeichnung",
+    "achse_pt",
+    "constrained_layout",
     "kennzeichen_anbringen",
+    "layout_rect",
     "platzhalter_anbringen",
     "setze_achsenstil",
 ]
@@ -75,6 +79,41 @@ class Zeichnung:
         """Alle sichtbaren Texte der Figure (Achsentitel, Ticks nach Zeichnen, Legenden, Texte)."""
         texte = [t.get_text() for t in self.figure.findobj(Text) if t.get_visible()]
         return [t for t in texte if t]
+
+
+def layout_rect(fig: Figure) -> tuple[float, float, float, float]:
+    """Nutzbares Rechteck der Figure ``(x0, y0, Breite, Höhe)`` in Figure-Anteilen.
+
+    Das Arbeitsbild reserviert unten Platz für den Stempel (``rect`` des Constrained Layouts,
+    siehe :func:`constrained_layout`); ohne Engine ist es die ganze Figure.
+    """
+    engine = fig.get_layout_engine()
+    rect = engine.get().get("rect") if isinstance(engine, ConstrainedLayoutEngine) else None
+    if rect is None:
+        return (0.0, 0.0, 1.0, 1.0)
+    return (float(rect[0]), float(rect[1]), float(rect[2]), float(rect[3]))
+
+
+def constrained_layout(fig: Figure) -> None:
+    """Setzt das Constrained Layout und behält dabei den ``rect`` einer vorhandenen Engine.
+
+    Der Aufrufer (Arbeitsbild mit Stempel) legt den Rand für den Stempel **vor** dem Zeichnen
+    fest. Die Zeichenfunktionen messen Größen in pt (Pfeile, Marker, Beschriftungsstreifen) und
+    brauchen dafür das endgültige Layout.
+    """
+    alt = fig.get_layout_engine()
+    rect = alt.get().get("rect") if isinstance(alt, ConstrainedLayoutEngine) else None
+    if rect is None:
+        fig.set_layout_engine("constrained")
+    else:
+        fig.set_layout_engine("constrained", rect=rect)
+
+
+def achse_pt(ax: Axes) -> tuple[float, float]:
+    """Breite und Höhe der Achsenfläche in pt (nach ``fig.draw_without_rendering()``)."""
+    box = ax.get_window_extent()
+    faktor = 72.0 / ax.figure.dpi
+    return float(box.width) * faktor, float(box.height) * faktor
 
 
 def setze_achsenstil(

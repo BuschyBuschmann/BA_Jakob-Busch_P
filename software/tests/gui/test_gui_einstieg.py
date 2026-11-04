@@ -145,7 +145,17 @@ def test_ui_28_gui_startet_keinen_thread() -> None:
 
 
 def test_ui_28_gui_kennt_nur_sitzung_und_domaene() -> None:
-    erlaubt = ("ldv_automation.sitzung", "ldv_automation.domaene", "ldv_automation.gui")
+    # Reiter „Auswerten“ (P-AUSW T3a, Brief K-AUSW Abschnitt 11): zusätzlich genau die Pakete
+    # auswertung, darstellung und hintergrund; ``ablauf``, ``geraet`` u. a. bleiben verboten
+    # (die Importrichtung prüft zusätzlich ``tests/test_importrichtung.py``).
+    erlaubt = (
+        "ldv_automation.sitzung",
+        "ldv_automation.domaene",
+        "ldv_automation.gui",
+        "ldv_automation.auswertung",
+        "ldv_automation.darstellung",
+        "ldv_automation.hintergrund",
+    )
     for pfad, baum in _gui_baeume():
         for knoten in ast.walk(baum):
             if isinstance(knoten, ast.ImportFrom) and (knoten.module or "").startswith(
@@ -156,7 +166,14 @@ def test_ui_28_gui_kennt_nur_sitzung_und_domaene() -> None:
 
 
 def test_ui_28_qt_freie_module_importieren_kein_qt() -> None:
-    for name in ("__init__.py", "anzeige.py", "tokens.py", "fassade.py"):
+    for name in (
+        "__init__.py",
+        "anzeige.py",
+        "tokens.py",
+        "fassade.py",
+        "anzeige_auswerten.py",
+        "plotstil.py",
+    ):
         baum = ast.parse((GUI / name).read_text(encoding="utf-8"))
         for knoten in ast.walk(baum):
             if isinstance(knoten, ast.ImportFrom):

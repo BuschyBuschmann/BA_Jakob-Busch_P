@@ -422,3 +422,64 @@ def test_standard_bezug_groesster_betrag_unter_kohaerenten(
     assert not sd2.kohaerenz_ok[0] and sd2.kohaerenz_ok[1:].all()
     assert np.isclose(abs(sd2.amplitude[0]), abs(sd2.amplitude[4]), rtol=1e-12)
     assert standard_bezug(sd2) == 4
+
+
+# --- K-AUSW-T2c: gemeinsame Punktmenge von 3D- und Komponentenmittel, Punktzahl im Bild --------
+
+
+def _mit_nan_in_x(punkt: int = 2) -> Messdaten:
+    """Datei, in der Vib X an einem Punkt NaN trägt (Fall aus dem Review: AP_X = NaN)."""
+    import dataclasses
+
+    md = dd.synthetische_messdaten()
+    ap = {k: v.copy() for k, v in md.ap.items()}
+    cp = {k: v.copy() for k, v in md.cp.items()}
+    ap["Vib X"][punkt, :] = np.nan
+    cp[("Vib X", "Ref1")][punkt, :] = np.nan
+    return dataclasses.replace(md, ap=ap, cp=cp)
+
+
+def test_leistungsmittel_3d_und_komponenten_nutzen_dieselbe_punktmenge() -> None:
+    md = _mit_nan_in_x()
+    sd = spektrum_daten(md, PaarCache(md), punkt=None, groesse="leistung")
+    y = {k.schluessel: k.y for k in sd.kurven}
+    # 3D = √(Σ_c Mittel AP_c) gilt nur bei gleicher Punktmenge (Hinweistext des Kerns)
+    np.testing.assert_allclose(y["3D"] ** 2, y["X"] ** 2 + y["Y"] ** 2 + y["Z"] ** 2, rtol=1e-12)
+    # unabhängig nachgerechnet über die fünf Punkte ohne Punkt 2
+    rest = [0, 1, 3, 4, 5]
+    for c in ("X", "Y", "Z"):
+        erwartet = np.sqrt(np.mean(md.ap[f"Vib {c}"][rest], axis=0))
+        np.testing.assert_allclose(y[c], erwartet, rtol=1e-12)
+    assert "über 5 Punkte" in sd.mittelformel and sd.mittelformel.startswith("Leistungsmittel √AP")
+    assert all("über 5 Punkte" in h for h in sd.hinweise)  # Hinweistext stimmt
+
+
+def test_kohaerentes_3d_mittel_nutzt_dieselbe_punktmenge_wie_die_komponenten() -> None:
+    md = _mit_nan_in_x()
+    cache = PaarCache(md)
+    sd = spektrum_daten(md, cache, punkt=None)
+    y = {k.schluessel: k.y for k in sd.kurven}
+    rest = [0, 1, 3, 4, 5]
+    cph = {c: cache.paar(f"Vib {c}", "Ref1").paar.cph for c in ("X", "Y", "Z")}
+    for c in ("X", "Y", "Z"):
+        np.testing.assert_allclose(y[c], np.mean(np.abs(cph[c][rest]), axis=0), rtol=1e-12)
+    drei_d = np.sqrt(sum(np.abs(cph[c][rest]) ** 2 for c in ("X", "Y", "Z")))
+    np.testing.assert_allclose(y["3D"], np.mean(drei_d, axis=0), rtol=1e-12)
+    assert sd.mittelformel == "Betragsmittel |CPH| über 5 Punkte"
+    # ohne NaN bleibt alles beim Alten: alle Punkte, bitgleich zum Kern
+    md0 = dd.synthetische_messdaten()
+    ok = spektrum_daten(md0, PaarCache(md0), punkt=None)
+    assert ok.mittelformel == f"Betragsmittel |CPH| über {dd.P} Punkte"
+    assert spektrum_daten(md0, PaarCache(md0), punkt=1).mittelformel == ""
+
+
+def test_punktzahl_in_den_beschriftungen_von_ansicht_2_und_3(daten: Messdaten) -> None:
+    cache = PaarCache(daten)
+    assert frf_daten(cache, "Vib Z", "Ref1", punkt=None).punktzahl == dd.P
+    assert frf_daten(cache, "Vib Z", "Ref1", punkt=1).punktzahl is None
+    sp = spitzen_daten_frf(cache, "Vib Z", "Ref1")
+    assert sp.punktzahl == dd.P
+    assert sp.beschriftung == f"Betragsmittel |H1| über {dd.P} Punkte, Vib Z/Ref1"
+    ohne = dd.synthetische_messdaten(referenz=False)
+    sl = spitzen_daten_spektrum(ohne, PaarCache(ohne), "Vib Z")
+    assert sl.beschriftung.startswith(f"Leistungsmittel √AP über {dd.P} Punkte, Vib Z")

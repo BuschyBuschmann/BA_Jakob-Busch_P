@@ -17,9 +17,12 @@ Aufruf (aus ``software/``)::
     uv run python tools/auswertung/darstellung_beispiel.py ../Input/20261012_ref_Mitte.svd \
         --ausgabe <ordner> [--punkt-label 132] [--frequenz-hz 167.5] [--format pdf]
 
-Ohne ``--punkt-label`` zeigt Ansicht 1 das Mittel aller Punkte. Die Phase wird in den
-Thesis-Abbildungen nicht gezeigt, solange die Annahme M8 offen ist (Ansicht 2 ohne Phase,
-Ansicht 4 mit Betrag).
+Ohne ``--punkt-label`` zeigt Ansicht 1 das Mittel aller Punkte. Die Phase gegen die Referenz wird
+in den Thesis-Abbildungen nicht gezeigt, solange die Annahme M8 offen ist (Ansicht 2 ohne Phase).
+Ansicht 3 beschriftet die stärkste Spitze (größte Kurvenhöhe). Ansicht 4 erscheint zweimal: als
+3D-Betrag (``schwingform``) und, mit Referenz, als Phase der Komponente Z **relativ zum
+Bezugspunkt** (``schwingform_phase``, unabhängig von M8); beide im Hochformat 11,5 cm breit, die
+Höhe folgt aus dem Seitenverhältnis der Punktwolke.
 """
 
 from __future__ import annotations
@@ -37,6 +40,7 @@ from ldv_automation.auswertung.daten import Messdaten
 from ldv_automation.auswertung.export import sha256_datei
 from ldv_automation.auswertung.laden import lade_svd
 from ldv_automation.darstellung.auswahl import (
+    DarstellungsFehler,
     Groesse,
     PaarCache,
     frf_daten,
@@ -50,7 +54,11 @@ from ldv_automation.darstellung.auswahl import (
 )
 from ldv_automation.darstellung.bild import neue_figure
 from ldv_automation.darstellung.frf import FrfOptionen, zeichne_frf
-from ldv_automation.darstellung.schwingform import SchwingformOptionen, zeichne_schwingform
+from ldv_automation.darstellung.schwingform import (
+    SchwingformOptionen,
+    bildgroesse_schwingform,
+    zeichne_schwingform,
+)
 from ldv_automation.darstellung.spektrum import SpektrumOptionen, zeichne_spektrum
 from ldv_automation.darstellung.spitzen import SpitzenOptionen, zeichne_spitzen
 from ldv_automation.darstellung.stil import THESIS_STIL
@@ -61,6 +69,12 @@ SKRIPT = "software/tools/auswertung/darstellung_beispiel.py"
 GROESSE_ZOLL = (4.9, 3.3)
 """Breite etwa 12,4 cm (Satzspiegel A5), damit Schrift und Linien im Druck lesbar bleiben."""
 GROESSE_ZOLL_HOCH = (4.9, 4.4)
+GROESSE_ZOLL_SPITZEN = (4.9, 3.8)
+"""Höhe so, dass der Beschriftungsstreifen (drei Zeilen) die Kurve nicht staucht (Layout 3.1)."""
+BREITE_SCHWINGFORM_CM = 11.5
+"""Breite der Schwingform-Abbildungen; die Höhe folgt aus dem Datenaspekt (Hochformat, 4.2)."""
+KOMPONENTE_PHASE = "Z"
+"""Komponente der Phase relativ zum Bezugspunkt (Messrichtung des Vibrometers)."""
 
 
 def _punkt_index(daten: Messdaten, label: int | None) -> int | None:
@@ -93,7 +107,8 @@ def erzeuge_figuren(
     Returns
     -------
     dict
-        ``spektrum``, ``frf`` (nur mit Referenz), ``spitzen`` und ``schwingform``.
+        ``spektrum``, ``frf`` (nur mit Referenz), ``spitzen``, ``schwingform`` und mit Referenz
+        ``schwingform_phase``.
     """
     cache = PaarCache(daten)
     punkt = _punkt_index(daten, punkt_label)
@@ -114,10 +129,13 @@ def erzeuge_figuren(
             neue_figure(THESIS_STIL, GROESSE_ZOLL_HOCH), fd, FrfOptionen(), THESIS_STIL
         )
         pd = spitzen_daten_frf(cache, antwort, referenz, baender=band)
+        if pd.spitzen:  # stärkste Spitze beschriften
+            staerkste = max(range(len(pd.spitzen)), key=lambda n: pd.spitzen[n].hoehe)
+            pd = spitzen_daten_frf(cache, antwort, referenz, baender=band, gewaehlt=staerkste)
     else:
         pd = spitzen_daten_spektrum(daten, cache, "Vib Z", baender=band)
     ergebnis["spitzen"] = zeichne_spitzen(
-        neue_figure(THESIS_STIL, GROESSE_ZOLL), pd, SpitzenOptionen(), THESIS_STIL
+        neue_figure(THESIS_STIL, GROESSE_ZOLL_SPITZEN), pd, SpitzenOptionen(), THESIS_STIL
     )
     if frequenz_hz is None:
         if pd.spitzen:
@@ -125,9 +143,21 @@ def erzeuge_figuren(
         else:
             frequenz_hz = float(daten.frequenz_hz[daten.anzahl_linien // 2])
     sf = schwingform_daten(daten, cache, frequenz_hz, komponente="3D")
+    bild_zoll = bildgroesse_schwingform(sf, breite_cm=BREITE_SCHWINGFORM_CM)
     ergebnis["schwingform"] = zeichne_schwingform(
-        neue_figure(THESIS_STIL, GROESSE_ZOLL_HOCH), sf, SchwingformOptionen(), THESIS_STIL
+        neue_figure(THESIS_STIL, bild_zoll), sf, SchwingformOptionen(), THESIS_STIL
     )
+    if paare:
+        try:
+            sp = schwingform_daten(daten, cache, frequenz_hz, komponente=KOMPONENTE_PHASE)
+            ergebnis["schwingform_phase"] = zeichne_schwingform(
+                neue_figure(THESIS_STIL, bild_zoll),
+                sp,
+                SchwingformOptionen(darstellung="phase_relativ"),
+                THESIS_STIL,
+            )
+        except DarstellungsFehler:
+            pass  # keine Phase verfügbar (keine Referenz): nur der Betrag
     return ergebnis
 
 

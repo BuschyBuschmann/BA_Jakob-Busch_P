@@ -108,6 +108,7 @@ def test_zahl_text_erzwingt_schreibweise() -> None:
         (0.5, "0,50"),
         (12.345, "12"),
         (0.0, "0"),
+        (-0.0, "0"),  # kein Minus vor der Null
         (float("nan"), "–"),
         (float("inf"), "∞"),
     ],
@@ -121,9 +122,11 @@ def test_zahl_signifikant_text(wert: float, soll: str) -> None:
 
 
 def test_frequenz_text_und_achsentitel() -> None:
-    assert frequenz_text(123.75) == "123,75 Hz"
+    assert frequenz_text(123.75) == "123,750 Hz"  # feste Nachkommastellen, auch ab 1000 Hz
     assert frequenz_text(0.625) == "0,625 Hz"
-    assert frequenz_text(1000.0) == "1000 Hz"
+    assert frequenz_text(1000.0) == "1000,000 Hz"
+    assert frequenz_text(1234.5678) == "1234,568 Hz"
+    assert frequenz_text(5.0, 1, dezimalkomma=False) == "5.0 Hz"
     assert achsentitel("Amplitude", "m/s") == "Amplitude [m/s]"
     assert achsentitel("Kohärenz", "1") == "Kohärenz [1]"
 

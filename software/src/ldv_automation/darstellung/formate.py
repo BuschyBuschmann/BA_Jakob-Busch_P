@@ -132,7 +132,7 @@ def zahl_signifikant_text(wert: float, signifikant: int = 2, *, dezimalkomma: bo
 
     Der Wert wird zuerst auf ``signifikant`` Stellen gerundet; die Nachkommastellen ergeben
     sich daraus (kleine Werte behalten ihre führenden Nullen, ohne Nullen am Ende zu verlieren).
-    NaN ergibt „–“, ±Inf „∞“, null „0“ (wie :func:`zahl_text`).
+    NaN ergibt „–“, ±Inf „∞“, null „0“ (auch ``-0.0``, nie ein Minus vor der Null).
 
     Parameters
     ----------
@@ -145,7 +145,9 @@ def zahl_signifikant_text(wert: float, signifikant: int = 2, *, dezimalkomma: bo
     """
     if signifikant < 1:
         raise ValueError(f"signifikant muss ≥ 1 sein: {signifikant}")
-    if not math.isfinite(wert) or wert == 0.0:
+    if wert == 0.0:
+        return "0"  # auch -0.0: kein Minus vor der Null
+    if not math.isfinite(wert):
         return zahl_text(wert, None, dezimalkomma=dezimalkomma)
     gerundet = float(f"{wert:.{signifikant - 1}e}")
     nach_komma = max(0, signifikant - 1 - math.floor(math.log10(abs(gerundet))))
@@ -153,8 +155,12 @@ def zahl_signifikant_text(wert: float, signifikant: int = 2, *, dezimalkomma: bo
 
 
 def frequenz_text(f_hz: float, stellen: int = 3, *, dezimalkomma: bool = True) -> str:
-    """Frequenz mit Einheit, z. B. „123,75 Hz“ (überflüssige Nullen entfallen)."""
-    text = zahl_text(round(f_hz, stellen), None, dezimalkomma=dezimalkomma)
+    """Frequenz mit Einheit und fester Zahl Nachkommastellen, z. B. „123,750 Hz“.
+
+    Die Stellenzahl gilt auf jeder Größenordnung (auch ab 1000 Hz: „1234,568 Hz“), damit
+    Frequenzen untereinander vergleichbar sind (KONVENTIONEN, Zahlenformate).
+    """
+    text = zahl_text(round(f_hz, stellen) + 0.0, stellen, dezimalkomma=dezimalkomma)
     return f"{text} Hz"
 
 

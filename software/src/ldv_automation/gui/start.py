@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QApplication
 
 from ldv_automation.gui.hauptfenster import Hauptfenster
 from ldv_automation.gui.stil import wende_an
+from ldv_automation.hintergrund import ProzessAusfuehrer
 from ldv_automation.sitzung import Sitzung
 
 
@@ -28,10 +29,12 @@ def starte_gui(sitzung: Sitzung, argv: Sequence[str] = ()) -> int:
     app.setApplicationName("LDV-Warteschlange")
     wende_an(app)
     sitzung.starte_threads()
+    ausfuehrer = ProzessAusfuehrer()
     try:
-        fenster = Hauptfenster(sitzung)
+        fenster = Hauptfenster(sitzung, ausfuehrer=ausfuehrer)
         fenster.show()
         return int(app.exec())
     finally:
+        ausfuehrer.beende()
         if not sitzung.beende_threads():
             print("Warnung: Geräte- oder Wächter-Thread endete nicht rechtzeitig.")

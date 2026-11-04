@@ -16,7 +16,7 @@ from matplotlib.figure import Figure
 from .auswahl import SpektrumDaten
 from .formate import achsentitel
 from .stil import Plotstil
-from .zeichnung import Skala, Zeichnung, setze_achsenstil
+from .zeichnung import Skala, Zeichnung, constrained_layout, setze_achsenstil
 
 __all__ = ["DB_GRUND", "SpektrumOptionen", "zeichne_spektrum"]
 
@@ -67,7 +67,7 @@ def zeichne_spektrum(
     """
     with rc_context(stil.rc()):
         fig.clear()
-        fig.set_layout_engine("constrained")
+        constrained_layout(fig)
         ax = fig.subplots()
         zeichnung = Zeichnung(figure=fig, achsen=(ax,), hinweise=daten.hinweise)
         for i, kurve in enumerate(daten.kurven):
@@ -86,8 +86,11 @@ def zeichne_spektrum(
         ax.set_xlabel(achsentitel("Frequenz", "Hz"))
         ax.set_ylabel(achsentitel("Amplitude", daten.einheit))
         setze_achsenstil(ax, stil)
+        titel = daten.bezeichnung
+        if daten.mittelformel:  # Mittelformel und Punktzahl im Bild (KONVENTIONEN)
+            titel += f"\n{daten.mittelformel}"
         legende = ax.legend(
-            title=daten.bezeichnung, loc="upper right", fontsize=stil.schrift_pt, framealpha=0.9
+            title=titel, loc="upper right", fontsize=stil.schrift_pt, framealpha=0.9
         )
         legende.get_title().set_fontsize(stil.schrift_pt)
         zeichnung.hilfsobjekte["legende"] = legende

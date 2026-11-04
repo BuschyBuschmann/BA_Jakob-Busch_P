@@ -19,7 +19,7 @@ from ldv_automation.darstellung.stil import THESIS_STIL
 def test_figuren_mit_referenz_haben_dieselben_linien_und_achsentexte_wie_die_oberflaeche() -> None:
     md = dd.synthetische_messdaten()
     figuren = skript.erzeuge_figuren(md)
-    assert set(figuren) == {"spektrum", "frf", "spitzen", "schwingform"}
+    assert set(figuren) == {"spektrum", "frf", "spitzen", "schwingform", "schwingform_phase"}
     # „Oberfläche“: dieselbe Zeichenfunktion und dieselben Daten
     cache = PaarCache(md)
     ui = zeichne_spektrum(
@@ -37,7 +37,12 @@ def test_figuren_mit_referenz_haben_dieselben_linien_und_achsentexte_wie_die_obe
     for z in figuren.values():
         assert not z.figure.texts  # kein Arbeitsstempel
         assert not any("Arbeitsansicht" in t for t in z.alle_texte())
-        assert z.figure.get_size_inches()[0] == pytest.approx(4.9)  # Satzspiegel A5
+    for name, z in figuren.items():
+        breite, hoehe = z.figure.get_size_inches()
+        if name.startswith("schwingform"):  # Hochformat 11,5 cm, Höhe aus dem Datenaspekt
+            assert breite == pytest.approx(11.5 / 2.54) and hoehe >= 0.5 * breite
+        else:
+            assert breite == pytest.approx(4.9)  # Satzspiegel A5
 
 
 def test_figuren_ohne_referenz_nur_leistung_und_keine_frf() -> None:

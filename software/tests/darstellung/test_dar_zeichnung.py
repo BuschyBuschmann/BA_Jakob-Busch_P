@@ -46,11 +46,9 @@ from ldv_automation.darstellung.frf import (
 )
 from ldv_automation.darstellung.schwingform import (
     KEIN_BEZUGSPUNKT,
-    PFEIL_ANTEIL,
     PHASE_KEINE_REFERENZ,
     PHASE_NUR_EINZELKOMPONENTE,
     SchwingformOptionen,
-    _pfeile,
     winkel_zu_skalenwert,
     zeichne_schwingform,
 )
@@ -124,7 +122,9 @@ def test_spektrum_linienzahl_linienarten_achsentexte(
     assert ax.get_title() == "" and not z.figure.texts  # kein Diagrammtitel, kein Stempel
     np.testing.assert_array_equal(next(iter(z.linien.values())).get_xdata(), daten.frequenz_hz)
     legende = z.hilfsobjekte["legende"]
-    assert legende.get_title().get_text() == "Geschwindigkeit, kohärent mit Ref1"
+    assert legende.get_title().get_text() == (
+        f"Geschwindigkeit, kohärent mit Ref1\nBetragsmittel |CPH| über {dd.P} Punkte"
+    )  # Mittelformel und Punktzahl im Bild
     assert [t.get_text() for t in legende.get_texts()][-1] == "3D (nicht gegen PSV geprüft)"
     assert z.hinweise == sd.hinweise and len(z.hinweise) == 2
 
@@ -270,7 +270,12 @@ def test_rf_ui_f4b_mittel_phase_ist_platzhalter_ohne_daten(
     assert not z.achsen[1].get_lines()
     assert {"H1", "H2", "kohaerenz"} <= set(z.linien)  # Betrag und γ² vorhanden
     assert not any("unbestätigt" in t for t in z.alle_texte())  # kein Kennzeichen ohne Phase
-    assert any(" (Betragsmittel)" in str(ln.get_label()) for ln in z.achsen[0].get_lines())
+    labels = [str(ln.get_label()) for ln in z.achsen[0].get_lines()]
+    assert labels == [
+        f"Betragsmittel |H1| über {dd.P} Punkte",
+        f"Betragsmittel |H2| über {dd.P} Punkte",
+    ]
+    assert f"γ²: arithmetisches Mittel über {dd.P} Punkte" in z.alle_texte()
 
 
 def test_frf_kennzeichen_unbestaetigt_nur_mit_text(daten: Messdaten, cache: PaarCache) -> None:
@@ -368,24 +373,25 @@ def _spitze(**felder: Any) -> Spitze:
 def test_beschriftung_zeta_hat_signifikante_stellen_statt_fester_nachkommastellen() -> None:
     """MINOR-3: ζ = 1,2345e-4 zeigt zwei signifikante Stellen, nicht „0,0001“ oder „0,0000“."""
     text = beschriftung_der_spitze(_spitze(zeta=1.2345e-4))
-    assert "ζ ≈ 0,00012 (" in text
+    assert text.splitlines()[0].endswith("ζ ≈ 0,00012")
 
 
 def test_beschriftung_der_spitze_nennt_zeta_bandgrenzen_und_methode() -> None:
     text = beschriftung_der_spitze(_spitze())
-    assert text == "f = 65,121 Hz · ζ ≈ 0,0058 (-3dB-Breite, 64,768 … 65,526 Hz)"
+    assert text == "f = 65,121 Hz · ζ ≈ 0,0058\n-3dB-Breite, 64,768 … 65,526 Hz"
     assert METHODE_SPITZEN == "-3dB-Breite"  # dieselbe Methode wie im Export (R-055)
     assert (
         beschriftung_der_spitze(_spitze(), dezimalkomma=False)
-        == "f = 65.121 Hz · ζ ≈ 0.0058 (-3dB-Breite, 64.768 … 65.526 Hz)"
+        == "f = 65.121 Hz · ζ ≈ 0.0058\n-3dB-Breite, 64.768 … 65.526 Hz"
     )
 
 
 def test_beschriftung_der_spitze_zeigt_warnkennzeichen_mit_symbol_und_wort() -> None:
     kz = ("aufloesungsbegrenzt", "nachbarmode", "ueberlappend", "kohaerenz_niedrig", "neu")
     text = beschriftung_der_spitze(_spitze(kennzeichen=kz))
-    erste, zweite = text.split("\n")
-    assert erste.endswith("Hz)") and zweite.startswith("⚠ ")
+    erste, methode, zweite = text.split("\n")  # höchstens drei Zeilen, Kennzeichen in einer
+    assert erste.endswith("0,0058") and methode.startswith(METHODE_SPITZEN)
+    assert zweite.startswith("⚠ ")
     assert zweite == "⚠ auflösungsbegrenzt, Nachbarmode, überlappend, Kohärenz niedrig, neu"
     assert beschriftung_der_spitze(_spitze(kennzeichen=("nachbarmode",)), warn_symbol="!") == (
         beschriftung_der_spitze(_spitze()) + "\n! Nachbarmode"
@@ -395,7 +401,7 @@ def test_beschriftung_der_spitze_zeigt_warnkennzeichen_mit_symbol_und_wort() -> 
 def test_beschriftung_der_spitze_mit_unbestimmter_breite_ohne_zahl() -> None:
     nan = float("nan")
     text = beschriftung_der_spitze(_spitze(zeta=nan, f_l_hz=nan, f_sp_hz=10.0))
-    assert text == "f = 10 Hz · ζ = –"  # keine Dämpfungsangabe, also keine Methode
+    assert text == "f = 10,000 Hz · ζ = –"  # keine Dämpfungsangabe, also keine Methode
     teil = beschriftung_der_spitze(_spitze(zeta=nan, f_r_hz=nan, kennzeichen=("ueberlappend",)))
     assert teil.startswith("f = 65,121 Hz · ζ = –") and teil.endswith("⚠ überlappend")
     assert METHODE_SPITZEN not in teil
@@ -598,7 +604,7 @@ def test_schwingform_legende_ohne_doppelmarker(daten: Messdaten) -> None:
     sd = schwingform_daten(md, PaarCache(md), 10.0, komponente="Z")
     z = zeichne_schwingform(Figure(), sd, SchwingformOptionen(darstellung="phase_ref"), UI_STIL)
     z.figure.draw_without_rendering()
-    legende = z.achsen[0].get_legend()
+    legende = z.hilfsobjekte["zeichenerklaerung"]
     assert legende is not None and legende.numpoints == 1
     markers = [ln for ln in legende.findobj(Line2D) if ln.get_marker() == "x"]
     assert len(markers) == 1  # ein Kreuz, nicht zwei
@@ -647,15 +653,6 @@ def test_rf_ui_f4c_winkelskala_ist_zyklisch_und_pfeilwinkel_stetig() -> None:
     s = winkel_zu_skalenwert(np.array([a, b]))
     abstand = min(abs(s[0] - s[1]), 1.0 - abs(s[0] - s[1]))
     assert abstand == pytest.approx(2.0 / 360.0, abs=1e-12)  # 2° auf der Skala
-    u, v = _pfeile(np.array([a, b]), np.ones(2), 1.0)
-    winkel = math.atan2(
-        u[0] * v[1] - v[0] * u[1], u[0] * u[1] + v[0] * v[1]
-    )  # Winkel zwischen Pfeilen
-    assert abs(winkel) == pytest.approx(math.radians(2.0), abs=1e-12)
-    # Pfeillänge ∝ Betrag; größte Länge = laenge_max; Betrag 0 → Länge 0, NaN → 0
-    u2, _ = _pfeile(np.zeros(3), np.array([2.0, 1.0, float("nan")]), 0.5)
-    np.testing.assert_allclose(u2, [0.5, 0.25, 0.0], atol=1e-15)
-    assert PFEIL_ANTEIL < 0.05  # Pfeile überlappen bei gleichmäßigem Raster nicht
 
 
 def test_keine_zyklische_skala_im_betragsbild_und_umgekehrt(

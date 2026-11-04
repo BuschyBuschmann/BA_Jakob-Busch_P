@@ -22,6 +22,7 @@ from .stil import Plotstil
 from .zeichnung import (
     Skala,
     Zeichnung,
+    constrained_layout,
     kennzeichen_anbringen,
     platzhalter_anbringen,
     setze_achsenstil,
@@ -113,7 +114,7 @@ def zeichne_frf(fig: Figure, daten: FrfDaten, opt: FrfOptionen, stil: Plotstil) 
     hoehen = HOEHEN_MIT_PHASE if opt.phase else HOEHEN_OHNE_PHASE
     with rc_context(stil.rc()):
         fig.clear()
-        fig.set_layout_engine("constrained")
+        constrained_layout(fig)
         achsen = fig.subplots(
             len(hoehen), 1, sharex=True, gridspec_kw={"height_ratios": list(hoehen)}
         )
@@ -121,12 +122,14 @@ def zeichne_frf(fig: Figure, daten: FrfDaten, opt: FrfOptionen, stil: Plotstil) 
         z = Zeichnung(figure=fig, achsen=achsen_liste)
         f = daten.frequenz_hz
         ax_betrag = achsen_liste[0]
-        zusatz = " (Betragsmittel)" if daten.ist_mittel else ""
+        mittel = daten.punktzahl is not None
         reihe = 0
         for schluessel, name, werte, aktiv in (
             ("H1", f"|{daten.bezeichnung_h1}|", daten.betrag_h1, opt.h1),
             ("H2", "|H2|", daten.betrag_h2, opt.h2),
         ):
+            if mittel:  # Mittelformel und Punktzahl im Bild (KONVENTIONEN)
+                name = f"Betragsmittel {name} über {daten.punktzahl} Punkte"
             if not aktiv:
                 continue
             (linie,) = ax_betrag.plot(
@@ -135,7 +138,7 @@ def zeichne_frf(fig: Figure, daten: FrfDaten, opt: FrfOptionen, stil: Plotstil) 
                 linestyle=stil.linienart(reihe),
                 color=stil.serienfarbe(reihe),
                 linewidth=stil.linienbreite_pt,
-                label=name + zusatz,
+                label=name,
             )
             z.linien[schluessel] = linie
             reihe += 1
@@ -189,6 +192,19 @@ def zeichne_frf(fig: Figure, daten: FrfDaten, opt: FrfOptionen, stil: Plotstil) 
             label="γ²",
         )
         z.linien["kohaerenz"] = linie
+        if mittel:
+            z.texte.append(
+                ax_koh.text(
+                    1.0,
+                    1.0,
+                    f"γ²: arithmetisches Mittel über {daten.punktzahl} Punkte",
+                    transform=ax_koh.transAxes,
+                    ha="right",
+                    va="bottom",
+                    fontsize=stil.schrift_pt * 0.8,
+                    color=stil.text_gedaempft,
+                )
+            )
         ax_koh.set_ylim(0.0, 1.05)
         ax_koh.set_yticks([0.0, 0.5, 1.0])
         ax_koh.set_ylabel(achsentitel("Kohärenz", "1"))

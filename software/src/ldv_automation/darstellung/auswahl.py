@@ -244,6 +244,10 @@ class SpektrumDaten:
         Referenzkanal (nur ``"kohaerent"``).
     hinweise : tuple of str
         Formel des Mittels und Kennzeichen (nicht im Bild; die Oberfläche zeigt sie in AD).
+    mittelformel : str
+        Beim Mittel Kurzform für die Legende im Bild, z. B. „Betragsmittel |CPH| über 135
+        Punkte“ bzw. „Leistungsmittel √AP über 135 Punkte“ (KONVENTIONEN: Mittelformel und
+        Punktzahl im Bild); leer bei einem einzelnen Punkt.
     """
 
     frequenz_hz: FloatArray
@@ -255,6 +259,12 @@ class SpektrumDaten:
     ist_mittel: bool
     referenz: str | None
     hinweise: tuple[str, ...]
+    mittelformel: str = ""
+
+
+def _punktzahl_text(n_min: int, n_max: int) -> str:
+    """Punktzahl des Mittels: eine Zahl, bei je Linie verschiedener Zahl „min … max“."""
+    return str(n_max) if n_min == n_max else f"{n_min} … {n_max}"
 
 
 def _komponenten_pruefen(komponenten: Sequence[str]) -> tuple[str, ...]:
@@ -354,32 +364,46 @@ def spektrum_daten(
         if "3D" in komponenten:
             werte["3D"] = betrag_3d_ap(staple_3d(*(ap[c] for c in ("X", "Y", "Z"))))
     gueltig = cache.gueltig()
-    n = int(np.count_nonzero(gueltig))
+    if punkt is None:
+        # Eine Punktmenge für alle Kurven: nur Punkte (je Linie), die in **allen** beteiligten
+        # Komponenten endlich sind. Sonst weicht das 3D-Mittel (NaN, sobald eine Komponente NaN
+        # ist) von den Komponentenmitteln ab, und die Formel √(Σ_c Mittel AP_c) stimmt nicht.
+        endlich = np.ones(next(iter(werte.values())).shape, dtype=bool)
+        for c in einzel:
+            endlich &= np.isfinite(werte[c])
+        werte = {c: np.where(endlich, feld, np.nan) for c, feld in werte.items()}
     kurven: list[SpektrumKurve] = []
     hinweise: list[str] = []
+    n_je_linie: list[IntArray] = []
     for c in komponenten:
         feld = werte[c]
         if punkt is None:
             mittel = punktmittel_betrag(feld, gueltig)
             y = mittel.mittel_betrag if groesse == "kohaerent" else mittel.mittel_quadratisch
             assert y is not None
+            n_je_linie.append(mittel.n_mittel)
         else:
             y = np.abs(feld[punkt]).astype(np.float64)
         name = "3D" if c == "3D" else f"Vib {c}"
         if c == "3D" and punkt is None:
             name = f"3D ({KENNZEICHEN_3D_MITTEL_UNGEPRUEFT})"
         kurven.append(SpektrumKurve(schluessel=c, beschriftung=name, y=y))
+    mittelformel = ""
     if punkt is None:
+        n_alle = np.concatenate(n_je_linie)
+        n_text = _punktzahl_text(int(n_alle.min()), int(n_alle.max()))
+        formel = "Betragsmittel |CPH|" if groesse == "kohaerent" else "Leistungsmittel √AP"
+        mittelformel = f"{formel} über {n_text} Punkte"
         hinweise.append(
             (
                 HINWEIS_MITTEL_KOHAERENT if groesse == "kohaerent" else HINWEIS_MITTEL_LEISTUNG
-            ).format(n=n)
+            ).format(n=n_text)
         )
         if "3D" in komponenten:
             hinweise.append(
                 (
                     HINWEIS_MITTEL_3D if groesse == "kohaerent" else HINWEIS_MITTEL_3D_LEISTUNG
-                ).format(n=n)
+                ).format(n=n_text)
             )
     einheit = daten.einheiten[f"Vib {einzel[0]}"]
     bezeichnung = (
@@ -397,6 +421,7 @@ def spektrum_daten(
         ist_mittel=punkt is None,
         referenz=ref,
         hinweise=tuple(hinweise),
+        mittelformel=mittelformel,
     )
 
 
@@ -427,6 +452,8 @@ class FrfDaten:
         „Mittel (alle Punkte)“ bzw. „Punkt <Label>“.
     kohaerenz_min : float
         Schwelle γ²_min (Schwellen des Caches).
+    punktzahl : int or None
+        Beim Mittel Zahl der gemittelten Punkte (Maximum über die Linien), sonst ``None``.
     """
 
     frequenz_hz: FloatArray
@@ -441,6 +468,7 @@ class FrfDaten:
     ist_mittel: bool
     auswahl_text: str
     kohaerenz_min: float
+    punktzahl: int | None = None
 
 
 def frf_daten(cache: PaarCache, antwort: str, referenz: str, *, punkt: int | None) -> FrfDaten:
@@ -478,6 +506,7 @@ def frf_daten(cache: PaarCache, antwort: str, referenz: str, *, punkt: int | Non
         ist_mittel=punkt is None,
         auswahl_text=text,
         kohaerenz_min=frf.kohaerenz_min,
+        punktzahl=int(pa.mittel_h1.n_mittel.max()) if punkt is None else None,
     )
 
 
@@ -507,6 +536,8 @@ class SpitzenDaten:
         Index der gewählten Spitze in ``spitzen``; nur sie wird beschriftet.
     hinweis : str
         Text für den Fall ohne Spitzen („Keine Spitzensuche: Referenzkanal fehlt.“ usw.).
+    punktzahl : int
+        Zahl der gemittelten Punkte (Maximum über die Linien); steht in ``beschriftung``.
     """
 
     frequenz_hz: FloatArray
@@ -518,6 +549,7 @@ class SpitzenDaten:
     baender: tuple[tuple[float, float], ...]
     gewaehlt: int | None
     hinweis: str
+    punktzahl: int
 
 
 def spitzen_daten_frf(
@@ -541,16 +573,20 @@ def spitzen_daten_frf(
         raise DarstellungsFehler(f"Spitze {gewaehlt} existiert nicht (0 … {len(spitzen) - 1}).")
     y = pa.mittel_h1.mittel_betrag
     assert y is not None
+    n = int(pa.mittel_h1.n_mittel.max())
     return SpitzenDaten(
         frequenz_hz=pa.paar.frequenz_hz,
         y=y,
         einheit=pa.frf.einheit,
         groesse="Betrag",
-        beschriftung=f"Betragsmittel |{pa.frf.bezeichnung_h1}| {antwort}/{referenz}",
+        beschriftung=(
+            f"Betragsmittel |{pa.frf.bezeichnung_h1}| über {n} Punkte, {antwort}/{referenz}"
+        ),
         spitzen=spitzen,
         baender=tuple((float(u), float(o)) for u, o in baender),
         gewaehlt=gewaehlt,
         hinweis="" if spitzen else "Keine Spitzen gefunden.",
+        punktzahl=n,
     )
 
 
@@ -570,18 +606,21 @@ def spitzen_daten_spektrum(
     """
     if kanal not in daten.ap:
         raise DarstellungsFehler(f"Kanal {kanal!r} fehlt in der Datei.")
-    y = punktmittel_betrag(spektrum_leistung(daten.ap[kanal]), cache.gueltig()).mittel_quadratisch
+    mittel = punktmittel_betrag(spektrum_leistung(daten.ap[kanal]), cache.gueltig())
+    y = mittel.mittel_quadratisch
     assert y is not None
+    n = int(mittel.n_mittel.max())
     return SpitzenDaten(
         frequenz_hz=daten.frequenz_hz,
         y=y,
         einheit=daten.einheiten[kanal],
         groesse="Amplitude",
-        beschriftung=f"{BEZEICHNUNG_LEISTUNG} ({kanal})",
+        beschriftung=f"Leistungsmittel √AP über {n} Punkte, {kanal}\n(mit Rauschen, ohne Phase)",
         spitzen=(),
         baender=tuple((float(u), float(o)) for u, o in baender),
         gewaehlt=None,
         hinweis="Keine Spitzensuche: Referenzkanal fehlt.",
+        punktzahl=n,
     )
 
 
