@@ -129,7 +129,7 @@ def zeichne_frf(fig: Figure, daten: FrfDaten, opt: FrfOptionen, stil: Plotstil) 
             ("H2", "|H2|", daten.betrag_h2, opt.h2),
         ):
             if mittel:  # Mittelformel und Punktzahl im Bild (KONVENTIONEN)
-                name = f"Betragsmittel {name} über {daten.punktzahl} Punkte"
+                name = f"Betragsmittel {name} über {daten.punktzahl_text} Punkte"
             if not aktiv:
                 continue
             (linie,) = ax_betrag.plot(
@@ -197,7 +197,7 @@ def zeichne_frf(fig: Figure, daten: FrfDaten, opt: FrfOptionen, stil: Plotstil) 
                 ax_koh.text(
                     1.0,
                     1.0,
-                    f"γ²: arithmetisches Mittel über {daten.punktzahl} Punkte",
+                    f"γ²: arithmetisches Mittel über {daten.punktzahl_text} Punkte",
                     transform=ax_koh.transAxes,
                     ha="right",
                     va="bottom",

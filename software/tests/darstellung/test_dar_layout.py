@@ -9,7 +9,9 @@ mit synthetischen Rastern (Hoch- und Querformat, dünn besetzt für die Punktlab
 from __future__ import annotations
 
 import dataclasses
+import io
 import math
+from collections.abc import Callable
 from pathlib import Path
 
 import dar_daten as dd
@@ -30,6 +32,7 @@ from ldv_automation.darstellung.auswahl import (
 )
 from ldv_automation.darstellung.bild import baue_stempel, neue_figure, speichere_arbeitsbild
 from ldv_automation.darstellung.schwingform import (
+    HINWEIS_DICHTE_UNREGELMAESSIG,
     HINWEIS_LABELS_AUS,
     HINWEIS_PFEILE_KURZ,
     Darstellung,
@@ -128,6 +131,10 @@ def _pruefe_ansicht3(z: Zeichnung, sd: SpitzenDaten, hoehe_min_pt: float = 12.0)
     marker_px = ax.transData.transform([[s.f_sp_hz, s.hoehe] for s in sd.spitzen])
     assert not _punkt_im(kasten_bb, kurve_px).any()
     assert not _punkt_im(kasten_bb, marker_px).any()
+    # auch die Kurvensegmente zwischen den Stützstellen (nicht nur die Punkte) bleiben draußen
+    tt = np.linspace(0.0, 1.0, 25)[None, :, None]
+    segmente = (kurve_px[:-1, None, :] * (1 - tt) + kurve_px[1:, None, :] * tt).reshape(-1, 2)
+    assert not _punkt_im(kasten_bb, segmente).any()
     # Leitlinie plus Ring: Rechteck der Leitlinie ohne die Umgebung des Rings
     assert sd.gewaehlt is not None
     spitze = sd.spitzen[sd.gewaehlt]
@@ -242,11 +249,22 @@ def test_ansicht3_ohne_spitzen_hat_keinen_streifen_und_legende_unten() -> None:
 # --- Ansicht 4 --------------------------------------------------------------------------------
 
 
-def _raster(nx: int, ny: int, dx: float = 0.025, ndx: float = 0.0) -> Messdaten:
-    """Messdaten auf einem Raster ``nx mal ny`` (Abstand ``dx`` in m), Formfaktoren wechseln."""
+def _raster(
+    nx: int,
+    ny: int,
+    dx: float = 0.025,
+    ndx: float = 0.0,
+    aendere: Callable[[Floats], None] | None = None,
+) -> Messdaten:
+    """Messdaten auf einem Raster ``nx mal ny`` (Abstand ``dx`` in m), Formfaktoren wechseln.
+
+    ``aendere`` darf die Koordinaten ``(P, 3)`` vor dem Aufbau der Messdaten verändern.
+    """
     p = nx * ny
     gx, gy = np.meshgrid(np.arange(nx) * dx, np.arange(ny) * dx)
     koord = np.column_stack([gx.ravel(), gy.ravel(), np.zeros(p)]) + ndx
+    if aendere is not None:
+        aendere(koord)
     rng = np.random.default_rng(3)
     form = np.cos(np.linspace(0.0, 5.0, p)) * (0.4 + rng.random(p))
     h0 = dd.mobilitaet_moden(dd.FREQUENZ_HZ, [10.0, 20.0], zeta=0.02)
@@ -432,8 +450,6 @@ def test_ansicht4_pfeil_und_marker_masse_in_pt(hochformat: SchwingformDaten) -> 
     assert sd.amplitude is not None
     betrag = np.abs(sd.amplitude)
     sizes = np.asarray(z.marker["punkte"].get_sizes())
-    ok = np.ones(len(betrag), bool)
-    ok[[]] = False
     r = np.sqrt(sizes) / 2
     r_max = z.hilfsobjekte["r_max_pt"]
     unsicher = ~sd.kohaerenz_ok  # type: ignore[operator]
@@ -442,12 +458,13 @@ def test_ansicht4_pfeil_und_marker_masse_in_pt(hochformat: SchwingformDaten) -> 
     np.testing.assert_allclose(r, erwartet, rtol=1e-9)
     # Schaftbreite und heller Rand
     assert pf.width == pytest.approx(1.4 / 72.0) and pf.units == "inches"
-    assert pf.get_zorder() > z.marker["punkte"].get_zorder()
+    # der Pfeil liegt unter den Markern: sein heller Rand schneidet sie nicht an
+    assert pf.get_zorder() < z.marker["punkte"].get_zorder()
     effekt = pf.get_path_effects()
     assert effekt and effekt[0]._gc["linewidth"] == pytest.approx(1.6)
 
 
-def test_ansicht4_betrag_einheitlicher_radius_und_unsichere_punkte_nicht_markiert(
+def test_ansicht4_betrag_einheitlicher_radius_und_unsichere_punkte_markiert(
     hochformat: SchwingformDaten,
 ) -> None:
     z = zeichne_schwingform(
@@ -457,7 +474,12 @@ def test_ansicht4_betrag_einheitlicher_radius_und_unsichere_punkte_nicht_markier
     assert np.ptp(r) == 0 and r[0] == pytest.approx(
         max(min(0.35 * z.hilfsobjekte["d_pt"], 6.5), 2.5)
     )
-    assert "unsicher" not in z.marker and "pfeile" not in z.hilfsobjekte
+    assert "pfeile" not in z.hilfsobjekte
+    # unsichere Punkte (4, 20, 44) tragen auch hier das Kreuz und zählen nicht zur Farbskala
+    assert len(z.marker["unsicher"].get_xdata()) == 3
+    assert len(z.marker["punkte"].get_offsets()) == len(hochformat.label) - 3
+    erkl = " ".join(t.get_text() for t in z.hilfsobjekte["zeichenerklaerung"].texts)
+    assert "γ² < 0,9: unsicher (3)" in erkl.replace("\n", " ")  # im Betragsbild nicht „Phase“
     _pruefe_ansicht4(z, hochformat, ARBEIT, phase=False)
 
 
@@ -597,7 +619,7 @@ def test_ansicht4_m6_ungueltige_punkte_sind_hohle_rauten_ohne_pfeil(
     huge = dataclasses.replace(gesetzt, betrag=np.where(~ungueltig, 1e6, sd.betrag))
     zb = zeichne_schwingform(neue_figure(UI_STIL, ARBEIT), huge, SchwingformOptionen(), UI_STIL)
     assert zb.marker["punkte"].norm.vmax < 1e5
-    assert len(zb.marker["punkte"].get_offsets()) == len(sd.label) - 2
+    assert len(zb.marker["punkte"].get_offsets()) == len(sd.label) - 4  # 2 M6, 2 unsicher (20, 44)
 
 
 def test_ansicht4_randfaelle_stuerzen_nicht_ab() -> None:
@@ -640,3 +662,191 @@ def test_arbeitsbild_mit_stempel_laesst_ansicht4_im_nutzbaren_bereich(
     for a in fig.axes:
         assert _ext(a).y0 >= oberkante_stempel - 0.5
     _pruefe_ansicht4(z, hochformat, (ARBEIT[0], ARBEIT[1] * (1 - 0.028 * 2 - 0.012)), phase=True)
+
+
+# --- K-AUSW-D3: Pfeil unter dem Marker, Labels (Ausweichen, Abbruch, Pfeilkopf), Randfälle ------
+
+
+def _pfeilpunkte_px(z: Zeichnung, anteile: int = 17) -> Floats:
+    """Punkte entlang aller Pfeile (Schaft und Kopf) in Pixeln."""
+    ax = z.achsen[0]
+    pf = z.hilfsobjekte["pfeile"]
+    s = np.linspace(0.0, 1.0, anteile)
+    return np.vstack(
+        [ax.transData.transform(np.column_stack([pf.X + a * pf.U, pf.Y + a * pf.V])) for a in s]
+    )
+
+
+def _label_boxen(z: Zeichnung) -> list[Bbox]:
+    z.figure.draw_without_rendering()
+    return [_ext(t) for t in z.hilfsobjekte["punktlabels"]]
+
+
+def _pruefe_labels_frei(z: Zeichnung, sd: SchwingformDaten) -> None:
+    """L4-6 mit Pfeilkopf: unter keinem Label liegt ein Marker, Pfeil (mit Kopf) oder Label."""
+    k = _pt(z.figure)
+    boxen = _label_boxen(z)
+    zentren = _zentren_px(z, sd)
+    radius = z.hilfsobjekte["radius_pt"] / k
+    ax = z.achsen[0]
+    for i, bb in enumerate(boxen):
+        assert _in(bb, ax.bbox, tol=1.0)
+        assert np.all(_abstand_rechteck(bb, zentren) >= radius - 0.5)
+        if "pfeile" in z.hilfsobjekte:
+            # halbe Kopfbreite (4 · 1,4 pt / 2 = 2,8 pt) muss frei bleiben, nicht nur die Achse
+            assert np.all(_abstand_rechteck(bb, _pfeilpunkte_px(z)) >= 2.8 / k - 0.5)
+        for bb2 in boxen[i + 1 :]:
+            assert bb.x1 <= bb2.x0 or bb.x0 >= bb2.x1 or bb.y1 <= bb2.y0 or bb.y0 >= bb2.y1
+
+
+def test_ansicht4_pfeil_liegt_unter_dem_marker_und_der_rand_schneidet_ihn_nicht() -> None:
+    md = _raster(5, 7, dx=0.1)
+    sd = schwingform_daten(md, PaarCache(md), 10.0, komponente="Z")
+    z = zeichne_schwingform(
+        neue_figure(UI_STIL, ARBEIT),
+        sd,
+        SchwingformOptionen(darstellung="phase_relativ", punktlabels=False),
+        UI_STIL,
+    )
+    pf, punkte = z.hilfsobjekte["pfeile"], z.marker["punkte"]
+    assert pf.get_zorder() == pytest.approx(2.5) and punkte.get_zorder() == 3
+    assert z.marker["bezug"].get_zorder() < pf.get_zorder()  # Ring unter dem Pfeil
+    # Pixelprobe: in der Markermitte, wo der Pfeil beginnt, steht die Markerfüllung (kein
+    # weißer Rand und kein schwarzer Schaft)
+    fig = z.figure
+    puffer = io.BytesIO()
+    fig.savefig(puffer, format="rgba", dpi=fig.dpi)
+    breite_px, hoehe_px = (round(float(v)) for v in fig.bbox.size)
+    bild = np.frombuffer(puffer.getvalue(), dtype=np.uint8).reshape(hoehe_px, breite_px, 4)
+    bild = bild[:, :, :3].astype(float)
+    ax = z.achsen[0]
+    zentren = _zentren_px(z, sd)
+    farben = punkte.get_facecolors()[:, :3] * 255.0
+    bezug = int(
+        np.flatnonzero(
+            np.isclose(sd.koordinaten_m[:, 0], z.marker["bezug"].get_xdata()[0])
+            & np.isclose(sd.koordinaten_m[:, 1], z.marker["bezug"].get_ydata()[0])
+        )[0]
+    )
+    gepruft = 0
+    for i in range(len(sd.label)):
+        if i == bezug:
+            continue
+        px = zentren[i]
+        zeile = round(float(fig.bbox.height - px[1]))
+        spalte = round(float(px[0]))
+        ist = bild[zeile, spalte]
+        assert np.max(np.abs(ist - farben[i])) < 3.0, (i, ist, farben[i])
+        gepruft += 1
+    assert gepruft == len(sd.label) - 1 and ax.bbox.width > 0
+
+
+def test_ansicht4_labels_weichen_aus_und_lassen_den_pfeilkopf_frei() -> None:
+    md = _raster(5, 7, dx=0.1)
+    sd = schwingform_daten(md, PaarCache(md), 10.0, komponente="Z")
+    z = zeichne_schwingform(
+        neue_figure(UI_STIL, (4.8, 4.8)),
+        sd,
+        SchwingformOptionen(darstellung="phase_relativ"),
+        UI_STIL,
+    )
+    assert "punktlabels" in z.hilfsobjekte and HINWEIS_LABELS_AUS not in z.hinweise
+    boxen = _label_boxen(z)
+    zentren = _zentren_px(z, sd)
+    mitte = np.array([[b.x0 + b.width / 2, b.y0 + b.height / 2] for b in boxen])
+    richtung = np.arctan2(*(mitte - zentren).T[::-1])
+    soll = np.radians(z.hilfsobjekte["winkel_grad"]) + np.pi
+    abweichung = np.abs((richtung - soll + np.pi) % (2 * np.pi) - np.pi)
+    assert np.any(abweichung > 0.8)  # mindestens ein Label ist ausgewichen
+    _pruefe_labels_frei(z, sd)
+
+
+def test_ansicht4_labels_alle_aus_bei_zu_dichten_punkten_mit_hinweis() -> None:
+    md = _raster(5, 7, dx=0.1)
+    sd = schwingform_daten(md, PaarCache(md), 10.0, komponente="Z")
+    z = zeichne_schwingform(
+        neue_figure(UI_STIL, (4.2, 4.2)),
+        sd,
+        SchwingformOptionen(darstellung="phase_relativ"),
+        UI_STIL,
+    )
+    assert "punktlabels" not in z.hilfsobjekte and HINWEIS_LABELS_AUS in z.hinweise
+    assert not [t for t in z.achsen[0].texts if t.get_text().isdigit()]  # keine Reste im Bild
+
+
+def _nahes_paar(koord: Floats) -> None:
+    """Neun Punkte als dichter Block (Abstand 0,003 m) um Punkt 16.
+
+    Der Median von d_NN bleibt der des Rasters (26 von 35 Punkten), die Dichteregel erlaubt also
+    Labels; der Punkt in der Mitte des Blocks hat aber keine freie Richtung.
+    """
+    mitte = koord[16, :2].copy()
+    for n, idx in enumerate([10, 11, 12, 15, 16, 17, 20, 21, 22]):
+        koord[idx, :2] = mitte + 0.003 * np.array([n % 3 - 1, n // 3 - 1])
+
+
+@pytest.mark.parametrize("modus", ["betrag", "phase_relativ"])
+def test_ansicht4_labels_abbruch_wenn_ein_label_keinen_platz_findet(modus: Darstellung) -> None:
+    md = _raster(5, 7, dx=0.1, aendere=_nahes_paar)
+    sd = schwingform_daten(md, PaarCache(md), 10.0, komponente="Z")
+    z = zeichne_schwingform(
+        neue_figure(UI_STIL, ARBEIT), sd, SchwingformOptionen(darstellung=modus), UI_STIL
+    )
+    # die Dichteregel (Median) lässt Labels zu; das nahe Paar findet keinen Platz: alle entfallen
+    assert z.hilfsobjekte["d_pt"] > 40.0
+    assert "punktlabels" not in z.hilfsobjekte and HINWEIS_LABELS_AUS in z.hinweise
+    assert not [t for t in z.achsen[0].texts if t.get_text().isdigit()]
+    # dasselbe Raster ohne das Paar zeigt Labels
+    ok = zeichne_schwingform(
+        neue_figure(UI_STIL, ARBEIT),
+        schwingform_daten(
+            _raster(5, 7, dx=0.1), PaarCache(_raster(5, 7, dx=0.1)), 10.0, komponente="Z"
+        ),
+        SchwingformOptionen(darstellung=modus),
+        UI_STIL,
+    )
+    assert "punktlabels" in ok.hilfsobjekte
+
+
+def test_ansicht4_unregelmaessige_punktwolke_meldet_hinweis() -> None:
+    reg = _raster(5, 7, dx=0.1)
+    sd_reg = schwingform_daten(reg, PaarCache(reg), 10.0, komponente="Z")
+    z_reg = zeichne_schwingform(
+        neue_figure(UI_STIL, ARBEIT), sd_reg, SchwingformOptionen(), UI_STIL
+    )
+    assert not any("Unregelmäßige Punktwolke" in h for h in z_reg.hinweise)
+    md = _raster(5, 7, dx=0.1, aendere=_nahes_paar)
+    sd = schwingform_daten(md, PaarCache(md), 10.0, komponente="Z")
+    z = zeichne_schwingform(neue_figure(UI_STIL, ARBEIT), sd, SchwingformOptionen(), UI_STIL)
+    # kleinster Abstand 0,003 m bei Median 0,1 m: 3 %
+    erwartet = HINWEIS_DICHTE_UNREGELMAESSIG.format(anteil="3")
+    assert erwartet in z.hinweise
+
+    # knapp über der Schwelle (0,5·Median) gibt es keinen Hinweis
+    def halb(koord: Floats) -> None:
+        koord[17, :2] = koord[16, :2] + np.array([0.055, 0.0])
+
+    md2 = _raster(5, 7, dx=0.1, aendere=halb)
+    sd2 = schwingform_daten(md2, PaarCache(md2), 10.0, komponente="Z")
+    z2 = zeichne_schwingform(neue_figure(UI_STIL, ARBEIT), sd2, SchwingformOptionen(), UI_STIL)
+    assert not any("Unregelmäßige Punktwolke" in h for h in z2.hinweise)
+
+
+def test_ansicht4_nan_koordinate_stuerzt_nicht_ab_und_zeichnet_den_rest() -> None:
+    md = _raster(5, 7, dx=0.1)
+    sd0 = schwingform_daten(md, PaarCache(md), 10.0, komponente="Z")
+    koord = sd0.koordinaten_m.copy()
+    koord[3, 0] = np.nan  # fehlende Koordinate (der Kern wählt die Ebene vorher)
+    sd = dataclasses.replace(sd0, koordinaten_m=koord)
+    for modus in ("betrag", "phase_ref", "phase_relativ"):
+        z = zeichne_schwingform(
+            neue_figure(UI_STIL, ARBEIT), sd, SchwingformOptionen(darstellung=modus), UI_STIL
+        )
+        z.figure.draw_without_rendering()
+        xy = np.asarray(z.marker["punkte"].get_offsets())
+        assert len(xy) == len(sd.label)  # der Punkt bleibt in der Datenliste, nur ohne Position
+        endlich = np.isfinite(xy).all(axis=1)
+        assert endlich.sum() == len(sd.label) - 1
+        xlim = z.achsen[0].get_xlim()
+        assert all(np.isfinite(xlim))  # die Achsengrenzen kommen aus den endlichen Punkten
+        assert z.hilfsobjekte["d_pt"] > 0

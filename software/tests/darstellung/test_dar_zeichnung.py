@@ -45,10 +45,12 @@ from ldv_automation.darstellung.frf import (
     zeichne_frf,
 )
 from ldv_automation.darstellung.schwingform import (
+    HINWEIS_PHASE_SPRUNG,
     KEIN_BEZUGSPUNKT,
     PHASE_KEINE_REFERENZ,
     PHASE_NUR_EINZELKOMPONENTE,
     SchwingformOptionen,
+    linien_zeilen,
     winkel_zu_skalenwert,
     zeichne_schwingform,
 )
@@ -126,7 +128,7 @@ def test_spektrum_linienzahl_linienarten_achsentexte(
         f"Geschwindigkeit, kohärent mit Ref1\nBetragsmittel |CPH| über {dd.P} Punkte"
     )  # Mittelformel und Punktzahl im Bild
     assert [t.get_text() for t in legende.get_texts()][-1] == "3D (nicht gegen PSV geprüft)"
-    assert z.hinweise == sd.hinweise and len(z.hinweise) == 2
+    assert z.hinweise == sd.hinweise and len(z.hinweise) == 3  # Formel, 3D-Formel, Punktmenge
 
 
 def test_spektrum_komponentenwahl_bestimmt_die_linienzahl(
@@ -467,7 +469,7 @@ def test_schwingform_phase_ref_pfeil_je_punkt_kennzeichen_und_legende(
     pfeile = z.hilfsobjekte["pfeile"]
     assert len(pfeile.X) == dd.P  # alle Punkte kohärent: ein Pfeil je Punkt
     assert "kreislegende" in z.hilfsobjekte and "unsicher" not in z.marker
-    assert z.hilfsobjekte["farbleiste"].ax.get_ylabel() == "Phase gegen Ref1 [°]"
+    assert z.hilfsobjekte["farbleiste"].ax.get_ylabel().replace("\n", " ") == "Phase gegen Ref1 [°]"
     assert sd.amplitude is not None
     phase = np.angle(sd.amplitude)
     np.testing.assert_allclose(z.hilfsobjekte["winkel_grad"], np.degrees(phase), rtol=1e-12)
@@ -496,7 +498,9 @@ def test_schwingform_phase_relativ_ist_unabhaengig_vom_vorzeichen_der_referenz(
     )
     kreis = (z2.hilfsobjekte["winkel_grad"] - relativ + 180.0) % 360.0 - 180.0
     np.testing.assert_allclose(kreis, 0.0, atol=1e-9)  # modulo 360°: identisch
-    assert z.hilfsobjekte["farbleiste"].ax.get_ylabel() == "Phase relativ zu Punkt 100 [°]"
+    assert z.hilfsobjekte["farbleiste"].ax.get_ylabel().replace("\n", " ") == (
+        "Phase relativ zu Punkt 100 [°]"
+    )
     absolut = zeichne_schwingform(
         Figure(), sd, SchwingformOptionen(darstellung="phase_ref"), UI_STIL
     ).hilfsobjekte["winkel_grad"]
@@ -623,10 +627,12 @@ def test_rf_ui_f4d_unzuverlaessige_punkte_bleiben_im_bild_markiert(daten: Messda
         assert len(punkte) + len(kreuz.get_xdata()) == dd.P  # nichts gelöscht
         assert len(z.hilfsobjekte["pfeile"].X) == dd.P - 2  # keine Pfeile für unsichere Punkte
         assert any(t.startswith("γ² < 0,9:") for t in z.alle_texte())
-    # im Betragsbild gibt es keine Markierung: dort zählt γ² nicht
-    assert (
-        "unsicher" not in zeichne_schwingform(Figure(), sd, SchwingformOptionen(), UI_STIL).marker
-    )
+    # auch im Betragsbild bleiben unsichere Punkte gekennzeichnet (Layout 4.5, beide Darstellungen)
+    zb = zeichne_schwingform(Figure(), sd, SchwingformOptionen(), UI_STIL)
+    np.testing.assert_array_equal(zb.marker["unsicher"].get_xdata(), sd.koordinaten_m[[1, 3], 0])
+    assert len(zb.marker["punkte"].get_offsets()) == dd.P - 2  # nicht in der Farbskala
+    assert any(t.startswith("γ² < 0,9:") for t in zb.alle_texte())
+    assert "pfeile" not in zb.hilfsobjekte  # kein Pfeil im Betragsbild
 
 
 def test_schwingform_phase_fehler(daten: Messdaten, cache: PaarCache) -> None:
@@ -675,3 +681,130 @@ def test_zeichnung_alle_texte_enthaelt_nur_sichtbares(daten: Messdaten, cache: P
     assert isinstance(z, Zeichnung)
     texte = z.alle_texte()
     assert "Frequenz [Hz]" in texte and "" not in texte
+
+
+# --- K-AUSW-D3: Linie und Zuverlässigkeit im Bild (N-2), kein Messwert, ±180°, Punktzahl ----------
+
+
+def _unsicher_daten() -> SchwingformDaten:
+    rauschen = np.array([1e-12, 1.0, 1e-12, 1.0, 1e-12, 1e-12])  # Punkte 1 und 3: γ² < γ²_min
+    md = dd.synthetische_messdaten(n_vib_je_punkt=rauschen)
+    return schwingform_daten(md, PaarCache(md), 10.0, komponente="Z")
+
+
+def test_n2_phasenbild_nennt_linie_und_kohaerenz_an_allen_punkten(
+    daten: Messdaten, cache: PaarCache
+) -> None:
+    sd = _sf(daten, cache)
+    f_text = f"{sd.f_hz:.3f}".replace(".", ",")
+    for modus in ("phase_ref", "phase_relativ"):
+        z = zeichne_schwingform(Figure(), sd, SchwingformOptionen(darstellung=modus), UI_STIL)
+        text = z.hilfsobjekte["punktzahl"].get_text().replace("\n", " ")
+        assert f"Linie {f_text} Hz" in text and "γ² ≥ 0,9 an allen Punkten" in text
+        assert z.hilfsobjekte["linien_text"] == f"Linie {f_text} Hz · γ² ≥ 0,9 an allen Punkten"
+        assert z.hilfsobjekte["anzahl_unsicher"] == 0
+    assert linien_zeilen(sd, 0, UI_STIL) == (f"Linie {f_text} Hz", "γ² ≥ 0,9 an allen Punkten")
+    # im Betragsbild gibt es keine Phase und damit keine Linienzeile
+    betrag = zeichne_schwingform(Figure(), sd, SchwingformOptionen(), UI_STIL)
+    assert "Linie" not in betrag.hilfsobjekte["punktzahl"].get_text()
+    assert "linien_text" not in betrag.hilfsobjekte
+
+
+def test_n2_phasenbild_nennt_anzahl_unsicherer_punkte_statt_an_allen_punkten() -> None:
+    sd = _unsicher_daten()
+    z = zeichne_schwingform(Figure(), sd, SchwingformOptionen(darstellung="phase_ref"), UI_STIL)
+    assert z.hilfsobjekte["anzahl_unsicher"] == 2
+    assert z.hilfsobjekte["linien_text"].endswith("γ² < 0,9 an 2 Punkten")
+    assert "an allen Punkten" not in z.hilfsobjekte["punktzahl"].get_text()
+
+
+def test_n2_spitzenkennzeichen_melden_phasensprung_zwischen_linien(
+    daten: Messdaten, cache: PaarCache
+) -> None:
+    sd = _sf(daten, cache)
+    mit = SchwingformOptionen(darstellung="phase_ref", spitzen_kennzeichen=("auflösungsbegrenzt",))
+    assert HINWEIS_PHASE_SPRUNG == "Phase wechselt bei B < Δf stark von Linie zu Linie"
+    assert HINWEIS_PHASE_SPRUNG in zeichne_schwingform(Figure(), sd, mit, UI_STIL).hinweise
+    ohne = SchwingformOptionen(darstellung="phase_ref")
+    assert HINWEIS_PHASE_SPRUNG not in zeichne_schwingform(Figure(), sd, ohne, UI_STIL).hinweise
+    betrag = SchwingformOptionen(spitzen_kennzeichen=("auflösungsbegrenzt",))
+    assert HINWEIS_PHASE_SPRUNG not in zeichne_schwingform(Figure(), sd, betrag, UI_STIL).hinweise
+
+
+def test_nicht_endlicher_betrag_heisst_kein_messwert_und_nicht_m6(
+    daten: Messdaten, cache: PaarCache
+) -> None:
+    sd = _sf(daten, cache)
+    gueltig = sd.gueltig.copy()
+    gueltig[4] = False  # M6
+    betrag = sd.betrag.copy()
+    betrag[2] = np.nan  # kein Messwert, aber nicht M6
+    gesetzt = dataclasses.replace(sd, gueltig=gueltig, betrag=betrag)
+    z = zeichne_schwingform(Figure(), gesetzt, SchwingformOptionen(), UI_STIL)
+    np.testing.assert_array_equal(z.marker["kein_wert"].get_offsets(), sd.koordinaten_m[[2], :2])
+    np.testing.assert_array_equal(z.marker["ungueltig"].get_offsets(), sd.koordinaten_m[[4], :2])
+    erkl = " ".join(t.get_text() for t in z.hilfsobjekte["zeichenerklaerung"].texts)
+    erkl = erkl.replace("\n", " ")
+    assert "kein Messwert (1)" in erkl and "ungültig (M6) (1)" in erkl  # je ein eigener Eintrag
+    assert "davon 2 gekennzeichnet" in z.hilfsobjekte["punktzahl"].get_text()
+    assert len(z.marker["punkte"].get_offsets()) == dd.P - 2
+    # ohne M6-Punkt darf „ungültig (M6)“ nicht erscheinen
+    nur_nan = dataclasses.replace(sd, betrag=betrag)
+    z2 = zeichne_schwingform(Figure(), nur_nan, SchwingformOptionen(), UI_STIL)
+    assert "ungueltig" not in z2.marker and "kein_wert" in z2.marker
+    assert not any("M6" in t for t in z2.alle_texte())
+    # Phasendarstellung: nicht endliche Amplitude
+    assert sd.amplitude is not None
+    amp = sd.amplitude.copy()
+    amp[3] = np.nan
+    zp = zeichne_schwingform(
+        Figure(),
+        dataclasses.replace(sd, amplitude=amp),
+        SchwingformOptionen(darstellung="phase_ref"),
+        UI_STIL,
+    )
+    assert "kein_wert" in zp.marker and "ungueltig" not in zp.marker
+    assert len(zp.hilfsobjekte["pfeile"].X) == dd.P - 1
+
+
+def test_phase_am_sprung_bei_plusminus_180_grad_ist_stetig(
+    daten: Messdaten, cache: PaarCache
+) -> None:
+    """+179° und -179° liegen 2° auseinander: Pfeilwinkel und Farbe ebenso (RF-UI-F4c)."""
+    sd = _sf(daten, cache)
+    assert sd.amplitude is not None
+    winkel = np.radians([179.0, -179.0, 0.0, 180.0, 90.0, -90.0])
+    amp = np.abs(sd.amplitude) * np.exp(1j * winkel)
+    gesetzt = dataclasses.replace(sd, amplitude=amp)
+    z = zeichne_schwingform(
+        Figure(), gesetzt, SchwingformOptionen(darstellung="phase_ref"), UI_STIL
+    )
+    z.marker["punkte"].update_scalarmappable()
+    pf = z.hilfsobjekte["pfeile"]
+    pfeil_grad = np.degrees(np.arctan2(pf.V, pf.U))
+    diff = (pfeil_grad[0] - pfeil_grad[1] + 180.0) % 360.0 - 180.0
+    assert abs(diff) == pytest.approx(2.0, abs=1e-9)  # kein Sprung von 358° im Pfeilwinkel
+    farben = np.asarray(z.marker["punkte"].get_facecolors())[:, :3]
+    d_sprung = np.linalg.norm(farben[0] - farben[1])
+    d_gegen = np.linalg.norm(farben[2] - farben[3])  # 0° gegen 180°: weit auseinander
+    assert d_sprung < 0.1 * d_gegen
+    np.testing.assert_allclose(farben[3], farben[0], atol=0.05)  # 180° ≈ 179° ≈ -179°
+
+
+def test_punktzahl_min_bis_max_in_ansicht_2_und_3_bei_ungleicher_zahl_je_linie() -> None:
+    md = dd.synthetische_messdaten()
+    cp = {k: v.copy() for k, v in md.cp.items()}
+    cp[("Vib Z", "Ref1")][2, 5] = np.nan  # Punkt 2 fehlt an einer Linie
+    md = dataclasses.replace(md, cp=cp)
+    cache = PaarCache(md)
+    fd = frf_daten(cache, "Vib Z", "Ref1", punkt=None)
+    assert fd.punktzahl == dd.P and fd.punktzahl_text == f"{dd.P - 1} … {dd.P}"
+    z = zeichne_frf(neue_figure(UI_STIL), fd, FrfOptionen(), UI_STIL)
+    assert any(f"über {dd.P - 1} … {dd.P} Punkte" in t for t in z.alle_texte())
+    sp = spitzen_daten_frf(cache, "Vib Z", "Ref1")
+    assert sp.punktzahl_text == f"{dd.P - 1} … {dd.P}"
+    assert sp.beschriftung == f"Betragsmittel |H1| über {dd.P - 1} … {dd.P} Punkte, Vib Z/Ref1"
+    # gleiche Zahl je Linie: eine Zahl wie bisher
+    ok = PaarCache(dd.synthetische_messdaten())
+    assert frf_daten(ok, "Vib Z", "Ref1", punkt=None).punktzahl_text == str(dd.P)
+    assert frf_daten(ok, "Vib Z", "Ref1", punkt=1).punktzahl_text == ""

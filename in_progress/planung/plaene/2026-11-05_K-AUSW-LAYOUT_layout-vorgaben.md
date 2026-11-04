@@ -1,4 +1,4 @@
-<!-- Paket K-AUSW-LAYOUT (ui-designer, sonnet). Status: FREIGEGEBEN vom Nutzer am 2026-11-05 (Annahmen: Schwingform nur Punktzahl im Bild; Thesis-Skript wählt Hochformat). Ergänzt den Design-Brief K-AUSW. -->
+<!-- Paket K-AUSW-LAYOUT (ui-designer, sonnet). Status: FREIGEGEBEN vom Nutzer am 2026-11-05 (Annahmen: Schwingform nur Punktzahl im Bild; Thesis-Skript wählt Hochformat). Ergänzt den Design-Brief K-AUSW. Änderung 2026-11-05 nach Design-Abnahme DA-AUSW-LAYOUT: Pfeil und Bezugsring liegen unter den Markern (zorder Ring 2,4 < Pfeil 2,5 < Marker 3), abweichend von 4.4/4.6; Ansicht-3-Streifen bis 0,50; Thesis-Schwingform-Höhe aus Datenaspekt. -->
 
 ## Layout-Vorgaben K-AUSW-LAYOUT (Ansicht 3 und 4)
 

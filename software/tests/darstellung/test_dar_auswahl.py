@@ -24,6 +24,7 @@ from ldv_automation.auswertung.mittel import (
 from ldv_automation.auswertung.schwingform import waehle_linie
 from ldv_automation.darstellung.auswahl import (
     BEZEICHNUNG_LEISTUNG,
+    HINWEIS_PUNKTMENGE_3D,
     DarstellungsFehler,
     PaarCache,
     frf_daten,
@@ -451,7 +452,39 @@ def test_leistungsmittel_3d_und_komponenten_nutzen_dieselbe_punktmenge() -> None
         erwartet = np.sqrt(np.mean(md.ap[f"Vib {c}"][rest], axis=0))
         np.testing.assert_allclose(y[c], erwartet, rtol=1e-12)
     assert "über 5 Punkte" in sd.mittelformel and sd.mittelformel.startswith("Leistungsmittel √AP")
-    assert all("über 5 Punkte" in h for h in sd.hinweise)  # Hinweistext stimmt
+    assert all("über 5 Punkte" in h for h in sd.hinweise if h != HINWEIS_PUNKTMENGE_3D)
+    assert (
+        HINWEIS_PUNKTMENGE_3D == "3D-Mittel: je Linie nur Punkte mit endlichen Werten in X, Y und Z"
+    )
+    assert HINWEIS_PUNKTMENGE_3D in sd.hinweise  # die Regel steht im Hinweistext
+
+
+def test_ohne_3d_nutzt_jede_komponente_ihre_eigene_punktmenge() -> None:
+    md = _mit_nan_in_x(2)
+    import dataclasses
+
+    ap = {k: v.copy() for k, v in md.ap.items()}
+    ap["Vib Y"][4, :] = np.nan  # zusätzlich NaN in Y an einem anderen Punkt
+    md = dataclasses.replace(md, ap=ap)
+    cache = PaarCache(md)
+    nur_x = spektrum_daten(md, cache, punkt=None, groesse="leistung", komponenten=("X",))
+    x_y = spektrum_daten(md, cache, punkt=None, groesse="leistung", komponenten=("X", "Y"))
+    kx = {k.schluessel: k.y for k in nur_x.kurven}["X"]
+    kxy = {k.schluessel: k.y for k in x_y.kurven}
+    np.testing.assert_array_equal(kx, kxy["X"])  # X unabhängig von der Wahl von Y
+    rest_x = [0, 1, 3, 4, 5]  # X: nur Punkt 2 ist NaN, Punkt 4 zählt (NaN in Y ist irrelevant)
+    np.testing.assert_allclose(kx, np.sqrt(np.mean(md.ap["Vib X"][rest_x], axis=0)), rtol=1e-12)
+    rest_y = [0, 1, 2, 3, 5]
+    np.testing.assert_allclose(
+        kxy["Y"], np.sqrt(np.mean(md.ap["Vib Y"][rest_y], axis=0)), rtol=1e-12
+    )
+    assert HINWEIS_PUNKTMENGE_3D not in x_y.hinweise
+    # mit 3D gilt dagegen die gemeinsame Punktmenge (ohne Punkte 2 und 4)
+    mit = spektrum_daten(md, cache, punkt=None, groesse="leistung", komponenten=("X", "3D"))
+    kx3 = {k.schluessel: k.y for k in mit.kurven}["X"]
+    np.testing.assert_allclose(
+        kx3, np.sqrt(np.mean(md.ap["Vib X"][[0, 1, 3, 5]], axis=0)), rtol=1e-12
+    )
 
 
 def test_kohaerentes_3d_mittel_nutzt_dieselbe_punktmenge_wie_die_komponenten() -> None:

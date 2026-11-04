@@ -22,7 +22,10 @@ in den Thesis-Abbildungen nicht gezeigt, solange die Annahme M8 offen ist (Ansic
 Ansicht 3 beschriftet die stärkste Spitze (größte Kurvenhöhe). Ansicht 4 erscheint zweimal: als
 3D-Betrag (``schwingform``) und, mit Referenz, als Phase der Komponente Z **relativ zum
 Bezugspunkt** (``schwingform_phase``, unabhängig von M8); beide im Hochformat 11,5 cm breit, die
-Höhe folgt aus dem Seitenverhältnis der Punktwolke.
+Höhe folgt aus dem Seitenverhältnis der Punktwolke und sinkt nie so weit, dass der Punktabstand
+unter 12,5 pt fällt (Pfeil 0,8·d ≥ 10 pt). Die Begleitdatei der Phasenabbildung nennt Linie
+(``f_hz``), Bezugspunkt, γ²_min, Zahl unsicherer Punkte und die Kennzeichen der Spitze;
+ist die Phase einer Abbildung nicht darstellbar, steht der Grund auf stderr.
 """
 
 from __future__ import annotations
@@ -43,6 +46,7 @@ from ldv_automation.darstellung.auswahl import (
     DarstellungsFehler,
     Groesse,
     PaarCache,
+    SchwingformDaten,
     frf_daten,
     gesamtband,
     kanalpaare,
@@ -73,6 +77,11 @@ GROESSE_ZOLL_SPITZEN = (4.9, 3.8)
 """Höhe so, dass der Beschriftungsstreifen (drei Zeilen) die Kurve nicht staucht (Layout 3.1)."""
 BREITE_SCHWINGFORM_CM = 11.5
 """Breite der Schwingform-Abbildungen; die Höhe folgt aus dem Datenaspekt (Hochformat, 4.2)."""
+HOEHE_MAX_CM = 17.0
+"""Obergrenze der Bildhöhe der Schwingform; sie wird überschritten, wenn der Datenaspekt es
+braucht (d_pt ≥ :data:`D_PT_MIN`), statt die Punkte zu verkleinern."""
+D_PT_MIN = 12.5
+"""Kleinster Punktabstand d_NN im Bild in pt, bei dem der Pfeil (0,8·d) mindestens 10 pt misst."""
 KOMPONENTE_PHASE = "Z"
 """Komponente der Phase relativ zum Bezugspunkt (Messrichtung des Vibrometers)."""
 
@@ -91,6 +100,7 @@ def erzeuge_figuren(
     *,
     punkt_label: int | None = None,
     frequenz_hz: float | None = None,
+    fehlend: dict[str, str] | None = None,
 ) -> dict[str, Zeichnung]:
     """Zeichnet die Ansichten mit den Zeichenfunktionen der Oberfläche in neue Figures.
 
@@ -103,6 +113,9 @@ def erzeuge_figuren(
     frequenz_hz : float, optional
         Frequenz der Schwingform; Voreinstellung: Frequenz der höchsten Spitze des ersten
         Paars, ohne Referenz die Mitte der Achse.
+    fehlend : dict, optional
+        Wird mit ``{Abbildung: Grund}`` für jede Abbildung gefüllt, die nicht entsteht, obwohl sie
+        erwartet wurde (Phase nicht darstellbar). Ohne Referenz entfällt die Phase ohne Eintrag.
 
     Returns
     -------
@@ -137,28 +150,80 @@ def erzeuge_figuren(
     ergebnis["spitzen"] = zeichne_spitzen(
         neue_figure(THESIS_STIL, GROESSE_ZOLL_SPITZEN), pd, SpitzenOptionen(), THESIS_STIL
     )
+    spitze = None
     if frequenz_hz is None:
         if pd.spitzen:
-            frequenz_hz = max(pd.spitzen, key=lambda s: s.hoehe).f_sp_hz
+            spitze = max(pd.spitzen, key=lambda s: s.hoehe)
+            frequenz_hz = spitze.f_sp_hz
         else:
             frequenz_hz = float(daten.frequenz_hz[daten.anzahl_linien // 2])
     sf = schwingform_daten(daten, cache, frequenz_hz, komponente="3D")
-    bild_zoll = bildgroesse_schwingform(sf, breite_cm=BREITE_SCHWINGFORM_CM)
-    ergebnis["schwingform"] = zeichne_schwingform(
-        neue_figure(THESIS_STIL, bild_zoll), sf, SchwingformOptionen(), THESIS_STIL
-    )
+    if spitze is None and pd.spitzen:  # gewählte Frequenz: Spitze derselben Linie, falls vorhanden
+        spitze = next(
+            (s for s in pd.spitzen if abs(s.f_sp_hz - sf.f_hz) <= _halber_abstand(daten)), None
+        )
+    kennzeichen = tuple(spitze.kennzeichen) if spitze is not None else ()
+    zeichnung, bild_zoll = _schwingform_hochformat(sf, SchwingformOptionen())
+    ergebnis["schwingform"] = zeichnung
     if paare:
         try:
             sp = schwingform_daten(daten, cache, frequenz_hz, komponente=KOMPONENTE_PHASE)
-            ergebnis["schwingform_phase"] = zeichne_schwingform(
+            phase = zeichne_schwingform(
                 neue_figure(THESIS_STIL, bild_zoll),
                 sp,
-                SchwingformOptionen(darstellung="phase_relativ"),
+                SchwingformOptionen(darstellung="phase_relativ", spitzen_kennzeichen=kennzeichen),
                 THESIS_STIL,
             )
-        except DarstellungsFehler:
-            pass  # keine Phase verfügbar (keine Referenz): nur der Betrag
+        except DarstellungsFehler as fehler:  # keine Phase verfügbar: nur der Betrag, aber laut
+            if fehlend is not None:
+                fehlend["schwingform_phase"] = str(fehler)
+            print(f"Abbildung schwingform_phase entfällt: {fehler}", file=sys.stderr)
+        else:
+            phase.hilfsobjekte["herkunft_zusatz"] = {
+                "f_hz": sp.f_hz,
+                "bezug_label": phase.hilfsobjekte.get("bezug_label"),
+                "gamma2_min": sp.kohaerenz_min,
+                "anzahl_unsicher": phase.hilfsobjekte.get("anzahl_unsicher"),
+                "kennzeichen": list(kennzeichen),
+                "linien_text": phase.hilfsobjekte.get("linien_text"),
+                "hinweise": list(phase.hinweise),
+            }
+            ergebnis["schwingform_phase"] = phase
     return ergebnis
+
+
+def _halber_abstand(daten: Messdaten) -> float:
+    """Halber Linienabstand in Hz (eine Spitze gehört zur Linie, wenn sie näher als das liegt)."""
+    f = daten.frequenz_hz
+    return 0.5 * float(f[1] - f[0]) if f.shape[0] > 1 else 0.0
+
+
+def _schwingform_hochformat(
+    sf: SchwingformDaten, opt: SchwingformOptionen
+) -> tuple[Zeichnung, tuple[float, float]]:
+    """Zeichnet die Schwingform im Hochformat; die Höhe folgt dem Datenaspekt.
+
+    Die Höhe wird bei :data:`HOEHE_MAX_CM` begrenzt, aber nur so weit, dass der Punktabstand
+    d_pt mindestens :data:`D_PT_MIN` bleibt. Sonst würde die Begrenzung die Punkte und Pfeile
+    verkleinern (Pfeil 0,8·d_pt < 10 pt). Wird d_pt auch ohne Begrenzung nicht erreicht, steht
+    der Hinweis des Zeichners in ``Zeichnung.hinweise``.
+
+    Returns
+    -------
+    tuple
+        Zeichnung und Bildgröße in Zoll (für weitere Abbildungen derselben Punkte).
+    """
+    hoehe_max = HOEHE_MAX_CM
+    for _ in range(3):
+        bild_zoll = bildgroesse_schwingform(
+            sf, breite_cm=BREITE_SCHWINGFORM_CM, hoehe_max_cm=hoehe_max
+        )
+        zeichnung = zeichne_schwingform(neue_figure(THESIS_STIL, bild_zoll), sf, opt, THESIS_STIL)
+        d_pt = float(zeichnung.hilfsobjekte["d_pt"])
+        if d_pt >= D_PT_MIN:
+            break
+        hoehe_max *= 1.02 * D_PT_MIN / d_pt
+    return zeichnung, bild_zoll
 
 
 def schreibe_abbildungen(
@@ -220,7 +285,9 @@ def schreibe_abbildungen(
             "software_git_dirty": info.git_dirty,
             "linien": len(zeichnung.linien),
             "achsentitel": [(a.get_xlabel(), a.get_ylabel()) for a in zeichnung.achsen],
+            "hinweise": list(zeichnung.hinweise),
         }
+        herkunft.update(zeichnung.hilfsobjekte.get("herkunft_zusatz", {}))
         begleit.write_text(json.dumps(herkunft, ensure_ascii=False, indent=2), encoding="utf-8")
         pfade.append(bild)
     return pfade
@@ -236,7 +303,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--format", choices=("png", "pdf"), default="png")
     args = parser.parse_args(argv)
     daten = lade_svd(args.messdatei).messdaten
-    figuren = erzeuge_figuren(daten, punkt_label=args.punkt_label, frequenz_hz=args.frequenz_hz)
+    fehlend: dict[str, str] = {}
+    figuren = erzeuge_figuren(
+        daten, punkt_label=args.punkt_label, frequenz_hz=args.frequenz_hz, fehlend=fehlend
+    )
     for pfad in schreibe_abbildungen(
         figuren, args.ausgabe, messdatei=args.messdatei, format_=args.format
     ):

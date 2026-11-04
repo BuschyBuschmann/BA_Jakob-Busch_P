@@ -49,7 +49,7 @@ from .auswahl import (
     kanal_der_komponente,
     standard_bezug,
 )
-from .formate import achsentitel, dezimalkomma_formatter, grad, zahl_text
+from .formate import achsentitel, dezimalkomma_formatter, frequenz_text, grad, zahl_text
 from .stil import Plotstil
 from .zeichnung import (
     Zeichnung,
@@ -60,13 +60,16 @@ from .zeichnung import (
 )
 
 __all__ = [
+    "HINWEIS_DICHTE_UNREGELMAESSIG",
     "HINWEIS_LABELS_AUS",
     "HINWEIS_PFEILE_KURZ",
+    "HINWEIS_PHASE_SPRUNG",
     "PHASE_KEINE_REFERENZ",
     "PHASE_NUR_EINZELKOMPONENTE",
     "Darstellung",
     "SchwingformOptionen",
     "bildgroesse_schwingform",
+    "linien_zeilen",
     "zeichne_schwingform",
 ]
 
@@ -82,12 +85,31 @@ PFEIL_MIN_PT = 10.0
 """Unter dieser Pfeillänge (in pt) meldet ``Zeichnung.hinweise`` einen zu kleinen Maßstab."""
 HINWEIS_PFEILE_KURZ = "Pfeile kürzer als 10 pt: größeres Bild oder Ausschnitt wählen"
 HINWEIS_LABELS_AUS = "Punktlabels ausgeblendet: Punkte zu dicht"
+HINWEIS_PHASE_SPRUNG = "Phase wechselt bei B < Δf stark von Linie zu Linie"
+"""Zusatz bei einer Spitze mit Kennzeichen (z. B. auflösungsbegrenzt, Nachbarmode): Die Phase
+einer Linie ist dort nur eine Momentaufnahme, weil die Breite B der Resonanz unter dem
+Linienabstand Δf liegt."""
+DICHTE_UNREGELMAESSIG = 0.5
+"""Schwelle für den Hinweis auf eine unregelmäßige Punktwolke: kleinster Nachbarabstand unter
+dieser Hälfte des Medians d_NN. Ein Raster aus der Messung hat gleiche Abstände (Verhältnis 1);
+bei 0,5 bleiben zwischen zwei Markern (Radius ≤ 0,22·d_NN) nur noch 0,06·d_NN Luft, und ein
+Pfeil (0,8·d_NN) endet im Nachbarn. Darunter ist Überlappung möglich."""
+HINWEIS_DICHTE_UNREGELMAESSIG = (
+    "Unregelmäßige Punktwolke: kleinster Nachbarabstand {anteil} % des Medians, "
+    "Überlappung von Markern, Pfeilen oder Labels möglich"
+)
 _MARKER_ANTEIL = 0.22  # r_max ≤ 0,22 · d_pt, damit die Pfeilspitze den Nachbarmarker nicht deckt
 _MARKER_MAX_PT = 5.5
 _MARKER_MIN_PT = 2.5
 _BETRAG_ANTEIL = 0.35
 _BETRAG_MAX_PT = 6.5
 _RING_PLUS_PT = 3.0
+_PFEIL_BREITE_PT = 1.4
+_PFEIL_KOPFBREITE = 4.0  # headwidth in Schaftbreiten
+_PFEIL_FREI_PT = 0.5 * _PFEIL_KOPFBREITE * _PFEIL_BREITE_PT + 0.8
+"""Halbe Kopfbreite des Pfeils plus 0,8 pt heller Rand: so nah darf ein Label an die Pfeilachse."""
+_Z_PFEIL = 2.5  # unter den Markern (3): der helle Rand des Pfeils schneidet keinen Marker an
+_Z_RING = 2.4  # unter dem Pfeil, damit der Ring Pfeil und Marker nicht überdeckt
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -107,6 +129,10 @@ class SchwingformOptionen:
         (:func:`~ldv_automation.darstellung.auswahl.standard_bezug`).
     kennzeichen_phase : str or None
         Kennzeichentext für ``"phase_ref"`` („unbestätigt (M8: …)“); ``None`` = keiner.
+    spitzen_kennzeichen : tuple of str
+        Kennzeichen der Spitze, an deren Linie die Schwingform steht (z. B. auflösungsbegrenzt).
+        Nicht leer bei einer Phasendarstellung: ``Zeichnung.hinweise`` enthält dann
+        :data:`HINWEIS_PHASE_SPRUNG`.
     """
 
     darstellung: Darstellung = "betrag"
@@ -114,6 +140,7 @@ class SchwingformOptionen:
     punktlabels: bool = True
     bezug: int | None = None
     kennzeichen_phase: str | None = None
+    spitzen_kennzeichen: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.darstellung not in ("betrag", "phase_ref", "phase_relativ"):
@@ -224,18 +251,34 @@ def _kreislegende(ax: Axes, stil: Plotstil, hinweis: str) -> None:
 
 def _abstand_naechster(x: np.ndarray, y: np.ndarray) -> float | None:
     """Median d_NN der Abstände zum nächsten Nachbarn (Abstand 0 zählt nicht), sonst ``None``."""
+    kleinste = _naechste_abstaende(x, y)
+    return float(np.median(kleinste)) if kleinste.size else None
+
+
+def _naechste_abstaende(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Abstand jedes Punkts zum nächsten Nachbarn (ohne Abstand 0), leer bei weniger als 2."""
     pts = np.column_stack([x, y])
     pts = pts[np.isfinite(pts).all(axis=1)]
     if pts.shape[0] < 2:
-        return None
+        return np.empty(0)
     kleinste = np.full(pts.shape[0], np.inf)
     for i0 in range(0, pts.shape[0], 512):
         block = pts[i0 : i0 + 512]
         dist = np.hypot(block[:, None, 0] - pts[None, :, 0], block[:, None, 1] - pts[None, :, 1])
         dist[dist <= 0.0] = np.inf
         kleinste[i0 : i0 + 512] = dist.min(axis=1)
-    kleinste = kleinste[np.isfinite(kleinste)]
-    return float(np.median(kleinste)) if kleinste.size else None
+    return kleinste[np.isfinite(kleinste)]
+
+
+def _dichte_hinweis(x: np.ndarray, y: np.ndarray, d_nn: float) -> str:
+    """Hinweis bei unregelmäßiger Punktwolke (kleinster Abstand < 0,5·d_NN), sonst leer."""
+    abstaende = _naechste_abstaende(x, y)
+    if abstaende.size < 2 or d_nn <= 0.0:
+        return ""
+    anteil = float(abstaende.min()) / d_nn
+    if anteil >= DICHTE_UNREGELMAESSIG:
+        return ""
+    return HINWEIS_DICHTE_UNREGELMAESSIG.format(anteil=zahl_text(100.0 * anteil, 0))
 
 
 def achsengrenzen(
@@ -462,7 +505,8 @@ def _platziere_labels(
             ):
                 continue
             if pfeil_alle.shape[0] and np.any(
-                _abstand_zu_rechteck(pfeil_alle[:, 0], pfeil_alle[:, 1], x0, y0, x1, y1) < 2.0
+                _abstand_zu_rechteck(pfeil_alle[:, 0], pfeil_alle[:, 1], x0, y0, x1, y1)
+                < _PFEIL_FREI_PT
             ):
                 continue
             if any(
@@ -480,6 +524,32 @@ def _platziere_labels(
             entfernen()
             return None
     return texte
+
+
+def _titel_anpassen(cax: Axes, titel: str, k: float) -> None:
+    """Bricht den Farbleistentitel um, wenn er länger ist als die Leiste (sonst Überstand)."""
+    label = cax.yaxis.label
+    if float(label.get_window_extent().height) * k <= float(cax.get_window_extent().height) * k:
+        return
+    mitte = len(titel) // 2
+    trenner = [i for i, c in enumerate(titel) if c == " "]
+    if trenner:
+        i = min(trenner, key=lambda n: abs(n - mitte))
+        label.set_text(titel[:i] + "\n" + titel[i + 1 :])
+
+
+def linien_zeilen(daten: SchwingformDaten, anzahl_unsicher: int, stil: Plotstil) -> tuple[str, str]:
+    """Zeilen „Linie <f_k*> Hz“ und „γ² ≥ <γ²_min> an allen Punkten“ (bzw. Zahl der unsicheren).
+
+    Im Bild stehen beide untereinander in der rechten Spalte; mit `` · `` verbunden ergeben sie den
+    Satz „Linie 105,000 Hz · γ² ≥ 0,9 an allen Punkten“ der Begleitdatei (N-2 der Fachabnahme:
+    die Phase gilt nur an dieser einen Linie und nur mit ausreichender Kohärenz).
+    """
+    f_text = frequenz_text(daten.f_hz, 3, dezimalkomma=stil.dezimalkomma)
+    g2_min = _g2_text(daten.kohaerenz_min or 0.0, stil)
+    if anzahl_unsicher == 0:
+        return f"Linie {f_text}", f"γ² ≥ {g2_min} an allen Punkten"
+    return f"Linie {f_text}", f"γ² < {g2_min} an {anzahl_unsicher} Punkten"
 
 
 def _erklaerung(
@@ -542,12 +612,16 @@ def zeichne_schwingform(
     -------
     Zeichnung
         ``marker["punkte"]`` (Streudiagramm der gewöhnlichen Punkte), ``marker["unsicher"]``
-        (Kreuz der Punkte unter γ²_min, falls vorhanden), ``marker["ungueltig"]`` (Rauten der
-        M6-ungültigen Punkte, falls vorhanden), ``marker["bezug"]`` (Ring um den Bezugspunkt),
+        (Kreuz der Punkte unter γ²_min, in beiden Darstellungen, falls vorhanden),
+        ``marker["ungueltig"]`` (Rauten der M6-ungültigen Punkte, falls vorhanden),
+        ``marker["kein_wert"]`` (Quadrate der Punkte mit nicht endlichem Betrag, falls vorhanden),
+        ``marker["bezug"]`` (Ring um den Bezugspunkt),
         ``hilfsobjekte`` mit ``"pfeile"``, ``"farbleiste"``, ``"kreislegende"``,
         ``"punktlabels"`` (nur wenn gezeigt), ``"zeichenerklaerung"``, ``"punktzahl"``,
         ``"radius_pt"`` (Markerradius je Punkt), ``"r_max_pt"``, ``"d_pt"``, ``"d_nn_m"``,
-        ``"pt_je_m"``; ``hinweise`` mit Pfeil- und Labelhinweisen.
+        ``"pt_je_m"``; bei Phase zusätzlich ``"anzahl_unsicher"`` (Punkte unter γ²_min),
+        ``"linien_text"`` („Linie … Hz · γ² ≥ … an allen Punkten“) und, falls vorhanden,
+        ``"bezug_label"``; ``hinweise`` mit Pfeil-, Label-, Dichte- und Phasenhinweisen.
 
     Raises
     ------
@@ -622,10 +696,11 @@ def zeichne_schwingform(
                     z.texte.append(kennzeichen_anbringen(ax, stil, opt.kennzeichen_phase))
         else:
             beitrag = np.asarray(daten.betrag, dtype=np.float64)
-        ungueltig = ~daten.gueltig | ~np.isfinite(beitrag)
+        ungueltig = ~daten.gueltig  # M6
+        kein_wert = ~np.isfinite(beitrag) & ~ungueltig  # nicht endlicher Betrag, nicht M6
         unsicher = np.zeros(anzahl, dtype=bool)
-        if phase_modus and daten.kohaerenz_ok is not None:
-            unsicher = ~daten.kohaerenz_ok & ~ungueltig
+        if daten.kohaerenz_ok is not None:  # beide Darstellungen (Layout 4.5)
+            unsicher = ~daten.kohaerenz_ok & ~ungueltig & ~kein_wert
         if (
             bezug is not None
             and phase_modus
@@ -643,7 +718,8 @@ def zeichne_schwingform(
                     f"γ²_min = {_g2_text(daten.kohaerenz_min or 0.0, stil)}",
                 )
             )
-        normal = ~ungueltig & ~unsicher
+        normal = ~ungueltig & ~kein_wert & ~unsicher
+        unsicher_wort = "Phase unsicher" if phase_modus else "unsicher"  # Betrag: nicht „Phase“
 
         # --- Layout und Maßstab ---
         _platziere(fig, ax, rechts, rect, (xlim[1] - xlim[0]) / (ylim[1] - ylim[0]))
@@ -653,6 +729,11 @@ def zeichne_schwingform(
         radius, r_max = _radien(
             np.where(np.isfinite(beitrag), beitrag, 0.0), normal, d_pt, einheitlich=not phase_modus
         )
+        regel_hinweis = _dichte_hinweis(x, y, d_nn)
+        if regel_hinweis:
+            z.hinweise = (*z.hinweise, regel_hinweis)
+        if phase_modus and opt.spitzen_kennzeichen:
+            z.hinweise = (*z.hinweise, HINWEIS_PHASE_SPRUNG)
         r_med = float(np.median(radius[normal])) if np.any(normal) else r_max
         radius = np.where(normal, radius, r_med)
         z.hilfsobjekte.update(
@@ -685,9 +766,10 @@ def zeichne_schwingform(
             pfeile = ax.quiver(
                 x[arrow], y[arrow],
                 laenge_m * np.cos(phase[arrow]), laenge_m * np.sin(phase[arrow]),
-                angles="xy", scale_units="xy", scale=1.0, units="inches", width=1.4 / 72.0,
-                headwidth=4, headlength=5, headaxislength=4.5, pivot="tail",
-                color=stil.achse, zorder=4,
+                angles="xy", scale_units="xy", scale=1.0, units="inches",
+                width=_PFEIL_BREITE_PT / 72.0,
+                headwidth=_PFEIL_KOPFBREITE, headlength=5, headaxislength=4.5, pivot="tail",
+                color=stil.achse, zorder=_Z_PFEIL,
             )  # fmt: skip
             pfeile.set_path_effects(
                 [patheffects.withStroke(linewidth=1.6, foreground=stil.flaeche)]
@@ -704,7 +786,7 @@ def zeichne_schwingform(
             (kreuz,) = ax.plot(
                 x[unsicher], y[unsicher], linestyle="none", marker="x", markersize=1.4 * r_med,
                 color=stil.achse, zorder=5,
-                label=f"γ² < {g2_min_text}: Phase unsicher ({int(np.sum(unsicher))})",
+                label=f"γ² < {g2_min_text}: {unsicher_wort} ({int(np.sum(unsicher))})",
             )  # fmt: skip
             z.marker["unsicher"] = kreuz
         if np.any(ungueltig):
@@ -712,11 +794,16 @@ def zeichne_schwingform(
                 x[ungueltig], y[ungueltig], marker="D", s=(2 * r_med) ** 2 / 2.0,
                 facecolors=stil.flaeche, edgecolors=stil.text_gedaempft, linewidths=1.0, zorder=3,
             )  # fmt: skip
+        if np.any(kein_wert):
+            z.marker["kein_wert"] = ax.scatter(
+                x[kein_wert], y[kein_wert], marker="s", s=(2 * r_med) ** 2 / 2.0,
+                facecolors=stil.flaeche, edgecolors=stil.text_gedaempft, linewidths=1.0, zorder=3,
+            )  # fmt: skip
         if bezug is not None:
             (ring,) = ax.plot(
                 [x[bezug]], [y[bezug]], linestyle="none", marker="o",
                 markersize=2 * (r_max + _RING_PLUS_PT), markerfacecolor="none",
-                markeredgecolor=stil.achse, markeredgewidth=1.3, zorder=3.5,
+                markeredgecolor=stil.achse, markeredgewidth=1.3, zorder=_Z_RING,
             )  # fmt: skip
             z.marker["bezug"] = ring
 
@@ -746,7 +833,7 @@ def zeichne_schwingform(
             eintraege.append(
                 (
                     Line2D([], [], linestyle="none", marker="x", color=stil.achse, markersize=6),
-                    f"γ² < {_g2_text(daten.kohaerenz_min or 0.0, stil)}: Phase unsicher "
+                    f"γ² < {_g2_text(daten.kohaerenz_min or 0.0, stil)}: {unsicher_wort} "
                     f"({int(np.sum(unsicher))})",
                 )
             )
@@ -756,6 +843,14 @@ def zeichne_schwingform(
                     Line2D([], [], linestyle="none", marker="D", markersize=6,
                            markerfacecolor=stil.flaeche, markeredgecolor=stil.text_gedaempft),
                     f"ungültig (M6) ({int(np.sum(ungueltig))})",
+                )
+            )  # fmt: skip
+        if np.any(kein_wert):
+            eintraege.append(
+                (
+                    Line2D([], [], linestyle="none", marker="s", markersize=6,
+                           markerfacecolor=stil.flaeche, markeredgecolor=stil.text_gedaempft),
+                    f"kein Messwert ({int(np.sum(kein_wert))})",
                 )
             )  # fmt: skip
         if bezug is not None:
@@ -772,10 +867,18 @@ def zeichne_schwingform(
             z.hilfsobjekte["zeichenerklaerung"] = legende
             ext = legende.get_window_extent()
             y_unten = (float(ext.y0) - float(rechts.bbox.y0)) / float(rechts.bbox.height) - 0.015
-        gekennzeichnet = int(np.sum(unsicher | ungueltig))
+        gekennzeichnet = int(np.sum(unsicher | ungueltig | kein_wert))
         zeilen = [f"{anzahl} Messpunkte"]
         if gekennzeichnet:
             zeilen.append(f"davon {gekennzeichnet} gekennzeichnet")
+        if phase_modus:  # Linie und Zuverlässigkeit der Phase im Bild (N-2 der Fachabnahme)
+            zeilen.extend(linien_zeilen(daten, int(np.sum(unsicher)), stil))
+            z.hilfsobjekte["anzahl_unsicher"] = int(np.sum(unsicher))
+            z.hilfsobjekte["linien_text"] = " · ".join(
+                linien_zeilen(daten, int(np.sum(unsicher)), stil)
+            )
+            if bezug is not None:
+                z.hilfsobjekte["bezug_label"] = int(daten.label[bezug])
         zeichen = max(int((spalte_pt - 4.0) / (0.55 * stil.schrift_pt)), 8)
         punktzahl = rechts.text(
             0.0, y_unten, "\n".join(textwrap.fill(t, zeichen) for t in zeilen),
@@ -795,6 +898,7 @@ def zeichne_schwingform(
             z.hilfsobjekte["farbleiste"] = _farbleiste(
                 fig, cax, abbildbar, titel, stil, ticks=[-180, -90, 0, 90, 180]
             )
+            _titel_anpassen(cax, titel, k)
             assert phase is not None
             z.hilfsobjekte["winkel_grad"] = grad(phase)
         else:

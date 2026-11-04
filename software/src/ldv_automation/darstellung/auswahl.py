@@ -54,6 +54,7 @@ from ldv_automation.auswertung.spitzen import Spitze
 
 __all__ = [
     "BEZEICHNUNG_LEISTUNG",
+    "HINWEIS_PUNKTMENGE_3D",
     "KOMPONENTEN",
     "DarstellungsFehler",
     "Ebene",
@@ -262,6 +263,10 @@ class SpektrumDaten:
     mittelformel: str = ""
 
 
+HINWEIS_PUNKTMENGE_3D = "3D-Mittel: je Linie nur Punkte mit endlichen Werten in X, Y und Z"
+"""Regel der gemeinsamen Punktmenge bei gewähltem 3D (nur dann gilt sie für alle Kurven)."""
+
+
 def _punktzahl_text(n_min: int, n_max: int) -> str:
     """Punktzahl des Mittels: eine Zahl, bei je Linie verschiedener Zahl „min … max“."""
     return str(n_max) if n_min == n_max else f"{n_min} … {n_max}"
@@ -364,10 +369,12 @@ def spektrum_daten(
         if "3D" in komponenten:
             werte["3D"] = betrag_3d_ap(staple_3d(*(ap[c] for c in ("X", "Y", "Z"))))
     gueltig = cache.gueltig()
-    if punkt is None:
-        # Eine Punktmenge für alle Kurven: nur Punkte (je Linie), die in **allen** beteiligten
-        # Komponenten endlich sind. Sonst weicht das 3D-Mittel (NaN, sobald eine Komponente NaN
-        # ist) von den Komponentenmitteln ab, und die Formel √(Σ_c Mittel AP_c) stimmt nicht.
+    if punkt is None and "3D" in komponenten:
+        # Gemeinsame Punktmenge nur bei gewähltem 3D (N-1 der Fachabnahme): je Linie nur Punkte,
+        # die in X, Y **und** Z endlich sind. Sonst weicht das 3D-Mittel (NaN, sobald eine
+        # Komponente NaN ist) von den Komponentenmitteln ab, und die Formel √(Σ_c Mittel AP_c)
+        # stimmt nicht. Ohne 3D mittelt jede Komponente über ihre eigene Punktmenge (wie PSV
+        # AvgSeq); eine abgewählte Komponente verändert X, Y, Z dann nicht.
         endlich = np.ones(next(iter(werte.values())).shape, dtype=bool)
         for c in einzel:
             endlich &= np.isfinite(werte[c])
@@ -405,6 +412,7 @@ def spektrum_daten(
                     HINWEIS_MITTEL_3D if groesse == "kohaerent" else HINWEIS_MITTEL_3D_LEISTUNG
                 ).format(n=n_text)
             )
+            hinweise.append(HINWEIS_PUNKTMENGE_3D)
     einheit = daten.einheiten[f"Vib {einzel[0]}"]
     bezeichnung = (
         f"{groessenname(einheit)}, kohärent mit {ref}"
@@ -454,6 +462,9 @@ class FrfDaten:
         Schwelle γ²_min (Schwellen des Caches).
     punktzahl : int or None
         Beim Mittel Zahl der gemittelten Punkte (Maximum über die Linien), sonst ``None``.
+    punktzahl_text : str
+        Text für die Beschriftung: eine Zahl, bei je Linie verschiedener Zahl „min … max“
+        (wie Ansicht 1); leer ohne Mittel.
     """
 
     frequenz_hz: FloatArray
@@ -469,6 +480,7 @@ class FrfDaten:
     auswahl_text: str
     kohaerenz_min: float
     punktzahl: int | None = None
+    punktzahl_text: str = ""
 
 
 def frf_daten(cache: PaarCache, antwort: str, referenz: str, *, punkt: int | None) -> FrfDaten:
@@ -507,6 +519,11 @@ def frf_daten(cache: PaarCache, antwort: str, referenz: str, *, punkt: int | Non
         auswahl_text=text,
         kohaerenz_min=frf.kohaerenz_min,
         punktzahl=int(pa.mittel_h1.n_mittel.max()) if punkt is None else None,
+        punktzahl_text=(
+            _punktzahl_text(int(pa.mittel_h1.n_mittel.min()), int(pa.mittel_h1.n_mittel.max()))
+            if punkt is None
+            else ""
+        ),
     )
 
 
@@ -537,7 +554,9 @@ class SpitzenDaten:
     hinweis : str
         Text für den Fall ohne Spitzen („Keine Spitzensuche: Referenzkanal fehlt.“ usw.).
     punktzahl : int
-        Zahl der gemittelten Punkte (Maximum über die Linien); steht in ``beschriftung``.
+        Zahl der gemittelten Punkte (Maximum über die Linien).
+    punktzahl_text : str
+        Punktzahl in ``beschriftung``: eine Zahl, bei je Linie verschiedener Zahl „min … max“.
     """
 
     frequenz_hz: FloatArray
@@ -550,6 +569,7 @@ class SpitzenDaten:
     gewaehlt: int | None
     hinweis: str
     punktzahl: int
+    punktzahl_text: str = ""
 
 
 def spitzen_daten_frf(
@@ -574,19 +594,21 @@ def spitzen_daten_frf(
     y = pa.mittel_h1.mittel_betrag
     assert y is not None
     n = int(pa.mittel_h1.n_mittel.max())
+    n_text = _punktzahl_text(int(pa.mittel_h1.n_mittel.min()), n)
     return SpitzenDaten(
         frequenz_hz=pa.paar.frequenz_hz,
         y=y,
         einheit=pa.frf.einheit,
         groesse="Betrag",
         beschriftung=(
-            f"Betragsmittel |{pa.frf.bezeichnung_h1}| über {n} Punkte, {antwort}/{referenz}"
+            f"Betragsmittel |{pa.frf.bezeichnung_h1}| über {n_text} Punkte, {antwort}/{referenz}"
         ),
         spitzen=spitzen,
         baender=tuple((float(u), float(o)) for u, o in baender),
         gewaehlt=gewaehlt,
         hinweis="" if spitzen else "Keine Spitzen gefunden.",
         punktzahl=n,
+        punktzahl_text=n_text,
     )
 
 
@@ -610,17 +632,21 @@ def spitzen_daten_spektrum(
     y = mittel.mittel_quadratisch
     assert y is not None
     n = int(mittel.n_mittel.max())
+    n_text = _punktzahl_text(int(mittel.n_mittel.min()), n)
     return SpitzenDaten(
         frequenz_hz=daten.frequenz_hz,
         y=y,
         einheit=daten.einheiten[kanal],
         groesse="Amplitude",
-        beschriftung=f"Leistungsmittel √AP über {n} Punkte, {kanal}\n(mit Rauschen, ohne Phase)",
+        beschriftung=(
+            f"Leistungsmittel √AP über {n_text} Punkte, {kanal}\n(mit Rauschen, ohne Phase)"
+        ),
         spitzen=(),
         baender=tuple((float(u), float(o)) for u, o in baender),
         gewaehlt=None,
         hinweis="Keine Spitzensuche: Referenzkanal fehlt.",
         punktzahl=n,
+        punktzahl_text=n_text,
     )
 
 

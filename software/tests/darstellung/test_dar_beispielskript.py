@@ -10,8 +10,19 @@ import darstellung_beispiel as skript
 import pytest
 
 from ldv_automation.auswertung.export import sha256_datei
-from ldv_automation.darstellung.auswahl import PaarCache, spektrum_daten
+from ldv_automation.auswertung.laden import lade_svd
+from ldv_automation.darstellung.auswahl import (
+    DarstellungsFehler,
+    PaarCache,
+    schwingform_daten,
+    spektrum_daten,
+)
 from ldv_automation.darstellung.bild import neue_figure
+from ldv_automation.darstellung.schwingform import (
+    HINWEIS_PHASE_SPRUNG,
+    SchwingformOptionen,
+    zeichne_schwingform,
+)
 from ldv_automation.darstellung.spektrum import SpektrumOptionen, zeichne_spektrum
 from ldv_automation.darstellung.stil import THESIS_STIL
 
@@ -111,3 +122,69 @@ def test_main_liest_die_datei_ueber_lade_svd(
     rc = skript.main([str(quelle), "--ausgabe", str(tmp_path / "o"), "--punkt-label", "100"])
     assert rc == 0
     assert str(tmp_path / "o" / "a.png") in capsys.readouterr().out
+
+
+def test_fehlende_phasenabbildung_wird_mit_grund_gemeldet_nicht_verschluckt(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    md = dd.synthetische_messdaten()
+    echte = zeichne_schwingform
+
+    def zeichne(fig, sd, opt, stil):  # type: ignore[no-untyped-def]
+        if opt.darstellung != "betrag":
+            raise DarstellungsFehler("Phase nicht verfügbar: keine Referenz.")
+        return echte(fig, sd, opt, stil)
+
+    monkeypatch.setattr(skript, "zeichne_schwingform", zeichne)
+    fehlend: dict[str, str] = {}
+    figuren = skript.erzeuge_figuren(md, fehlend=fehlend)
+    assert "schwingform" in figuren and "schwingform_phase" not in figuren
+    assert fehlend == {"schwingform_phase": "Phase nicht verfügbar: keine Referenz."}
+    assert "schwingform_phase entfällt: Phase nicht verfügbar: keine Referenz." in (
+        capsys.readouterr().err
+    )
+    # ohne Referenz entfällt die Phase erwartungsgemäß ohne Eintrag und ohne Meldung
+    monkeypatch.setattr(skript, "zeichne_schwingform", echte)
+    leer: dict[str, str] = {}
+    skript.erzeuge_figuren(dd.synthetische_messdaten(referenz=False), fehlend=leer)
+    assert leer == {} and capsys.readouterr().err == ""
+
+
+def test_begleitdatei_der_phasenabbildung_nennt_linie_bezug_schwelle_und_spitzenkennzeichen(
+    tmp_path: Path,
+) -> None:
+    md = dd.synthetische_messdaten()
+    quelle = tmp_path / "mess.svd"
+    quelle.write_bytes(b"x")
+    figuren = skript.erzeuge_figuren(md)  # Spitze mit Kennzeichen „auflösungsbegrenzt“
+    skript.schreibe_abbildungen(figuren, tmp_path / "abb", messdatei=quelle, dpi=40)
+    j = json.loads((tmp_path / "abb" / "darstellung_schwingform_phase.json").read_text("utf-8"))
+    assert j["f_hz"] == pytest.approx(10.0) and j["bezug_label"] == 100
+    assert j["gamma2_min"] == pytest.approx(0.9) and j["anzahl_unsicher"] == 0
+    assert j["kennzeichen"] == ["aufloesungsbegrenzt"]
+    assert j["linien_text"] == "Linie 10,000 Hz · γ² ≥ 0,9 an allen Punkten"
+    assert HINWEIS_PHASE_SPRUNG in j["hinweise"]
+    # ohne Spitze an der gewählten Linie: kein Kennzeichen, kein Phasenhinweis
+    ohne = skript.erzeuge_figuren(md, frequenz_hz=15.0)["schwingform_phase"]
+    assert ohne.hilfsobjekte["herkunft_zusatz"]["kennzeichen"] == []
+    assert HINWEIS_PHASE_SPRUNG not in ohne.hinweise
+    # jede Begleitdatei trägt die Hinweise der Zeichnung
+    spektrum = json.loads((tmp_path / "abb" / "darstellung_spektrum.json").read_text("utf-8"))
+    assert isinstance(spektrum["hinweise"], list) and spektrum["hinweise"]
+
+
+def test_thesis_schwingform_hoehe_folgt_dem_datenaspekt_d_pt_mindestens_12_5(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    datei = Path(__file__).resolve().parents[3] / "Input" / "20261012_ref_Mitte.svd"
+    if not datei.is_file():
+        pytest.skip("Messdatei nicht vorhanden")
+    md = lade_svd(datei).messdaten
+    sf = schwingform_daten(md, PaarCache(md), 18.0, komponente="3D")
+    z, zoll = skript._schwingform_hochformat(sf, SchwingformOptionen())
+    assert z.hilfsobjekte["d_pt"] >= skript.D_PT_MIN
+    # eine zu knappe Obergrenze würde d_pt drücken: die Höhe wächst darüber hinaus
+    monkeypatch.setattr(skript, "HOEHE_MAX_CM", 8.0)
+    z2, zoll2 = skript._schwingform_hochformat(sf, SchwingformOptionen())
+    assert zoll2[1] * 2.54 > 8.0 and z2.hilfsobjekte["d_pt"] >= skript.D_PT_MIN
+    assert zoll2[0] == pytest.approx(zoll[0]) and zoll2[1] == pytest.approx(zoll[1], rel=0.2)
