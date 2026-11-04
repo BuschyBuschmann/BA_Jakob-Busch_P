@@ -23,3 +23,8 @@ Empfehlung der Design-Abnahme DA-AUSW-T3b, vom Nutzer gewählt.
 
 ## Konsequenzen
 Brief K-AUSW Abschnitt 3.3 gilt in diesem Punkt als geändert; Test auf sichtbare Zeilenzahl bei 1366×768.
+
+## Nachtrag 2026-11-05: Beschriftung der gewählten Spitze in der Auswahlspalte
+**Anlass:** Design-Re-Abnahme DA-AUSW-T3b-2: Mit Standardhöhe ≥ 6 Tabellenzeilen bleibt bei 1366×768 nur ca. 140 px Plot; Beschriftungsstreifen (bis 50 %) und Dreizeilen-Kasten quetschen die Kurve auf ca. 40 px.
+**Alternativen:** Beschriftung in die Auswahlspalte AD (im Plot nur Ring, kein Streifen) · Tabelle einklappbar mit 4 Zeilen · zusätzlich Legende in den Plotkopf · nur Streifen begrenzen.
+**Entscheidung des Nutzers (2026-11-05):** In der Oberfläche stehen die Angaben der gewählten Spitze (f, ζ, Methode, Band, Kennzeichen) als Textblock in der Auswahlspalte; im Plot bleibt der Ring, der Beschriftungsstreifen entfällt; Tabelle 5–6 Zeilen, Plotachse ca. 220 px. Die Thesis-Abbildung behält Kasten und Streifen. Abweichung von UI-8 („Marker mit Beschriftung im Plot“) bewusst. Kanalpaarwahl bleibt für alle Ansichten gemeinsam (Nutzerentscheidung).
