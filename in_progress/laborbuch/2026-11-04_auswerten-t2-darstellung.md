@@ -32,5 +32,7 @@ Zuletzt 1862 passed, 99 %, GUI 95 passed, ruff, mypy --strict sauber (vom Review
 - MINOR: `zahl_signifikant_text(-0.0)` → „−0“.
 - Windows: Schriften/Glyphen (⚠, Hochzahlen), HiDPI, SIGTERM/kill.
 
+**Nachtrag 2026-11-05 (Entscheidungen Jakob):** Pfeile konstanter Länge mit hellem Rand, Betrag über Markergröße (ADR-025); Mittelformel und Punktzahl im Bild (KONVENTION); M6-ungültige Punkte kennzeichnen; Thesis-Beispiel mit relativer Phase; 3D-Leistungsmittel: Rechnung auf gemeinsame Punktmenge angleichen; Thesis-Spitzenbild beschriftet die stärkste Spitze; Frequenzen mit fester Nachkommastellenzahl, ζ 2 signifikante Stellen; Layout Ansicht 3/4 über den ui-designer; ADR-022 bis ADR-025 angelegt; KONVENTIONEN ergänzt.
+
 ## Thesis-Bezug
 Umsetzung und Darstellung der Auswertung; Phasendarstellung in Graustufen; gemeinsame Zeichenfunktionen für Thesis-Abbildungen.

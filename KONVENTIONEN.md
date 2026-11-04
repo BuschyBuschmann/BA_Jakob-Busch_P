@@ -37,6 +37,17 @@ uv run pytest --cov --cov-fail-under=90
 - Docstrings im NumPy-Stil.
 - SI-Einheiten; die Einheit steht im Namen (z. B. `freq_hz`, `velocity_m_s`) oder im Docstring.
 - Winkel in rad, Zeit in s. Abweichende Einheiten werden nur an der Grenze zur COM-Schnittstelle umgerechnet.
+- Anzeige von Winkeln in Oberfläche und Abbildungen in Grad (Umrechnung an der Anzeigegrenze);
+  positives φ heißt „eilt voraus“ (Zeitabhängigkeit e^{+iωt}) und wird in jeder Phasendarstellung
+  mit Subjekt genannt (z. B. „positiv = Vib Z eilt Ref1 voraus“).
+- Hintergrundrechnungen der Oberfläche laufen nur über `ldv_automation.hintergrund`
+  (spawn-Prozess, nie `QThread`); große NumPy-Felder gehen nur in Teilen (höchstens 4 MiB) über
+  die Prozessgrenze; jeder gestartete Auftrag wird bis `fertig()` abgefragt oder abgebrochen,
+  beim Schließen ruft die Oberfläche `Ausfuehrer.beende()` (ADR-022).
+- Der Sicherheitsgrad von Leserfeldern („gesichert“, „plausibel“, „offen“) wird in der Oberfläche
+  unverändert angezeigt; „offen“ ergibt „–“.
+- Die `PINS` im Wheelhouse-Skript entsprechen exakt den Laufzeitpaketen in `uv.lock`
+  (ein Test erzwingt das).
 - Zufall nur über einen übergebenen Seed bzw. `numpy.random.Generator`.
 
 ## Hardware
@@ -63,6 +74,9 @@ uv run pytest --cov --cov-fail-under=90
   reine Frequenzangaben (z. B. Frequenzdrift in Hz/h) sind keine Dämpfungsangaben.
   Eine ζ-Differenz gilt als belegt, wenn beide Ausgangswerte mit Bandgrenzen und Methode
   daneben stehen (z. B. `daempfung_a`/`daempfung_b` zu `delta_zeta`).
+- ζ-Angaben in Beschriftungen, Oberfläche und Abbildungen tragen ebenfalls Methode, Bandgrenzen
+  und vorhandene Warnkennzeichen (z. B. „auflösungsbegrenzt“); angezeigt mit 2 signifikanten
+  Stellen. Frequenzen werden mit der angegebenen Zahl Nachkommastellen angezeigt.
 
 ## Verifikation
 - Jede Auswertefunktion wird gegen einen analytischen Referenzfall aus
@@ -74,6 +88,13 @@ uv run pytest --cov --cov-fail-under=90
 - Skripte liegen unter `software/` (genauer Pfad wird mit dem ersten Abbildungspaket
   festgelegt), Ausgaben unter `in_progress/thesis/abbildungen/`.
 - Jede Ausgabe nennt das erzeugende Skript und den Git-Hash der Eingangsdaten.
+- Abbildungen mit Mittelwerten nennen Mittelformel (Betragsmittel, quadratisches oder
+  arithmetisches Mittel) und Punktzahl im Bild bzw. in der Bildunterschrift
+  (Nutzerentscheidung 2026-11-05).
+- Phasenabbildungen kodieren die Phase immer zusätzlich durch einen lesbaren Winkel (Pfeil
+  konstanter Länge), nie nur durch Helligkeit oder Farbe; Punkte unter γ²_min und von PSV als
+  ungültig markierte Punkte bleiben im Bild und sind gekennzeichnet. Für Phasen nur zyklische,
+  wahrnehmungsgleichmäßige Farbskalen (`twilight`), kein `hsv`/`jet` (ADR-025).
 - Erstellt werden sie vom `software-engineer` im Umsetzungspaket.
 
 ## Polytec-Konventionen
