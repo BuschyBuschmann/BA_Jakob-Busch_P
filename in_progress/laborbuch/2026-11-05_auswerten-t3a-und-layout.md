@@ -29,5 +29,7 @@ Volle Suite 1953 passed, 99 %; GUI 145 passed; ruff, mypy --strict sauber (vom O
 - Korrekturpaket: Pfeil unter Marker, N-1, N-2, Rückfallpfad T3a absichern, Neuzeichnen bei Größenänderung, unsichere Punkte auch bei Betrag, kein stilles `except` im Thesis-Skript, eigene Bezeichnung für NaN-Beträge, Punktzahl einheitlich, Testlücken, Hinweis bei unregelmäßigen Punktwolken.
 - Ansicht 2–4 in der Oberfläche (T3b), Export/Bild/Tastatur (T4), Installation 0.3.0 und Messrechner-Prüfung (T5).
 
+**Nachtrag (K-AUSW-T3a-2):** Rückfallpfad nach Qt-Aufbaufehlern schrittweise abgesichert; Ansicht 3/4 werden bei Größenänderung entprellt (150 ms) neu gezeichnet, x-Zoom bleibt. Re-Review RR-AUSW-T3a-2: FREIGABE MIT AUFLAGEN (2 MINOR: Startpfad von `oeffne_datei` ungeschützt; sekundäre Fehler im Rückfall ohne Spur) – nach Nutzerentscheidung in T3b. Allein in sauberem Arbeitsbaum geprüft: 1953 passed, GUI 152 passed.
+
 ## Thesis-Bezug
 Umsetzung der Auswertungsoberfläche; Darstellung und Lesbarkeit der Auswertung; Nebenläufigkeit.

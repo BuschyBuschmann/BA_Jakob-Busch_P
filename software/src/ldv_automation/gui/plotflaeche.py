@@ -25,7 +25,7 @@ from matplotlib.backend_bases import FigureCanvasBase
 from matplotlib.backends.backend_qt import NavigationToolbar2QT
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from PySide6.QtCore import QEvent, QObject, Qt
+from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import QFrame, QToolButton, QVBoxLayout, QWidget
 
 from ldv_automation.darstellung import Ansicht, Plotstil, Zeichnung
@@ -36,7 +36,16 @@ from ldv_automation.darstellung.spitzen import zeichne_spitzen
 from ldv_automation.gui.anzeige_auswerten import ANSICHT_NAMEN
 from ldv_automation.gui.stil import setze_eigenschaft
 
-__all__ = ["PlotFlaeche", "PlotToolbar"]
+__all__ = ["NEUZEICHNEN_ANSICHTEN", "NEUZEICHNEN_MS", "PlotFlaeche", "PlotToolbar"]
+
+NEUZEICHNEN_MS = 150
+"""Entprellzeit: erst wenn die Größe so lange stillsteht, wird neu gezeichnet."""
+NEUZEICHNEN_ANSICHTEN = frozenset({Ansicht.SPITZEN, Ansicht.SCHWINGFORM})
+"""Ansichten, die Größen in pt zum Zeichenzeitpunkt messen (Beschriftungsabstände, Pfeillängen)
+und deshalb bei Größenänderung der Figure neu gezeichnet werden. Ansicht 1 und 2 haben nur
+Achsen im ``constrained``-Layout, das beim Skalieren des Canvas selbst nachzieht
+(``draw_idle``); ein Neuzeichnen würde dort nur den Verlauf der Werkzeugleiste und die
+y-Skalierung des Zooms verwerfen."""
 
 Zeichner = Callable[[Figure, Any, Any, Plotstil], Zeichnung]
 
@@ -138,6 +147,9 @@ class PlotFlaeche(QFrame):
     ``fokus="true"`` (Stylesheet: 2 px ``C_AKZENT``).
     """
 
+    fehler = Signal(str)
+    """Meldet einen Fehler beim Neuzeichnen nach einer Größenänderung (Text der Ausnahme)."""
+
     def __init__(self, stil: Plotstil, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("plot")
@@ -163,6 +175,13 @@ class PlotFlaeche(QFrame):
         self._zeichnung: Zeichnung | None = None
         self._standard_x: tuple[float, float] | None = None
         self._ansicht: Ansicht | None = None
+        self._letzter_aufruf: tuple[Ansicht, object, object, str] | None = None
+        self._gezeichnet_groesse = QSize()
+        self._neuzeichnen_timer = QTimer(self)
+        self._neuzeichnen_timer.setObjectName("neuzeichnen")
+        self._neuzeichnen_timer.setSingleShot(True)
+        self._neuzeichnen_timer.setInterval(NEUZEICHNEN_MS)
+        self._neuzeichnen_timer.timeout.connect(self._neuzeichnen)
 
     # --- Zugriff ---------------------------------------------------------------------------
 
@@ -250,6 +269,8 @@ class PlotFlaeche(QFrame):
         self._standard_x = standard_x
         self._ansicht = ansicht
         self._zeichnung = zeichnung
+        self._letzter_aufruf = (ansicht, daten, optionen, beschreibung)
+        self._gezeichnet_groesse = self._canvas.size()
         self._canvas.setAccessibleName(f"Diagramm: {ANSICHT_NAMEN[ansicht.value]}")
         self._canvas.setAccessibleDescription(beschreibung)
         return zeichnung
@@ -262,18 +283,35 @@ class PlotFlaeche(QFrame):
         self._zeichnung = None
         self._standard_x = None
         self._ansicht = None
+        self._letzter_aufruf = None
+        self._neuzeichnen_timer.stop()
         self._canvas.setAccessibleDescription("")
 
     def zoom_zuruecksetzen(self) -> None:
         """Stellt den Ausgangsbereich wieder her (Knopf „Zurücksetzen“, Pos1)."""
         self._toolbar.home()
 
+    # --- Größenänderung ----------------------------------------------------------------------
+
+    def _neuzeichnen(self) -> None:
+        """Zeichnet die aktuelle Ansicht mit denselben Daten und Optionen neu (Zoom x bleibt)."""
+        if self._letzter_aufruf is None or self._canvas.size() == self._gezeichnet_groesse:
+            return
+        ansicht, daten, optionen, beschreibung = self._letzter_aufruf
+        try:
+            self.zeichne(ansicht, daten, optionen, beschreibung, zoom_behalten=True)
+        except Exception as fehler:  # Zeichenfunktion scheitert: melden statt verschlucken
+            self.fehler.emit(str(fehler))
+
     # --- Fokusrahmen -----------------------------------------------------------------------
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802  # Qt-Name
         """Zeigt den Fokusrahmen, solange der Plot den Tastaturfokus hat."""
         if watched is self._canvas:
-            if event.type() == QEvent.Type.FocusIn:
+            if event.type() == QEvent.Type.Resize:
+                if self._ansicht in NEUZEICHNEN_ANSICHTEN:
+                    self._neuzeichnen_timer.start()  # entprellt: jedes Resize startet neu
+            elif event.type() == QEvent.Type.FocusIn:
                 setze_eigenschaft(self._rahmen, "fokus", "true")
             elif event.type() == QEvent.Type.FocusOut:
                 setze_eigenschaft(self._rahmen, "fokus", "false")

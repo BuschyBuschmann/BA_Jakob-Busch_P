@@ -19,6 +19,8 @@ Dieses Modul ist ein dünnes Widget (Abdeckung nur mit ``pytest -m gui``); die L
 from __future__ import annotations
 
 import itertools
+from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -545,6 +547,7 @@ class AuswertenReiter(QWidget):
         lv.addStretch(1)
         self._ae_stapel.addWidget(leer)
         self.plot = PlotFlaeche(baue_plotstil())
+        self.plot.fehler.connect(self._zeichenfehler)
         self._grau_effekt = QGraphicsOpacityEffect(self.plot)
         self._grau_effekt.setOpacity(GRAU_DECKKRAFT)
         self._grau_effekt.setEnabled(False)
@@ -704,15 +707,29 @@ class AuswertenReiter(QWidget):
         self.band_fehler.setVisible(False)
 
     def _lesefehler(self, text: str) -> None:
-        """Zeigt das Fehlerband; die zuvor geladene Datei bleibt unverändert (UI-15)."""
+        """Zeigt das Fehlerband; die zuvor geladene Datei bleibt unverändert (UI-15).
+
+        Auch dieser Pfad darf nicht scheitern: Der Zustand wird zuerst gesetzt (nie „Laden“ nach
+        einer Ausnahme), danach folgen die Widgets einzeln; Ladeleiste und Abfrage werden in
+        jedem Fall beendet.
+        """
         self._fehlertext = fehler_band_text(text)
-        self.lbl_fehler.setText(self._fehlertext)
-        self.band_fehler.setVisible(True)
         zustand = (
             AuswertenZustand.GELADEN if self._geladen is not None else AuswertenZustand.KEINE_DATEI
         )
-        self._setze_zustand(zustand)
-        self._zeige_pruefung()
+        self._zustand = zustand
+        schritte: tuple[Callable[[], object], ...] = (
+            lambda: self.lbl_fehler.setText(self._fehlertext or ""),
+            lambda: self.band_fehler.setVisible(True),
+            lambda: self.laden_leiste.setVisible(False),
+            self._wende_zustand_an,
+            self._zeige_pruefung,
+        )
+        for schritt in schritte:
+            with suppress(Exception):
+                schritt()
+        if self._auftrag_a is None and self._auftrag_b is None:
+            self._timer.stop()
 
     def _zeige_pruefung(self) -> None:
         """Fußzeile rechts: Prüfung der **angezeigten** Datei, nie ein veralteter Stand."""
@@ -793,22 +810,31 @@ class AuswertenReiter(QWidget):
         self._zeige_pruefung()
 
     def _verwerfe_datei(self) -> None:
-        """Setzt den Reiter in den Zustand „Keine Datei“ zurück (nach einem Fehler beim Aufbau)."""
+        """Setzt den Reiter in den Zustand „Keine Datei“ zurück (nach einem Fehler beim Aufbau).
+
+        Der Rückfallpfad darf selbst nicht scheitern: Jeder Schritt läuft einzeln und ein
+        Fehler darin wird übergangen (der auslösende Fehler steht schon im Fehlerband).
+        """
         self._geladen = None
         self._cache = None
         self._pruefung = None
         self._pruef_fehler = None
         self._in_aufbau = True
+        schritte: tuple[Callable[[], object], ...] = (
+            self.liste_punkte.clear,
+            self.plot.leere,
+            lambda: self.lbl_datei.setText("–"),
+            lambda: self.lbl_pfad.setText(""),
+            lambda: self.lbl_plotkopf.setText(""),
+            lambda: self.lbl_hinweise.setText(""),
+            self._fuelle_parameter,
+        )
         try:
-            self.liste_punkte.clear()
+            for schritt in schritte:
+                with suppress(Exception):
+                    schritt()
         finally:
             self._in_aufbau = False
-        self.plot.leere()
-        self.lbl_datei.setText("–")
-        self.lbl_pfad.setText("")
-        self.lbl_plotkopf.setText("")
-        self.lbl_hinweise.setText("")
-        self._fuelle_parameter()
 
     def _uebernehme(self, job: int, geladen: Geladen, pfad: str) -> None:
         """Stufe A fertig: Ansicht 1 sofort zeigen, Stufe B im Hintergrund starten.
@@ -957,11 +983,15 @@ class AuswertenReiter(QWidget):
         except DarstellungsFehler as fehler:
             self.lbl_cursor.setText(f"{t.symbol('fehler')} {fehler}")
         except Exception as fehler:  # unerwartet: sichtbar melden, Darstellung leeren
-            self.plot.leere()
-            self.lbl_plotkopf.setText("")
-            self._fehlertext = zeichen_fehler_text(str(fehler))
-            self.lbl_fehler.setText(self._fehlertext)
-            self.band_fehler.setVisible(True)
+            self._zeichenfehler(str(fehler))
+
+    def _zeichenfehler(self, text: str) -> None:
+        """Meldet einen unerwarteten Fehler der Darstellung im Fehlerband."""
+        self.plot.leere()
+        self.lbl_plotkopf.setText("")
+        self._fehlertext = zeichen_fehler_text(text)
+        self.lbl_fehler.setText(self._fehlertext)
+        self.band_fehler.setVisible(True)
 
     def _zeichne_ansicht_1(self, *, zoom_behalten: bool) -> None:
         assert self._geladen is not None and self._cache is not None

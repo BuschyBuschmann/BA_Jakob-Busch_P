@@ -29,10 +29,13 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QAbstractButton, QApplication, QLabel, QWidget
 from pytestqt.qtbot import QtBot
 
+from ldv_automation.darstellung import Ansicht, Zeichnung
 from ldv_automation.gui import anzeige_auswerten as aa
-from ldv_automation.gui import auswerten_reiter, stil, tokens
+from ldv_automation.gui import auswerten_reiter, plotflaeche, stil, tokens
 from ldv_automation.gui.auswerten_reiter import AuswertenReiter
 from ldv_automation.gui.hauptfenster import Hauptfenster
+from ldv_automation.gui.plotflaeche import PlotFlaeche
+from ldv_automation.gui.plotstil import baue_plotstil
 
 pytestmark = pytest.mark.gui
 
@@ -984,3 +987,149 @@ def test_fusszeile_zeigt_ergebnis_der_angezeigten_datei_nach_lesefehler(
     a.oeffne_datei("C:\\b.svd")
     qtbot.waitUntil(lambda: a.fehlertext is not None, timeout=3000)
     assert a.lbl_pruefung.text() == "Prüfung: 1 ok, 1 Warnung"  # gehört zur angezeigten Datei
+
+
+# --- Rückfallpfad (K-AUSW-T3a-2) ---------------------------------------------------
+
+
+def test_rueckfallpfad_mit_dauerhaft_fehlerhafter_parameterzeile(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    w, _ = baue()
+    a = w.auswerten
+    assert a is not None
+
+    def kaputt(*_a: object, **_k: object) -> None:
+        raise ValueError("Parameterzeile kaputt")
+
+    monkeypatch.setattr(a.parameterzeile, "setze_zellen", kaputt)  # dauerhaft, auch im Rückfall
+    a.oeffne_datei(PFAD)
+    qtbot.waitUntil(lambda: a.fehlertext is not None, timeout=3000)  # kein Absturz im Timer
+    assert a.zustand is aa.AuswertenZustand.KEINE_DATEI  # nie „Laden“ nach einer Ausnahme
+    assert "Parameterzeile kaputt" in a.lbl_fehler.text() and a.band_fehler.isVisible()
+    assert not a.laden_leiste.isVisible() and not a.laeuft() and not a._timer.isActive()
+    assert a.geladen is None and a.liste_punkte.count() == 0
+    assert a.btn_oeffnen.isEnabled() and a.plot_platzhalter.isVisible()
+    assert a.lbl_pruefung.text() == "Prüfung: –"
+
+
+def test_lesefehler_scheitert_selbst_nicht(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ausf = SteuerbarerAusfuehrer()
+    w, prot = baue(ausf)
+    a = w.auswerten
+    assert a is not None
+    prot.fehler_lese[PFAD] = f"{PFAD}: kaputt"
+
+    def kaputt() -> None:
+        raise RuntimeError("Widgets kaputt")
+
+    a.oeffne_datei(PFAD)
+    monkeypatch.setattr(a, "_wende_zustand_an", kaputt)
+    monkeypatch.setattr(a, "_zeige_pruefung", kaputt)
+    ausf.auftraege[0].freigegeben = True
+    a._abfrage()  # darf nicht werfen
+    assert a.zustand is aa.AuswertenZustand.KEINE_DATEI
+    assert a.band_fehler.isVisible() and "kaputt" in a.lbl_fehler.text()
+    assert not a.laden_leiste.isVisible() and not a._timer.isActive() and not a.laeuft()
+
+
+# --- Neuzeichnen bei Größenänderung (K-AUSW-T3a-2) ---------------------------------------------
+
+
+class Zeichner:
+    """Ersatz für eine Zeichenfunktion: zählt Aufrufe und merkt die Figure-Größe in Pixeln."""
+
+    def __init__(self) -> None:
+        self.aufrufe = 0
+        self.groessen: list[tuple[float, float]] = []
+
+    def __call__(self, fig: Any, _daten: object, _opt: object, _stil: object) -> Zeichnung:
+        self.aufrufe += 1
+        fig.clear()
+        ax = fig.subplots()
+        ax.plot([0.0, 100.0], [0.0, 1.0])
+        ax.set_xlim(0.0, 100.0)
+        self.groessen.append((fig.get_figwidth(), fig.get_figheight()))
+        return Zeichnung(figure=fig, achsen=(ax,))
+
+
+def baue_plot(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> tuple[PlotFlaeche, Zeichner]:
+    stil.wende_an(QApplication.instance())  # type: ignore[arg-type]
+    zeichner = Zeichner()
+    monkeypatch.setitem(plotflaeche.ZEICHNER, Ansicht.SPITZEN, zeichner)
+    monkeypatch.setitem(plotflaeche.ZEICHNER, Ansicht.SPEKTRUM, zeichner)
+    plot = PlotFlaeche(baue_plotstil())
+    qtbot.addWidget(plot)
+    plot.resize(700, 400)
+    plot.show()
+    qtbot.waitExposed(plot)
+    return plot, zeichner
+
+
+def test_groessenaenderung_zeichnet_spitzen_neu_und_erhaelt_zoom(
+    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    plot, zeichner = baue_plot(qtbot, monkeypatch)
+    plot.zeichne(Ansicht.SPITZEN, None, None, "Beschreibung")
+    qtbot.wait(plotflaeche.NEUZEICHNEN_MS + 100)  # ggf. Resize vom Anzeigen abwarten
+    start = zeichner.aufrufe
+    plot.zeichnung.achsen[0].set_xlim(20.0, 40.0)  # type: ignore[union-attr]
+    plot.toolbar.push_current()
+    plot.resize(900, 520)
+    qtbot.waitUntil(lambda: zeichner.aufrufe > start, timeout=3000)
+    assert plot.zeichnung.achsen[0].get_xlim() == pytest.approx((20.0, 40.0))  # type: ignore[union-attr]
+    assert plot.canvas.accessibleDescription() == "Beschreibung"
+    plot.zoom_zuruecksetzen()
+    assert plot.zeichnung.achsen[0].get_xlim() == pytest.approx((0.0, 100.0))  # type: ignore[union-attr]
+
+
+def test_groessenaenderung_ist_entprellt(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+    plot, zeichner = baue_plot(qtbot, monkeypatch)
+    plot.zeichne(Ansicht.SPITZEN, None, None)
+    qtbot.wait(plotflaeche.NEUZEICHNEN_MS + 100)
+    start = zeichner.aufrufe
+    for breite in (720, 760, 800, 840, 880):
+        plot.resize(breite, 400)
+        qtbot.wait(10)
+    assert zeichner.aufrufe == start  # noch nicht: Größe steht nicht still
+    qtbot.waitUntil(lambda: zeichner.aufrufe > start, timeout=3000)
+    qtbot.wait(plotflaeche.NEUZEICHNEN_MS + 100)
+    assert zeichner.aufrufe == start + 1  # genau ein Neuzeichnen für die ganze Folge
+
+
+def test_spektrum_wird_bei_groessenaenderung_nicht_neu_gezeichnet(
+    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    plot, zeichner = baue_plot(qtbot, monkeypatch)
+    plot.zeichne(Ansicht.SPEKTRUM, None, None)
+    start = zeichner.aufrufe
+    plot.resize(900, 520)
+    qtbot.wait(plotflaeche.NEUZEICHNEN_MS + 200)
+    assert zeichner.aufrufe == start  # constrained-Layout zieht selbst nach (draw_idle)
+
+
+def test_neuzeichnen_fehler_wird_gemeldet(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+    plot, _zeichner = baue_plot(qtbot, monkeypatch)
+    plot.zeichne(Ansicht.SPITZEN, None, None)
+    qtbot.wait(plotflaeche.NEUZEICHNEN_MS + 100)
+
+    def kaputt(*_a: object) -> None:
+        raise ValueError("Neuzeichnen kaputt")
+
+    monkeypatch.setitem(plotflaeche.ZEICHNER, Ansicht.SPITZEN, kaputt)
+    with qtbot.waitSignal(plot.fehler, timeout=3000) as sig:
+        plot.resize(1000, 600)
+    assert sig.args == ["Neuzeichnen kaputt"]
+
+
+def test_leere_stoppt_das_neuzeichnen(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+    plot, zeichner = baue_plot(qtbot, monkeypatch)
+    plot.zeichne(Ansicht.SPITZEN, None, None)
+    qtbot.wait(plotflaeche.NEUZEICHNEN_MS + 100)
+    start = zeichner.aufrufe
+    plot.resize(1000, 600)
+    plot.leere()
+    qtbot.wait(plotflaeche.NEUZEICHNEN_MS + 200)
+    assert zeichner.aufrufe == start
