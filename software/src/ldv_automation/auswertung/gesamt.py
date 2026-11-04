@@ -16,7 +16,7 @@ Festlegungen dieser Umsetzung (im Bericht W5-1 als Annahmen geführt):
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
@@ -183,80 +183,96 @@ def _baender(
             name = f"{a}/{b}"
             assert pa.mittel_h1.mittel_betrag is not None
             assert pa.mittel_spektrum_kohaerent.mittel_betrag is not None
-            for wert, bezug in (
-                (pa.frf.h1, f"|{pa.frf.bezeichnung_h1}| {name} je Punkt"),
-                (pa.mittel_h1.mittel_betrag, f"|{pa.frf.bezeichnung_h1}| {name} Betragsmittel"),
-            ):
-                werte.append(
-                    band_frf(
-                        wert,
-                        f,
-                        f_u,
-                        f_o,
-                        annahmen=annahmen,
-                        delta_f_hz=df,
-                        bezug=bezug,
-                        einheit=pa.frf.einheit,
-                    )
-                )
-            for wert, bezug in (
-                (pa.paar.cph, f"spektrum_kohaerent {name} je Punkt"),
+            for wert, bezug, mittel in (
+                (pa.frf.h1, f"|{pa.frf.bezeichnung_h1}| {name} je Punkt", False),
                 (
-                    pa.mittel_spektrum_kohaerent.mittel_betrag,
-                    f"spektrum_kohaerent {name} Betragsmittel",
+                    pa.mittel_h1.mittel_betrag,
+                    f"|{pa.frf.bezeichnung_h1}| {name} Betragsmittel",
+                    True,
                 ),
             ):
                 werte.append(
-                    band_amplitude(
-                        wert,
-                        f,
-                        f_u,
-                        f_o,
-                        annahmen=annahmen,
-                        delta_f_hz=df,
-                        bezug=bezug,
-                        einheit=pa.paar.einheit_antwort,
+                    replace(
+                        band_frf(
+                            wert,
+                            f,
+                            f_u,
+                            f_o,
+                            annahmen=annahmen,
+                            delta_f_hz=df,
+                            bezug=bezug,
+                            einheit=pa.frf.einheit,
+                        ),
+                        art="frf",
+                        kanal=name,
+                        mittel=mittel,
+                    )
+                )
+            for wert, bezug, mittel in (
+                (pa.paar.cph, f"spektrum_kohaerent {name} je Punkt", False),
+                (
+                    pa.mittel_spektrum_kohaerent.mittel_betrag,
+                    f"spektrum_kohaerent {name} Betragsmittel",
+                    True,
+                ),
+            ):
+                werte.append(
+                    replace(
+                        band_amplitude(
+                            wert,
+                            f,
+                            f_u,
+                            f_o,
+                            annahmen=annahmen,
+                            delta_f_hz=df,
+                            bezug=bezug,
+                            einheit=pa.paar.einheit_antwort,
+                        ),
+                        art="spektrum_kohaerent",
+                        kanal=name,
+                        mittel=mittel,
                     )
                 )
         for kanal, ap in daten.ap.items():
             einheit = daten.einheiten[kanal]  # Kanaleinheit [a]; Art je Ausgabe im Bandwert
             m = mittel_ap[kanal].mittel_arithmetisch
             assert m is not None
-            werte.append(
-                band_ap(
-                    ap,
-                    f,
-                    f_u,
-                    f_o,
-                    annahmen=annahmen,
-                    delta_f_hz=df,
-                    bezug=f"AP {kanal} je Punkt",
-                    einheit=einheit,
+            for feld, bezug, mittel in (
+                (ap, f"AP {kanal} je Punkt", False),
+                (m, f"AP {kanal} Punktmittel", True),
+            ):
+                werte.append(
+                    replace(
+                        band_ap(
+                            feld,
+                            f,
+                            f_u,
+                            f_o,
+                            annahmen=annahmen,
+                            delta_f_hz=df,
+                            bezug=bezug,
+                            einheit=einheit,
+                        ),
+                        art="ap",
+                        kanal=kanal,
+                        mittel=mittel,
+                    )
                 )
-            )
-            werte.append(
-                band_ap(
-                    m,
-                    f,
-                    f_u,
-                    f_o,
-                    annahmen=annahmen,
-                    delta_f_hz=df,
-                    bezug=f"AP {kanal} Punktmittel",
-                    einheit=einheit,
-                )
-            )
         for kanal, betrag in daten.betrag.items():
             werte.append(
-                band_amplitude(
-                    betrag,
-                    f,
-                    f_u,
-                    f_o,
-                    annahmen=annahmen,
-                    delta_f_hz=df,
-                    bezug=f"ABS {kanal} je Punkt",
-                    einheit=daten.einheiten[kanal],
+                replace(
+                    band_amplitude(
+                        betrag,
+                        f,
+                        f_u,
+                        f_o,
+                        annahmen=annahmen,
+                        delta_f_hz=df,
+                        bezug=f"ABS {kanal} je Punkt",
+                        einheit=daten.einheiten[kanal],
+                    ),
+                    art="abs",
+                    kanal=kanal,
                 )
             )
     return tuple(werte)

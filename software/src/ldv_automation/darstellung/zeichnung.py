@@ -7,6 +7,8 @@ Keine Qt-, keine ``pyplot``-Importe (ADR-021): Die Zeichenfunktionen füllen ein
 
 from __future__ import annotations
 
+import textwrap
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Literal
@@ -16,6 +18,7 @@ from matplotlib.figure import Figure
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
+from matplotlib.transforms import ScaledTranslation
 
 from .formate import dezimalkomma_formatter
 from .stil import Plotstil
@@ -27,6 +30,7 @@ __all__ = [
     "achse_pt",
     "constrained_layout",
     "kennzeichen_anbringen",
+    "kennzeichen_kopf",
     "layout_rect",
     "platzhalter_anbringen",
     "setze_achsenstil",
@@ -134,11 +138,12 @@ def setze_achsenstil(
 
 def kennzeichen_anbringen(ax: Axes, stil: Plotstil, text: str) -> Text:
     """Kennzeichen „⚠ unbestätigt …“ im Kopf der Achse (Symbol plus Wort, nie nur Farbe)."""
-    return ax.text(
+    # 3 pt über dem Achsenrand: Der Kasten (pad 0,25) überdeckt die Datenfläche nie.
+    kasten = ax.text(
         0.0,
         1.0,
         f"{stil.warn_symbol} {text}",
-        transform=ax.transAxes,
+        transform=ax.transAxes + ScaledTranslation(0.0, 3.0 / 72.0, ax.figure.dpi_scale_trans),
         ha="left",
         va="bottom",
         fontsize=stil.schrift_pt,
@@ -150,6 +155,96 @@ def kennzeichen_anbringen(ax: Axes, stil: Plotstil, text: str) -> Text:
             "linewidth": 1.0,
         },
     )
+    figur = ax.figure
+    if isinstance(figur, Figure):
+        # Höchstens 60 % der Bildbreite: längere Texte werden umbrochen, der Kasten bleibt im Bild.
+        _umbrechen(figur, kasten, 0.6 * figur.get_figwidth() * 72.0)
+    return kasten
+
+
+def _umbrechen(fig: Figure, kasten: Text, verfuegbar_pt: float) -> float:
+    """Bricht den Text von ``kasten`` um, bis er höchstens ``verfuegbar_pt`` breit ist.
+
+    Returns
+    -------
+    float
+        Höhe des Kastens in pt.
+    """
+    voll = kasten.get_text()
+    k = 72.0 / fig.dpi
+    fig.draw_without_rendering()
+    ext = kasten.get_window_extent()
+    breite = float(ext.width) * k
+    if breite > verfuegbar_pt:
+        spalten = max(int(len(voll) * verfuegbar_pt / breite) - 1, 10)
+        while spalten > 10:
+            kasten.set_text(textwrap.fill(voll, spalten))
+            fig.draw_without_rendering()
+            if float(kasten.get_window_extent().width) * k <= verfuegbar_pt:
+                break
+            spalten -= 2
+        ext = kasten.get_window_extent()
+    return float(ext.height) * k
+
+
+def kennzeichen_kopf(
+    fig: Figure,
+    stil: Plotstil,
+    texte: Sequence[str],
+    rect: tuple[float, float, float, float],
+) -> tuple[list[Text], tuple[float, float, float, float]]:
+    """Kennzeichen als Kopfzeile oberhalb der Achsen (Figure-Ebene, nie über Daten oder Rand).
+
+    Jeder Text steht als Kasten „⚠ <Text>“ links oben im Rechteck ``rect``, untereinander; zu
+    lange Texte werden umbrochen, so dass der Kasten in die Figure passt. Das übrige Layout
+    bekommt das um die Kopfzeile verkleinerte Rechteck.
+
+    Parameters
+    ----------
+    fig : Figure
+        Figure mit endgültiger Größe (Messung in pt).
+    stil : Plotstil
+        Farben, Schrift, Warnsymbol.
+    texte : sequence of str
+        Kennzeichentexte ohne Symbol; leer = keine Kopfzeile.
+    rect : tuple of float
+        Nutzbares Rechteck ``(x0, y0, Breite, Höhe)`` in Figure-Anteilen (:func:`layout_rect`).
+
+    Returns
+    -------
+    tuple
+        ``(kaesten, rect_neu)``: die Text-Artists und das verbleibende Rechteck für die Achsen.
+    """
+    if not texte:
+        return [], rect
+    x0, y0, w, h = rect
+    breite_pt = float(fig.get_figwidth()) * 72.0
+    hoehe_pt = float(fig.get_figheight()) * 72.0
+    luft = 2.0 + 0.25 * stil.schrift_pt
+    verfuegbar = w * breite_pt - 2.0 * luft
+    kaesten: list[Text] = []
+    y_pt = (y0 + h) * hoehe_pt - luft
+    for text in texte:
+        voll = f"{stil.warn_symbol} {text}"
+        kasten = fig.text(
+            x0 + luft / breite_pt,
+            y_pt / hoehe_pt,
+            voll,
+            ha="left",
+            va="top",
+            fontsize=stil.schrift_pt,
+            color=stil.achse,
+            bbox={
+                "boxstyle": "square,pad=0.25",
+                "facecolor": stil.warn_bg,
+                "edgecolor": stil.warn_rand,
+                "linewidth": 1.0,
+            },
+        )
+        y_pt -= _umbrechen(fig, kasten, verfuegbar) + luft
+        kaesten.append(kasten)
+    verbraucht = ((y0 + h) * hoehe_pt - y_pt) / hoehe_pt
+    return kaesten, (x0, y0, w, max(h - verbraucht, 0.1))
 
 
 def platzhalter_anbringen(ax: Axes, stil: Plotstil, text: str) -> Text:

@@ -76,6 +76,8 @@ exclude = ["^\\.venv/"]
 testpaths = ["tests"]
 pythonpath = ["src", "tools/erkundung", "tools/build_info", "tools/svd_analyse", "tools/auswertung"]
 addopts = "-ra --strict-markers -m 'not hardware and not gui'"
+# Das Constrained Layout darf nie wegen zu kleiner Achsen aussetzen (Oberfläche und Zeichenfunktionen).
+filterwarnings = ["error:constrained_layout not applied:UserWarning"]
 markers = [
     "hardware: braucht echte Hardware bzw. den Messrechner (standardmäßig abgewählt; `pytest -m hardware`)",
     "gui: Oberflächentest mit Qt (pytest-qt, `QT_QPA_PLATFORM=offscreen`, setzt Qt-Systembibliotheken voraus; standardmäßig abgewählt; `pytest -m gui`)",
@@ -110,6 +112,10 @@ omit = [
     # `gui/anzeige_auswerten.py` und `gui/plotstil.py` und wird im Standardlauf voll gemessen.
     "src/ldv_automation/gui/auswerten_reiter.py",
     "src/ldv_automation/gui/plotflaeche.py",
+    # T3b: Auswahlseiten (AD) und Tabellen (AE) der Ansichten 2 bis 4, ebenfalls reine Widgets;
+    # ihre Zeilen und Texte entstehen Qt-frei in `gui/daten_auswerten.py` (voll gemessen).
+    "src/ldv_automation/gui/auswahl_auswerten.py",
+    "src/ldv_automation/gui/tabellen_auswerten.py",
 ]
 
 [tool.coverage.report]

@@ -71,6 +71,13 @@ class Bandwert:
         „leeres Band“, „Band abgeschnitten“, Kennzeichnung der Bandnorm.
     annahmen : tuple of AnnahmeEintrag
         Geltende Annahmen (P-11).
+    art : str
+        Strukturierte Herkunft (für Oberflächen, nicht im Export): ``"spektrum_kohaerent"``,
+        ``"abs"``, ``"ap"`` oder ``"frf"``; leer, wenn der Aufrufer sie nicht setzt.
+    kanal : str
+        Kanal (``"Vib X"``) bzw. Kanalpaar (``"Vib X/Ref1"``); leer, wenn nicht gesetzt.
+    mittel : bool
+        ``True`` bei Bandwerten des Punktmittels (kein Wert je Punkt).
     """
 
     f_u_hz: float
@@ -85,6 +92,9 @@ class Bandwert:
     w_rbw: float
     hinweise: tuple[str, ...]
     annahmen: tuple[AnnahmeEintrag, ...]
+    art: str = ""
+    kanal: str = ""
+    mittel: bool = False
 
     def kennzeichen(self) -> dict[str, dict[str, str]]:
         """Art (Effektivwert, quadratischer Mittelwert, Bandnorm) und Einheit je Ausgabe.

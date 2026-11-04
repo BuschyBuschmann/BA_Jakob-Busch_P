@@ -58,9 +58,23 @@ class SpitzenOptionen:
     ----------
     skala : {"linear", "log"}
         Skala der Kurve (Voreinstellung logarithmisch).
+    beschriftung_im_bild : bool
+        ``True`` (Voreinstellung, Thesis-Abbildung und Arbeitsbild): Beschriftungsstreifen,
+        Kasten und Leitlinie der gewählten Spitze im Bild. ``False`` (Oberfläche, ADR-026
+        Nachtrag): nur der Ring um die gewählte Spitze, kein Streifen und kein Kasten; die
+        Oberfläche zeigt die Angaben (:func:`beschriftung_der_spitze`) als Text in der
+        Auswahlspalte.
+    legende_im_bild : bool
+        ``True`` (Voreinstellung, Thesis-Abbildung und Arbeitsbild): Kurvenlegende unterhalb
+        der Achsenbeschriftung. ``False`` (Oberfläche, ADR-026 Nachtrag 2): keine Legende im
+        Bild, die Achse bekommt die Höhe; die Einträge stehen in
+        ``Zeichnung.hilfsobjekte["legende_eintraege"]`` (Mittelformel und Punktzahl, Spitzen,
+        Band) und die Oberfläche zeigt sie als Text.
     """
 
     skala: Skala = "log"
+    beschriftung_im_bild: bool = True
+    legende_im_bild: bool = True
 
     def __post_init__(self) -> None:
         if self.skala not in ("linear", "log"):
@@ -199,9 +213,11 @@ def zeichne_spitzen(
     Zeichnung
         ``linien["kurve"]``, ``marker["spitzen"]`` (alle Spitzen, nur bei vorhandenen Spitzen),
         ``marker["gewaehlt"]`` (gewählte Spitze), ``hilfsobjekte["baender"]`` (Liste),
-        ``hilfsobjekte["legende"]`` (Legende unterhalb der Achsenbeschriftung),
+        ``hilfsobjekte["legende"]`` (Legende unterhalb der Achsenbeschriftung, nur mit
+        ``opt.legende_im_bild``), ``hilfsobjekte["legende_eintraege"]`` (Texte der Einträge),
         ``hilfsobjekte["leitlinie"]`` (nur mit gewählter Spitze), ``hilfsobjekte["streifen"]``
-        (Anteil der Achsenhöhe, nur mit Spitzen), ``texte`` mit dem Kasten der gewählten
+        (Anteil der Achsenhöhe, nur mit Spitzen), beide nur mit
+        ``opt.beschriftung_im_bild``; ``texte`` mit dem Kasten der gewählten
         Spitze bzw. dem Hinweis ohne Spitzen, ``hinweise`` mit :data:`HINWEIS_ZETA` (nur bei
         vorhandenen Spitzen).
     """
@@ -280,8 +296,10 @@ def zeichne_spitzen(
         ax.set_xlabel(achsentitel("Frequenz", "Hz"))
         ax.set_ylabel(achsentitel(daten.groesse, daten.einheit))
         setze_achsenstil(ax, stil)
-        z.hilfsobjekte["legende"] = _legende(ax, handles, stil)
-        if daten.spitzen:
+        z.hilfsobjekte["legende_eintraege"] = [str(h.get_label()) for h in handles]
+        if opt.legende_im_bild:
+            z.hilfsobjekte["legende"] = _legende(ax, handles, stil)
+        if daten.spitzen and opt.beschriftung_im_bild:
             _streifen_und_kasten(z, ax, daten, opt, stil)
     return z
 

@@ -38,10 +38,18 @@ __all__ = [
     "FREIGESCHALTETE_ANSICHTEN",
     "NICHT_LESBAR",
     "P08_ANTRIEBSPUNKT",
+    "TEXT_KEINE_BAENDER",
     "TEXT_KEINE_DATEI",
+    "TEXT_KEINE_FRF",
+    "TEXT_KEINE_SPITZEN",
+    "TEXT_KEINE_SPITZENSUCHE",
+    "TEXT_NAECHSTE_LINIE",
     "TEXT_NICHT_LESBAR",
+    "TEXT_PHASE_EINZELKOMPONENTE",
+    "TEXT_PHASE_KEINE_REFERENZ",
     "TEXT_PRUEFUNG_ABGEBROCHEN",
     "TEXT_PRUEFUNG_BERECHNET",
+    "TEXT_SPITZE_WAEHLEN",
     "TEXT_ZUERST_OEFFNEN",
     "AuswertenZustand",
     "ParameterZelle",
@@ -50,10 +58,14 @@ __all__ = [
     "cursor_text",
     "dateiname_von",
     "fehler_band_text",
+    "folgefehler_text",
     "geladen_text",
+    "kennzeichen_beschreibung",
+    "kennzeichen_text",
     "lade_text",
     "parameter_tooltip",
     "parameter_zellen",
+    "phase_ref_text",
     "plot_beschreibung",
     "plotkopf_text",
     "pruefung_fehler_text",
@@ -88,6 +100,26 @@ TEXT_PRUEFUNG_LEER = "Prüfung: –"
 TEXT_PRUEFUNG_ABGEBROCHEN = "Prüfung: nicht berechnet (abgebrochen)"
 """Fußzeile, wenn Stufe B der angezeigten Datei abgebrochen wurde (neuer Dateiaufruf)."""
 
+TEXT_KEINE_FRF = (
+    "Keine Übertragungsfunktion: Die Datei enthält keinen aktiven Referenzkanal. "
+    "H1, H2 und Kohärenz brauchen eine Referenz."
+)
+"""Ansicht 2 ohne Referenz, statt des Plots (UI-6)."""
+TEXT_KEINE_SPITZENSUCHE = "Keine Spitzensuche: Referenzkanal fehlt."
+"""Spitzentabelle ohne Referenz (U-3)."""
+TEXT_KEINE_SPITZEN = "Keine Spitzen gefunden."
+"""Spitzentabelle ohne Treffer (UI-24)."""
+TEXT_KEINE_BAENDER = "Keine Bänder angegeben."
+"""Bändertabelle ohne Band (UI-24)."""
+TEXT_PHASE_KEINE_REFERENZ = "Phase nicht verfügbar: keine Referenz."
+"""Ansicht 4: Option „Phase“ deaktiviert (UI-10; Wortlaut wie in ``darstellung.schwingform``)."""
+TEXT_PHASE_EINZELKOMPONENTE = "Phase nur für eine Einzelkomponente (X, Y oder Z), nicht für 3D."
+"""Ansicht 4: Option „Phase“ deaktiviert bei 3D."""
+TEXT_SPITZE_WAEHLEN = "Spitze in der Tabelle wählen; ihre Angaben erscheinen hier."
+"""Hinweis in der Auswahlspalte von Ansicht 3, wenn Spitzen da sind, aber keine gewählt ist."""
+TEXT_NAECHSTE_LINIE = "nächste Linie: {f}"
+"""Zeile unter dem Frequenzfeld von Ansicht 4 (``f`` = Frequenztext der Linie)."""
+
 MITTELUNG_SICHERHEIT = "plausibel"
 """Sicherheitsgrad der Mittelung (Test gegen ``svd_lesen.SICHERHEIT['fft.mittelung']``)."""
 
@@ -99,8 +131,8 @@ ANSICHT_NAMEN: Mapping[int, str] = {
 }
 """Namen der vier Ansichten (Knopftext „1 Spektrum“, ``accessibleName`` „Ansicht 1: Spektrum“)."""
 
-FREIGESCHALTETE_ANSICHTEN: frozenset[int] = frozenset({1})
-"""Ansichten, die schon bedienbar sind. T3a: nur Ansicht 1; T3b schaltet 2 bis 4 frei."""
+FREIGESCHALTETE_ANSICHTEN: frozenset[int] = frozenset({1, 2, 3, 4})
+"""Ansichten, die bedienbar sind (T3b: alle vier)."""
 EXPORT_FREIGESCHALTET = False
 """``Daten exportieren …`` ist bedienbar (T4)."""
 BILD_FREIGESCHALTET = False
@@ -110,7 +142,9 @@ P08_ANTRIEBSPUNKT: tuple[str, str, Antriebsart] = ("Ref2", "Ref1", "akzeleranz")
 """Treibpunkt für P-08 ``(antwort, referenz, art)`` (Nutzerentscheidung zu P-08): Ref2
 (Beschleunigung am Treibpunkt) gegen Ref1 (Kraft)."""
 
-ABHAENGIG_VON: Mapping[str, tuple[str, ...]] = {"phase": ("M8",)}
+ABHAENGIG_VON: Mapping[str, tuple[tuple[str, str], ...]] = {
+    "phase": (("M8", "Polarität der Referenzkanäle offen"),)
+}
 """Einzige Zuordnung Größe → Annahmen, von denen sie abhängt (Brief K-AUSW Abschnitt 5, UI-11).
 
 Ist eine zugeordnete Annahme noch nicht bestätigt (``AnnahmeEintrag.ist_annahme``), trägt die
@@ -362,6 +396,22 @@ def pruefung_text(pruefungen: Sequence[Pruefergebnis]) -> str:
     return "Prüfung: " + ", ".join(teile) if teile else TEXT_PRUEFUNG_LEER
 
 
+def folgefehler_text(fehler: Sequence[str]) -> str:
+    """Anhang an eine Fehlermeldung, wenn der Rückfallpfad selbst Fehler hatte (nie spurlos).
+
+    Parameters
+    ----------
+    fehler : sequence of str
+        Texte „Schritt: Ausnahme“ der gescheiterten Rückfallschritte.
+
+    Returns
+    -------
+    str
+        Leer ohne Folgefehler, sonst `` [Folgefehler im Rückfall: …]``.
+    """
+    return f" [Folgefehler im Rückfall: {'; '.join(fehler)}]" if fehler else ""
+
+
 def zeichen_fehler_text(text: str) -> str:
     """Text des Fehlerbands, wenn die Darstellung der geladenen Datei scheitert."""
     return f"{symbol('fehler')} Darstellung nicht möglich: {text}"
@@ -413,8 +463,59 @@ def unbestaetigte_annahmen(
     annahmen : iterable of AnnahmeEintrag
         ``Annahmen().eintraege()`` bzw. ``Auswertung.annahmen_liste``.
     """
-    nummern = ABHAENGIG_VON.get(groesse, ())
+    nummern = {nr for nr, _kurz in ABHAENGIG_VON.get(groesse, ())}
     return tuple(a for a in annahmen if a.nr in nummern and a.ist_annahme)
+
+
+def kennzeichen_text(groesse: str, annahmen: Iterable[AnnahmeEintrag]) -> str | None:
+    """Kennzeichentext „unbestätigt (M8: …)“ für ``groesse``; ``None`` = kein Kennzeichen.
+
+    Das Symbol ⚠ setzt die Zeichenfunktion davor. Der Kurztext je Annahme steht in
+    :data:`ABHAENGIG_VON` (einmalige Quelle), mehrere offene Annahmen stehen durch Semikolon
+    getrennt. Die Formel der Annahme (``AnnahmeEintrag.beschreibung``) steht nicht im Bild,
+    sondern im Tooltip (:func:`kennzeichen_beschreibung`). Ist die Annahme bestätigt
+    (``ist_annahme`` falsch), entfällt das Kennzeichen ohne Codeänderung (UI-11).
+
+    Parameters
+    ----------
+    groesse : str
+        Schlüssel in :data:`ABHAENGIG_VON`.
+    annahmen : iterable of AnnahmeEintrag
+        ``Annahmen().eintraege()`` bzw. ``Auswertung.annahmen_liste``.
+    """
+    offen = unbestaetigte_annahmen(groesse, annahmen)
+    if not offen:
+        return None
+    kurz = dict(ABHAENGIG_VON.get(groesse, ()))
+    return "unbestätigt (" + "; ".join(f"{a.nr}: {kurz[a.nr]}" for a in offen) + ")"
+
+
+def kennzeichen_beschreibung(groesse: str, annahmen: Iterable[AnnahmeEintrag]) -> str:
+    """Ausführliche Erklärung der offenen Annahmen (Tooltip), leer ohne Kennzeichen.
+
+    Parameters
+    ----------
+    groesse : str
+        Schlüssel in :data:`ABHAENGIG_VON`.
+    annahmen : iterable of AnnahmeEintrag
+        ``Annahmen().eintraege()`` bzw. ``Auswertung.annahmen_liste``.
+    """
+    return "\n".join(
+        f"{a.nr} (unbestätigt): {a.beschreibung}" for a in unbestaetigte_annahmen(groesse, annahmen)
+    )
+
+
+def phase_ref_text(referenz: str, annahmen: Iterable[AnnahmeEintrag]) -> str:
+    """Beschriftung der Option „Phase gegen Referenz“, mit Kennzeichen solange M8 offen ist.
+
+    Beispiel: „Phase gegen Ref1 (⚠ unbestätigt, M8)“. Ist die Annahme bestätigt, entfällt der
+    Zusatz ohne Änderung an der Oberfläche (UI-11).
+    """
+    offen = unbestaetigte_annahmen("phase", annahmen)
+    if not offen:
+        return f"Phase gegen {referenz}"
+    nummern = ", ".join(a.nr for a in offen)
+    return f"Phase gegen {referenz} ({symbol('warnung')} unbestätigt, {nummern})"
 
 
 # --- Cursor, Plotkopf, Textalternative -------------------------------------------------------

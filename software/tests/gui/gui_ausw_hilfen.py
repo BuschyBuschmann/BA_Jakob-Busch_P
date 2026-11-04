@@ -7,6 +7,7 @@ from typing import Any
 
 import numpy as np
 
+from ldv_automation.auswertung.annahmen import Annahmen
 from ldv_automation.auswertung.daten import Herkunft, Messdaten, Punkte
 from ldv_automation.auswertung.jobs import PruefErgebnis
 from ldv_automation.auswertung.laden import Dateieinstellungen, Geladen, referenzen_aus
@@ -26,10 +27,16 @@ SHA = "a" * 64
 PFAD = "C:\\messungen\\probe.svd"
 
 
-def synth_geladen(*, referenz: bool = True, mit_ref2: bool = False, pfad: str = PFAD) -> Geladen:
+def synth_geladen(
+    *, referenz: bool = True, mit_ref2: bool = False, resonanz: bool = True, pfad: str = PFAD
+) -> Geladen:
     """Kleine Datei: 4 Punkte, 64 Linien (Δf 0,5 Hz), Vib X/Y/Z, optional Ref1 (N), Ref2 (m/s²)."""
     f = DF_HZ * np.arange(1, K + 1, dtype=np.float64)
-    h0 = 1.0 / (1.0 + 1j * (f - 16.0) / 2.0)
+    h0 = (
+        1.0 / (1.0 + 1j * (f - 16.0) / 2.0)
+        if resonanz
+        else 1.0 / (1.0 + 0.05 * f).astype(np.complex128)
+    )
     form = {"Vib X": 0.3, "Vib Y": 0.5, "Vib Z": 1.0}
     ap: dict[str, Any] = {}
     cp: dict[tuple[str, str], Any] = {}
@@ -75,13 +82,13 @@ def synth_geladen(*, referenz: bool = True, mit_ref2: bool = False, pfad: str = 
 
 
 def synth_pruefung() -> PruefErgebnis:
-    """Ergebnis von Stufe B: zwei Prüfungen (ok, Warnung), keine Annahmen."""
+    """Ergebnis von Stufe B: zwei Prüfungen (ok, Warnung) und die Annahmen mit Voreinstellung."""
     return PruefErgebnis(
         pruefungen=(
             Pruefergebnis(id="P-01", titel="a", status="ok", wert=None, grund="g"),
             Pruefergebnis(id="P-02", titel="b", status="warnung", wert=None, grund="g"),
         ),
-        annahmen=(),
+        annahmen=tuple(Annahmen().eintraege()),
         sha256=SHA,
     )
 
@@ -183,11 +190,17 @@ class _Steuerbar:
         self.abgebrochen = True
 
 
+Bauer = Callable[..., tuple[Any, "Protokoll"]]
+"""Fixture ``baue(ausfuehrer=None, *, sitzung=None, aktiv=True)``: Fenster und Protokoll."""
+
 __all__ = [
     "PFAD",
+    "SHA",
+    "Bauer",
     "DirektAusfuehrer",
     "NieFertigAusfuehrer",
     "Protokoll",
+    "PruefErgebnis",
     "SteuerbarerAusfuehrer",
     "synth_geladen",
     "synth_pruefung",

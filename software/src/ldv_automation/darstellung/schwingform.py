@@ -53,7 +53,7 @@ from .formate import achsentitel, dezimalkomma_formatter, frequenz_text, grad, z
 from .stil import Plotstil
 from .zeichnung import (
     Zeichnung,
-    kennzeichen_anbringen,
+    kennzeichen_kopf,
     layout_rect,
     platzhalter_anbringen,
     setze_achsenstil,
@@ -684,6 +684,7 @@ def zeichne_schwingform(
         setze_achsenstil(ax, stil)
 
         # --- Größen je Punkt und Kennzeichen (vor dem Layout, die Texte zählen zum Rand) ---
+        kopf_texte: list[str] = []
         phase: np.ndarray | None = None
         bezug: int | None = None
         titel = ""
@@ -708,7 +709,7 @@ def zeichne_schwingform(
                 ziel = daten.referenz or "der Referenz"
                 hinweis = f"φ > 0: {kanal_der_komponente(daten.komponente)} eilt {ziel} voraus"
                 if opt.kennzeichen_phase is not None:
-                    z.texte.append(kennzeichen_anbringen(ax, stil, opt.kennzeichen_phase))
+                    kopf_texte.append(opt.kennzeichen_phase)
         else:
             beitrag = np.asarray(daten.betrag, dtype=np.float64)
         ungueltig = ~daten.gueltig  # M6
@@ -725,19 +726,18 @@ def zeichne_schwingform(
             g2_bezug = ""
             if daten.kohaerenz is not None:
                 g2_bezug = f"γ² = {_g2_text(float(daten.kohaerenz[bezug]), stil)} < "
-            z.texte.append(
-                kennzeichen_anbringen(
-                    ax,
-                    stil,
-                    f"Bezugspunkt {int(daten.label[bezug])} unsicher: {g2_bezug}"
-                    f"γ²_min = {_g2_text(daten.kohaerenz_min or 0.0, stil)}",
-                )
+            kopf_texte.append(
+                f"Bezugspunkt {int(daten.label[bezug])} unsicher: {g2_bezug}"
+                f"γ²_min = {_g2_text(daten.kohaerenz_min or 0.0, stil)}"
             )
         normal = ~ungueltig & ~kein_wert & ~unsicher
         unsicher_wort = "Phase unsicher" if phase_modus else "unsicher"  # Betrag: nicht „Phase“
 
         # --- Layout und Maßstab ---
-        _platziere(fig, ax, rechts, rect, (xlim[1] - xlim[0]) / (ylim[1] - ylim[0]))
+        # Kennzeichen stehen in einer Kopfzeile über den Achsen (Figure-Ebene, vor dem Layout).
+        kaesten, rect_achsen = kennzeichen_kopf(fig, stil, kopf_texte, rect)
+        z.texte.extend(kaesten)
+        _platziere(fig, ax, rechts, rect_achsen, (xlim[1] - xlim[0]) / (ylim[1] - ylim[0]))
         k = 72.0 / fig.dpi
         pt_je_m = float(ax.get_window_extent().width) * k / (xlim[1] - xlim[0])
         d_pt = d_nn * pt_je_m

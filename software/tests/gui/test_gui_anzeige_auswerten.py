@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import ast
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -121,12 +123,14 @@ def test_ui_15_laden_sperrt_oeffnen_ansichten_und_auswahl() -> None:
     assert aa.lade_text("a.svd") == "Lese a.svd …"
 
 
-def test_geladen_nur_ansicht_1_frei_export_und_bild_folgen() -> None:
+def test_geladen_alle_ansichten_frei_export_und_bild_folgen() -> None:
     t = aa.bedienbarkeit_auswerten(Zustand.GELADEN)
-    assert t["oeffnen"].aktiv and t["auswahl"].aktiv and t["ansicht_1"].aktiv
-    for name in ("ansicht_2", "ansicht_3", "ansicht_4", "export", "bild"):
+    assert t["oeffnen"].aktiv and t["auswahl"].aktiv
+    for nr in (1, 2, 3, 4):
+        assert t[f"ansicht_{nr}"].aktiv
+    for name in ("export", "bild"):
         assert not t[name].aktiv and t[name].grund == aa.TEXT_FOLGT
-    assert {1} == aa.FREIGESCHALTETE_ANSICHTEN
+    assert {1, 2, 3, 4} == aa.FREIGESCHALTETE_ANSICHTEN
 
 
 def test_ui_24_texte_der_zustaende() -> None:
@@ -187,7 +191,7 @@ def test_p08_fehlen_die_kanaele_gilt_nicht_pruefbar() -> None:
 
 
 def test_abhaengig_von_ist_die_einzige_zuordnung() -> None:
-    assert dict(aa.ABHAENGIG_VON) == {"phase": ("M8",)}
+    assert dict(aa.ABHAENGIG_VON) == {"phase": (("M8", "Polarität der Referenzkanäle offen"),)}
     quelle = Path(aa.__file__).parent
     treffer = [
         p.name
@@ -340,3 +344,74 @@ def test_anzeige_auswerten_importiert_matplotlib_nicht() -> None:
         [sys.executable, "-I", "-c", code], capture_output=True, text=True, check=False
     )
     assert ergebnis.returncode == 0, ergebnis.stderr
+
+
+# --- T3b: Kennzeichen, Texte ----------------------------------------------------------------------
+
+
+def _mit_status(eintraege: Sequence[Any], nr: str, status: str) -> list[Any]:
+    return [
+        type(e)(
+            nr=e.nr, parameter=e.parameter, wert=e.wert, status=status, beschreibung=e.beschreibung
+        )
+        if e.nr == nr
+        else e
+        for e in eintraege
+    ]
+
+
+def test_ui_11_kennzeichen_text_aus_der_annahme_und_verschwindet_bei_bestaetigung() -> None:
+    eintraege = Annahmen().eintraege()
+    m8 = next(e for e in eintraege if e.nr == "M8")
+    text = aa.kennzeichen_text("phase", eintraege)
+    assert text == "unbestätigt (M8: Polarität der Referenzkanäle offen)"  # Kurztext, keine Formel
+    assert m8.beschreibung not in text
+    assert aa.kennzeichen_beschreibung("phase", eintraege) == f"M8 (unbestätigt): {m8.beschreibung}"
+    assert aa.kennzeichen_text("betrag", eintraege) is None
+    bestaetigt = _mit_status(eintraege, "M8", "bestätigt")
+    assert not next(e for e in bestaetigt if e.nr == "M8").ist_annahme
+    assert aa.kennzeichen_text("phase", bestaetigt) is None
+    assert aa.kennzeichen_beschreibung("phase", bestaetigt) == ""
+
+
+def test_phase_ref_text_mit_und_ohne_kennzeichen() -> None:
+    eintraege = Annahmen().eintraege()
+    assert aa.phase_ref_text("Ref1", eintraege) == "Phase gegen Ref1 (⚠ unbestätigt, M8)"
+    assert aa.phase_ref_text("Ref2", _mit_status(eintraege, "M8", "bestätigt")) == (
+        "Phase gegen Ref2"
+    )
+
+
+def test_t3b_zustandstexte_nach_brief() -> None:
+    assert aa.TEXT_KEINE_FRF == (
+        "Keine Übertragungsfunktion: Die Datei enthält keinen aktiven Referenzkanal. "
+        "H1, H2 und Kohärenz brauchen eine Referenz."
+    )
+    assert aa.TEXT_KEINE_SPITZENSUCHE == "Keine Spitzensuche: Referenzkanal fehlt."
+    assert aa.TEXT_KEINE_SPITZEN == "Keine Spitzen gefunden."
+    assert aa.TEXT_KEINE_BAENDER == "Keine Bänder angegeben."
+    assert aa.TEXT_PHASE_KEINE_REFERENZ == "Phase nicht verfügbar: keine Referenz."
+    assert aa.TEXT_NAECHSTE_LINIE.format(f="123,750 Hz") == "nächste Linie: 123,750 Hz"
+
+
+def test_phasentexte_stimmen_mit_der_zeichenfunktion_ueberein() -> None:
+    from ldv_automation.darstellung import schwingform as sf
+
+    assert aa.TEXT_PHASE_KEINE_REFERENZ == sf.PHASE_KEINE_REFERENZ
+    assert aa.TEXT_PHASE_EINZELKOMPONENTE == sf.PHASE_NUR_EINZELKOMPONENTE
+
+
+def test_folgefehler_text() -> None:
+    assert aa.folgefehler_text([]) == ""
+    assert aa.folgefehler_text(["Parameterzeile: x", "Plot: y"]) == (
+        " [Folgefehler im Rückfall: Parameterzeile: x; Plot: y]"
+    )
+
+
+def test_ansicht_zugang_sperrt_nicht_freigeschaltete_ansichten(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(aa, "FREIGESCHALTETE_ANSICHTEN", frozenset({1}))
+    assert aa.ansicht_zugang(1, Zustand.GELADEN).aktiv
+    k = aa.ansicht_zugang(3, Zustand.GELADEN)
+    assert not k.aktiv and k.grund == aa.TEXT_FOLGT

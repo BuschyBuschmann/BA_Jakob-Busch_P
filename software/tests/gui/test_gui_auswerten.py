@@ -8,7 +8,7 @@ Die Datei kommt aus ``gui_ausw_hilfen.synth_geladen`` (4 Punkte, 64 Linien) übe
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -17,9 +17,8 @@ import pytest
 from gui_ausw_hilfen import (
     PFAD,
     SHA,
-    DirektAusfuehrer,
+    Bauer,
     NieFertigAusfuehrer,
-    Protokoll,
     SteuerbarerAusfuehrer,
     synth_geladen,
 )
@@ -39,40 +38,7 @@ from ldv_automation.gui.plotstil import baue_plotstil
 
 pytestmark = pytest.mark.gui
 
-Bauer = Callable[..., tuple[Hauptfenster, Protokoll]]
 BEISPIEL = Path(__file__).resolve().parents[3] / "Input" / "20261012_ref_Mitte.svd"
-
-
-@pytest.fixture
-def baue(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> Iterator[Bauer]:
-    stil.wende_an(QApplication.instance())  # type: ignore[arg-type]
-    erzeugt: list[Hauptfenster] = []
-    protokoll = Protokoll()
-    monkeypatch.setattr(auswerten_reiter, "lese_job", protokoll.lese_job)
-    monkeypatch.setattr(auswerten_reiter, "pruef_job", protokoll.pruef_job)
-
-    def bau(ausfuehrer: Any = None, *, sitzung: Any = None, aktiv: bool = True) -> Any:
-        w = Hauptfenster(
-            sitzung or AttrappenSitzung(bild()),
-            takt_ms=None,
-            ausfuehrer=ausfuehrer if ausfuehrer is not None else DirektAusfuehrer(),
-        )
-        monkeypatch.setattr(w, "_fuehre_aus", lambda _dialog: 0)  # kein modaler Dialog
-        qtbot.addWidget(w)
-        w.resize(1366, 768)
-        w.show()
-        qtbot.waitExposed(w)
-        if aktiv:
-            w.reiter.setCurrentIndex(1)
-            QApplication.processEvents()  # Layout zeigt später angelegte Kinder verzögert
-        erzeugt.append(w)
-        return w, protokoll
-
-    yield bau
-    for w in erzeugt:
-        w._timer.stop()
-        if w.auswerten is not None:
-            w.auswerten.beende()
 
 
 def lade(qtbot: QtBot, w: Hauptfenster, pfad: str = PFAD) -> AuswertenReiter:
@@ -179,9 +145,9 @@ def test_aktionen_f5_bis_f8_und_strg_nso_im_reiter_auswerten_gesperrt(baue: Baue
 def test_ui_20_reiterkopf_laeuft_und_faelle(baue: Bauer, qtbot: QtBot) -> None:
     sitzung = AttrappenSitzung(bild())
     w, _ = baue(sitzung=sitzung)
-    w.auswerten.btn_oeffnen.setFocus()  # type: ignore[union-attr]
+    w.auswerten.btn_oeffnen.setFocus()
     fokus_vorher = QApplication.focusWidget()
-    assert fokus_vorher is w.auswerten.btn_oeffnen  # type: ignore[union-attr]
+    assert fokus_vorher is w.auswerten.btn_oeffnen
     sitzung.setze(durchgang=Z.LAEUFT)
     w.aktualisiere()
     assert w.reiter.tabText(0) == "Messen ▶ läuft"
@@ -259,9 +225,9 @@ def test_ui_1_ui_2_geladen_zeigt_spektrum_und_parameter(baue: Bauer, qtbot: QtBo
     assert a.lbl_datei.text() == "probe.svd" and a.lbl_pfad.volltext() == PFAD
     assert a.lbl_cursor.text() == f"Geladen: {PFAD}"
     assert a.btn_export.toolTip() == aa.TEXT_FOLGT and not a.btn_export.isEnabled()
-    for nr in (2, 3, 4):
-        assert not a.btn_ansicht[nr].isEnabled() and a.btn_ansicht[nr].toolTip() == aa.TEXT_FOLGT
-    assert a.btn_ansicht[1].isEnabled() and a.liste_punkte.isEnabled()
+    for nr in (1, 2, 3, 4):  # T3b: alle Ansichten frei
+        assert a.btn_ansicht[nr].isEnabled() and a.btn_ansicht[nr].toolTip() == ""
+    assert a.liste_punkte.isEnabled()
 
 
 def test_ui_1_beispieldatei_spektrum_und_parameterzeile(
@@ -284,7 +250,7 @@ def test_ui_1_beispieldatei_spektrum_und_parameterzeile(
         "0,625 Hz",
     )
     assert wert["par_fenster"] == "–"
-    ax = a.plot.zeichnung.achsen[0]  # type: ignore[union-attr]
+    ax = a.plot.zeichnung.achsen[0]
     assert len(ax.lines) >= 1 and ax.get_xlabel() == "Frequenz [Hz]"
     assert ax.get_ylabel() == "Amplitude [m/s]"
     a.beende()

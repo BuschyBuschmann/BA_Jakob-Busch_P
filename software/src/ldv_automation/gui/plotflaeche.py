@@ -175,6 +175,7 @@ class PlotFlaeche(QFrame):
         self._zeichnung: Zeichnung | None = None
         self._standard_x: tuple[float, float] | None = None
         self._ansicht: Ansicht | None = None
+        self._zoom: dict[Ansicht, tuple[tuple[float, float], tuple[float, float]]] = {}
         self._letzter_aufruf: tuple[Ansicht, object, object, str] | None = None
         self._gezeichnet_groesse = QSize()
         self._neuzeichnen_timer = QTimer(self)
@@ -235,9 +236,10 @@ class PlotFlaeche(QFrame):
         beschreibung : str, optional
             Textalternative des Plots (``accessibleDescription``).
         zoom_behalten : bool, optional
-            ``True``: Der Frequenzausschnitt (x) bleibt erhalten, wenn dieselbe Ansicht mit
-            derselben Frequenzachse neu gezeichnet wird (Wechsel von Punkt, Komponente, Größe
-            oder Skala); die y-Achse skaliert neu, weil sich die Werte ändern. „Zurücksetzen“
+            ``True``: Der Frequenzausschnitt (x) bleibt je Ansicht erhalten, wenn dieselbe Ansicht
+            mit derselben Frequenzachse neu gezeichnet wird (Wechsel von Punkt, Komponente,
+            Größe oder Skala, aber auch nach dem Besuch einer anderen Ansicht); die y-Achse
+            skaliert neu, weil sich die Werte ändern. „Zurücksetzen“
             führt weiter auf den Ausgangsbereich. Ein neuer Dateiaufruf übergibt ``False``.
 
         Returns
@@ -245,8 +247,9 @@ class PlotFlaeche(QFrame):
         Zeichnung
             Hilfsobjekte der Zeichenfunktion.
         """
-        alt_x = self._zeichnung.achsen[0].get_xlim() if self._zeichnung is not None else None
-        alt_ansicht = self._ansicht
+        self._merke_zoom()  # Zoom (x) der Ansicht, die gleich verlassen wird (je Ansicht, UI-12)
+        if not zoom_behalten:
+            self._zoom.clear()
         zeichnung = ZEICHNER[ansicht](self._figure, daten, optionen, self._stil)
         # Erst zeichnen, dann Standardansicht merken: constrained-Layout kennt die Positionen
         # erst nach dem Zeichnen.
@@ -254,16 +257,16 @@ class PlotFlaeche(QFrame):
         self._toolbar.update()
         self._toolbar.push_current()
         standard_x = zeichnung.achsen[0].get_xlim()
+        gemerkt = self._zoom.get(ansicht)
         if (
             zoom_behalten
-            and alt_x is not None
-            and alt_ansicht is ansicht
-            and self._standard_x is not None
-            and np.allclose(self._standard_x, standard_x, rtol=1e-12, atol=0.0)
-            and not np.allclose(alt_x, standard_x, rtol=1e-12, atol=0.0)
+            and ansicht is not Ansicht.SCHWINGFORM  # Ortskoordinaten: Zoom ist dort kein Ziel
+            and gemerkt is not None
+            and np.allclose(gemerkt[0], standard_x, rtol=1e-12, atol=0.0)
+            and not np.allclose(gemerkt[1], standard_x, rtol=1e-12, atol=0.0)
         ):
             # Achsen teilen die Frequenzachse (Ansicht 2: sharex); der Ausschnitt gilt für alle.
-            zeichnung.achsen[0].set_xlim(alt_x)
+            zeichnung.achsen[0].set_xlim(gemerkt[1])
             self._canvas.draw()  # type: ignore[no-untyped-call]
             self._toolbar.push_current()
         self._standard_x = standard_x
@@ -275,14 +278,38 @@ class PlotFlaeche(QFrame):
         self._canvas.setAccessibleDescription(beschreibung)
         return zeichnung
 
-    def leere(self) -> None:
-        """Löscht die Darstellung (Figure leer, Verlauf der Werkzeugleiste leer)."""
+    def _merke_zoom(self) -> None:
+        if (
+            self._zeichnung is not None
+            and self._ansicht is not None
+            and self._standard_x is not None
+        ):
+            self._zoom[self._ansicht] = (self._standard_x, self._zeichnung.achsen[0].get_xlim())
+
+    def zoom_vergessen(self) -> None:
+        """Löscht den gemerkten Zoom aller Ansichten (Dateiwechsel)."""
+        self._zoom.clear()
+
+    def leere(self, *, zoom_vergessen: bool = False) -> None:
+        """Löscht die Darstellung (Figure leer, Verlauf der Werkzeugleiste leer).
+
+        Der Zoom bleibt gemerkt (ein einzelner Zeichenfehler verwirft ihn nicht); nur beim
+        Dateiwechsel (``zoom_vergessen=True``) wird er für alle Ansichten gelöscht.
+
+        Parameters
+        ----------
+        zoom_vergessen : bool, optional
+            ``True`` löscht zusätzlich den gemerkten Zoom aller Ansichten.
+        """
+        self._merke_zoom()
         self._figure.clear()
         self._canvas.draw_idle()  # type: ignore[no-untyped-call]
         self._toolbar.update()
         self._zeichnung = None
         self._standard_x = None
         self._ansicht = None
+        if zoom_vergessen:
+            self._zoom.clear()
         self._letzter_aufruf = None
         self._neuzeichnen_timer.stop()
         self._canvas.setAccessibleDescription("")

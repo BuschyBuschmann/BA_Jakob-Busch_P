@@ -19,16 +19,18 @@ Dieses Modul ist ein dünnes Widget (Abdeckung nur mit ``pytest -m gui``); die L
 from __future__ import annotations
 
 import itertools
-from collections.abc import Callable
-from contextlib import suppress
+import logging
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
+    QComboBox,
     QFileDialog,
     QFrame,
     QGraphicsOpacityEffect,
@@ -40,40 +42,65 @@ from PySide6.QtWidgets import (
     QRadioButton,
     QScrollArea,
     QSizePolicy,
+    QSplitter,
     QStackedWidget,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
+from ldv_automation.auswertung.annahmen import AnnahmeEintrag, Annahmen
 from ldv_automation.auswertung.jobs import PruefErgebnis, lese_job, pruef_job
 from ldv_automation.auswertung.laden import Geladen
-from ldv_automation.darstellung import Ansicht
+from ldv_automation.darstellung import Ansicht, Zeichnung
 from ldv_automation.darstellung.auswahl import (
     KOMPONENTEN,
     DarstellungsFehler,
     Groesse,
     PaarCache,
+    frf_daten,
+    gesamtband,
     kanalpaare,
+    schwingform_daten,
     spektrum_daten,
+    spitzen_daten_frf,
+    spitzen_daten_spektrum,
+    standard_bezug,
     verfuegbare_groessen,
+    waehle_ebene,
 )
+from ldv_automation.darstellung.formate import frequenz_text
+from ldv_automation.darstellung.frf import FrfOptionen
+from ldv_automation.darstellung.schwingform import SchwingformOptionen
 from ldv_automation.darstellung.spektrum import DB_GRUND, SpektrumOptionen
+from ldv_automation.darstellung.spitzen import SpitzenOptionen
 from ldv_automation.gui import tokens as t
 from ldv_automation.gui.anzeige import Knopf
 from ldv_automation.gui.anzeige_auswerten import (
     ANSICHT_NAMEN,
+    FREIGESCHALTETE_ANSICHTEN,
+    TEXT_KEINE_BAENDER,
     TEXT_KEINE_DATEI,
+    TEXT_KEINE_FRF,
+    TEXT_KEINE_SPITZEN,
+    TEXT_KEINE_SPITZENSUCHE,
+    TEXT_PHASE_KEINE_REFERENZ,
     TEXT_PRUEFUNG_ABGEBROCHEN,
     TEXT_PRUEFUNG_BERECHNET,
+    TEXT_SPITZE_WAEHLEN,
     AuswertenZustand,
     ParameterZelle,
     bedienbarkeit_auswerten,
     dateiname_von,
     fehler_band_text,
+    folgefehler_text,
     geladen_text,
+    kennzeichen_beschreibung,
+    kennzeichen_text,
     lade_text,
     parameter_tooltip,
     parameter_zellen,
+    phase_ref_text,
     plot_beschreibung,
     plotkopf_text,
     pruefung_fehler_text,
@@ -83,9 +110,27 @@ from ldv_automation.gui.anzeige_auswerten import (
     zeichen_fehler_text,
     zellen_sichtbar,
 )
+from ldv_automation.gui.auswahl_auswerten import (
+    AuswahlFrf,
+    AuswahlSchwingform,
+    AuswahlSpitzen,
+    tab_halt,
+)
+from ldv_automation.gui.daten_auswerten import (
+    BAENDER_SPALTEN,
+    SPITZEN_SPALTEN,
+    baender_zeilen,
+    bandwerte_fuer,
+    frequenz_pruefen,
+    kanalpaar_text,
+    spitze_angaben_text,
+    spitze_der_linie,
+    spitzen_zeilen,
+)
 from ldv_automation.gui.plotflaeche import PlotFlaeche
 from ldv_automation.gui.plotstil import baue_plotstil
 from ldv_automation.gui.stil import schrift
+from ldv_automation.gui.tabellen_auswerten import ZEILENHOEHE_PX, TabellenBereich
 from ldv_automation.hintergrund import (
     Auftrag,
     AuftragAbgebrochen,
@@ -106,8 +151,17 @@ BEZEICHNUNG_ZELLEN_PT = 8
 GRAU_DECKKRAFT = 0.4
 """Deckkraft der Darstellung, solange eine neue Datei gelesen wird (bisherige Datei ausgegraut)."""
 
+TABELLE_STANDARD_ZEILEN = 4
+"""Standardmäßig sichtbare Zeilen der Tabelle in Ansicht 3 (Nutzerentscheidung T3b-3)."""
+PLOT_MIN_HOEHE_SPLITTER_PX = 130
+"""Kleinste Höhe des Plots, wenn die Tabelle ihre Standardhöhe bekommt."""
+TEXT_KANALPAAR_ANSICHT_4 = "Spitzenliste und Kennzeichen der Linie stammen aus diesem Paar."
+
 _SEITE_LEER = 0
 _SEITE_PLOT = 1
+_SEITE_TEXT = 2
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -265,6 +319,17 @@ class AuswertenReiter(QWidget):
         self._fehlertext: str | None = None
         self._pruef_fehler: str | None = None
         self._ansicht = 1
+        self._paare: tuple[tuple[str, str], ...] = ()
+        self._spitze: int | None = None
+        self._ansichtstext: str | None = None
+        self._plot_ansicht: int | None = None
+        self._a4_letzt: tuple[Any, Any, str, str, str] | None = None
+        self._a4_komponente: str | None = None
+        self._tabellen_hoehe: int | None = None
+        self._a3_schluessel: tuple[str, str] | str | None = None
+        self._a3_spitzen: tuple[object, ...] = ()
+        self._a4_geladen = False
+        self._a4_paar_schluessel: object = None
         self._in_aufbau = False
         self._letzter_ordner = ""
         self._abfrage_ms = abfrage_ms
@@ -363,7 +428,14 @@ class AuswertenReiter(QWidget):
         return leiste
 
     def _baue_auswahlspalte(self) -> QScrollArea:
-        """Zone AD: 260 px fest, scrollbar bei Überlänge (T3a: nur die Seite von Ansicht 1)."""
+        """Zone AD: 260 px fest, scrollbar bei Überlänge; Seiten je Ansicht (Brief Abschnitt 3).
+
+        Oberhalb des Stapels stehen die Elemente, die mehrere Ansichten teilen: die Kanalpaarwahl
+        (Ansichten 2, 3 und 4, nur bei mehr als einem Paar) und die Punktliste (Ansichten 1 und 2).
+
+        Das Kanalpaar gilt gemeinsam für alle Ansichten (Nutzer bestätigt): Eine Wahl in Ansicht 2
+        bleibt in Ansicht 3 und 4 bestehen und umgekehrt.
+        """
         self.auswahlspalte = QScrollArea()
         self.auswahlspalte.setObjectName("auswahlspalte")
         self.auswahlspalte.setFixedWidth(t.BREITE_AUSWAHLSPALTE_PX)
@@ -371,10 +443,66 @@ class AuswertenReiter(QWidget):
         self.auswahlspalte.setFrameShape(QFrame.Shape.NoFrame)
         self.auswahlspalte.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.auswahlspalte.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._ad_inhalt = QWidget()
+        self._ad_inhalt.setObjectName("auswahl_inhalt")
+        v = QVBoxLayout(self._ad_inhalt)
+        v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(6)
+
+        self.kanalpaar_gruppe = QWidget()
+        self.kanalpaar_gruppe.setObjectName("kanalpaar_gruppe")
+        kv = QVBoxLayout(self.kanalpaar_gruppe)
+        kv.setContentsMargins(0, 0, 8, 0)
+        kv.setSpacing(4)
+        kv.addWidget(self._gruppentitel("Kanalpaar (Antwort / Referenz)"))
+        self.combo_kanalpaar = QComboBox()
+        self.combo_kanalpaar.setObjectName("combo_kanalpaar")
+        self.combo_kanalpaar.setAccessibleName("Kanalpaar, Antwort und Referenz")
+        self.combo_kanalpaar.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        kv.addWidget(self.combo_kanalpaar)
+        self.lbl_kanalpaar_hinweis = QLabel()
+        self.lbl_kanalpaar_hinweis.setObjectName("lbl_kanalpaar_hinweis")
+        self.lbl_kanalpaar_hinweis.setProperty("art", "gedaempft")
+        self.lbl_kanalpaar_hinweis.setWordWrap(True)
+        self.lbl_kanalpaar_hinweis.setFont(schrift(8))
+        kv.addWidget(self.lbl_kanalpaar_hinweis)
+        self.kanalpaar_gruppe.setVisible(False)
+        v.addWidget(self.kanalpaar_gruppe)
+
+        self.punkt_gruppe = QWidget()
+        self.punkt_gruppe.setObjectName("punkt_gruppe")
+        pv = QVBoxLayout(self.punkt_gruppe)
+        pv.setContentsMargins(0, 0, 8, 0)
+        pv.setSpacing(4)
+        pv.addWidget(self._gruppentitel("Punkt"))
+        self.liste_punkte = QListWidget()
+        self.liste_punkte.setObjectName("liste_punkte")
+        self.liste_punkte.setAccessibleName("Punkt oder Mittel")
+        self.liste_punkte.setMinimumHeight(140)
+        self.liste_punkte.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        pv.addWidget(self.liste_punkte, 1)
+        v.addWidget(self.punkt_gruppe, 1)
+
         self._ad_stapel = QStackedWidget()
         self._ad_stapel.setObjectName("auswahl_stapel")
-        self._ad_stapel.addWidget(self._baue_auswahl_spektrum())
-        self.auswahlspalte.setWidget(self._ad_stapel)
+        self.auswahl_frf = AuswahlFrf()
+        self.auswahl_spitzen = AuswahlSpitzen()
+        self.auswahl_sf = AuswahlSchwingform()
+        self._ad_seiten = [
+            self._baue_auswahl_spektrum(),
+            self.auswahl_frf,
+            self.auswahl_spitzen,
+            self.auswahl_sf,
+        ]
+        for seite in self._ad_seiten:
+            self._ad_stapel.addWidget(seite)
+        v.addWidget(self._ad_stapel)
+        self.auswahlspalte.setWidget(self._ad_inhalt)
+        self.liste_punkte.currentRowChanged.connect(self._auswahl_geaendert)
+        self.combo_kanalpaar.currentIndexChanged.connect(self._paar_geaendert)
+        self.auswahl_frf.geaendert.connect(self._ansicht_geaendert)
+        self.auswahl_sf.geaendert.connect(self._ansicht_geaendert)
+        self.auswahl_sf.spitze_gewaehlt.connect(self._spitze_fuer_schwingform)
         return self.auswahlspalte
 
     @staticmethod
@@ -389,15 +517,6 @@ class AuswertenReiter(QWidget):
         v = QVBoxLayout(seite)
         v.setContentsMargins(0, 0, 8, 0)
         v.setSpacing(6)
-
-        titel_punkt = self._gruppentitel("Punkt")
-        self.liste_punkte = QListWidget()
-        self.liste_punkte.setObjectName("liste_punkte")
-        self.liste_punkte.setAccessibleName("Punkt oder Mittel")
-        self.liste_punkte.setMinimumHeight(140)
-        self.liste_punkte.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        v.addWidget(titel_punkt)
-        v.addWidget(self.liste_punkte, 1)
 
         v.addWidget(self._gruppentitel("Komponente"))
         self.chk: dict[str, QCheckBox] = {}
@@ -460,14 +579,13 @@ class AuswertenReiter(QWidget):
         v.addWidget(self.lbl_hinweise)
         v.addStretch(0)
 
-        self.liste_punkte.currentRowChanged.connect(self._auswahl_geaendert)
         for kasten in self.chk.values():
             kasten.toggled.connect(self._auswahl_geaendert)
         self._gruppe_groesse.buttonToggled.connect(self._auswahl_geaendert)
         self._gruppe_skala.buttonToggled.connect(self._auswahl_geaendert)
         for gruppe in (self._gruppe_groesse, self._gruppe_skala):
-            gruppe.buttonToggled.connect(lambda _k, _an, g=gruppe: self._tab_halt(g))
-            self._tab_halt(gruppe)
+            gruppe.buttonToggled.connect(lambda _k, _an, g=gruppe: tab_halt(g))
+            tab_halt(gruppe)
         return seite
 
     def _baue_darstellung(self) -> QWidget:
@@ -552,7 +670,33 @@ class AuswertenReiter(QWidget):
         self._grau_effekt.setOpacity(GRAU_DECKKRAFT)
         self._grau_effekt.setEnabled(False)
         self.plot.setGraphicsEffect(self._grau_effekt)
-        self._ae_stapel.addWidget(self.plot)
+        self._plot_seite = QSplitter(Qt.Orientation.Vertical)
+        self._plot_seite.setObjectName("plot_seite")
+        self._plot_seite.setChildrenCollapsible(False)
+        self._plot_seite.addWidget(self.plot)
+        self.tabellen = QTabWidget()
+        self.tabellen.setObjectName("tabellen")
+        self.tabelle_spitzen = TabellenBereich("tabelle_spitzen", SPITZEN_SPALTEN)
+        self.tabelle_baender = TabellenBereich("tabelle_baender", BAENDER_SPALTEN)
+        self.tabellen.addTab(self.tabelle_spitzen, "Spitzen")
+        self.tabellen.addTab(self.tabelle_baender, "Bänder")
+        self.tabellen.setVisible(False)
+        self._plot_seite.addWidget(self.tabellen)
+        self._plot_seite.setStretchFactor(0, 3)
+        self._plot_seite.setStretchFactor(1, 2)
+        self.tabelle_spitzen.zeile_gewaehlt.connect(self._spitze_in_tabelle_gewaehlt)
+        self._plot_seite.splitterMoved.connect(self._splitter_bewegt)
+        self._ae_stapel.addWidget(self._plot_seite)
+        text_seite = QWidget()
+        text_seite.setObjectName("darstellung_text")
+        tv = QVBoxLayout(text_seite)
+        self.lbl_ansicht_platzhalter = QLabel()
+        self.lbl_ansicht_platzhalter.setObjectName("lbl_ansicht_platzhalter")
+        self.lbl_ansicht_platzhalter.setWordWrap(True)
+        self.lbl_ansicht_platzhalter.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_ansicht_platzhalter.setFont(schrift(11))
+        tv.addWidget(self.lbl_ansicht_platzhalter)
+        self._ae_stapel.addWidget(text_seite)
         v.addWidget(self._ae_stapel, 1)
         return ae
 
@@ -577,10 +721,14 @@ class AuswertenReiter(QWidget):
         """AA → AC → AD → AE (Plot, Werkzeugleiste); AB ist nicht fokussierbar (Abschnitt 8)."""
         kette: list[QWidget] = [self.btn_oeffnen, self.btn_export, self.btn_bild]
         kette += [self.btn_ansicht[nr] for nr in sorted(self.btn_ansicht)]
+        kette.append(self.combo_kanalpaar)
         kette.append(self.liste_punkte)
         kette += list(self.chk.values())
         kette += [self.rb_groesse_cph, self.rb_groesse_ap]
         kette += [self.rb_skala_linear, self.rb_skala_log, self.rb_skala_db]
+        kette += [self.auswahl_frf.chk_h1, self.auswahl_frf.chk_h2, self.auswahl_frf.chk_phase]
+        kette += self.auswahl_sf.tab_kette()
+        kette += [self.tabelle_spitzen.tabelle, self.tabelle_baender.tabelle]
         kette += [self.btn_fehler_schliessen, self.btn_oeffnen_leer]
         kette += self.plot.tab_kette()
         for vorher, nachher in itertools.pairwise(kette):
@@ -638,7 +786,7 @@ class AuswertenReiter(QWidget):
         self._setze(self.btn_export, tabelle["export"], "Auswertungsdaten exportieren")
         self._setze(self.btn_bild, tabelle["bild"], "Aktuelle Ansicht als Bild speichern")
         auswahl = tabelle["auswahl"]
-        self._ad_stapel.setEnabled(auswahl.aktiv)
+        self._ad_inhalt.setEnabled(auswahl.aktiv)
         self.auswahlspalte.setToolTip("" if auswahl.aktiv else auswahl.grund)
         for nr, knopf in self.btn_ansicht.items():
             self._setze(knopf, tabelle[f"ansicht_{nr}"])
@@ -646,15 +794,25 @@ class AuswertenReiter(QWidget):
         hat_daten = self._geladen is not None
         self.laden_leiste.setVisible(laedt)
         self.plot.setEnabled(not laedt)
+        self.tabellen.setEnabled(not laedt)
         self._ausgrauen(laedt and hat_daten)
         if self._zustand is AuswertenZustand.GELADEN or (laedt and hat_daten):
-            self._ae_stapel.setCurrentIndex(_SEITE_PLOT)
+            self._zeige_ae_seite()
             self.lbl_plotkopf.setVisible(True)
         else:
             self._ae_stapel.setCurrentIndex(_SEITE_LEER)
             self.lbl_plotkopf.setVisible(False)
             self.plot_platzhalter.setVisible(not laedt)
             self.btn_oeffnen_leer.setVisible(not laedt)
+
+    def _zeige_ae_seite(self) -> None:
+        """Plot (mit Tabellen in Ansicht 3) oder Platzhaltertext der Ansicht (Zone AE)."""
+        if self._ansichtstext is not None:
+            self.lbl_ansicht_platzhalter.setText(self._ansichtstext)
+            self._ae_stapel.setCurrentIndex(_SEITE_TEXT)
+        else:
+            self._ae_stapel.setCurrentIndex(_SEITE_PLOT)
+        self.tabellen.setVisible(self._ansicht == 3)
 
     def _ausgrauen(self, grau: bool) -> None:
         """Zeigt die bisherige Darstellung ausgegraut, solange die neue Datei gelesen wird."""
@@ -687,15 +845,15 @@ class AuswertenReiter(QWidget):
             Pfad der ``.svd``-Datei.
         """
         self._abbrechen()
-        self._zeige_pruefung()  # abgebrochene Stufe B steht nicht mehr als „wird berechnet“
         self._job_id += 1
-        self._letzter_ordner = str(Path(pfad).parent)
-        self.schliesse_fehlerband()
-        self.lbl_laden.setText(lade_text(dateiname_von(pfad)))
-        self._setze_zustand(AuswertenZustand.LADEN)
-        try:
+        try:  # derselbe Rückfallschutz wie nach dem Lesen: kein hängendes „Laden“
+            self._zeige_pruefung()  # abgebrochene Stufe B steht nicht mehr als „wird berechnet“
+            self._letzter_ordner = str(Path(pfad).parent)
+            self.schliesse_fehlerband()
+            self.lbl_laden.setText(lade_text(dateiname_von(pfad)))
+            self._setze_zustand(AuswertenZustand.LADEN)
             auftrag = self._ausfuehrer.starte(lese_job, pfad)
-        except Exception as fehler:  # Prozess nicht startbar (Spawn, Pipe): als Lesefehler zeigen
+        except Exception as fehler:  # Widgets oder Prozess (Spawn, Pipe): als Lesefehler zeigen
             self._lesefehler(f"{pfad}: {fehler}")
             return
         self._auftrag_a = (self._job_id, auftrag, pfad)
@@ -706,28 +864,48 @@ class AuswertenReiter(QWidget):
         self._fehlertext = None
         self.band_fehler.setVisible(False)
 
+    def _rueckfall(self, schritte: Sequence[tuple[str, Callable[[], object]]]) -> list[str]:
+        """Führt Rückfallschritte einzeln aus; Fehler brechen nichts ab und gehen nicht verloren.
+
+        Jede Ausnahme kommt mit Ablaufverfolgung ins Protokoll (``logging``, Logger dieses
+        Moduls) und als Text „Schritt: Ausnahme“ in die Rückgabe, die an die Fehlermeldung
+        angehängt wird (:func:`~ldv_automation.gui.anzeige_auswerten.folgefehler_text`).
+        """
+        fehler: list[str] = []
+        for name, schritt in schritte:
+            try:
+                schritt()
+            except Exception as exc:  # der Rückfallpfad selbst darf nicht scheitern
+                _log.warning("Rückfall im Reiter Auswerten: %s fehlgeschlagen", name, exc_info=True)
+                fehler.append(f"{name}: {exc}")
+        return fehler
+
     def _lesefehler(self, text: str) -> None:
         """Zeigt das Fehlerband; die zuvor geladene Datei bleibt unverändert (UI-15).
 
         Auch dieser Pfad darf nicht scheitern: Der Zustand wird zuerst gesetzt (nie „Laden“ nach
         einer Ausnahme), danach folgen die Widgets einzeln; Ladeleiste und Abfrage werden in
-        jedem Fall beendet.
+        jedem Fall beendet. Fehler in den Rückfallschritten stehen im Protokoll und als Anhang
+        in der Fehlermeldung.
         """
         self._fehlertext = fehler_band_text(text)
-        zustand = (
+        self._zustand = (
             AuswertenZustand.GELADEN if self._geladen is not None else AuswertenZustand.KEINE_DATEI
         )
-        self._zustand = zustand
-        schritte: tuple[Callable[[], object], ...] = (
-            lambda: self.lbl_fehler.setText(self._fehlertext or ""),
-            lambda: self.band_fehler.setVisible(True),
-            lambda: self.laden_leiste.setVisible(False),
-            self._wende_zustand_an,
-            self._zeige_pruefung,
+        folge = self._rueckfall(
+            (
+                ("Fehlerband (Text)", lambda: self.lbl_fehler.setText(self._fehlertext or "")),
+                ("Fehlerband (sichtbar)", lambda: self.band_fehler.setVisible(True)),
+                ("Ladeleiste", lambda: self.laden_leiste.setVisible(False)),
+                ("Zustand anwenden", self._wende_zustand_an),
+                ("Fußzeile Prüfung", self._zeige_pruefung),
+            )
         )
-        for schritt in schritte:
-            with suppress(Exception):
-                schritt()
+        if folge:
+            self._fehlertext += folgefehler_text(folge)
+            self._rueckfall(
+                (("Fehlerband (Anhang)", lambda: self.lbl_fehler.setText(self._fehlertext or "")),)
+            )
         if self._auftrag_a is None and self._auftrag_b is None:
             self._timer.stop()
 
@@ -808,31 +986,51 @@ class AuswertenReiter(QWidget):
             return
         self._pruefung = ergebnis
         self._zeige_pruefung()
+        self._kennzeichen_aktualisieren()
 
-    def _verwerfe_datei(self) -> None:
+    def _kennzeichen_aktualisieren(self) -> None:
+        """Übernimmt die Annahmen aus Stufe B in Beschriftung und Darstellung (M8)."""
+        if self._geladen is None:
+            return
+        if self._a4_geladen:
+            self.auswahl_sf.setze_referenz_text(
+                phase_ref_text(self._phase_referenz(), self._annahmen()),
+                kennzeichen_beschreibung("phase", self._annahmen()),
+            )
+        self.auswahl_frf.setze_phase_erklaerung(kennzeichen_beschreibung("phase", self._annahmen()))
+        if self._ansicht in (2, 4):
+            self._zeichne(zoom_behalten=True)
+
+    def _verwerfe_datei(self) -> list[str]:
         """Setzt den Reiter in den Zustand „Keine Datei“ zurück (nach einem Fehler beim Aufbau).
 
-        Der Rückfallpfad darf selbst nicht scheitern: Jeder Schritt läuft einzeln und ein
-        Fehler darin wird übergangen (der auslösende Fehler steht schon im Fehlerband).
+        Der Rückfallpfad darf selbst nicht scheitern: Jeder Schritt läuft einzeln (siehe
+        :meth:`_rueckfall`).
+
+        Returns
+        -------
+        list of str
+            Fehler der Rückfallschritte (leer, wenn alles gelang); der Aufrufer hängt sie an die
+            Fehlermeldung an.
         """
         self._geladen = None
         self._cache = None
         self._pruefung = None
         self._pruef_fehler = None
+        self._a4_letzt = None
         self._in_aufbau = True
-        schritte: tuple[Callable[[], object], ...] = (
-            self.liste_punkte.clear,
-            self.plot.leere,
-            lambda: self.lbl_datei.setText("–"),
-            lambda: self.lbl_pfad.setText(""),
-            lambda: self.lbl_plotkopf.setText(""),
-            lambda: self.lbl_hinweise.setText(""),
-            self._fuelle_parameter,
-        )
         try:
-            for schritt in schritte:
-                with suppress(Exception):
-                    schritt()
+            return self._rueckfall(
+                (
+                    ("Punktliste", self.liste_punkte.clear),
+                    ("Darstellung", lambda: self._leere_plot(zoom_vergessen=True)),
+                    ("Dateiname", lambda: self.lbl_datei.setText("–")),
+                    ("Pfad", lambda: self.lbl_pfad.setText("")),
+                    ("Plotkopf", lambda: self.lbl_plotkopf.setText("")),
+                    ("Hinweise", lambda: self.lbl_hinweise.setText("")),
+                    ("Parameterzeile", self._fuelle_parameter),
+                )
+            )
         finally:
             self._in_aufbau = False
 
@@ -854,19 +1052,36 @@ class AuswertenReiter(QWidget):
             eintraege = punkt_eintraege(daten.punkte.label, daten.punkte.koordinaten_m)
             zellen = parameter_zellen(geladen.einstellungen)
             verfuegbare_groessen(daten, KOMPONENTEN)
-            antrieb = waehle_antriebspunkt(kanalpaare(daten))
+            paare = kanalpaare(daten)
+            antrieb = waehle_antriebspunkt(paare)
         except Exception as fehler:  # jede Ausnahme der Aufbereitung ist ein Lesefehler
             self._lesefehler(f"{pfad}: Auswertung nicht möglich: {fehler}")
             return
         self._geladen = geladen
         self._cache = cache
         self._pruefung = None
+        self._a4_letzt = None
+        self._a4_komponente = None
         self._pruef_fehler = None
         self._in_aufbau = True
         try:
             self.liste_punkte.clear()
             self.liste_punkte.addItems(eintraege)
             self.liste_punkte.setCurrentRow(0)
+            self._paare = paare
+            self._spitze = None
+            self._a3_schluessel = None
+            self._a4_geladen = False
+            self._a4_paar_schluessel = None
+            self.combo_kanalpaar.clear()
+            for antwort, referenz in paare:
+                self.combo_kanalpaar.addItem(kanalpaar_text(antwort, referenz))
+            self.auswahl_frf.zuruecksetzen()
+            self.auswahl_frf.setze_phase_erklaerung(
+                kennzeichen_beschreibung("phase", Annahmen().eintraege())
+            )
+            self.btn_ansicht[1].setChecked(True)
+            self._aktiviere_ansicht(1)
             for kasten in self.chk.values():
                 kasten.setChecked(True)
             self.rb_skala_log.setChecked(True)
@@ -878,8 +1093,8 @@ class AuswertenReiter(QWidget):
             self.parameterzeile.setze_zellen(zellen)
         except Exception as fehler:  # Qt-Aufbau schlägt fehl: nichts halb geladen stehen lassen
             self._in_aufbau = False
-            self._verwerfe_datei()
-            self._lesefehler(f"{pfad}: Anzeige nicht möglich: {fehler}")
+            folge = self._verwerfe_datei()
+            self._lesefehler(f"{pfad}: Anzeige nicht möglich: {fehler}" + folgefehler_text(folge))
             return
         finally:
             self._in_aufbau = False
@@ -906,10 +1121,91 @@ class AuswertenReiter(QWidget):
 
     # --- Ansicht 1 -------------------------------------------------------------------------
 
+    def _aktiviere_ansicht(self, nr: int) -> None:
+        """Schaltet Auswahlseite und gemeinsame Elemente der Ansicht ``nr`` (1 bis 4) um."""
+        self._ansicht = nr
+        self._ad_stapel.setCurrentIndex(nr - 1)
+        for i, seite in enumerate(self._ad_seiten):  # der Stapel misst nur die aktuelle Seite
+            seite.setSizePolicy(
+                QSizePolicy.Policy.Preferred,
+                QSizePolicy.Policy.Preferred if i == nr - 1 else QSizePolicy.Policy.Ignored,
+            )
+        self.kanalpaar_gruppe.setVisible(nr in (2, 3, 4) and len(self._paare) > 1)
+        self.lbl_kanalpaar_hinweis.setText(TEXT_KANALPAAR_ANSICHT_4 if nr == 4 else "")
+        self.lbl_kanalpaar_hinweis.setVisible(nr == 4)
+        self.punkt_gruppe.setVisible(nr in (1, 2))
+        self.tabellen.setVisible(nr == 3)
+        self._plot_seite.refresh()  # Plot hat vor dem Zeichnen seine endgültige Größe (pt-Maße)
+        if nr == 3:
+            self._splitter_anwenden()
+            # Qt verteilt die Höhen nach dem Einblenden der Tabelle noch einmal: danach erneut.
+            QTimer.singleShot(0, self._splitter_nachziehen)
+
+    def _splitter_nachziehen(self) -> None:
+        if self._ansicht == 3 and self.tabellen.isVisible():
+            self._splitter_anwenden()
+
+    def _splitter_anwenden(self) -> None:
+        """Gibt der Tabelle ihre Standardhöhe (vier Zeilen) bzw. die gemerkte Höhe.
+
+        Standard: Kopf der Tabelle, Reiterleiste und vier Zeilen zu 32 px. Der Plot behält
+        mindestens :data:`PLOT_MIN_HOEHE_SPLITTER_PX`; die Höhe wird nur für diese Sitzung
+        gemerkt (:meth:`_splitter_bewegt`).
+        """
+        gesamt = sum(self._plot_seite.sizes()) or self._plot_seite.height()  # ohne Teilergriff
+        if gesamt <= 0:
+            return
+        kopf = self.tabelle_spitzen.tabelle.horizontalHeader().height()
+        standard = (
+            TABELLE_STANDARD_ZEILEN * ZEILENHOEHE_PX
+            + max(kopf, ZEILENHOEHE_PX)
+            + self.tabellen.tabBar().sizeHint().height()
+            + 6
+        )
+        ziel = self._tabellen_hoehe if self._tabellen_hoehe is not None else standard
+        ziel = max(min(ziel, gesamt - PLOT_MIN_HOEHE_SPLITTER_PX - 4), 0)  # 4 px: Teilergriff
+        self._plot_seite.setSizes([gesamt - ziel, ziel])
+        for _ in range(2):  # Qt rundet und verrechnet den Teilergriff: nachstellen
+            fehlt = PLOT_MIN_HOEHE_SPLITTER_PX - self._plot_seite.sizes()[0]
+            if fehlt <= 0:
+                break
+            ziel = max(self._plot_seite.sizes()[1] - fehlt, 0)
+            self._plot_seite.setSizes([gesamt - ziel, ziel])
+
+    def _splitter_bewegt(self, _pos: int, _index: int) -> None:
+        """Merkt die Tabellenhöhe, wenn der Nutzer den Teiler verschiebt (nur in dieser Sitzung)."""
+        if self.tabellen.isVisible():
+            self._tabellen_hoehe = int(self._plot_seite.sizes()[1])
+
     def _ansicht_gewaehlt(self, nr: int) -> None:
-        """Ansichtsknopf gedrückt (T3a: nur Ansicht 1 ist freigeschaltet)."""
-        if nr == 1:
-            self._ansicht = 1
+        """Ansichtsknopf gedrückt: Seite umschalten und neu zeichnen (Zoom je Ansicht bleibt)."""
+        if nr not in FREIGESCHALTETE_ANSICHTEN or self._geladen is None:
+            return
+        self._aktiviere_ansicht(nr)
+        self._zeichne(zoom_behalten=True)
+
+    def _ansicht_geaendert(self) -> None:
+        """Bedienelement einer Auswahlseite (Ansicht 2 oder 4) geändert."""
+        if not self._in_aufbau and self._geladen is not None:
+            self._zeichne(zoom_behalten=True)
+
+    def _paar(self) -> tuple[str, str] | None:
+        """Gewähltes Kanalpaar (``None`` = Datei ohne Referenz)."""
+        i = self.combo_kanalpaar.currentIndex()
+        return self._paare[i] if 0 <= i < len(self._paare) else None
+
+    def _paar_geaendert(self, _index: int) -> None:
+        self._spitze = None
+        self._a3_schluessel = None
+        self._a4_paar_schluessel = None
+        if not self._in_aufbau and self._geladen is not None:
+            self._zeichne(zoom_behalten=True)
+
+    def _annahmen(self) -> Sequence[AnnahmeEintrag]:
+        """Annahmen der Auswertung: aus Stufe B, bis dahin die Voreinstellungen (``Annahmen``)."""
+        if self._pruefung is not None:
+            return self._pruefung.annahmen
+        return Annahmen().eintraege()
 
     def _aktualisiere_groessen(self) -> None:
         """Sperrt „kohärent“, wenn zu den gewählten Komponenten keine Referenz existiert."""
@@ -926,18 +1222,6 @@ class AuswertenReiter(QWidget):
             self.rb_groesse_ap.setChecked(True)
         elif not self.rb_groesse_ap.isChecked():
             self.rb_groesse_cph.setChecked(True)
-
-    @staticmethod
-    def _tab_halt(gruppe: QButtonGroup) -> None:
-        """Tab-Halt einer Radiogruppe auf der **gewählten** Option (Pfeiltasten wechseln).
-
-        Qt hält sonst bei der ersten Option der Gruppe an. Die übrigen Optionen bleiben mit
-        ``ClickFocus`` fokussierbar (UI-21), nehmen aber nicht an der Tab-Reihenfolge teil.
-        """
-        for knopf in gruppe.buttons():
-            knopf.setFocusPolicy(
-                Qt.FocusPolicy.StrongFocus if knopf.isChecked() else Qt.FocusPolicy.ClickFocus
-            )
 
     def _lese_auswahl(self) -> _Auswahl:
         """Liest die Bedienelemente von AD."""
@@ -970,7 +1254,7 @@ class AuswertenReiter(QWidget):
         self._zeichne(zoom_behalten=True)
 
     def _zeichne(self, *, zoom_behalten: bool = False) -> None:
-        """Zeichnet Ansicht 1 mit der gemeinsamen Zeichenfunktion in die Plotfläche.
+        """Zeichnet die gewählte Ansicht mit der gemeinsamen Zeichenfunktion in die Plotfläche.
 
         Erwartete Fehler der Datenauswahl (``DarstellungsFehler``) stehen in der Meldezeile,
         alle anderen Ausnahmen im Fehlerband (nichts wird verschluckt); die Darstellung ist dann
@@ -978,16 +1262,68 @@ class AuswertenReiter(QWidget):
         """
         if self._geladen is None or self._cache is None:
             return
+        zeichner = {
+            1: self._zeichne_ansicht_1,
+            2: self._zeichne_ansicht_2,
+            3: self._zeichne_ansicht_3,
+            4: self._zeichne_ansicht_4,
+        }[self._ansicht]
         try:
-            self._zeichne_ansicht_1(zoom_behalten=zoom_behalten)
+            self._ansichtstext = None
+            zeichner(zoom_behalten=zoom_behalten)
         except DarstellungsFehler as fehler:
             self.lbl_cursor.setText(f"{t.symbol('fehler')} {fehler}")
+            self._fremden_inhalt_ersetzen(str(fehler))
         except Exception as fehler:  # unerwartet: sichtbar melden, Darstellung leeren
             self._zeichenfehler(str(fehler))
+        self._zeige_ae_seite()
+
+    def _zeichne_plot(
+        self,
+        nr: int,
+        ansicht: Ansicht,
+        daten: object,
+        optionen: object,
+        beschreibung: str,
+        *,
+        zoom_behalten: bool,
+    ) -> Zeichnung:
+        """Zeichnet in die Plotfläche und merkt, welche Ansicht sie jetzt zeigt."""
+        zeichnung = self.plot.zeichne(
+            ansicht, daten, optionen, beschreibung, zoom_behalten=zoom_behalten
+        )
+        self._plot_ansicht = nr
+        return zeichnung
+
+    def _leere_plot(self, *, zoom_vergessen: bool = False) -> None:
+        """Leert die Plotfläche; der gemerkte Zoom bleibt, außer beim Dateiwechsel."""
+        self.plot.leere(zoom_vergessen=zoom_vergessen)
+        self._plot_ansicht = None
+
+    def _fremden_inhalt_ersetzen(self, text: str) -> None:
+        """Verhindert, dass die Plotfläche Inhalt oder Kopf einer anderen Ansicht zeigt.
+
+        Zeigt die Plotfläche schon die gewählte Ansicht, bleibt sie unverändert. Sonst steht in
+        Ansicht 4 der letzte gültige Stand (falls vorhanden), in allen anderen Fällen der
+        Platzhaltertext ``text`` statt des Plots.
+        """
+        if self._plot_ansicht == self._ansicht:
+            return
+        if self._ansicht == 4 and self._a4_letzt is not None:
+            daten, optionen, beschreibung, kopf, hinweise = self._a4_letzt
+            self._zeichne_plot(
+                4, Ansicht.SCHWINGFORM, daten, optionen, beschreibung, zoom_behalten=True
+            )
+            self.lbl_plotkopf.setText(kopf)
+            self.auswahl_sf.setze_hinweise(hinweise)
+            return
+        self._leere_plot()
+        self.lbl_plotkopf.setText("")
+        self._ansichtstext = text
 
     def _zeichenfehler(self, text: str) -> None:
         """Meldet einen unerwarteten Fehler der Darstellung im Fehlerband."""
-        self.plot.leere()
+        self._leere_plot()
         self.lbl_plotkopf.setText("")
         self._fehlertext = zeichen_fehler_text(text)
         self.lbl_fehler.setText(self._fehlertext)
@@ -1009,7 +1345,8 @@ class AuswertenReiter(QWidget):
         beschreibung = plot_beschreibung(
             1, name, spektrum.auswahl_text, [k.beschriftung for k in spektrum.kurven], f_min, f_max
         )
-        self.plot.zeichne(
+        self._zeichne_plot(
+            1,
             Ansicht.SPEKTRUM,
             spektrum,
             SpektrumOptionen(skala="linear" if a.skala == "linear" else "log"),
@@ -1026,3 +1363,275 @@ class AuswertenReiter(QWidget):
         )
         self.lbl_hinweise.setText("\n".join(spektrum.hinweise))
         self.lbl_hinweise.setVisible(bool(spektrum.hinweise))
+
+    # --- Ansichten 2 bis 4 -----------------------------------------------------------------
+
+    def _dateiname(self) -> str:
+        assert self._geladen is not None
+        herkunft = self._geladen.messdaten.herkunft
+        return dateiname_von(herkunft.pfad) if herkunft is not None else ""
+
+    def _beschreibung(self, ansicht: int, auswahl_text: str, komponenten: Sequence[str]) -> str:
+        assert self._geladen is not None
+        f = self._geladen.messdaten.frequenz_hz
+        return plot_beschreibung(
+            ansicht, self._dateiname(), auswahl_text, komponenten, float(f[0]), float(f[-1])
+        )
+
+    def _zeichne_ansicht_2(self, *, zoom_behalten: bool) -> None:
+        """Ansicht 2: Betrag, optional Phase, Kohärenz des gewählten Kanalpaars (UI-5, UI-6)."""
+        assert self._geladen is not None and self._cache is not None
+        paar = self._paar()
+        if paar is None:
+            self._ansichtstext = TEXT_KEINE_FRF
+            self.lbl_plotkopf.setText("")
+            self.auswahl_frf.setze_hinweise("")
+            return
+        sel = self.auswahl_frf
+        daten = frf_daten(self._cache, *paar, punkt=self._auswahl.punkt)
+        opt = FrfOptionen(
+            h1=sel.chk_h1.isChecked(),
+            h2=sel.chk_h2.isChecked(),
+            phase=sel.chk_phase.isChecked(),
+            kennzeichen_phase=kennzeichen_text("phase", self._annahmen()),
+        )
+        kurven = [n for n, an in (("H1", opt.h1), ("H2", opt.h2)) if an]
+        zeichnung = self._zeichne_plot(
+            2,
+            Ansicht.FRF,
+            daten,
+            opt,
+            self._beschreibung(2, daten.auswahl_text, [kanalpaar_text(*paar), *kurven]),
+            zoom_behalten=zoom_behalten,
+        )
+        self.lbl_plotkopf.setText(
+            plotkopf_text(
+                self._dateiname(),
+                daten.auswahl_text,
+                [kanalpaar_text(*paar), *kurven],
+                "H1/H2 und Kohärenz",
+            )
+        )
+        sel.setze_hinweise("\n".join(zeichnung.hinweise))
+
+    def _ansicht_3_tabellen(self, paar: tuple[str, str] | None) -> tuple[object, ...]:
+        """Füllt Spitzen- und Bändertabelle (nur wenn sich Datei oder Kanalpaar geändert haben)."""
+        assert self._geladen is not None and self._cache is not None
+        schluessel: tuple[str, str] | str = paar if paar is not None else "ohne"
+        daten = self._geladen.messdaten
+        grenzen = gesamtband(daten.frequenz_hz)
+        if self._a3_schluessel != schluessel:
+            spitzen = self._cache.paar(*paar).spitzen.spitzen if paar is not None else ()
+            zeilen, fehler = spitzen_zeilen(spitzen, warn_symbol=t.symbol("warnung"))
+            leer = TEXT_KEINE_SPITZENSUCHE if paar is None else TEXT_KEINE_SPITZEN
+            self.tabelle_spitzen.setze(zeilen, leer)
+            self.auswahl_spitzen.setze_fehler(
+                f"{t.symbol('fehler')} " + "; ".join(fehler) if fehler else ""
+            )
+            bandwerte = bandwerte_fuer(daten, self._cache, paar, grenzen)
+            self.tabelle_baender.setze(
+                baender_zeilen(bandwerte, grenzen, None, daten.punkte.label.tolist()),
+                TEXT_KEINE_BAENDER,
+            )
+            self._a3_spitzen = tuple(spitzen)
+            self._a3_schluessel = schluessel  # erst nach vollständigem Füllen (sonst Neuversuch)
+        return self._a3_spitzen
+
+    def _zeichne_ansicht_3(self, *, zoom_behalten: bool) -> None:
+        """Ansicht 3: Kurve mit Spitzen und Band, Tabellen für Spitzen und Bänder (UI-7, UI-8)."""
+        assert self._geladen is not None and self._cache is not None
+        daten = self._geladen.messdaten
+        paar = self._paar()
+        spitzen = self._ansicht_3_tabellen(paar)
+        grenzen = gesamtband(daten.frequenz_hz)
+        if self._spitze is not None and not 0 <= self._spitze < len(spitzen):
+            self._spitze = None
+        if paar is not None:
+            sd = spitzen_daten_frf(self._cache, *paar, baender=grenzen, gewaehlt=self._spitze)
+            kopf_kanal = kanalpaar_text(*paar)
+        else:
+            kanal = next((k for k in daten.ap if k.startswith("Vib")), next(iter(daten.ap)))
+            sd = spitzen_daten_spektrum(daten, self._cache, kanal, baender=grenzen)
+            kopf_kanal = kanal
+        beschreibung = self._beschreibung(3, "Mittel (alle Punkte)", [kopf_kanal]) + (
+            f" {len(sd.spitzen)} Spitzen gefunden." if sd.spitzen else f" {sd.hinweis}"
+        )
+        # Oberfläche: nur der Ring um die gewählte Spitze im Bild (ADR-026 Nachtrag); die Angaben
+        # stehen als Text in der Auswahlspalte. Thesis und Arbeitsbild behalten Streifen und Kasten.
+        zeichnung = self._zeichne_plot(
+            3,
+            Ansicht.SPITZEN,
+            sd,
+            SpitzenOptionen(beschriftung_im_bild=False, legende_im_bild=False),
+            beschreibung,
+            zoom_behalten=zoom_behalten,
+        )
+        gewaehlt = spitzen[self._spitze] if self._spitze is not None else None
+        self.auswahl_spitzen.setze_kurve("\n".join(zeichnung.hilfsobjekte["legende_eintraege"]))
+        # Ohne Spitze wird nur dann zur Wahl aufgefordert, wenn es welche gibt. Ohne Referenz
+        # bzw. ohne Spitzen erklärt die Tabelle den Zustand bereits, hier bleibt die Angabe leer.
+        if gewaehlt is not None:
+            angaben = spitze_angaben_text(gewaehlt, warn_symbol=t.symbol("warnung"))  # type: ignore[arg-type]
+        elif sd.spitzen:
+            angaben = TEXT_SPITZE_WAEHLEN
+        else:
+            angaben = ""
+        self.auswahl_spitzen.setze_angaben(angaben)
+        self.tabelle_spitzen.waehle(self._spitze)
+        self.lbl_plotkopf.setText(
+            plotkopf_text(
+                self._dateiname(), "Mittel (alle Punkte)", [kopf_kanal], "Spitzen und Bänder"
+            )
+        )
+        self.auswahl_spitzen.setze_hinweise("\n".join(zeichnung.hinweise))
+
+    def _spitze_in_tabelle_gewaehlt(self, index: int) -> None:
+        """Klick auf eine Zeile der Spitzentabelle markiert die Spitze im Plot (UI-8)."""
+        if self._ansicht != 3 or index == self._spitze:
+            return
+        self._spitze = index
+        self._zeichne(zoom_behalten=True)
+
+    # --- Ansicht 4 --------------------------------------------------------------------------
+
+    def _phase_referenz(self) -> str:
+        """Referenzkanal der Phase: erster mit Kreuzspektren aller Vib-Kanäle, sonst ``Ref1``."""
+        assert self._geladen is not None
+        cp = self._geladen.messdaten.cp
+        for referenz in dict.fromkeys(b for _a, b in cp):
+            if all((f"Vib {c}", referenz) in cp for c in ("X", "Y", "Z")):
+                return referenz
+        return "Ref1"
+
+    def _spitzen_der_paar(self) -> tuple[object, ...]:
+        paar = self._paar()
+        if paar is None or self._cache is None:
+            return ()
+        return tuple(self._cache.paar(*paar).spitzen.spitzen)
+
+    def _paar_zur_komponente(self, komponente: str) -> None:
+        """Stellt bei einer Einzelkomponente das Kanalpaar „Vib <Komponente> / <Referenz>“ ein.
+
+        Nur beim Wechsel der Komponente; bei 3D bleibt das gewählte Paar. Danach gelten
+        Spitzenliste, Schnellwahl und ``spitzen_kennzeichen`` für dieses Paar.
+        """
+        if komponente == self._a4_komponente:
+            return
+        self._a4_komponente = komponente
+        if komponente == "3D":
+            return
+        ziel = (f"Vib {komponente}", self._phase_referenz())
+        if ziel in self._paare and self._paar() != ziel:
+            sperre = self.combo_kanalpaar.blockSignals(True)
+            try:
+                self.combo_kanalpaar.setCurrentIndex(self._paare.index(ziel))
+            finally:
+                self.combo_kanalpaar.blockSignals(sperre)
+            self._spitze = None
+            self._a3_schluessel = None
+            self._a4_paar_schluessel = None
+
+    def _fuelle_ansicht_4(self) -> None:
+        """Setzt die Auswahlseite von Ansicht 4 (einmal je Datei) und die Spitzenliste (je Paar).
+
+        Die Startfrequenz ist die Linie der höchsten Spitze des gewählten Kanalpaars (Nutzer
+        bestätigt), ohne Spitze die erste Linie der Datei.
+        """
+        assert self._geladen is not None
+        daten = self._geladen.messdaten
+        spitzen = self._spitzen_der_paar()
+        eintraege = [
+            f"Nr {i + 1} · {frequenz_text(s.f_sp_hz, 3)}"  # type: ignore[attr-defined]
+            for i, s in enumerate(spitzen)
+        ]
+        if not self._a4_geladen:
+            start = (
+                max(spitzen, key=lambda s: s.hoehe).f_sp_hz  # type: ignore[attr-defined]
+                if spitzen
+                else float(daten.frequenz_hz[0])
+            )
+            self.auswahl_sf.setze_datei(
+                schritt_hz=float(daten.delta_f_hz),
+                frequenz_hz=float(start),
+                ebene=waehle_ebene(daten.punkte.koordinaten_m),
+                spitzen=eintraege,
+                punkte=[f"Punkt {int(p)}" for p in daten.punkte.label],
+                phase_referenz=bool(daten.phase_gueltig and daten.cp),
+                referenz_text=phase_ref_text(self._phase_referenz(), self._annahmen()),
+                referenz_erklaerung=kennzeichen_beschreibung("phase", self._annahmen()),
+            )
+            self._a4_geladen = True
+        else:
+            self.auswahl_sf.setze_spitzen(eintraege)
+        self._a4_paar_schluessel = self._paar()
+
+    def _spitze_fuer_schwingform(self, index: int) -> None:
+        """Schnellwahl „Spitze …“: setzt die Frequenz auf die Spitzenfrequenz."""
+        spitzen = self._spitzen_der_paar()
+        if 0 <= index < len(spitzen):
+            self.auswahl_sf.setze_frequenz(float(spitzen[index].f_sp_hz))  # type: ignore[attr-defined]
+
+    def _zeichne_ansicht_4(self, *, zoom_behalten: bool) -> None:
+        """Ansicht 4: Schwingform bei einer Linie, Betrag oder Phase (UI-9, UI-10)."""
+        assert self._geladen is not None and self._cache is not None
+        daten = self._geladen.messdaten
+        sel = self.auswahl_sf
+        self._paar_zur_komponente(sel.komponente())
+        if not self._a4_geladen or self._a4_paar_schluessel != self._paar():
+            self._fuelle_ansicht_4()
+        pruefung = frequenz_pruefen(sel.frequenz_hz(), daten.frequenz_hz, daten.delta_f_hz)
+        sel.setze_pruefung(pruefung)
+        if not pruefung.gueltig:
+            # Eingabe außerhalb: Meldung unter dem Feld. Der Plot bleibt nur unverändert, wenn er
+            # schon Ansicht 4 zeigt; sonst letzter gültiger Stand oder Platzhalter.
+            self._fremden_inhalt_ersetzen(pruefung.fehler)
+            return
+        sd = schwingform_daten(
+            daten,
+            self._cache,
+            sel.frequenz_hz(),
+            komponente=sel.komponente(),
+            referenz=self._phase_referenz(),
+        )
+        darstellung = sel.darstellung()
+        spitze = spitze_der_linie(self._spitzen_der_paar(), sd.linie)  # type: ignore[arg-type]
+        bezug_auto = standard_bezug(sd)
+        sel.setze_bezug_automatisch(
+            f"Automatisch (Punkt {int(sd.label[bezug_auto])})"
+            if bezug_auto is not None
+            else "Automatisch (kein Punkt mit γ² ≥ γ²_min)"
+        )
+        opt = SchwingformOptionen(
+            darstellung=darstellung,  # type: ignore[arg-type]
+            ebene=sel.ebene(),  # type: ignore[arg-type]
+            punktlabels=sel.punktlabels(),
+            bezug=sel.bezug() if darstellung == "phase_relativ" else None,
+            kennzeichen_phase=(
+                kennzeichen_text("phase", self._annahmen()) if darstellung == "phase_ref" else None
+            ),
+            spitzen_kennzeichen=spitze.kennzeichen if spitze is not None else (),
+        )
+        beschreibung = self._beschreibung(
+            4, f"Linie {frequenz_text(sd.f_hz, 3)}", [sd.komponente, darstellung]
+        )
+        zeichnung = self._zeichne_plot(
+            4, Ansicht.SCHWINGFORM, sd, opt, beschreibung, zoom_behalten=zoom_behalten
+        )
+        kopf = plotkopf_text(
+            self._dateiname(),
+            f"Linie {frequenz_text(sd.f_hz, 3)}",
+            [sd.komponente],
+            {
+                "betrag": "Betrag",
+                "phase_ref": f"Phase gegen {sd.referenz or 'Referenz'}",
+                "phase_relativ": "Phase relativ zum Bezugspunkt",
+            }[darstellung],
+        )
+        if not sd.phase_gueltig:
+            kopf += f" · {TEXT_PHASE_KEINE_REFERENZ}"
+        if opt.kennzeichen_phase is not None:  # Phase gegen Referenz solange M8 offen ist (UI-10)
+            kopf += f" · {t.symbol('warnung')} Phase unbestätigt"
+        self.lbl_plotkopf.setText(kopf)
+        hinweise = "\n".join(zeichnung.hinweise)
+        sel.setze_hinweise(hinweise)
+        self._a4_letzt = (sd, opt, beschreibung, kopf, hinweise)

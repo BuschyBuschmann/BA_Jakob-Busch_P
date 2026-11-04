@@ -92,7 +92,7 @@ QTabBar:focus {{ border: 2px solid {t.C_AKZENT}; }}
 QTabWidget::pane {{ border: none; border-top: 1px solid {t.C_LINIE}; }}
 QPushButton[art="segment"] {{ padding: 0 12px; min-height: {t.KNOPF_MIN_HOEHE_PX - 12}px; }}
 QPushButton[art="segment"]:checked {{
-    border: 2px solid {t.C_AKZENT}; background: {t.C_AKTIV_BG}; font-weight: bold;
+    border: 2px solid {t.C_AKZENT}; background: {t.C_AKTIV_BG};
 }}
 QPushButton[art="segment"]:disabled:checked {{ border-color: {t.C_LINIE}; }}
 QListWidget {{
