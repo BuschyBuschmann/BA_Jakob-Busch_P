@@ -61,6 +61,7 @@ from .zeichnung import (
 
 __all__ = [
     "HINWEIS_DICHTE_UNREGELMAESSIG",
+    "HINWEIS_DUBLETTEN",
     "HINWEIS_LABELS_AUS",
     "HINWEIS_PFEILE_KURZ",
     "HINWEIS_PHASE_SPRUNG",
@@ -86,9 +87,10 @@ PFEIL_MIN_PT = 10.0
 HINWEIS_PFEILE_KURZ = "Pfeile kürzer als 10 pt: größeres Bild oder Ausschnitt wählen"
 HINWEIS_LABELS_AUS = "Punktlabels ausgeblendet: Punkte zu dicht"
 HINWEIS_PHASE_SPRUNG = "Phase wechselt bei B < Δf stark von Linie zu Linie"
-"""Zusatz bei einer Spitze mit Kennzeichen (z. B. auflösungsbegrenzt, Nachbarmode): Die Phase
-einer Linie ist dort nur eine Momentaufnahme, weil die Breite B der Resonanz unter dem
-Linienabstand Δf liegt."""
+"""Zusatz bei einer Spitze mit Kennzeichen ``aufloesungsbegrenzt``: Die Phase einer Linie ist dort
+nur eine Momentaufnahme, weil die Breite B der Resonanz unter dem Linienabstand Δf liegt."""
+KENNZEICHEN_PHASE_SPRUNG = "aufloesungsbegrenzt"
+HINWEIS_DUBLETTEN = "{n} Punkte mit identischen Koordinaten – Marker liegen übereinander"
 DICHTE_UNREGELMAESSIG = 0.5
 """Schwelle für den Hinweis auf eine unregelmäßige Punktwolke: kleinster Nachbarabstand unter
 dieser Hälfte des Medians d_NN. Ein Raster aus der Messung hat gleiche Abstände (Verhältnis 1);
@@ -109,7 +111,9 @@ _PFEIL_KOPFBREITE = 4.0  # headwidth in Schaftbreiten
 _PFEIL_FREI_PT = 0.5 * _PFEIL_KOPFBREITE * _PFEIL_BREITE_PT + 0.8
 """Halbe Kopfbreite des Pfeils plus 0,8 pt heller Rand: so nah darf ein Label an die Pfeilachse."""
 _Z_PFEIL = 2.5  # unter den Markern (3): der helle Rand des Pfeils schneidet keinen Marker an
-_Z_RING = 2.4  # unter dem Pfeil, damit der Ring Pfeil und Marker nicht überdeckt
+_Z_RING = 2.6  # über dem Pfeil: der helle Rand des Pfeils unterbricht den Bezugsring nicht
+# Reihenfolge: Pfeil 2,5 < Ring 2,6 < Marker 3 (Ring und Marker überlappen nicht, der Ring liegt
+# außerhalb des Markerradius)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -130,9 +134,10 @@ class SchwingformOptionen:
     kennzeichen_phase : str or None
         Kennzeichentext für ``"phase_ref"`` („unbestätigt (M8: …)“); ``None`` = keiner.
     spitzen_kennzeichen : tuple of str
-        Kennzeichen der Spitze, an deren Linie die Schwingform steht (z. B. auflösungsbegrenzt).
-        Nicht leer bei einer Phasendarstellung: ``Zeichnung.hinweise`` enthält dann
-        :data:`HINWEIS_PHASE_SPRUNG`.
+        Kennzeichen der Spitze, an deren Linie die Schwingform steht (Bezeichner des Kerns, z. B.
+        ``"aufloesungsbegrenzt"``). Nur bei einer Phasendarstellung und nur mit dem Kennzeichen
+        ``"aufloesungsbegrenzt"`` enthält ``Zeichnung.hinweise`` :data:`HINWEIS_PHASE_SPRUNG`;
+        andere Kennzeichen (z. B. ``"nachbarmode"``) lösen ihn nicht aus.
     """
 
     darstellung: Darstellung = "betrag"
@@ -268,6 +273,16 @@ def _naechste_abstaende(x: np.ndarray, y: np.ndarray) -> np.ndarray:
         dist[dist <= 0.0] = np.inf
         kleinste[i0 : i0 + 512] = dist.min(axis=1)
     return kleinste[np.isfinite(kleinste)]
+
+
+def _anzahl_dubletten(x: np.ndarray, y: np.ndarray) -> int:
+    """Zahl der Punkte, die mit mindestens einem anderen Punkt identische Koordinaten haben."""
+    pts = np.column_stack([x, y])
+    pts = pts[np.isfinite(pts).all(axis=1)]
+    if pts.shape[0] < 2:
+        return 0
+    _, anzahl = np.unique(pts, axis=0, return_counts=True)
+    return int(anzahl[anzahl > 1].sum())
 
 
 def _dichte_hinweis(x: np.ndarray, y: np.ndarray, d_nn: float) -> str:
@@ -732,8 +747,11 @@ def zeichne_schwingform(
         regel_hinweis = _dichte_hinweis(x, y, d_nn)
         if regel_hinweis:
             z.hinweise = (*z.hinweise, regel_hinweis)
-        if phase_modus and opt.spitzen_kennzeichen:
+        if phase_modus and KENNZEICHEN_PHASE_SPRUNG in opt.spitzen_kennzeichen:
             z.hinweise = (*z.hinweise, HINWEIS_PHASE_SPRUNG)
+        dubletten = _anzahl_dubletten(x, y)
+        if dubletten:
+            z.hinweise = (*z.hinweise, HINWEIS_DUBLETTEN.format(n=dubletten))
         r_med = float(np.median(radius[normal])) if np.any(normal) else r_max
         radius = np.where(normal, radius, r_med)
         z.hilfsobjekte.update(
@@ -871,8 +889,13 @@ def zeichne_schwingform(
         zeilen = [f"{anzahl} Messpunkte"]
         if gekennzeichnet:
             zeilen.append(f"davon {gekennzeichnet} gekennzeichnet")
-        if phase_modus:  # Linie und Zuverlässigkeit der Phase im Bild (N-2 der Fachabnahme)
-            zeilen.extend(linien_zeilen(daten, int(np.sum(unsicher)), stil))
+        # Linie im Bild (N-2 der Fachabnahme), in beiden Darstellungen. Die γ²-Zeile steht, wo die
+        # Kohärenz vorliegt (Phase, und Betrag einer Einzelkomponente); bei 3D entfällt sie.
+        linie_zeile, g2_zeile = linien_zeilen(daten, int(np.sum(unsicher)), stil)
+        zeilen.append(linie_zeile)
+        if daten.kohaerenz_ok is not None:
+            zeilen.append(g2_zeile)
+        if phase_modus:
             z.hilfsobjekte["anzahl_unsicher"] = int(np.sum(unsicher))
             z.hilfsobjekte["linien_text"] = " · ".join(
                 linien_zeilen(daten, int(np.sum(unsicher)), stil)

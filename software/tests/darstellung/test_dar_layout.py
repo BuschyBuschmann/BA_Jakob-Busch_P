@@ -710,7 +710,8 @@ def test_ansicht4_pfeil_liegt_unter_dem_marker_und_der_rand_schneidet_ihn_nicht(
     )
     pf, punkte = z.hilfsobjekte["pfeile"], z.marker["punkte"]
     assert pf.get_zorder() == pytest.approx(2.5) and punkte.get_zorder() == 3
-    assert z.marker["bezug"].get_zorder() < pf.get_zorder()  # Ring unter dem Pfeil
+    # Ring über dem Pfeil (sein heller Rand unterbricht den Ring nicht), unter dem Marker
+    assert pf.get_zorder() < z.marker["bezug"].get_zorder() < punkte.get_zorder()
     # Pixelprobe: in der Markermitte, wo der Pfeil beginnt, steht die Markerfüllung (kein
     # weißer Rand und kein schwarzer Schaft)
     fig = z.figure

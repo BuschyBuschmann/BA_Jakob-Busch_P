@@ -45,6 +45,8 @@ from ldv_automation.darstellung.frf import (
     zeichne_frf,
 )
 from ldv_automation.darstellung.schwingform import (
+    HINWEIS_DUBLETTEN,
+    HINWEIS_LABELS_AUS,
     HINWEIS_PHASE_SPRUNG,
     KEIN_BEZUGSPUNKT,
     PHASE_KEINE_REFERENZ,
@@ -704,10 +706,16 @@ def test_n2_phasenbild_nennt_linie_und_kohaerenz_an_allen_punkten(
         assert z.hilfsobjekte["linien_text"] == f"Linie {f_text} Hz · γ² ≥ 0,9 an allen Punkten"
         assert z.hilfsobjekte["anzahl_unsicher"] == 0
     assert linien_zeilen(sd, 0, UI_STIL) == (f"Linie {f_text} Hz", "γ² ≥ 0,9 an allen Punkten")
-    # im Betragsbild gibt es keine Phase und damit keine Linienzeile
+    # im Betragsbild steht die Linie ebenso, die γ²-Zeile wegen der Kohärenz der Komponente
     betrag = zeichne_schwingform(Figure(), sd, SchwingformOptionen(), UI_STIL)
-    assert "Linie" not in betrag.hilfsobjekte["punktzahl"].get_text()
-    assert "linien_text" not in betrag.hilfsobjekte
+    text = betrag.hilfsobjekte["punktzahl"].get_text().replace("\n", " ")
+    assert f"Linie {f_text} Hz" in text and "γ² ≥ 0,9 an allen Punkten" in text
+    assert "linien_text" not in betrag.hilfsobjekte  # die Begleitdatei bleibt phasenbezogen
+    # 3D hat keine Kohärenz je Komponente: nur die Linie
+    sd3d = _sf(daten, cache, komponente="3D")
+    text3d = zeichne_schwingform(Figure(), sd3d, SchwingformOptionen(), UI_STIL)
+    text3d = text3d.hilfsobjekte["punktzahl"].get_text().replace("\n", " ")
+    assert f"Linie {f_text} Hz" in text3d and "γ²" not in text3d
 
 
 def test_n2_phasenbild_nennt_anzahl_unsicherer_punkte_statt_an_allen_punkten() -> None:
@@ -722,13 +730,19 @@ def test_n2_spitzenkennzeichen_melden_phasensprung_zwischen_linien(
     daten: Messdaten, cache: PaarCache
 ) -> None:
     sd = _sf(daten, cache)
-    mit = SchwingformOptionen(darstellung="phase_ref", spitzen_kennzeichen=("auflösungsbegrenzt",))
+    mit = SchwingformOptionen(darstellung="phase_ref", spitzen_kennzeichen=("aufloesungsbegrenzt",))
     assert HINWEIS_PHASE_SPRUNG == "Phase wechselt bei B < Δf stark von Linie zu Linie"
     assert HINWEIS_PHASE_SPRUNG in zeichne_schwingform(Figure(), sd, mit, UI_STIL).hinweise
     ohne = SchwingformOptionen(darstellung="phase_ref")
     assert HINWEIS_PHASE_SPRUNG not in zeichne_schwingform(Figure(), sd, ohne, UI_STIL).hinweise
-    betrag = SchwingformOptionen(spitzen_kennzeichen=("auflösungsbegrenzt",))
+    betrag = SchwingformOptionen(spitzen_kennzeichen=("aufloesungsbegrenzt",))
     assert HINWEIS_PHASE_SPRUNG not in zeichne_schwingform(Figure(), sd, betrag, UI_STIL).hinweise
+    # nur „aufloesungsbegrenzt“ löst den Hinweis aus, andere Kennzeichen nicht
+    nach = SchwingformOptionen(darstellung="phase_ref", spitzen_kennzeichen=("nachbarmode",))
+    assert HINWEIS_PHASE_SPRUNG not in zeichne_schwingform(Figure(), sd, nach, UI_STIL).hinweise
+    beide = ("nachbarmode", "aufloesungsbegrenzt")
+    kz = SchwingformOptionen(darstellung="phase_ref", spitzen_kennzeichen=beide)
+    assert HINWEIS_PHASE_SPRUNG in zeichne_schwingform(Figure(), sd, kz, UI_STIL).hinweise
 
 
 def test_nicht_endlicher_betrag_heisst_kein_messwert_und_nicht_m6(
@@ -808,3 +822,51 @@ def test_punktzahl_min_bis_max_in_ansicht_2_und_3_bei_ungleicher_zahl_je_linie()
     ok = PaarCache(dd.synthetische_messdaten())
     assert frf_daten(ok, "Vib Z", "Ref1", punkt=None).punktzahl_text == str(dd.P)
     assert frf_daten(ok, "Vib Z", "Ref1", punkt=1).punktzahl_text == ""
+
+
+def test_n2_bezugsring_liegt_ueber_dem_pfeil_und_unter_dem_marker(
+    daten: Messdaten, cache: PaarCache
+) -> None:
+    sd = _sf(daten, cache)
+    z = zeichne_schwingform(Figure(), sd, SchwingformOptionen(darstellung="phase_relativ"), UI_STIL)
+    ring = z.marker["bezug"]
+    pfeile = z.hilfsobjekte["pfeile"]
+    punkte = z.marker["punkte"]
+    # der helle Rand des Pfeils darf den Ring nicht unterbrechen, der Marker bleibt darüber
+    assert pfeile.get_zorder() < ring.get_zorder() < punkte.get_zorder()
+
+
+def test_n2_dubletten_melden_hinweis_und_labels_bleiben_getrennt(
+    daten: Messdaten, cache: PaarCache
+) -> None:
+    sd = _sf(daten, cache)
+    assert (
+        HINWEIS_DUBLETTEN.format(n=2)
+        not in zeichne_schwingform(Figure(), sd, SchwingformOptionen(), UI_STIL).hinweise
+    )
+    k = sd.koordinaten_m.copy()
+    k[1] = k[0]  # Punkte 100 und 101 liegen übereinander
+    doppelt = dataclasses.replace(sd, koordinaten_m=k)
+    for modus in ("betrag", "phase_relativ"):
+        fig = neue_figure(UI_STIL, (12.0, 7.4))
+        z = zeichne_schwingform(fig, doppelt, SchwingformOptionen(darstellung=modus), UI_STIL)
+        assert HINWEIS_DUBLETTEN.format(n=2) in z.hinweise
+        labels = z.hilfsobjekte.get("punktlabels")
+        if labels is None:  # zu dicht: nur mit Hinweis, nicht still
+            assert HINWEIS_LABELS_AUS in z.hinweise
+            continue
+        fig.draw_without_rendering()
+        boxen = [lab.get_window_extent() for lab in labels]
+        assert not boxen[0].overlaps(boxen[1])  # beide Labels nicht deckungsgleich
+        assert [lab.get_text() for lab in labels[:2]] == ["100", "101"]
+    # betrag mit Labels muss hier gelingen, sonst prüft der Test nichts
+    z = zeichne_schwingform(
+        neue_figure(UI_STIL, (12.0, 7.4)), doppelt, SchwingformOptionen(), UI_STIL
+    )
+    assert z.hilfsobjekte.get("punktlabels") is not None
+    # drei identische Koordinaten: Zahl im Hinweis
+    k3 = k.copy()
+    k3[2] = k[0]
+    dreifach = dataclasses.replace(sd, koordinaten_m=k3)
+    z3 = zeichne_schwingform(Figure(), dreifach, SchwingformOptionen(), UI_STIL)
+    assert HINWEIS_DUBLETTEN.format(n=3) in z3.hinweise

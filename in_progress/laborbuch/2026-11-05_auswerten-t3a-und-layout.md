@@ -33,5 +33,7 @@ Volle Suite 1953 passed, 99 %; GUI 145 passed; ruff, mypy --strict sauber (vom O
 
 **Nachtrag (K-AUSW-D3):** offene MAJOR behoben – Pfeil unter dem Marker (zorder Ring 2,4 < Pfeil 2,5 < Marker 3; Änderung gegenüber Layout-Vorgabe 4.4/4.6 aus der Design-Abnahme), Thesis-Phase mit Linie, γ²_min, Bezugspunkt und Kennzeichen in Bild bzw. Begleit-JSON; N-1 gemeinsame Punktmenge nur bei 3D; unsichere Punkte auch im Betragsbild; „kein Messwert“ (Quadrat) getrennt von M6 (Raute); Dichtehinweis bei unregelmäßiger Punktwolke; kein stilles `except` im Thesis-Skript. Re-Review RR-AUSW-D3: FREIGABE (1970 passed, bei gültigen Daten bitgleich); Design-Re-Abnahme: FREIGABE; Fach-Re-Abnahme: FREIGABE. Offen (MINOR): Bezugsring vom Pfeilrand unterbrochen, Linie fehlt im Betragsbild, Phasensprung-Hinweis bei allen Kennzeichen statt nur auflösungsbegrenzt, doppelte Koordinaten ohne Hinweis; Bildunterschrift muss Auflösungshinweis übernehmen.
 
+**Nachtrag (K-AUSW-D4):** Bezugsring über dem Pfeilrand; „Linie … Hz“ auch im Betragsbild (γ²-Zeile bei Einzelkomponente); Phasensprung-Hinweis nur bei `aufloesungsbegrenzt`; Hinweis bei identischen Koordinaten. Review R-AUSW-D4: FREIGABE (MINOR: nahezu identische Koordinaten nicht gemeldet; NITPICK `__all__`). Allein geprüft: 1972 passed, GUI 152 passed.
+
 ## Thesis-Bezug
 Umsetzung der Auswertungsoberfläche; Darstellung und Lesbarkeit der Auswertung; Nebenläufigkeit.
