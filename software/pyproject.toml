@@ -116,6 +116,10 @@ omit = [
     # ihre Zeilen und Texte entstehen Qt-frei in `gui/daten_auswerten.py` (voll gemessen).
     "src/ldv_automation/gui/auswahl_auswerten.py",
     "src/ldv_automation/gui/tabellen_auswerten.py",
+    # T4: Prüfdialog (Widget) und QSettings-Hülle; Zeilen, Listen und Pfade entstehen Qt-frei in
+    # `gui/anzeige_aktionen.py`, der Cursor liegt Qt-frei in `gui/cursor.py` (beide voll gemessen).
+    "src/ldv_automation/gui/pruefdialog.py",
+    "src/ldv_automation/gui/einstellungen_auswerten.py",
 ]
 
 [tool.coverage.report]

@@ -62,7 +62,7 @@ def test_ansichten_2_bis_4_sind_nach_dem_laden_frei(baue: Bauer, qtbot: QtBot) -
     a = geladen_mit(baue, qtbot)
     for nr in (1, 2, 3, 4):
         assert a.btn_ansicht[nr].isEnabled(), nr
-        assert a.btn_ansicht[nr].toolTip() == ""
+        assert f"Strg+{nr}" in a.btn_ansicht[nr].toolTip()  # T4: Tooltip nennt die Taste
     a.btn_ansicht[2].click()
     assert a.ansicht == 2 and a.btn_ansicht[2].isChecked()
     assert a._ad_stapel.currentIndex() == 1

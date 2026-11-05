@@ -123,13 +123,13 @@ def test_ui_15_laden_sperrt_oeffnen_ansichten_und_auswahl() -> None:
     assert aa.lade_text("a.svd") == "Lese a.svd …"
 
 
-def test_geladen_alle_ansichten_frei_export_und_bild_folgen() -> None:
+def test_geladen_alle_ansichten_frei_export_und_bild_bedienbar() -> None:
     t = aa.bedienbarkeit_auswerten(Zustand.GELADEN)
     assert t["oeffnen"].aktiv and t["auswahl"].aktiv
     for nr in (1, 2, 3, 4):
         assert t[f"ansicht_{nr}"].aktiv
-    for name in ("export", "bild"):
-        assert not t[name].aktiv and t[name].grund == aa.TEXT_FOLGT
+    for name in ("export", "bild"):  # T4: bedienbar
+        assert t[name].aktiv
     assert {1, 2, 3, 4} == aa.FREIGESCHALTETE_ANSICHTEN
 
 
@@ -165,15 +165,26 @@ def test_pruefung_text_zaehlt_als_woerter() -> None:
     liste = (
         [pruef("ok")] * 36 + [pruef("warnung"), pruef("hinweis")] + [pruef("nicht_pruefbar")] * 7
     )
-    assert aa.pruefung_text(liste) == "Prüfung: 36 ok, 1 Warnung, 1 Hinweis, 7 nicht prüfbar"
+    assert aa.pruefung_text(liste) == "Prüfung: 1 Warnung, 1 Hinweis, 7 nicht prüfbar, 36 ok"
 
 
 def test_pruefung_text_mehrzahl_und_leer() -> None:
     assert aa.pruefung_text([pruef("warnung")] * 2 + [pruef("fehler")]) == (
-        "Prüfung: 2 Warnungen, 1 Fehler"
+        "Prüfung: 1 Fehler, 2 Warnungen"
     )
     assert aa.pruefung_text([pruef("hinweis")] * 3) == "Prüfung: 3 Hinweise"
     assert aa.pruefung_text([]) == aa.TEXT_PRUEFUNG_LEER == "Prüfung: –"
+    gemischt = [pruef("ok")] * 3 + [pruef("nicht_pruefbar"), pruef("hinweis"), pruef("fehler")]
+    assert aa.pruefung_text(gemischt) == "Prüfung: 1 Fehler, 1 Hinweis, 1 nicht prüfbar, 3 ok"
+
+
+def test_pruefung_kern_enthaelt_alle_auffaelligkeiten() -> None:
+    assert aa.pruefung_kern("Prüfung: 1 Fehler, 2 Warnungen, 1 Hinweis, 7 nicht prüfbar, 3 ok") == (
+        "Prüfung: 1 Fehler, 2 Warnungen, 1 Hinweis, …"
+    )
+    assert aa.pruefung_kern("Prüfung: 1 Warnung, 36 ok") == "Prüfung: 1 Warnung, …"
+    assert aa.pruefung_kern("Prüfung: 1 Warnung") == "Prüfung: 1 Warnung"
+    assert aa.pruefung_kern("Prüfung: 40 ok") == "Prüfung: 40 ok"
 
 
 def test_p08_voreinstellung_ref2_gegen_ref1_akzeleranz() -> None:

@@ -78,6 +78,7 @@ QLineEdit:disabled, QSpinBox:disabled, QComboBox:disabled, QPlainTextEdit:disabl
     color: {t.C_DEAKTIVIERT_TEXT}; background: {t.C_DEAKTIVIERT_BG};
 }}
 *:focus {{ outline: none; }}
+QLabel#lbl_pruefung:focus {{ border: 2px solid {t.C_AKZENT}; }}
 QPushButton:focus, QToolButton:focus, QLineEdit:focus, QSpinBox:focus, QComboBox:focus,
 QPlainTextEdit:focus, QCheckBox:focus, QTableWidget:focus, QListWidget:focus,
 QRadioButton:focus {{
@@ -99,6 +100,7 @@ QListWidget {{
     background: {t.C_FLAECHE}; border: 1px solid {t.C_LINIE};
     selection-background-color: {t.C_AUSWAHL_BG}; selection-color: {t.C_TEXT};
 }}
+QListWidget::item:disabled {{ color: {t.C_NICHT_GEFUNDEN}; }}
 QListWidget:disabled {{ background: {t.C_DEAKTIVIERT_BG}; color: {t.C_DEAKTIVIERT_TEXT}; }}
 QCheckBox:disabled, QRadioButton:disabled {{ color: {t.C_DEAKTIVIERT_TEXT}; }}
 QFrame#dateileiste, QFrame#parameterzeile, QFrame#ansichtswahl, QFrame#fusszeile {{

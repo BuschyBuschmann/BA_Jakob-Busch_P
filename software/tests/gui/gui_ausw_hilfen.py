@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -102,12 +103,28 @@ class Protokoll:
         self.fehler_lese: dict[str, str] = {}
         self.geladen: dict[str, Geladen] = {}
         self.pruef_fehler: str | None = None
+        self.export: list[tuple[Any, ...]] = []
+        self.export_fehler: str | None = None
 
     def lese_job(self, pfad: str) -> Geladen:
         self.lese.append(pfad)
         if pfad in self.fehler_lese:
             raise ValueError(self.fehler_lese[pfad])
         return self.geladen.get(pfad) or synth_geladen(pfad=pfad)
+
+    def export_job(self, *args: Any) -> tuple[str, str]:
+        """Attrappe von ``export_job``: schreibt Dateien, wirft wie der Kern bei Vorhandenem."""
+        self.export.append(args)
+        if self.export_fehler is not None:
+            raise ValueError(self.export_fehler)
+        basis = Path(args[1])
+        npz, js = Path(f"{basis}.npz"), Path(f"{basis}.json")
+        for pfad in (npz, js):
+            if pfad.exists():
+                raise FileExistsError(f"Exportdatei existiert bereits: {pfad}")
+        npz.write_bytes(b"npz")
+        js.write_text("{}", encoding="utf-8")
+        return str(npz), str(js)
 
     def pruef_job(self, *args: Any) -> PruefErgebnis:
         self.pruef.append(args)

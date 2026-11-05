@@ -45,6 +45,8 @@ C_FEHLER = "#9C1C1C"
 """Fehler, Abbrechen."""
 C_FEHLER_BG = "#FBE9E7"
 """Hintergrund bei Fehler."""
+C_NICHT_GEFUNDEN = C_TEXT_GEDAEMPFT
+"""Text eines gesperrten Listeneintrags „(nicht gefunden)“ auf der Fläche (Kontrast ≥ 4,5:1)."""
 C_STATUSZEILE = "#1D2327"
 """Hintergrund der Statuszeile (Zone A)."""
 C_STATUSZEILE_TEXT = "#FFFFFF"
@@ -90,6 +92,7 @@ KONTRAST_PAARE: tuple[tuple[str, str, str], ...] = (
     ("text/flaeche", C_TEXT, C_FLAECHE),
     ("text_gedaempft/flaeche", C_TEXT_GEDAEMPFT, C_FLAECHE),
     ("text_gedaempft/bg", C_TEXT_GEDAEMPFT, C_BG),
+    ("nicht_gefunden/flaeche", C_NICHT_GEFUNDEN, C_FLAECHE),
     ("akzent/flaeche", C_AKZENT, C_FLAECHE),
     ("akzent/aktiv_bg", C_AKZENT, C_AKTIV_BG),
     ("fehler/fehler_bg", C_FEHLER, C_FEHLER_BG),

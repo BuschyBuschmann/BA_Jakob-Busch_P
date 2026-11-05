@@ -224,9 +224,9 @@ def test_ui_1_ui_2_geladen_zeigt_spektrum_und_parameter(baue: Bauer, qtbot: QtBo
     assert fenster.toolTip() == "in der Datei nicht lesbar"
     assert a.lbl_datei.text() == "probe.svd" and a.lbl_pfad.volltext() == PFAD
     assert a.lbl_cursor.text() == f"Geladen: {PFAD}"
-    assert a.btn_export.toolTip() == aa.TEXT_FOLGT and not a.btn_export.isEnabled()
+    assert a.btn_export.isEnabled() and "Strg+E" in a.btn_export.toolTip()  # T4
     for nr in (1, 2, 3, 4):  # T3b: alle Ansichten frei
-        assert a.btn_ansicht[nr].isEnabled() and a.btn_ansicht[nr].toolTip() == ""
+        assert a.btn_ansicht[nr].isEnabled() and f"Strg+{nr}" in a.btn_ansicht[nr].toolTip()
     assert a.liste_punkte.isEnabled()
 
 
@@ -312,7 +312,7 @@ def test_zweistufiges_laden_pruefung_wird_berechnet(baue: Bauer, qtbot: QtBot) -
     assert len(ausf.auftraege) == 2
     ausf.auftraege[1].freigegeben = True
     a._abfrage()  # Stufe B fertig
-    assert a.lbl_pruefung.text() == "Prüfung: 1 ok, 1 Warnung"
+    assert a.lbl_pruefung.text() == "Prüfung: 1 Warnung, 1 ok"
     assert a.pruefung is not None and not a.laeuft()
     assert not a._timer.isActive()
 
@@ -916,7 +916,7 @@ def test_zeichenfehler_wird_im_fehlerband_gemeldet_nichts_verschluckt(
     assert a.band_fehler.isVisible()
     assert a.lbl_fehler.text() == "✖ Darstellung nicht möglich: Zeichnen kaputt"
     assert a.plot.zeichnung is None  # Darstellung leer, aber gemeldet
-    assert a.lbl_pruefung.text() == "Prüfung: 1 ok, 1 Warnung"
+    assert a.lbl_pruefung.text() == "Prüfung: 1 Warnung, 1 ok"
     # ein späterer Wechsel meldet erneut
     a.schliesse_fehlerband()
     a.liste_punkte.setCurrentRow(2)
@@ -948,11 +948,11 @@ def test_fusszeile_zeigt_ergebnis_der_angezeigten_datei_nach_lesefehler(
 ) -> None:
     w, prot = baue()
     a = lade(qtbot, w)
-    assert a.lbl_pruefung.text() == "Prüfung: 1 ok, 1 Warnung"
+    assert a.lbl_pruefung.text() == "Prüfung: 1 Warnung, 1 ok"
     prot.fehler_lese["C:\\b.svd"] = "kaputt"
     a.oeffne_datei("C:\\b.svd")
     qtbot.waitUntil(lambda: a.fehlertext is not None, timeout=3000)
-    assert a.lbl_pruefung.text() == "Prüfung: 1 ok, 1 Warnung"  # gehört zur angezeigten Datei
+    assert a.lbl_pruefung.text() == "Prüfung: 1 Warnung, 1 ok"  # gehört zur angezeigten Datei
 
 
 # --- Rückfallpfad (K-AUSW-T3a-2) ---------------------------------------------------

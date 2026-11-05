@@ -22,6 +22,7 @@ __all__ = [
     "kennzeichen_unbestaetigt",
     "tick_text",
     "winkel_text",
+    "zahl_kurz_text",
     "zahl_signifikant_text",
     "zahl_text",
 ]
@@ -152,6 +153,40 @@ def zahl_signifikant_text(wert: float, signifikant: int = 2, *, dezimalkomma: bo
     gerundet = float(f"{wert:.{signifikant - 1}e}")
     nach_komma = max(0, signifikant - 1 - math.floor(math.log10(abs(gerundet))))
     return zahl_text(gerundet, nach_komma, dezimalkomma=dezimalkomma)
+
+
+def zahl_kurz_text(wert: float, signifikant: int = 3, *, dezimalkomma: bool = True) -> str:
+    """Kurzer Zahlenwert mit festen signifikanten Stellen, außerhalb von 10⁻³ bis 10⁶ als „m·10ⁿ“.
+
+    Dieselbe Grenze wie bei den Achsenstrichen (:func:`zahl_text`): Beträge in
+    ``[10⁻³, 10⁶)`` stehen dezimal („0,00460“, „1,84“), alle anderen als „1,84·10⁻⁵“ mit
+    ``signifikant`` Stellen in der Mantisse (Nullen am Ende bleiben: „1,00·10⁻⁵“). Die
+    Schreibweise ist kürzer als eine Dezimalzahl mit vielen Nullen und deshalb für die
+    Cursorzeile gedacht (Fußzeile, 1100 px Fensterbreite).
+
+    Parameters
+    ----------
+    wert : float
+        Zahl; NaN ergibt „–“, ±Inf „∞“, null „0“ (nie ein Minus vor der Null).
+    signifikant : int, optional
+        Anzahl signifikanter Stellen (≥ 1).
+    dezimalkomma : bool, optional
+        ``False`` behält den Dezimalpunkt.
+    """
+    if signifikant < 1:
+        raise ValueError(f"signifikant muss ≥ 1 sein: {signifikant}")
+    if wert == 0.0 or not math.isfinite(wert):
+        return zahl_signifikant_text(wert, signifikant, dezimalkomma=dezimalkomma)
+    gerundet = float(f"{wert:.{signifikant - 1}e}")  # 9,996·10⁻⁶ wird zu 1,00·10⁻⁵
+    if _DEZIMAL_GRENZE_UNTEN <= abs(gerundet) < _DEZIMAL_GRENZE_OBEN:
+        return zahl_signifikant_text(wert, signifikant, dezimalkomma=dezimalkomma)
+    mantisse, exponent = f"{gerundet:.{signifikant - 1}e}".split("e")
+    text = f"{mantisse}·10{str(int(exponent)).translate(_HOCH)}"
+    if dezimalkomma:
+        text = text.replace(".", ",")
+    return text.replace(
+        "-", MINUS
+    )  # nur das Vorzeichen der Mantisse; der Exponent ist hochgestellt
 
 
 def frequenz_text(f_hz: float, stellen: int = 3, *, dezimalkomma: bool = True) -> str:

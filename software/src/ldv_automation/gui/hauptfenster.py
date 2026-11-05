@@ -15,12 +15,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from PySide6.QtCore import QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QMimeData, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QAction,
     QActionGroup,
     QCloseEvent,
     QDesktopServices,
+    QDragEnterEvent,
+    QDropEvent,
     QKeySequence,
     QPainter,
     QPaintEvent,
@@ -77,6 +79,7 @@ from ldv_automation.gui.anzeige import (
     zuruecksetzen_frage_text,
 )
 from ldv_automation.gui.anzeige import nummern_bild as nr_anzeige
+from ldv_automation.gui.anzeige_aktionen import AKTIONS_TASTEN, svd_aus_pfaden, tooltip_mit_taste
 from ldv_automation.gui.anzeige_auswerten import reiterkopf_messen
 from ldv_automation.gui.dialoge import (
     DurchgangStartenDialog,
@@ -211,6 +214,7 @@ class Hauptfenster(QMainWindow):
 
         self.setMinimumSize(t.FENSTER_MIN_BREITE_PX, t.FENSTER_MIN_HOEHE_PX)
         self.resize(1366, 768)
+        self.setAcceptDrops(True)
         self._baue_aktionen()
         self._baue_oberflaeche()
         self._verbinde_signale()
@@ -254,6 +258,19 @@ class Hauptfenster(QMainWindow):
         self.act_abbrechen = self._aktion("Abbrechen …", "act_abbrechen", q("F8"), self._abbrechen)
         self.act_bestaetigen = self._aktion(
             "Pausenpunkt bestätigen (F7)", "act_bestaetigen", q("F7"), self._bestaetigen
+        )
+        # Reiterwechsel (Brief K-AUSW Abschnitt 8): in beiden Reitern aktiv, keine Messaktion.
+        self.act_reiter_messen = self._aktion(
+            "Reiter Messen",
+            "act_reiter_messen",
+            q(AKTIONS_TASTEN["reiter_messen"][0]),
+            lambda: self.reiter.setCurrentIndex(REITER_MESSEN),
+        )
+        self.act_reiter_auswerten = self._aktion(
+            "Reiter Auswerten",
+            "act_reiter_auswerten",
+            q(AKTIONS_TASTEN["reiter_auswerten"][0]),
+            lambda: self.reiter.setCurrentIndex(REITER_AUSWERTEN),
         )
         self._messen_aktionen = (
             self.act_messung_neu,
@@ -467,6 +484,10 @@ class Hauptfenster(QMainWindow):
         self._auswerten_layout = QVBoxLayout(self.auswerten_seite)
         self._auswerten_layout.setContentsMargins(0, 0, 0, 0)
         self.reiter.addTab(self.auswerten_seite, "Auswerten")
+        self.reiter.setTabToolTip(REITER_MESSEN, tooltip_mit_taste("Messen", "reiter_messen"))
+        self.reiter.setTabToolTip(
+            REITER_AUSWERTEN, tooltip_mit_taste("Auswerten", "reiter_auswerten")
+        )
         self.reiter.currentChanged.connect(self._reiter_gewechselt)
         haupt.addWidget(self.reiter, 1)
         self.setCentralWidget(zentral)
@@ -515,6 +536,39 @@ class Hauptfenster(QMainWindow):
         """Der Inhalt des Reiters „Auswerten“ (``None``, solange er nie aktiviert wurde)."""
         return self._auswerten
 
+    def _git_hash(self) -> tuple[str | None, bool | None]:
+        """Git-Hash der Software und Dirty-Flag für den Bildstempel (aus dem Zustandsbild)."""
+        return self._bild.git_hash, self._bild.git_dirty
+
+    # --- Drag-and-drop einer .svd-Datei (Kann) ---------------------------------------------------
+
+    @staticmethod
+    def _svd_in(mime: QMimeData) -> str | None:
+        pfade = [u.toLocalFile() for u in mime.urls() if u.isLocalFile()]
+        return svd_aus_pfaden(pfade)
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802  # Qt-Name
+        """Nimmt eine abgelegte ``.svd``-Datei an."""
+        if self._svd_in(event.mimeData()) is not None:
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802  # Qt-Name
+        """Öffnet die abgelegte ``.svd``-Datei im Reiter „Auswerten“."""
+        pfad = self._svd_in(event.mimeData())
+        if pfad is None:
+            super().dropEvent(event)
+            return
+        event.acceptProposedAction()
+        self.oeffne_auswertung(pfad)
+
+    def oeffne_auswertung(self, pfad: str) -> None:
+        """Wechselt in den Reiter „Auswerten“ und öffnet ``pfad`` (Drag-and-drop)."""
+        self.reiter.setCurrentIndex(REITER_AUSWERTEN)
+        if self._auswerten is not None:
+            self._auswerten.oeffne_datei(pfad)
+
     def _reiter_gewechselt(self, index: int) -> None:
         """Baut „Auswerten“ beim ersten Aktivieren auf und sperrt/entsperrt die Messaktionen."""
         if index == REITER_AUSWERTEN:
@@ -536,7 +590,7 @@ class Hauptfenster(QMainWindow):
 
             if self._ausfuehrer is None:
                 self._ausfuehrer = ProzessAusfuehrer()
-            reiter = AuswertenReiter(self._ausfuehrer)
+            reiter = AuswertenReiter(self._ausfuehrer, git_hash=self._git_hash)
         except Exception as fehler:  # Importfehler, Qt, Schrift: der Messbetrieb bleibt unberührt
             text = QLabel(
                 f"{t.symbol('fehler')} Der Bereich „Auswerten“ konnte nicht aufgebaut werden: "
@@ -1270,6 +1324,21 @@ class Hauptfenster(QMainWindow):
             )
             event.ignore()
             return
+        if self._auswerten is not None and self._auswerten.export_laeuft():
+            box, ja = frage(
+                self,
+                "Export läuft",
+                "Export läuft – abbrechen und schließen?",
+                "Ja, abbrechen und schließen",
+                "Nein, offen lassen",
+                ja_gefahr=True,
+                symbol=QMessageBox.Icon.Warning,
+            )
+            box.setObjectName("dialog_export_schliessen")
+            self._fuehre_aus(box)
+            if box.clickedButton() is not ja:  # der Export rechnet weiter, das Fenster bleibt
+                event.ignore()
+                return
         if entscheidung == "unklar":
             box, ja = frage(
                 self,

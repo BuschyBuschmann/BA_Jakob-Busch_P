@@ -528,6 +528,62 @@ def pruefe_ziel(basis: Path, ueberschreiben: bool) -> tuple[Path, Path]:
     return npz, js
 
 
+def tmp_pfade(basis: Path) -> tuple[Path, Path]:
+    """Namen der versteckten Zwischendateien von :func:`schreibe_export` (``.npz`` und ``.json``).
+
+    ``.<basis>.npz.tmp`` und ``.<basis>.json.tmp`` im Zielordner. Ein Test hält diese Namen mit
+    dem Schreibweg zusammen.
+    """
+    npz = basis.with_name(basis.name + ".npz")
+    js = basis.with_name(basis.name + ".json")
+    return npz.with_name(f".{npz.name}.tmp"), js.with_name(f".{js.name}.tmp")
+
+
+def entferne_verwaiste_tmp(basis: Path) -> tuple[Path, ...]:
+    """Entfernt Zwischendateien eines abgebrochenen früheren Exports zum selben Basisnamen.
+
+    Der Schreibweg räumt die Zwischendateien selbst auf; sie bleiben nur, wenn der Prozess
+    hart beendet wurde (Absturz, Abbruch des Hintergrundprozesses). Aufrufen, wenn kein Export
+    zu diesem Basisnamen läuft (die Oberfläche startet höchstens einen Export zugleich).
+
+    Parameters
+    ----------
+    basis : Path
+        Zielpfad ohne Endung.
+
+    Returns
+    -------
+    tuple of Path
+        Die entfernten Dateien (leer, wenn nichts verwaist war).
+
+    Raises
+    ------
+    OSError
+        Wenn eine verwaiste Datei nicht gelöscht werden kann (Rechte, gesperrt).
+    """
+    entfernt = []
+    for pfad in tmp_pfade(basis):
+        if pfad.is_file():
+            pfad.unlink()
+            entfernt.append(pfad)
+    return tuple(entfernt)
+
+
+def unvollstaendiger_export(basis: Path) -> Path | None:
+    """Die ``.npz`` ohne zugehörige ``.json`` (Abbruch zwischen den beiden Umbenennungen).
+
+    Die Datei wird nur gemeldet, nie gelöscht: sie ist ein Ziel, kein Zwischenstand.
+
+    Returns
+    -------
+    Path or None
+        Pfad der einzelnen ``.npz``-Datei, sonst ``None``.
+    """
+    npz = basis.with_name(basis.name + ".npz")
+    js = basis.with_name(basis.name + ".json")
+    return npz if npz.exists() and not js.exists() else None
+
+
 #: Früherer, privater Name von :class:`Sammler` (bestehende Aufrufer).
 _Sammler = Sammler
 

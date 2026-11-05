@@ -17,6 +17,7 @@ from ldv_automation.darstellung.formate import (
     kennzeichen_unbestaetigt,
     tick_text,
     winkel_text,
+    zahl_kurz_text,
     zahl_signifikant_text,
     zahl_text,
 )
@@ -46,6 +47,35 @@ from ldv_automation.darstellung.stil import LINIENARTEN, THESIS_STIL, ZYKLISCHE_
 )
 def test_zahl_text(wert: float, stellen: int | None, soll: str) -> None:
     assert zahl_text(wert, stellen) == soll
+
+
+@pytest.mark.parametrize(
+    ("wert", "soll"),
+    [
+        (1.84e-5, "1,84·10⁻⁵"),
+        (-1.84e-5, f"{MINUS}1,84·10⁻⁵"),
+        (9.996e-6, "1,00·10⁻⁵"),  # Rundung auf 3 Stellen ändert den Exponenten
+        (9.9e-4, "9,90·10⁻⁴"),  # unter 10⁻³: Exponentialschreibweise
+        (1e-3, "0,00100"),  # ab 10⁻³ dezimal (wie die Achsenstriche)
+        (0.00460, "0,00460"),
+        (0.934, "0,934"),
+        (105.0, "105"),
+        (123456.7, "123000"),
+        (1.234e6, "1,23·10⁶"),
+        (0.0, "0"),
+        (-0.0, "0"),
+        (float("nan"), "–"),
+        (float("inf"), "∞"),
+    ],
+)
+def test_zahl_kurz_text(wert: float, soll: str) -> None:
+    assert zahl_kurz_text(wert, 3) == soll
+
+
+def test_zahl_kurz_text_dezimalpunkt_und_ungueltige_stellen() -> None:
+    assert zahl_kurz_text(1.84e-5, 3, dezimalkomma=False) == "1.84·10⁻⁵"
+    with pytest.raises(ValueError, match="signifikant"):
+        zahl_kurz_text(1.0, 0)
 
 
 def test_zahl_text_dezimalpunkt_wenn_gewuenscht() -> None:

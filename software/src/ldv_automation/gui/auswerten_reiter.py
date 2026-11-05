@@ -18,6 +18,7 @@ Dieses Modul ist ein dünnes Widget (Abdeckung nur mit ``pytest -m gui``); die L
 
 from __future__ import annotations
 
+import functools
 import itertools
 import logging
 from collections.abc import Callable, Sequence
@@ -25,18 +26,21 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QResizeEvent
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QAction, QColor, QKeySequence, QResizeEvent
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
+    QDialog,
     QFileDialog,
     QFrame,
     QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
     QListWidget,
+    QListWidgetItem,
+    QMessageBox,
     QProgressBar,
     QPushButton,
     QRadioButton,
@@ -50,7 +54,12 @@ from PySide6.QtWidgets import (
 )
 
 from ldv_automation.auswertung.annahmen import AnnahmeEintrag, Annahmen
-from ldv_automation.auswertung.jobs import PruefErgebnis, lese_job, pruef_job
+from ldv_automation.auswertung.export import (
+    entferne_verwaiste_tmp,
+    pruefe_ziel,
+    unvollstaendiger_export,
+)
+from ldv_automation.auswertung.jobs import PruefErgebnis, export_job, lese_job, pruef_job
 from ldv_automation.auswertung.laden import Geladen
 from ldv_automation.darstellung import Ansicht, Zeichnung
 from ldv_automation.darstellung.auswahl import (
@@ -69,6 +78,7 @@ from ldv_automation.darstellung.auswahl import (
     verfuegbare_groessen,
     waehle_ebene,
 )
+from ldv_automation.darstellung.bild import baue_stempel
 from ldv_automation.darstellung.formate import frequenz_text
 from ldv_automation.darstellung.frf import FrfOptionen
 from ldv_automation.darstellung.schwingform import SchwingformOptionen
@@ -76,6 +86,30 @@ from ldv_automation.darstellung.spektrum import DB_GRUND, SpektrumOptionen
 from ldv_automation.darstellung.spitzen import SpitzenOptionen
 from ldv_automation.gui import tokens as t
 from ldv_automation.gui.anzeige import Knopf
+from ldv_automation.gui.anzeige_aktionen import (
+    AKTIONS_TASTEN,
+    DATEIFILTER_BILD,
+    DATEIFILTER_EXPORT,
+    TEXT_BILD_KEINE_DARSTELLUNG,
+    TEXT_KEINE_ZULETZT,
+    TEXT_PRUEFUNG_NOCH_NICHT,
+    TEXT_ZIEHEN,
+    bedienbarkeit_aktionen,
+    bild_endung,
+    bild_meldung,
+    bild_unbestaetigt,
+    bild_vorschlag,
+    cursor_zeile,
+    erste_auffaellige_zeile,
+    export_basis,
+    export_meldung,
+    export_vorschlag,
+    git_hash_text,
+    pruefdialog_zeilen,
+    stempel_ansicht,
+    tooltip_mit_taste,
+    zuletzt_eintrag,
+)
 from ldv_automation.gui.anzeige_auswerten import (
     ANSICHT_NAMEN,
     FREIGESCHALTETE_ANSICHTEN,
@@ -104,6 +138,7 @@ from ldv_automation.gui.anzeige_auswerten import (
     plot_beschreibung,
     plotkopf_text,
     pruefung_fehler_text,
+    pruefung_kern,
     pruefung_text,
     punkt_eintraege,
     waehle_antriebspunkt,
@@ -127,8 +162,10 @@ from ldv_automation.gui.daten_auswerten import (
     spitze_der_linie,
     spitzen_zeilen,
 )
+from ldv_automation.gui.einstellungen_auswerten import AuswertenEinstellungen
 from ldv_automation.gui.plotflaeche import PlotFlaeche
 from ldv_automation.gui.plotstil import baue_plotstil
+from ldv_automation.gui.pruefdialog import KuerzLabel, PruefDialog, PruefLabel
 from ldv_automation.gui.stil import schrift
 from ldv_automation.gui.tabellen_auswerten import ZEILENHOEHE_PX, TabellenBereich
 from ldv_automation.hintergrund import (
@@ -206,6 +243,21 @@ class _LinksKuerzLabel(QLabel):
         QLabel.setText(
             self, self.fontMetrics().elidedText(self._voll, Qt.TextElideMode.ElideLeft, breite)
         )
+
+
+class _Fusszeile(QFrame):
+    """Fußzeile (Zone AF), die ihre Größenänderung meldet (Verteilung der Breite)."""
+
+    groesse_geaendert = Signal()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802  # Qt-Name
+        """Meldet die neue Breite."""
+        super().resizeEvent(event)
+        self.groesse_geaendert.emit()
+
+
+_PRUEF_MIN_PX = 150
+"""Mindestbreite des Prüftextes in der Fußzeile (reicht für „Prüfung: 36 ok, …“)."""
 
 
 class ParameterZelleWidget(QWidget):
@@ -294,6 +346,10 @@ class AuswertenReiter(QWidget):
         in der Oberfläche, ``DirektAusfuehrer`` oder ein nie fertiger Ausführer in Tests).
     abfrage_ms : int, optional
         Takt der Abfrage laufender Aufträge.
+    einstellungen : AuswertenEinstellungen, optional
+        Gemerkter Ordner und „Zuletzt geöffnet“ (INI); ohne Angabe die Standarddatei.
+    git_hash : callable, optional
+        Liefert ``(Git-Hash, Arbeitsbaum geändert)`` der Software für den Bildstempel.
     parent : QWidget, optional
         Elternwidget.
     """
@@ -303,6 +359,8 @@ class AuswertenReiter(QWidget):
         ausfuehrer: Ausfuehrer,
         *,
         abfrage_ms: int = t.ABFRAGE_AUSWERTEN_MS,
+        einstellungen: AuswertenEinstellungen | None = None,
+        git_hash: Callable[[], tuple[str | None, bool | None]] | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -331,14 +389,28 @@ class AuswertenReiter(QWidget):
         self._a4_geladen = False
         self._a4_paar_schluessel: object = None
         self._in_aufbau = False
-        self._letzter_ordner = ""
+        self._einstellungen = (
+            einstellungen if einstellungen is not None else AuswertenEinstellungen()
+        )
+        self._git_hash = git_hash if git_hash is not None else (lambda: (None, None))
+        self._letzter_ordner = self._einstellungen.letzter_ordner()
         self._abfrage_ms = abfrage_ms
+        self._datei_pfad: str | None = None
+        self._antrieb: tuple[str, str, Any] | None = None
+        self._auftrag_c: tuple[Auftrag, str] | None = None
+        self._meldung = ""
+        self._meldung_pfade: tuple[str, ...] = ()
+        self._export_notiz = ""
+        self._cursor_aktiv = False
+        self._a4_wunsch_hz: float | None = None
+        self._kanal_a3 = ""
 
         self._baue()
         self._timer = QTimer(self)
         self._timer.setObjectName("abfrage_auswerten")
         self._timer.setInterval(abfrage_ms)
         self._timer.timeout.connect(self._abfrage)
+        self._baue_aktionen()
         self._wende_zustand_an()
         self._fuelle_parameter()
         self._tab_reihenfolge()
@@ -361,6 +433,38 @@ class AuswertenReiter(QWidget):
         mitte_layout.addWidget(self._baue_darstellung(), 1)
         haupt.addWidget(mitte, 1)
         haupt.addWidget(self._baue_fusszeile())
+
+    def _baue_aktionen(self) -> None:
+        """Aktionen mit Tastenkürzel (Brief Abschnitt 8): eine Quelle für Knopf, Taste, Aktivierung.
+
+        ``Qt.WindowShortcut``: Die Aktionen hängen am Reiter und gelten nur, solange er sichtbar
+        ist, also nicht im Reiter „Messen“.
+        """
+        self.act_oeffnen = self._aktion("oeffnen", "Messdatei öffnen", self._oeffnen_geklickt)
+        self.act_export = self._aktion("export", "Daten exportieren", self._export_geklickt)
+        self.act_bild = self._aktion("bild", "Bild speichern", self._bild_geklickt)
+        self.btn_export.clicked.connect(self._export_geklickt)
+        self.btn_bild.clicked.connect(self._bild_geklickt)
+        self.act_ansicht = {
+            nr: self._aktion(
+                f"ansicht_{nr}", f"Ansicht {nr}", functools.partial(self._ansicht_per_taste, nr)
+            )
+            for nr in ANSICHT_NAMEN
+        }
+
+    def _aktion(self, name: str, text: str, slot: Callable[[], None]) -> QAction:
+        aktion = QAction(text, self)
+        aktion.setObjectName(f"act_ausw_{name}")
+        aktion.setShortcut(QKeySequence(AKTIONS_TASTEN[name][0]))
+        aktion.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
+        aktion.triggered.connect(slot)
+        self.addAction(aktion)
+        return aktion
+
+    def _ansicht_per_taste(self, nr: int) -> None:
+        knopf = self.btn_ansicht[nr]
+        if knopf.isEnabled():
+            knopf.click()
 
     def _baue_dateileiste(self) -> QFrame:
         leiste = QFrame()
@@ -662,10 +766,43 @@ class AuswertenReiter(QWidget):
         zeile.addWidget(self.btn_oeffnen_leer)
         zeile.addStretch(1)
         lv.addLayout(zeile)
+        self.lbl_ziehen = QLabel(TEXT_ZIEHEN)
+        self.lbl_ziehen.setObjectName("lbl_ziehen")
+        self.lbl_ziehen.setProperty("art", "gedaempft")
+        self.lbl_ziehen.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lv.addWidget(self.lbl_ziehen)
+        self.zuletzt_gruppe = QWidget()
+        self.zuletzt_gruppe.setObjectName("zuletzt_gruppe")
+        self.zuletzt_gruppe.setMaximumWidth(620)
+        zg = QVBoxLayout(self.zuletzt_gruppe)
+        zg.setContentsMargins(0, 8, 0, 0)
+        zg.setSpacing(4)
+        self.lbl_zuletzt = QLabel("Zuletzt geöffnet")
+        self.lbl_zuletzt.setObjectName("lbl_zuletzt")
+        self.lbl_zuletzt.setFont(schrift(fett=True))
+        self.liste_zuletzt = QListWidget()
+        self.liste_zuletzt.setObjectName("liste_zuletzt")
+        self.liste_zuletzt.setAccessibleName("Zuletzt geöffnete Dateien")
+        self.liste_zuletzt.setToolTip("Doppelklick oder Enter öffnet die Datei")
+        self.liste_zuletzt.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.liste_zuletzt.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.liste_zuletzt.setTextElideMode(Qt.TextElideMode.ElideMiddle)
+        self.liste_zuletzt.itemActivated.connect(self._zuletzt_aktiviert)
+        zg.addWidget(self.lbl_zuletzt)
+        zg.addWidget(self.liste_zuletzt)
+        zz = QHBoxLayout()
+        zz.addStretch(1)
+        zz.addWidget(self.zuletzt_gruppe, 3)
+        zz.addStretch(1)
+        lv.addLayout(zz)
         lv.addStretch(1)
         self._ae_stapel.addWidget(leer)
         self.plot = PlotFlaeche(baue_plotstil())
         self.plot.fehler.connect(self._zeichenfehler)
+        self.plot.cursor_bewegt.connect(self._cursor_bewegt)
+        self.plot.frequenz_geklickt.connect(self._plot_geklickt)
+        self.plot.cursor_uebernommen.connect(self._plot_geklickt)
+        self.plot.spitze_geklickt.connect(self._spitze_in_tabelle_gewaehlt)
         self._grau_effekt = QGraphicsOpacityEffect(self.plot)
         self._grau_effekt.setOpacity(GRAU_DECKKRAFT)
         self._grau_effekt.setEnabled(False)
@@ -701,24 +838,68 @@ class AuswertenReiter(QWidget):
         return ae
 
     def _baue_fusszeile(self) -> QFrame:
-        fuss = QFrame()
+        fuss = _Fusszeile()
         fuss.setObjectName("fusszeile")
         fuss.setFixedHeight(t.HOEHE_FUSSZEILE_PX)
         f = QHBoxLayout(fuss)
         f.setContentsMargins(12, 2, 12, 2)
-        self.lbl_cursor = QLabel()
+        self.lbl_cursor = KuerzLabel(voll_im_tooltip=True)
         self.lbl_cursor.setObjectName("lbl_cursor")
         self.lbl_cursor.setFont(schrift(t.SCHRIFT_PT, mono=True))
         self.lbl_cursor.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        self.lbl_pruefung = QLabel(pruefung_text(()))
+        self.balken_export = QProgressBar()
+        self.balken_export.setObjectName("balken_export")
+        self.balken_export.setRange(0, 0)
+        self.balken_export.setTextVisible(False)
+        self.balken_export.setFixedWidth(120)
+        self.balken_export.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.balken_export.setAccessibleName("Export läuft")
+        self.balken_export.setVisible(False)
+        self.lbl_pruefung = PruefLabel(pruefung_text(()))
         self.lbl_pruefung.setObjectName("lbl_pruefung")
         self.lbl_pruefung.setFont(schrift(t.SCHRIFT_PT, mono=True))
+        self.lbl_pruefung.geklickt.connect(self._zeige_pruefdialog)
         f.addWidget(self.lbl_cursor, 1)
+        f.addWidget(self.balken_export)
         f.addWidget(self.lbl_pruefung)
+        self._fuss = fuss
+        self._fuss_layout = f
+        fuss.groesse_geaendert.connect(self._fuss_verteilen)
         return fuss
 
+    def _fuss_verteilen(self) -> None:
+        """Teilt die Breite der Fußzeile: erst die Meldezeile, der Prüftext bekommt den Rest.
+
+        Der Prüftext wird an Teilgrenzen gekürzt („Prüfung: 1 Warnung, …“), mindestens
+        :data:`_PRUEF_MIN_PX` und mindestens so breit, dass alle Auffälligkeiten sichtbar sind
+        (UI-23, :func:`pruefung_kern`); die Meldezeile kürzt Pfade mittig, sonst rechts. Beide
+        Labels tragen den Volltext im Tooltip. Gemessen wird mit der Schrift der Labels, nicht
+        mit dem Text, der gerade sichtbar ist.
+        """
+        fuss = self._fuss
+        if fuss.width() <= 0:  # noch nicht angezeigt: nicht kürzen
+            self.lbl_cursor.setze_platz(0)
+            self.lbl_pruefung.setze_platz(0)
+            return
+        raender = self._fuss_layout.contentsMargins()
+        abstand = self._fuss_layout.spacing()
+        sichtbar = 3 if self.balken_export.isVisibleTo(fuss) else 2
+        frei = (
+            fuss.width()
+            - raender.left()
+            - raender.right()
+            - abstand * (sichtbar - 1)
+            - (self.balken_export.width() if sichtbar == 3 else 0)
+        )
+        prueft = self.lbl_pruefung.natuerliche_breite() + 4
+        kern = self.lbl_pruefung.breite_von(pruefung_kern(self.lbl_pruefung.volltext())) + 4
+        prueft = min(prueft, max(_PRUEF_MIN_PX, kern, frei - self.lbl_cursor.natuerliche_breite()))
+        self.lbl_pruefung.setFixedWidth(prueft)
+        self.lbl_pruefung.setze_platz(prueft)
+        self.lbl_cursor.setze_platz(frei - prueft)
+
     def _tab_reihenfolge(self) -> None:
-        """AA → AC → AD → AE (Plot, Werkzeugleiste); AB ist nicht fokussierbar (Abschnitt 8)."""
+        """AA → AC → AD → AE (Plot, Werkzeugleiste) → AF (Prüftext); AB ohne Fokus (Abschnitt 8)."""
         kette: list[QWidget] = [self.btn_oeffnen, self.btn_export, self.btn_bild]
         kette += [self.btn_ansicht[nr] for nr in sorted(self.btn_ansicht)]
         kette.append(self.combo_kanalpaar)
@@ -729,8 +910,9 @@ class AuswertenReiter(QWidget):
         kette += [self.auswahl_frf.chk_h1, self.auswahl_frf.chk_h2, self.auswahl_frf.chk_phase]
         kette += self.auswahl_sf.tab_kette()
         kette += [self.tabelle_spitzen.tabelle, self.tabelle_baender.tabelle]
-        kette += [self.btn_fehler_schliessen, self.btn_oeffnen_leer]
+        kette += [self.btn_fehler_schliessen, self.btn_oeffnen_leer, self.liste_zuletzt]
         kette += self.plot.tab_kette()
+        kette.append(self.lbl_pruefung)
         for vorher, nachher in itertools.pairwise(kette):
             QWidget.setTabOrder(vorher, nachher)
 
@@ -774,22 +956,67 @@ class AuswertenReiter(QWidget):
     # --- Zustand ---------------------------------------------------------------------------
 
     @staticmethod
-    def _setze(widget: QWidget, knopf: Knopf, normal: str = "") -> None:
+    def _setze(
+        widget: QWidget,
+        knopf: Knopf,
+        normal: str = "",
+        aktion: QAction | None = None,
+        taste: str | None = None,
+    ) -> None:
         widget.setEnabled(knopf.aktiv)
-        widget.setToolTip(normal if knopf.aktiv else knopf.grund)
+        if aktion is not None:
+            aktion.setEnabled(knopf.aktiv)
+        mit_taste = tooltip_mit_taste(normal, taste) if taste and normal else normal
+        widget.setToolTip(mit_taste if knopf.aktiv else knopf.grund)
+
+    def _bild_grund(self) -> str | None:
+        """Grund, warum die gezeigte Ansicht kein Bild liefert (Platzhaltertext statt Plot)."""
+        if self._zustand is AuswertenZustand.GELADEN and (
+            self._ansichtstext is not None or self.plot.letzter_aufruf is None
+        ):
+            return TEXT_BILD_KEINE_DARSTELLUNG
+        return None
+
+    def _sync_knoepfe(self) -> None:
+        """Aktivierung und Tooltips der Knöpfe und Aktionen (Zustand, Export, Ansicht)."""
+        tabelle = bedienbarkeit_aktionen(
+            bedienbarkeit_auswerten(self._zustand),
+            export_laeuft=self._auftrag_c is not None,
+            bild_grund=self._bild_grund(),
+        )
+        self._setze(
+            self.btn_oeffnen, tabelle["oeffnen"], "Messdatei öffnen", self.act_oeffnen, "oeffnen"
+        )
+        self._setze(self.btn_oeffnen_leer, tabelle["oeffnen"])
+        self._setze(
+            self.btn_export,
+            tabelle["export"],
+            "Auswertungsdaten exportieren",
+            self.act_export,
+            "export",
+        )
+        self._setze(
+            self.btn_bild,
+            tabelle["bild"],
+            "Aktuelle Ansicht als Bild speichern",
+            self.act_bild,
+            "bild",
+        )
+        for nr, knopf in self.btn_ansicht.items():
+            self._setze(
+                knopf,
+                tabelle[f"ansicht_{nr}"],
+                ANSICHT_NAMEN[nr],
+                self.act_ansicht[nr],
+                f"ansicht_{nr}",
+            )
 
     def _wende_zustand_an(self) -> None:
         """Aktivierung, Tooltips und sichtbare Seite je Zustand (Brief Abschnitt 6)."""
-        tabelle = bedienbarkeit_auswerten(self._zustand)
-        self._setze(self.btn_oeffnen, tabelle["oeffnen"], "Messdatei öffnen")
-        self._setze(self.btn_oeffnen_leer, tabelle["oeffnen"])
-        self._setze(self.btn_export, tabelle["export"], "Auswertungsdaten exportieren")
-        self._setze(self.btn_bild, tabelle["bild"], "Aktuelle Ansicht als Bild speichern")
-        auswahl = tabelle["auswahl"]
+        self._sync_knoepfe()
+        auswahl = bedienbarkeit_auswerten(self._zustand)["auswahl"]
         self._ad_inhalt.setEnabled(auswahl.aktiv)
         self.auswahlspalte.setToolTip("" if auswahl.aktiv else auswahl.grund)
-        for nr, knopf in self.btn_ansicht.items():
-            self._setze(knopf, tabelle[f"ansicht_{nr}"])
         laedt = self._zustand is AuswertenZustand.LADEN
         hat_daten = self._geladen is not None
         self.laden_leiste.setVisible(laedt)
@@ -804,6 +1031,8 @@ class AuswertenReiter(QWidget):
             self.lbl_plotkopf.setVisible(False)
             self.plot_platzhalter.setVisible(not laedt)
             self.btn_oeffnen_leer.setVisible(not laedt)
+            self.lbl_ziehen.setVisible(not laedt)
+            self._fuelle_zuletzt(sichtbar=not laedt)
 
     def _zeige_ae_seite(self) -> None:
         """Plot (mit Tabellen in Ansicht 3) oder Platzhaltertext der Ansicht (Zone AE)."""
@@ -813,6 +1042,7 @@ class AuswertenReiter(QWidget):
         else:
             self._ae_stapel.setCurrentIndex(_SEITE_PLOT)
         self.tabellen.setVisible(self._ansicht == 3)
+        self._sync_knoepfe()
 
     def _ausgrauen(self, grau: bool) -> None:
         """Zeigt die bisherige Darstellung ausgegraut, solange die neue Datei gelesen wird."""
@@ -849,6 +1079,7 @@ class AuswertenReiter(QWidget):
         try:  # derselbe Rückfallschutz wie nach dem Lesen: kein hängendes „Laden“
             self._zeige_pruefung()  # abgebrochene Stufe B steht nicht mehr als „wird berechnet“
             self._letzter_ordner = str(Path(pfad).parent)
+            self._einstellungen.merke_ordner(self._letzter_ordner)
             self.schliesse_fehlerband()
             self.lbl_laden.setText(lade_text(dateiname_von(pfad)))
             self._setze_zustand(AuswertenZustand.LADEN)
@@ -906,26 +1137,24 @@ class AuswertenReiter(QWidget):
             self._rueckfall(
                 (("Fehlerband (Anhang)", lambda: self.lbl_fehler.setText(self._fehlertext or "")),)
             )
-        if self._auftrag_a is None and self._auftrag_b is None:
+        if self._auftrag_a is None and self._auftrag_b is None and self._auftrag_c is None:
             self._timer.stop()
 
     def _zeige_pruefung(self) -> None:
         """Fußzeile rechts: Prüfung der **angezeigten** Datei, nie ein veralteter Stand."""
         if self._geladen is None:
-            self.lbl_pruefung.setText(pruefung_text(()))
-            self.lbl_pruefung.setToolTip("")
+            text, grund = pruefung_text(()), ""
         elif self._pruefung is not None:
-            self.lbl_pruefung.setText(pruefung_text(self._pruefung.pruefungen))
-            self.lbl_pruefung.setToolTip("")
+            text, grund = pruefung_text(self._pruefung.pruefungen), ""
         elif self._pruef_fehler is not None:
-            self.lbl_pruefung.setText(pruefung_fehler_text(self._pruef_fehler))
-            self.lbl_pruefung.setToolTip(self._pruef_fehler)
+            text, grund = pruefung_fehler_text(self._pruef_fehler), self._pruef_fehler
         elif self._auftrag_b is not None:
-            self.lbl_pruefung.setText(TEXT_PRUEFUNG_BERECHNET)
-            self.lbl_pruefung.setToolTip("")
+            text, grund = TEXT_PRUEFUNG_BERECHNET, ""
         else:
-            self.lbl_pruefung.setText(TEXT_PRUEFUNG_ABGEBROCHEN)
-            self.lbl_pruefung.setToolTip("Stufe B wurde vor dem Ende abgebrochen.")
+            text, grund = TEXT_PRUEFUNG_ABGEBROCHEN, "Stufe B wurde vor dem Ende abgebrochen."
+        self.lbl_pruefung.setText(text)
+        self.lbl_pruefung.setze_zusatz_tooltip(grund)
+        self._fuss_verteilen()
 
     # --- Hintergrundaufträge ---------------------------------------------------------------
 
@@ -935,11 +1164,20 @@ class AuswertenReiter(QWidget):
                 eintrag[1].abbrechen()
         self._auftrag_a = None
         self._auftrag_b = None
-        self._timer.stop()
+        if self._auftrag_c is None:  # ein laufender Export wird weiter abgefragt
+            self._timer.stop()
+
+    def export_laeuft(self) -> bool:
+        """Gibt ``True`` zurück, solange ein Export im Hintergrundprozess rechnet."""
+        return self._auftrag_c is not None
 
     def beende(self) -> None:
-        """Bricht laufende Aufträge ab und stoppt die Abfrage (Schließen des Fensters)."""
+        """Bricht laufende Aufträge (auch einen Export) ab und stoppt die Abfrage (Schließen)."""
         self._abbrechen()
+        if self._auftrag_c is not None:
+            self._auftrag_c[0].abbrechen()
+            self._auftrag_c = None
+        self._timer.stop()
 
     def _abfrage(self) -> None:
         """Fragt laufende Aufträge ab; nur Ergebnisse der aktuellen Job-ID werden übernommen."""
@@ -961,7 +1199,11 @@ class AuswertenReiter(QWidget):
             elif auftrag_b.fertig():
                 self._auftrag_b = None
                 self._ergebnis_b(auftrag_b)
-        if self._auftrag_a is None and self._auftrag_b is None:
+        c = self._auftrag_c
+        if c is not None and c[0].fertig():
+            self._auftrag_c = None
+            self._ergebnis_c(c[0])
+        if self._auftrag_a is None and self._auftrag_b is None and self._auftrag_c is None:
             self._timer.stop()
 
     def _ergebnis_a(self, job: int, auftrag: Auftrag, pfad: str) -> None:
@@ -1015,6 +1257,7 @@ class AuswertenReiter(QWidget):
         """
         self._geladen = None
         self._cache = None
+        self._datei_pfad = None
         self._pruefung = None
         self._pruef_fehler = None
         self._a4_letzt = None
@@ -1059,6 +1302,10 @@ class AuswertenReiter(QWidget):
             return
         self._geladen = geladen
         self._cache = cache
+        self._datei_pfad = pfad
+        self._antrieb = antrieb
+        self._a4_wunsch_hz = None
+        self.plot.fadenkreuz.vergiss()
         self._pruefung = None
         self._a4_letzt = None
         self._a4_komponente = None
@@ -1098,7 +1345,8 @@ class AuswertenReiter(QWidget):
             return
         finally:
             self._in_aufbau = False
-        self.lbl_cursor.setText(geladen_text(pfad))
+        self._setze_meldung(geladen_text(pfad))
+        self._einstellungen.merke_datei(pfad)
         self._setze_zustand(AuswertenZustand.GELADEN)
         self._zeichne()
         herkunft = daten.herkunft
@@ -1112,6 +1360,236 @@ class AuswertenReiter(QWidget):
         self._auftrag_b = (job, auftrag)
         self._zeige_pruefung()
         self._timer.start()
+
+    # --- Meldungen und Cursor ----------------------------------------------------------------
+
+    def _setze_meldung(self, text: str, pfade: Sequence[str] = ()) -> None:
+        """Zeigt die letzte Aktion in der Meldezeile (links in AF); ein Cursortext weicht ihr.
+
+        Zu lange Meldungen werden gekürzt (``pfade`` mittig, sonst rechts mit „…“); der
+        Volltext steht immer im Tooltip und in ``accessibleDescription`` des Labels.
+        """
+        self._meldung = text
+        self._meldung_pfade = tuple(pfade)
+        self._cursor_aktiv = False
+        self.lbl_cursor.setText(text, pfade)
+        self._fuss_verteilen()
+
+    def _zeige_cursor(self, zusatz: str = "") -> None:
+        """Cursorzeile (Ansichten 1 bis 3, Werte aus den Daten); Ansicht 4 zeigt die Meldung."""
+        aufruf = self.plot.letzter_aufruf
+        k = self.plot.fadenkreuz.index
+        if aufruf is None or k is None:  # z. B. Ansicht 4: kein Cursor, die Meldung kehrt zurück
+            if self._cursor_aktiv:
+                self._setze_meldung(self._meldung, self._meldung_pfade)
+            return
+        ansicht, daten, optionen = aufruf
+        text = cursor_zeile(ansicht.value, daten, optionen, k, kanal=self._kanal_a3)
+        if text is None:
+            if self._cursor_aktiv:
+                self._setze_meldung(self._meldung, self._meldung_pfade)
+            return
+        self._cursor_aktiv = True
+        self.lbl_cursor.setText(text + zusatz)
+        self._fuss_verteilen()
+
+    def _cursor_bewegt(self, _f_hz: float) -> None:
+        self._zeige_cursor()
+
+    def _plot_geklickt(self, f_hz: float) -> None:
+        """Klick oder Enter im Plot: Frequenz der Schwingform (Ansicht 4) auf die Linie setzen."""
+        if self._geladen is None:
+            return
+        if self._a4_geladen:
+            self.auswahl_sf.setze_frequenz(f_hz, melden=self._ansicht == 4)
+        else:
+            self._a4_wunsch_hz = f_hz
+        self._zeige_cursor(f" · {t.symbol('fertig')} Frequenz der Schwingform gesetzt")
+
+    # --- Export, Bild, Prüfdialog, Zuletzt ---------------------------------------------------
+
+    def _waehle_export_ziel(self, vorschlag: str) -> str | None:  # pragma: no cover - Dialog
+        """Dateidialog des Exports; ohne Rückfrage zum Überschreiben (das prüft der Kern)."""
+        pfad, _filter = QFileDialog.getSaveFileName(
+            self,
+            "Auswertungsdaten exportieren",
+            vorschlag,
+            DATEIFILTER_EXPORT,
+            options=QFileDialog.Option.DontConfirmOverwrite,
+        )
+        return pfad or None
+
+    def _waehle_bild_ziel(self, vorschlag: str) -> str | None:  # pragma: no cover - Dialog
+        """Dateidialog für PNG oder PDF; ergänzt eine fehlende Endung nach dem Filter."""
+        pfad, filter_text = QFileDialog.getSaveFileName(
+            self, "Bild speichern", vorschlag, DATEIFILTER_BILD
+        )
+        return bild_endung(pfad, filter_text) if pfad else None
+
+    def _zeige_warnung(self, titel: str, text: str) -> None:  # pragma: no cover - modal
+        """Meldungsfenster mit dem Text des Rechenkerns (Tests ersetzen diese Methode)."""
+        QMessageBox.warning(self, titel, text)
+
+    def _fuehre_aus(self, dialog: QDialog) -> int:  # pragma: no cover - modale Schleife
+        """Führt einen Dialog modal aus (Tests ersetzen diese Methode)."""
+        return int(dialog.exec())
+
+    def _export_geklickt(self) -> None:
+        """``Daten exportieren …`` als Auftrag C (UI-16): Ziel prüfen, im Hintergrund rechnen."""
+        if self._zustand is not AuswertenZustand.GELADEN or self._datei_pfad is None:
+            return
+        if self._auftrag_c is not None or self._geladen is None:
+            return
+        # Der Vorschlag gehört zur **angezeigten** Messdatei (Brief 7), nicht zum Öffnen-Ordner.
+        gewaehlt = self._waehle_export_ziel(export_vorschlag(self._datei_pfad))
+        if not gewaehlt:
+            return
+        basis = export_basis(gewaehlt)
+        if not self._raeume_ziel_auf(Path(basis)):
+            return
+        try:
+            pruefe_ziel(Path(basis), False)  # Überschreibschutz des Kerns, vor dem Start
+        except (FileExistsError, FileNotFoundError) as fehler:
+            self._zeige_warnung("Export nicht möglich", str(fehler))
+            self._setze_meldung(f"{t.symbol('fehler')} {fehler} {self._export_notiz}".rstrip())
+            return
+        herkunft = self._geladen.messdaten.herkunft
+        sha = herkunft.sha256 if herkunft is not None else None
+        try:
+            auftrag = self._ausfuehrer.starte(
+                export_job, self._datei_pfad, basis, sha, None, False, self._antrieb
+            )
+        except Exception as fehler:  # Prozess nicht startbar
+            self._zeige_warnung("Export nicht möglich", str(fehler))
+            self._setze_meldung(f"{t.symbol('fehler')} Export nicht gestartet: {fehler}")
+            return
+        self._auftrag_c = (auftrag, basis)
+        self.balken_export.setVisible(True)
+        laeuft = "Export läuft … Die Auswertung wird neu berechnet."
+        self._setze_meldung(f"{laeuft} {self._export_notiz}".rstrip())
+        self._sync_knoepfe()
+        self._timer.start()
+
+    def _raeume_ziel_auf(self, basis: Path) -> bool:
+        """Entfernt verwaiste Zwischendateien eines früheren Exports und meldet sie.
+
+        Die Kern-Funktion kennt die Namen der Zwischendateien (``.<basis>.npz.tmp``,
+        ``.<basis>.json.tmp``). Eine einzelne ``.npz`` ohne ``.json`` bleibt (sie ist ein Ziel,
+        kein Zwischenstand) und wird gemeldet; der Export startet dann nicht.
+
+        Returns
+        -------
+        bool
+            ``True``, wenn der Export weiterlaufen darf.
+        """
+        self._export_notiz = ""
+        try:
+            entfernt = entferne_verwaiste_tmp(basis)
+        except OSError as fehler:
+            text = f"Verwaiste Zwischendatei nicht entfernbar: {fehler}"
+            self._zeige_warnung("Export nicht möglich", text)
+            self._setze_meldung(f"{t.symbol('fehler')} {text}")
+            return False
+        if entfernt:
+            namen = ", ".join(p.name for p in entfernt)
+            self._export_notiz = (
+                f"{t.symbol('warnung')} Reste eines abgebrochenen Exports entfernt: {namen}"
+            )
+        halb = unvollstaendiger_export(basis)
+        if halb is not None:
+            text = (
+                f"Unvollständiger früherer Export: {halb} hat keine .json-Datei (abgebrochener "
+                "Export?). Die Datei wurde nicht verändert; bitte prüfen und löschen oder einen "
+                "anderen Namen wählen."
+            )
+            self._zeige_warnung("Export nicht möglich", text)
+            self._setze_meldung(f"{t.symbol('fehler')} {text}", (str(halb),))
+            return False
+        return True
+
+    def _ergebnis_c(self, auftrag: Auftrag) -> None:
+        self.balken_export.setVisible(False)
+        try:
+            npz, js = auftrag.ergebnis()
+        except AuftragAbgebrochen:
+            self._setze_meldung("Export abgebrochen.")
+        except AuftragFehler as fehler:
+            self._zeige_warnung("Export fehlgeschlagen", fehler.meldung)
+            self._setze_meldung(f"{t.symbol('fehler')} Export fehlgeschlagen: {fehler.meldung}")
+        else:
+            self._setze_meldung(
+                export_meldung(str(npz), str(js), self._export_notiz), (str(npz), str(js))
+            )
+        self._export_notiz = ""
+        self._sync_knoepfe()
+
+    def _bild_geklickt(self) -> None:
+        """``Bild speichern …`` (UI-17): Arbeitsbild mit Stempel, Zoom übernommen."""
+        if self._zustand is not AuswertenZustand.GELADEN or self._datei_pfad is None:
+            return
+        if self._bild_grund() is not None:
+            return
+        gewaehlt = self._waehle_bild_ziel(bild_vorschlag(self._datei_pfad, self._ansicht))
+        if not gewaehlt:
+            return
+        aufruf = self.plot.letzter_aufruf
+        assert aufruf is not None  # _bild_grund() hat die leere Fläche ausgeschlossen
+        ansicht, daten, optionen = aufruf
+        git_hash, geaendert = self._git_hash()
+        stempel = baue_stempel(
+            dateiname=dateiname_von(self._datei_pfad),
+            ansicht=stempel_ansicht(self._ansicht),
+            git_hash=git_hash_text(git_hash, geaendert),
+            unbestaetigt=bild_unbestaetigt(ansicht.value, daten, optionen, self._annahmen()),
+            warn_symbol=t.symbol("warnung"),
+        )
+        try:
+            self.plot.speichere(Path(gewaehlt), stempel)
+        except Exception as fehler:  # Zeichnen oder Schreiben: nichts verschlucken
+            self._zeige_warnung("Bild nicht gespeichert", str(fehler))
+            self._setze_meldung(f"{t.symbol('fehler')} Bild nicht gespeichert: {fehler}")
+            return
+        self._setze_meldung(bild_meldung(gewaehlt), (gewaehlt,))
+
+    def _zeige_pruefdialog(self) -> None:
+        """Klick auf die Prüfzusammenfassung: schreibgeschützte Liste P-01 bis P-11 (UI-23)."""
+        if self._geladen is None:
+            return
+        pruefungen = self._pruefung.pruefungen if self._pruefung is not None else ()
+        zeilen = pruefdialog_zeilen(pruefungen)
+        dialog = PruefDialog(
+            self.lbl_pruefung.volltext(),
+            zeilen,
+            TEXT_PRUEFUNG_NOCH_NICHT,
+            start_zeile=erste_auffaellige_zeile(pruefungen),
+            parent=self,
+        )
+        self._fuehre_aus(dialog)
+
+    def _fuelle_zuletzt(self, *, sichtbar: bool) -> None:
+        """Füllt „Zuletzt geöffnet“ im Zustand „Keine Datei“ (höchstens fünf Einträge)."""
+        eintraege = self._einstellungen.zuletzt()
+        self.liste_zuletzt.clear()
+        for pfad in eintraege:
+            vorhanden = Path(pfad).is_file()
+            item = QListWidgetItem(zuletzt_eintrag(pfad, vorhanden=vorhanden))
+            item.setData(Qt.ItemDataRole.UserRole, pfad)
+            item.setToolTip(pfad)
+            item.setSizeHint(QSize(0, ZEILENHOEHE_PX))
+            if not vorhanden:  # gesperrt, aber lesbar (Kontrast ≥ 4,5:1, UI-23)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEnabled)
+                item.setForeground(QColor(t.C_NICHT_GEFUNDEN))
+            self.liste_zuletzt.addItem(item)
+        rahmen = 2 * self.liste_zuletzt.frameWidth()
+        self.liste_zuletzt.setFixedHeight(max(len(eintraege), 1) * ZEILENHOEHE_PX + rahmen)
+        self.lbl_zuletzt.setText("Zuletzt geöffnet" if eintraege else TEXT_KEINE_ZULETZT)
+        self.liste_zuletzt.setVisible(bool(eintraege))
+        self.zuletzt_gruppe.setVisible(sichtbar)
+
+    def _zuletzt_aktiviert(self, item: QListWidgetItem) -> None:
+        pfad = item.data(Qt.ItemDataRole.UserRole)
+        if isinstance(pfad, str):
+            self.oeffne_datei(pfad)
 
     # --- Parameterzeile --------------------------------------------------------------------
 
@@ -1271,8 +1749,9 @@ class AuswertenReiter(QWidget):
         try:
             self._ansichtstext = None
             zeichner(zoom_behalten=zoom_behalten)
+            self._zeige_cursor()
         except DarstellungsFehler as fehler:
-            self.lbl_cursor.setText(f"{t.symbol('fehler')} {fehler}")
+            self._setze_meldung(f"{t.symbol('fehler')} {fehler}")
             self._fremden_inhalt_ersetzen(str(fehler))
         except Exception as fehler:  # unerwartet: sichtbar melden, Darstellung leeren
             self._zeichenfehler(str(fehler))
@@ -1453,6 +1932,7 @@ class AuswertenReiter(QWidget):
             kanal = next((k for k in daten.ap if k.startswith("Vib")), next(iter(daten.ap)))
             sd = spitzen_daten_spektrum(daten, self._cache, kanal, baender=grenzen)
             kopf_kanal = kanal
+        self._kanal_a3 = kopf_kanal
         beschreibung = self._beschreibung(3, "Mittel (alle Punkte)", [kopf_kanal]) + (
             f" {len(sd.spitzen)} Spitzen gefunden." if sd.spitzen else f" {sd.hinweis}"
         )
@@ -1546,7 +2026,9 @@ class AuswertenReiter(QWidget):
         ]
         if not self._a4_geladen:
             start = (
-                max(spitzen, key=lambda s: s.hoehe).f_sp_hz  # type: ignore[attr-defined]
+                self._a4_wunsch_hz  # Klick oder Enter im Plot vor dem ersten Besuch von Ansicht 4
+                if self._a4_wunsch_hz is not None
+                else max(spitzen, key=lambda s: s.hoehe).f_sp_hz  # type: ignore[attr-defined]
                 if spitzen
                 else float(daten.frequenz_hz[0])
             )

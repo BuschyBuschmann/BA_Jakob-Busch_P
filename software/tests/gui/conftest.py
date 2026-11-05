@@ -8,6 +8,18 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _einstellungen_temporaer(request, tmp_path, monkeypatch):  # type: ignore[no-untyped-def]
+    """Lenkt die INI-Datei des Reiters „Auswerten“ in ein Temp-Verzeichnis (nie die des Nutzers)."""
+    if request.node.get_closest_marker("gui") is None:
+        return
+    from ldv_automation.gui import einstellungen_auswerten
+
+    monkeypatch.setattr(
+        einstellungen_auswerten, "standard_pfad", lambda: str(tmp_path / "auswerten_test.ini")
+    )
+
+
 @pytest.fixture
 def baue(qtbot, monkeypatch):  # type: ignore[no-untyped-def]
     """Baut ein ``Hauptfenster`` mit Reiter „Auswerten“ (Aufträge über Attrappen, kein Prozess).
@@ -29,6 +41,7 @@ def baue(qtbot, monkeypatch):  # type: ignore[no-untyped-def]
     protokoll = Protokoll()
     monkeypatch.setattr(auswerten_reiter, "lese_job", protokoll.lese_job)
     monkeypatch.setattr(auswerten_reiter, "pruef_job", protokoll.pruef_job)
+    monkeypatch.setattr(auswerten_reiter, "export_job", protokoll.export_job)
 
     def bau(ausfuehrer=None, *, sitzung=None, aktiv=True):  # type: ignore[no-untyped-def]
         w = Hauptfenster(

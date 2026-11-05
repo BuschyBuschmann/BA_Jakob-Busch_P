@@ -17,23 +17,29 @@ Dieses Modul ist ein dünnes Widget (Abdeckung nur mit ``pytest -m gui``, siehe
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import matplotlib
 import numpy as np
-from matplotlib.backend_bases import FigureCanvasBase
+from matplotlib.backend_bases import FigureCanvasBase, MouseEvent
 from matplotlib.backends.backend_qt import NavigationToolbar2QT
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QAction, QKeyEvent, QKeySequence
 from PySide6.QtWidgets import QFrame, QToolButton, QVBoxLayout, QWidget
 
 from ldv_automation.darstellung import Ansicht, Plotstil, Zeichnung
+from ldv_automation.darstellung.bild import Stempel, speichere_arbeitsbild
 from ldv_automation.darstellung.frf import zeichne_frf
 from ldv_automation.darstellung.schwingform import zeichne_schwingform
 from ldv_automation.darstellung.spektrum import zeichne_spektrum
 from ldv_automation.darstellung.spitzen import zeichne_spitzen
+from ldv_automation.gui.anzeige_aktionen import AKTIONS_TASTEN
 from ldv_automation.gui.anzeige_auswerten import ANSICHT_NAMEN
+from ldv_automation.gui.arbeitsbild import bild_grenzen, bild_optionen
+from ldv_automation.gui.cursor import FadenkreuzCursor, naechste_linie
 from ldv_automation.gui.stil import setze_eigenschaft
 
 __all__ = ["NEUZEICHNEN_ANSICHTEN", "NEUZEICHNEN_MS", "PlotFlaeche", "PlotToolbar"]
@@ -46,6 +52,12 @@ und deshalb bei Größenänderung der Figure neu gezeichnet werden. Ansicht 1 un
 Achsen im ``constrained``-Layout, das beim Skalieren des Canvas selbst nachzieht
 (``draw_idle``); ein Neuzeichnen würde dort nur den Verlauf der Werkzeugleiste und die
 y-Skalierung des Zooms verwerfen."""
+
+MARKER_TREFFER_PX = 10
+"""Größter Abstand (Pixel) zwischen Mausklick und Spitzenmarker, der den Marker trifft."""
+
+CURSOR_ANSICHTEN = frozenset({Ansicht.SPEKTRUM, Ansicht.FRF, Ansicht.SPITZEN})
+"""Ansichten mit Frequenzachse: nur dort gibt es Cursor und Klick-Frequenzwahl."""
 
 Zeichner = Callable[[Figure, Any, Any, Plotstil], Zeichnung]
 
@@ -149,6 +161,14 @@ class PlotFlaeche(QFrame):
 
     fehler = Signal(str)
     """Meldet einen Fehler beim Neuzeichnen nach einer Größenänderung (Text der Ausnahme)."""
+    cursor_bewegt = Signal(float)
+    """Der Cursor steht auf einer neuen Linie (Frequenz der Linie in Hz)."""
+    frequenz_geklickt = Signal(float)
+    """Mausklick im Plot (Ansichten 1 bis 3): Frequenz der nächsten Linie in Hz."""
+    cursor_uebernommen = Signal(float)
+    """Enter im Plot: Frequenz der Cursorlinie in Hz."""
+    spitze_geklickt = Signal(int)
+    """Mausklick auf einen Spitzenmarker in Ansicht 3: Index der Spitze."""
 
     def __init__(self, stil: Plotstil, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -183,6 +203,19 @@ class PlotFlaeche(QFrame):
         self._neuzeichnen_timer.setSingleShot(True)
         self._neuzeichnen_timer.setInterval(NEUZEICHNEN_MS)
         self._neuzeichnen_timer.timeout.connect(self._neuzeichnen)
+        self._standard_grenzen: list[tuple[tuple[float, float], tuple[float, float]]] = []
+        self._linien_hz: np.ndarray[Any, Any] | None = None
+        self._cursor = FadenkreuzCursor(self._canvas, farbe=stil.text_gedaempft)
+        self._canvas.mpl_connect("motion_notify_event", self._maus_bewegt)
+        self._canvas.mpl_connect("button_press_event", self._maus_geklickt)
+        # Pos1 setzt den Zoom zurück, solange der Fokus im Plot oder in der Werkzeugleiste liegt
+        # (Brief K-AUSW Abschnitt 8; sonst bliebe Pos1 den Listen und Tabellen vorbehalten).
+        self.act_zuruecksetzen = QAction("Zurücksetzen", self)
+        self.act_zuruecksetzen.setObjectName("act_plot_zuruecksetzen")
+        self.act_zuruecksetzen.setShortcut(QKeySequence(AKTIONS_TASTEN["zoom"][0]))
+        self.act_zuruecksetzen.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.act_zuruecksetzen.triggered.connect(self.zoom_zuruecksetzen)
+        self.addAction(self.act_zuruecksetzen)
 
     # --- Zugriff ---------------------------------------------------------------------------
 
@@ -205,6 +238,19 @@ class PlotFlaeche(QFrame):
     def zeichnung(self) -> Zeichnung | None:
         """Rückgabe der letzten Zeichenfunktion (Achsen, Linien); ``None`` = leer."""
         return self._zeichnung
+
+    @property
+    def letzter_aufruf(self) -> tuple[Ansicht, object, object] | None:
+        """``(Ansicht, Daten, Optionen)`` der gezeigten Darstellung (``None`` = leer)."""
+        if self._letzter_aufruf is None:
+            return None
+        ansicht, daten, optionen, _beschreibung = self._letzter_aufruf
+        return ansicht, daten, optionen
+
+    @property
+    def fadenkreuz(self) -> FadenkreuzCursor:
+        """Der Fadenkreuz-Cursor (für Tests und die Cursorzeile)."""
+        return self._cursor
 
     def tab_kette(self) -> list[QWidget]:
         """Fokussierbare Teile in Tab-Reihenfolge: Plot, dann Werkzeugleiste (Brief Abschnitt 8)."""
@@ -251,12 +297,18 @@ class PlotFlaeche(QFrame):
         if not zoom_behalten:
             self._zoom.clear()
         zeichnung = ZEICHNER[ansicht](self._figure, daten, optionen, self._stil)
+        # Cursor vor dem Zeichnen anlegen: das draw_event nimmt den Hintergrund auf (Blitting).
+        # Ansicht 4 zeigt Ortskoordinaten und hat keine Frequenzachse, also keinen Cursor.
+        frequenz = getattr(daten, "frequenz_hz", None) if ansicht in CURSOR_ANSICHTEN else None
+        self._linien_hz = np.asarray(frequenz, dtype=np.float64) if frequenz is not None else None
+        self._cursor.anlegen(zeichnung.achsen, self._linien_hz)
         # Erst zeichnen, dann Standardansicht merken: constrained-Layout kennt die Positionen
         # erst nach dem Zeichnen.
         self._canvas.draw()  # type: ignore[no-untyped-call]
         self._toolbar.update()
         self._toolbar.push_current()
         standard_x = zeichnung.achsen[0].get_xlim()
+        self._standard_grenzen = [(ax.get_xlim(), ax.get_ylim()) for ax in zeichnung.achsen]
         gemerkt = self._zoom.get(ansicht)
         if (
             zoom_behalten
@@ -302,6 +354,8 @@ class PlotFlaeche(QFrame):
             ``True`` löscht zusätzlich den gemerkten Zoom aller Ansichten.
         """
         self._merke_zoom()
+        self._cursor.abbauen()
+        self._linien_hz = None
         self._figure.clear()
         self._canvas.draw_idle()  # type: ignore[no-untyped-call]
         self._toolbar.update()
@@ -310,6 +364,7 @@ class PlotFlaeche(QFrame):
         self._ansicht = None
         if zoom_vergessen:
             self._zoom.clear()
+            self._cursor.vergiss()
         self._letzter_aufruf = None
         self._neuzeichnen_timer.stop()
         self._canvas.setAccessibleDescription("")
@@ -317,6 +372,142 @@ class PlotFlaeche(QFrame):
     def zoom_zuruecksetzen(self) -> None:
         """Stellt den Ausgangsbereich wieder her (Knopf „Zurücksetzen“, Pos1)."""
         self._toolbar.home()
+
+    # --- Cursor, Klick und Tastatur ----------------------------------------------------------
+
+    def setze_cursor(self, f_hz: float) -> float | None:
+        """Setzt den Cursor auf die Linie, die ``f_hz`` am nächsten liegt (Ansichten 1 bis 3).
+
+        Parameters
+        ----------
+        f_hz : float
+            Frequenz in Hz.
+
+        Returns
+        -------
+        float or None
+            Frequenz der Linie; ``None``, wenn es keinen Cursor gibt (Ansicht 4, leere Fläche
+            oder Blitting nicht verfügbar).
+        """
+        gerastet = self._cursor.setze(f_hz)
+        if gerastet is not None:
+            self.cursor_bewegt.emit(gerastet)
+        return gerastet
+
+    def cursor_schritt(self, anzahl: int) -> float | None:
+        """Bewegt den Cursor um ``anzahl`` Linien (←/→ eine, Umschalt ±10)."""
+        gerastet = self._cursor.schritt(anzahl)
+        if gerastet is not None:
+            self.cursor_bewegt.emit(gerastet)
+        return gerastet
+
+    def _mit_werkzeug(self) -> bool:
+        """Zoom oder Verschieben ist aktiv: Maus und Cursor gehören dann dem Werkzeug."""
+        return bool(self._toolbar.mode)
+
+    def _maus_bewegt(self, ereignis: MouseEvent) -> None:
+        if self._ansicht not in CURSOR_ANSICHTEN or self._mit_werkzeug():
+            return
+        if ereignis.inaxes is None or ereignis.xdata is None:
+            return
+        if self._cursor.verfuegbar:
+            alt = self._cursor.index
+            gerastet = self._cursor.setze(float(ereignis.xdata))
+            if gerastet is not None and self._cursor.index != alt:
+                self.cursor_bewegt.emit(gerastet)
+
+    def _maus_geklickt(self, ereignis: MouseEvent) -> None:
+        """Linksklick: Frequenz der nächsten Linie melden, bei Treffer einer Spitze auch diese."""
+        if self._ansicht not in CURSOR_ANSICHTEN or self._mit_werkzeug():
+            return
+        if ereignis.button != 1 or ereignis.dblclick:
+            return
+        if ereignis.inaxes is None or ereignis.xdata is None or self._linien_hz is None:
+            return
+        f = float(self._linien_hz[naechste_linie(self._linien_hz, float(ereignis.xdata))])
+        gerastet = self._cursor.setze(f)
+        if gerastet is not None:
+            self.cursor_bewegt.emit(gerastet)
+        treffer = self._spitze_unter_maus(ereignis)
+        self.frequenz_geklickt.emit(f)
+        if treffer is not None:
+            self.spitze_geklickt.emit(treffer)
+
+    def _spitze_unter_maus(self, ereignis: MouseEvent) -> int | None:
+        """Index des Spitzenmarkers unter dem Mauszeiger (Ansicht 3), sonst ``None``."""
+        if self._ansicht is not Ansicht.SPITZEN or self._zeichnung is None:
+            return None
+        aufruf = self._letzter_aufruf
+        spitzen = getattr(aufruf[1], "spitzen", ()) if aufruf is not None else ()
+        if not spitzen:
+            return None
+        punkte = np.array([[s.f_sp_hz, s.hoehe] for s in spitzen], dtype=np.float64)
+        achse = self._zeichnung.achsen[0]
+        bild = achse.transData.transform(punkte)
+        abstand = np.hypot(bild[:, 0] - ereignis.x, bild[:, 1] - ereignis.y)
+        abstand[~np.isfinite(abstand)] = np.inf
+        index = int(np.argmin(abstand))
+        return index if abstand[index] <= MARKER_TREFFER_PX else None
+
+    def _taste(self, ereignis: QKeyEvent) -> bool:
+        """←/→ bewegen den Cursor, Enter übernimmt seine Frequenz; ``True`` = verbraucht."""
+        stoerend = (
+            Qt.KeyboardModifier.ControlModifier
+            | Qt.KeyboardModifier.AltModifier
+            | Qt.KeyboardModifier.MetaModifier
+        )
+        if ereignis.modifiers() & stoerend or self._ansicht not in CURSOR_ANSICHTEN:
+            return False
+        taste = ereignis.key()
+        if taste in (Qt.Key.Key_Left, Qt.Key.Key_Right):
+            n = 10 if ereignis.modifiers() & Qt.KeyboardModifier.ShiftModifier else 1
+            richtung = -1 if taste == Qt.Key.Key_Left else 1
+            return self.cursor_schritt(richtung * n) is not None
+        if taste in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            f = self._cursor.frequenz_hz
+            if f is None:
+                return False
+            self.cursor_uebernommen.emit(f)
+            return True
+        return False
+
+    # --- Bild speichern ----------------------------------------------------------------------
+
+    def speichere(self, pfad: Path, stempel: Stempel) -> Zeichnung:
+        """Schreibt die gezeigte Ansicht als Arbeitsbild (PNG oder PDF) mit Stempel (UI-17).
+
+        Das Bild entsteht mit derselben Zeichenfunktion und denselben Daten auf einer **neuen**
+        Figure; die Bildschirmfigur bleibt unverändert. Es nimmt die Voreinstellungen der
+        Zeichenfunktion (Legende, Streifen und Kasten in Ansicht 3, ADR-026 Nachtrag 2) und
+        übernimmt den Zoom (:func:`~ldv_automation.gui.arbeitsbild.bild_grenzen`).
+
+        Parameters
+        ----------
+        pfad : pathlib.Path
+            Ziel; die Endung ``.png`` oder ``.pdf`` bestimmt das Format.
+        stempel : Stempel
+            Fußstempel.
+
+        Raises
+        ------
+        RuntimeError
+            Es ist nichts gezeichnet.
+        ValueError
+            Endung weder ``.png`` noch ``.pdf``.
+        """
+        if self._letzter_aufruf is None or self._zeichnung is None:
+            raise RuntimeError("Es ist keine Darstellung zum Speichern vorhanden.")
+        ansicht, daten, optionen, _beschreibung = self._letzter_aufruf
+        optionen_bild = bild_optionen(ansicht, optionen)
+        grenzen = bild_grenzen(ansicht, self._zeichnung.achsen, self._standard_grenzen)
+        zeichner = ZEICHNER[ansicht]
+        return speichere_arbeitsbild(
+            lambda fig: zeichner(fig, daten, optionen_bild, self._stil),
+            pfad,
+            stempel,
+            self._stil,
+            grenzen=grenzen,
+        )
 
     # --- Größenänderung ----------------------------------------------------------------------
 
@@ -338,6 +529,9 @@ class PlotFlaeche(QFrame):
             if event.type() == QEvent.Type.Resize:
                 if self._ansicht in NEUZEICHNEN_ANSICHTEN:
                     self._neuzeichnen_timer.start()  # entprellt: jedes Resize startet neu
+            elif event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
+                if self._taste(event):
+                    return True
             elif event.type() == QEvent.Type.FocusIn:
                 setze_eigenschaft(self._rahmen, "fokus", "true")
             elif event.type() == QEvent.Type.FocusOut:

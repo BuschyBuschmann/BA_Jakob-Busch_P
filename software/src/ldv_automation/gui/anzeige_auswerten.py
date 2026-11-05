@@ -69,6 +69,7 @@ __all__ = [
     "plot_beschreibung",
     "plotkopf_text",
     "pruefung_fehler_text",
+    "pruefung_kern",
     "pruefung_text",
     "punkt_eintraege",
     "reiterkopf_messen",
@@ -133,9 +134,9 @@ ANSICHT_NAMEN: Mapping[int, str] = {
 
 FREIGESCHALTETE_ANSICHTEN: frozenset[int] = frozenset({1, 2, 3, 4})
 """Ansichten, die bedienbar sind (T3b: alle vier)."""
-EXPORT_FREIGESCHALTET = False
+EXPORT_FREIGESCHALTET = True
 """``Daten exportieren …`` ist bedienbar (T4)."""
-BILD_FREIGESCHALTET = False
+BILD_FREIGESCHALTET = True
 """``Bild speichern …`` ist bedienbar (T4)."""
 
 P08_ANTRIEBSPUNKT: tuple[str, str, Antriebsart] = ("Ref2", "Ref1", "akzeleranz")
@@ -366,17 +367,36 @@ def bedienbarkeit_auswerten(zustand: AuswertenZustand) -> dict[str, Knopf]:
 # --- Prüfzusammenfassung (AF) ----------------------------------------------------------------
 
 _PRUEF_WORTE: tuple[tuple[str, str, str], ...] = (
-    ("ok", "ok", "ok"),
-    ("warnung", "Warnung", "Warnungen"),
     ("fehler", "Fehler", "Fehler"),
+    ("warnung", "Warnung", "Warnungen"),
     ("hinweis", "Hinweis", "Hinweise"),
     ("nicht_pruefbar", "nicht prüfbar", "nicht prüfbar"),
+    ("ok", "ok", "ok"),
 )
-"""``(Status, Einzahl, Mehrzahl)`` in der Reihenfolge der Zusammenfassung."""
+"""``(Status, Einzahl, Mehrzahl)`` nach Auffälligkeit geordnet (UI-23): Auffälliges steht vorn,
+damit das Kürzen am Ende nie eine Fehler-, Warn- oder Hinweiszahl entfernt."""
+
+_PRUEF_UNAUFFAELLIG = ("ok", "nicht prüfbar")
+
+
+def pruefung_kern(text: str) -> str:
+    """Kürzester Anfang des Prüftextes, der alle Auffälligkeiten (Fehler, Warnung, Hinweis) zeigt.
+
+    Folgen danach nur noch „nicht prüfbar“ und „ok“, steht „, …“ am Ende. Ohne Auffälligkeiten
+    bleibt „Prüfung:“ plus erster Teil mit „, …“ (bzw. der ganze Text, wenn er nur einen hat).
+    """
+    teile = text.split(", ")
+    letzt = 0
+    for i, teil in enumerate(teile):
+        if not teil.endswith(_PRUEF_UNAUFFAELLIG):
+            letzt = i
+    if letzt == len(teile) - 1:
+        return text
+    return ", ".join(teile[: letzt + 1]) + ", …"
 
 
 def pruefung_text(pruefungen: Sequence[Pruefergebnis]) -> str:
-    """Zusammenfassung der Plausibilitätsprüfungen als Wörter („Prüfung: 36 ok, 1 Hinweis“).
+    """Zusammenfassung der Plausibilitätsprüfungen als Wörter („Prüfung: 1 Hinweis, 36 ok“).
 
     Zählungen stehen als Wörter, nie nur als Farbe (UI-23); Status ohne Treffer entfallen.
 
@@ -522,9 +542,10 @@ def phase_ref_text(referenz: str, annahmen: Iterable[AnnahmeEintrag]) -> str:
 
 
 def cursor_text(f_hz: float, amplitude: float, einheit: str, auswahl: str, kanal: str) -> str:
-    """Cursorzeile „f = 123,75 Hz · Amplitude = 1,23 m/s · Punkt 12 · Vib Z“ (UI-13).
+    """Cursorzeile „f = 123,750 Hz · Amplitude = 1,23 m/s · Punkt 12 · Vib Z“ (UI-13).
 
-    Der Wert steht in der Einheit der Datei (keine Umrechnung).
+    Der Wert steht in der Einheit der Datei (keine Umrechnung), mit drei signifikanten Stellen;
+    außerhalb von 10⁻³ bis 10⁶ als „1,84·10⁻⁵“ (wie an der Farbleiste).
 
     Parameters
     ----------
@@ -540,10 +561,10 @@ def cursor_text(f_hz: float, amplitude: float, einheit: str, auswahl: str, kanal
         Kurve, z. B. „Vib Z“.
     """
     # Lazy: darstellung.formate importiert matplotlib (siehe Moduldoku).
-    from ldv_automation.darstellung.formate import frequenz_text, zahl_signifikant_text
+    from ldv_automation.darstellung.formate import frequenz_text, zahl_kurz_text
 
     return (
-        f"f = {frequenz_text(f_hz)} · Amplitude = {zahl_signifikant_text(amplitude, 3)} {einheit}"
+        f"f = {frequenz_text(f_hz)} · Amplitude = {zahl_kurz_text(amplitude, 3)} {einheit}"
         f" · {auswahl} · {kanal}"
     )
 
