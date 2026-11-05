@@ -258,6 +258,9 @@ class _Fusszeile(QFrame):
 
 _PRUEF_MIN_PX = 150
 """Mindestbreite des Prüftextes in der Fußzeile (reicht für „Prüfung: 36 ok, …“)."""
+_MELDE_MIN_PX = 160
+"""Mindestbreite der Meldezeile (Cursor-/Exportmeldung): der Prüftext darf sie nie verdrängen
+(UI-25); der Prüftext gibt sie notfalls ab, auch die Auffälligkeitszahlen werden dann gekürzt."""
 
 
 class ParameterZelleWidget(QWidget):
@@ -872,7 +875,8 @@ class AuswertenReiter(QWidget):
 
         Der Prüftext wird an Teilgrenzen gekürzt („Prüfung: 1 Warnung, …“), mindestens
         :data:`_PRUEF_MIN_PX` und mindestens so breit, dass alle Auffälligkeiten sichtbar sind
-        (UI-23, :func:`pruefung_kern`); die Meldezeile kürzt Pfade mittig, sonst rechts. Beide
+        (UI-23, :func:`pruefung_kern`), höchstens aber so breit, dass die Meldezeile
+        :data:`_MELDE_MIN_PX` behält (UI-25); die Meldezeile kürzt Pfade mittig, sonst rechts. Beide
         Labels tragen den Volltext im Tooltip. Gemessen wird mit der Schrift der Labels, nicht
         mit dem Text, der gerade sichtbar ist.
         """
@@ -891,9 +895,13 @@ class AuswertenReiter(QWidget):
             - abstand * (sichtbar - 1)
             - (self.balken_export.width() if sichtbar == 3 else 0)
         )
+        voll = self.lbl_pruefung.volltext()
+        zaehltext = voll.startswith("Prüfung: ")
+        self.lbl_pruefung.setze_teile(zaehltext)  # Fehlertexte stehen rechts gekürzt
         prueft = self.lbl_pruefung.natuerliche_breite() + 4
-        kern = self.lbl_pruefung.breite_von(pruefung_kern(self.lbl_pruefung.volltext())) + 4
+        kern = self.lbl_pruefung.breite_von(pruefung_kern(voll)) + 4 if zaehltext else 0
         prueft = min(prueft, max(_PRUEF_MIN_PX, kern, frei - self.lbl_cursor.natuerliche_breite()))
+        prueft = max(0, min(prueft, frei - _MELDE_MIN_PX))  # Kern hat eine Obergrenze (UI-25)
         self.lbl_pruefung.setFixedWidth(prueft)
         self.lbl_pruefung.setze_platz(prueft)
         self.lbl_cursor.setze_platz(frei - prueft)

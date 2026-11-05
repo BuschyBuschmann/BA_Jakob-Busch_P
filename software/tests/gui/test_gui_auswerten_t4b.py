@@ -522,3 +522,29 @@ def test_verwaiste_datei_nicht_entfernbar_stoppt_den_export(
     a.btn_export.click()
     assert protokoll.export == [] and "nicht entfernbar" in m.warnungen[0][1]
     assert "gesperrt" in a.lbl_cursor.volltext()
+
+
+def test_langer_pruef_fehler_verdraengt_die_meldezeile_nicht(
+    reiter: Reiter, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """UI-25 (RR-AUSW-T4-2): Der Kern hat eine Obergrenze, Fehlertexte stehen rechts gekürzt."""
+    w, a, _p, m = reiter
+    klein(w)
+    a._pruefung = None
+    a._pruef_fehler = "ValueError: " + "sehr lange Fehlermeldung des Rechenkerns " * 6
+    a._zeige_pruefung()
+    monkeypatch.setattr(auswerten_reiter, "export_job", lambda *_args: (LANG_NPZ, LANG_JSON))
+    m.export_ziel = str(tmp_path / "ex")
+    a.btn_export.click()
+    qtbot.waitUntil(lambda: a.btn_export.isEnabled(), timeout=3000)
+    QApplication.processEvents()
+    voll = a.lbl_pruefung.volltext()
+    assert voll.startswith("✖ Prüfung nicht möglich: ValueError")
+    assert a.lbl_pruefung.text().endswith("…") and a.lbl_pruefung.text() != voll
+    assert voll in a.lbl_pruefung.toolTip()
+    fuss = a._fuss
+    assert a.lbl_pruefung.geometry().right() <= fuss.width()
+    assert a.lbl_cursor.width() >= auswerten_reiter._MELDE_MIN_PX
+    assert a.lbl_cursor.geometry().right() < a.lbl_pruefung.geometry().left()
+    assert a.lbl_cursor.text() and a.lbl_cursor.toolTip() == ak.export_meldung(LANG_NPZ, LANG_JSON)
+    assert sichtbar_passt(a)

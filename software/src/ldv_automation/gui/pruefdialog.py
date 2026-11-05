@@ -104,6 +104,11 @@ class KuerzLabel(QLabel):
         self._platz = platz
         self._kuerze()
 
+    def setze_teile(self, teile: bool) -> None:
+        """Wechselt zwischen Kürzen an Teilgrenzen („, “) und Kürzen rechts; kürzt neu."""
+        self._teile = teile
+        self._kuerze()
+
     def setze_zusatz_tooltip(self, text: str) -> None:
         """Erklärender Tooltip (z. B. Fehlergrund); steht hinter dem Volltext."""
         self._zusatz = text

@@ -144,6 +144,7 @@ PFAD B (COM aus): A0, A1 (nur Skripte/Datei), Zweig C (File Access auf Kopien), 
 
 - Wheel **0.2.0** (Version entschieden) nach dem letzten Commit neu bauen (`version` in `software/pyproject.toml` auf 0.2.0), **gepusht**, Build-Info mit `git_dirty: false`; Git-Hash und SHA-256 der Wheel-Datei notieren. Dateiname erwartet `ldv_automation-0.2.0-py3-none-any.whl` **[Annahme, Standardschema]**; Ablageort im Repository **[offen]**.
   **Nachtrag 2026-11-03 (erledigt):** gebaut aus 6d84318 (`git_dirty: false`; ersetzt die nicht ausgelieferten Builds f66af80 und b5300e1), abgelegt unter `in_progress/versuche/naechster-termin_messrechner/stick/wheelhouse/`, SHA-256 `e6c3940830e81eb75fa5bd156b9d4563e1e838a5168c10be89f93e432f9bc96f`; Skripte und Hashes in `stick/LIESMICH.txt`. Seit 530af41 geändert: K-ACHSE (Auswertung) und K-2D (COM-Adapter: Hinweise bei fehlender Registrierung/Desktop-Modus, SignalDelay lesen) – die Aussage „Adapter unverändert“ unten gilt damit nicht mehr.
+  **Nachtrag 2026-11-05 (offen):** Der Build 6d84318 wird durch einen neuen Build mit gleicher Versionsnummer 0.2.0 ersetzt (Reiter „Auswerten“ mit neuen Laufzeitpaketen matplotlib 3.11.2 mit Abhängigkeiten, olefile 0.47, tzdata 2026.6; Pins laut `software/tools/wheelhouse/erzeuge_wheelhouse.py`). Die SHA-256 `e6c39…` gilt danach nur noch für 6d84318. Offen und vom Orchestrator nach dem Bau einzutragen: Wheel-Name **[folgt]**, Git-Hash des Builds **[folgt]**, SHA-256 **[folgt]**, Ablageort **[folgt]**, Wheelhouse mit den neuen Paketen unter `stick/wheelhouse/` **[folgt]**.
   Stand heute (geprüft): Das Wheel in Git ist noch der Build 530af41; im Arbeitsverzeichnis liegen noch nicht eingecheckte Änderungen unter
   `software/src/ldv_automation/auswertung/` (K-ACHSE, `git status`). Der COM-Adapter ist seit 530af41 **unverändert** (`git diff 530af41..HEAD -- software/src` ist leer).
 - Skripte `erkundung.py`, `einstellungen_lesen.py`, `daten_lesen.py` im aktuellen Stand (nach Review: Exit-Codes, Spaltenlängen) bereitstellen.
@@ -153,7 +154,7 @@ PFAD B (COM aus): A0, A1 (nur Skripte/Datei), Zweig C (File Access auf Kopien), 
 - Für M11 (C2) **vorab prüfen** (Fachprüfung): Die Kennzeichenfreiheit der Kandidaten (617,9; 631,7; 644,8; 693,5; 757,3; 867,9 Hz) gilt in FG-02 Abschnitt 8 am **Punktmittel**, nicht am Einzelpunkt. Am Entwicklungsrechner mit der Stufe-1-Spitzenerkennung am gewählten Punkt (Label 132 oder anderer) bestimmen, welche Kandidaten dort ohne Kennzeichen sind. **Erledigt (V2):** an Label 132 gewählt 921,5 / 632,5 / 483,8 Hz, Reserve 949,3 / 644,8 Hz (siehe C2).
 - Für D1/D2 offline vorbereiten: Auswerteweg für die Phasen-/Betragsauswertung von D2 (Fit φ(f), |H1|·ω) und die eigene FFT je Block (D1); Testdaten für B5 (siehe B5).
 - SHA-256 der vorhandenen Handbücher unter `Input/literatur/polytec/Handbücher/` notieren, um am Termin zu erkennen, ob die 10.4-Fassung abweicht (E2). Die Version der vorhandenen Handbücher ist **[offen]**.
-- Mit der neuen Version 0.2.0 genügt am Messrechner das normale `pip install --upgrade --no-deps`; `--force-reinstall` ist nur Rückfall (A1).
+- Am Messrechner genügt das normale `pip install --upgrade --no-deps`, wenn dort 530af41 (0.1.0) steht. War 6d84318 (gleiche Version 0.2.0) installiert, ist `--force-reinstall` nötig (A1, Schritt 3).
 
 ### 3.3 Mitnehmen / bereitlegen
 
@@ -276,7 +277,8 @@ Das Update bringt die Frequenzachsen-Korrektur der Auswertung (K-ACHSE) und die 
    ```powershell
    & $PY -m pip install --upgrade --no-deps "<Download-Ordner>\ldv_automation-0.2.0-py3-none-any.whl"
    ```
-   **Rückfall** nur, falls pip trotzdem „already satisfied“ meldet oder I6 den alten Hash zeigt (z. B. falsche Datei, Cache): `--upgrade --force-reinstall --no-deps` mit demselben Pfad. In I3 muss `ldv-automation 0.2.0` stehen.
+   **Vorher, neu mit diesem Build:** Die neuen Laufzeitpakete müssen vor dem Wheel in der venv sein: matplotlib 3.11.2 mit Abhängigkeiten, olefile 0.47, tzdata 2026.6 (Pins und Befehle in `installation_0.2.0.md`, Abschnitte 1 und 3; Weg S aus dem Wheelhouse, Ablage **[folgt]**). Ohne sie ist die Auswertung nicht lauffähig.
+   **Rückfall** nur, falls pip trotzdem „already satisfied“ meldet oder I6 den alten Hash zeigt (z. B. falsche Datei, Cache; war 6d84318 installiert, ist er nötig): `--upgrade --force-reinstall --no-deps` mit demselben Pfad. In I3 muss `ldv-automation 0.2.0` stehen, dazu die neuen Pakete aus dem Vorher-Schritt.
 4. Skripte aus Git holen (sind **nicht** im Wheel): `software/tools/erkundung/erkundung.py`, `einstellungen_lesen.py`, `daten_lesen.py` und `software/konfig/beispiel_messrechner.json`
    nach `$ARB` (die alten Fassungen vom letzten Termin vorher als `*_alt.py` beiseite legen, nicht überschreiben). `skript_sha256` des neuen `erkundung.py` im Protokoll festhalten.
 
@@ -288,13 +290,15 @@ Das Update bringt die Frequenzachsen-Korrektur der Auswertung (K-ACHSE) und die 
 ```powershell
 & $PY --version                                                     # I1  Python 3.11.9
 & $PY -c "import struct; print(struct.calcsize('P')*8)"             # I2  64
-& $PY -m pip list                                                   # I3  ldv-automation, PySide6_Essentials 6.11.3, shiboken6 6.11.3, pywin32 312
+& $PY -m pip list                                                   # I3  ldv-automation 0.2.0, matplotlib 3.11.2, olefile 0.47, tzdata 2026.6, PySide6_Essentials 6.11.3, shiboken6 6.11.3, pywin32 312; kein PySide6 6.12.0
 & $PY -c "import win32com.client; print('win32com ok')"             # I4
 mkdir "$T\daten\selbsttest" -ErrorAction SilentlyContinue
 & $PY -m ldv_automation selbsttest --ordner "$T\daten\selbsttest"   # I5  „Selbsttest bestanden“
 & $PY -c "import json,importlib.resources as r; print(json.loads(r.files('ldv_automation').joinpath('_build_info.json').read_text('utf-8')))"   # I6  git_hash, git_dirty
 & $PY -m ldv_automation gui --simulator                             # I7  Titel „… SIMULATOR“, Symbole sichtbar
 ```
+
+**Ergänzung (Reiter „Auswerten“):** Der neue Build 0.2.0 enthält den Reiter „Auswerten“ und braucht neue Laufzeitpakete (Schritt 3, I3). Dafür gilt zusätzlich `installation_0.2.0.md` (Pins, Wheelhouse, Prüfschritte N1 bis N7), danach die Checkliste `pruefanleitung_auswerten.md`. Wheel-Name, Ablageort und SHA-256 **[folgt]**.
 
 **Weiter:** I1 bis I4 ok **und** I6 zeigt den erwarteten Git-Hash mit `git_dirty: False`. **Abbruch:** I1 bis I4 schlagen fehl: Meldung wörtlich sichern, nichts weiter installieren.
 **Ersatz:** EP-3. **Ablage:** Protokoll Abschnitt 4 (Hash, SHA-256, `pip list`).
