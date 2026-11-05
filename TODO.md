@@ -53,11 +53,12 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ◐ | Recherche R-0211: Peak-Anpassung und SE belegt; **PCB 288D01 und Decoder: Volltext von Jakob benötigt** (Input/literatur/pcb/, Leseliste) | Jakob, literatur-rechercheur | – | M8 bis dahin offen |
 | ☑ | P4/P4b Lese-Skripte korrigiert und reviewt | – | – | 4279382, 0129b75 |
 | ☑ | P3 Ablaufplan nächster Termin mit Ersatzplänen und Prüfzettel, fachlich durchgesehen und freigegeben (`in_progress/versuche/naechster-termin_messrechner/`) (Übersicht 2a: Registrierung, Mini-Scan mit Zeitdaten, Messpunkt Impedanzkopf, Zwei-Amplituden-Test, Wiegen, Handbücher, M11 ohne Kennzeichen, Golden v2 …) | software-engineer, `/versuchsplanung` | nach P1 | |
-| ☑ | Wheel 0.2.0 gebaut (f66af80, sauber), mit Skripten und SHA-256 abgelegt | – | – | `in_progress/versuche/naechster-termin_messrechner/stick/LIESMICH.txt` |
+| ☑ | Wheel 0.2.0 gebaut (f66af80, sauber; ersetzt durch Build a0ee2fc), mit Skripten und SHA-256 abgelegt | – | – | `in_progress/versuche/naechster-termin_messrechner/stick/LIESMICH.txt` |
 | ☐ | Fragen F1–F8 an Daniel (Ablaufplan 3.2) | Jakob | vor Termin | |
 | ☑ | R-023 (Frequenzachse im Protokoll) und R-055 (Dämpfung mit Band und Methode) umgesetzt, reviewt | – | – | Laborbuch 2026-11-03_r023-r055 |
-| ◐ | Auswertungsoberfläche (R-032, Ablauf C): Brief K-AUSW und Plan P-AUSW freigegeben; T1 fertig (b1cb711), T2 läuft; T3a, T3b, T4, T5 offen | ui-designer, software-engineer | – | Plan P-AUSW |
-| ☐ | T5: Installationsweg für 0.3.0 nachziehen – neue Abhängigkeiten matplotlib-Kette, olefile, tzdata (A1 nutzt bisher `--no-deps`); Font-Cache-Prüfung `python -c "import matplotlib.font_manager"`; `zeiten_messen.py` am Messrechner | Orchestrator, software-engineer | vor Termin | Bericht T1 |
+| ◐ | Auswertungsoberfläche (R-032, Ablauf C): Brief K-AUSW und Plan P-AUSW freigegeben; T1–T5 fertig in der Cloud (letzter Stand a0ee2fc); Prüfung am Messrechner offen | ui-designer, software-engineer | – | Plan P-AUSW |
+| ☑ | T5: Meldezeile behoben, Installationsweg (`installation_0.2.0.md`) und Prüfanleitung, Wheel 0.2.0 neu gebaut (a0ee2fc, SHA-256 68221a3c…) mit 12 neuen Abhängigkeits-Wheels auf dem Stick | Orchestrator, software-engineer | – | Laborbuch 2026-11-05_auswerten-t5 |
+| ☐ | Am Messrechner: `installation_0.2.0.md` N1–N7, `pruefanleitung_auswerten.md` W1–W10, `zeiten_messen.py` | Jakob | nächster Termin | `naechster-termin_messrechner/` |
 | ☐ | Am Gerät: Einheiten SampleResolution/SampleTime, `Lines` bei Von/Bis (für R-023/R-024) | Jakob | nächster Termin | |
 | ☑ | Anforderungsvorschläge aus PSV-Einblicken ins Lastenheft (R-002, R-023, R-024, R-032, R-055–R-057; O7, O8 neu) | – | – | Nutzerentscheidung 03.11. |
 | ☑ | Datenweg entschieden: ADR-020 (eigener Leser, File Access als Gegenprobe), ersetzt ADR-006 | – | – | Nutzerentscheidung 03.11. |

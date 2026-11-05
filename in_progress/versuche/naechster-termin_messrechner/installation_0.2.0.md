@@ -40,9 +40,8 @@ $PY = "D:\Messdaten\DAL\BA Jakob Busch\PyCharmProject\.venv\Scripts\python.exe"
 & $PY --version        # erwartet Python 3.11.9
 ```
 
-Die venv wird nicht aktiviert, alle Befehle rufen `$PY` auf. Wheel-Name: **[folgt]** (Version
-0.2.0; Standardschema `ldv_automation-0.2.0-py3-none-any.whl` **[Annahme]**); SHA-256: **[folgt]**;
-Ablageort: **[folgt]**.
+Die venv wird nicht aktiviert, alle Befehle rufen `$PY` auf. Wheel-Name: `ldv_automation-0.2.0-py3-none-any.whl`; SHA-256: `68221a3c96f2e42ddc3c72b5f9e83a0b5846a1dc6876a2376f0d5a2dbf1e6bd7`;
+Ablageort: `stick/wheelhouse/` (Build a0ee2fc, git_dirty false).
 
 ## 3 Neue Abhängigkeiten installieren
 
@@ -58,7 +57,7 @@ Ablageort: **[folgt]**.
 `python tools/wheelhouse/erzeuge_wheelhouse.py --ziel wheelhouse` (Windows x64, CPython 3.11,
 `--only-binary=:all:`, alle `PINS`) die Wheels; Ordner auf den Stick. Das bisherige Stick-Wheelhouse
 unter `stick/wheelhouse/` enthält nur das Wheel 0.2.0 (Stick-Build 6d84318, wird ersetzt), nicht die neuen Pakete. Ort des neuen
-Wheelhouse: **[folgt]**. Am Messrechner:
+Wheelhouse: `stick/wheelhouse/` (Stand 2026-11-05: neues Wheel 0.2.0 und die 12 neuen Pakete; SHA-256 in `stick/LIESMICH.txt`; numpy, PySide6, shiboken6 und pywin32 weiterhin aus dem Prototyp-Wheelhouse). Am Messrechner:
 
 ```powershell
 & $PY -m pip install --no-index --find-links "<Stick>\wheelhouse" `
@@ -92,7 +91,7 @@ Stick-Build 6d84318 (gleiche Versionsnummer) bereits installiert war. Skripte (`
 |---|---|---|
 | N1 | `& $PY -m pip list` | `ldv-automation 0.2.0`, `matplotlib 3.11.2`, `olefile 0.47`, `tzdata 2026.6`, `numpy 2.4.6`, `PySide6_Essentials 6.11.3`, `shiboken6 6.11.3`, `pywin32 312`; **kein** PySide6 6.12.0 |
 | N2 | `& $PY -c "import ldv_automation; print(ldv_automation.__version__)"` | `0.2.0` |
-| N3 | `& $PY -c "import json,importlib.resources as r; print(json.loads(r.files('ldv_automation').joinpath('_build_info.json').read_text('utf-8')))"` | `git_hash` = Hash des Builds (Orchestrator trägt ihn ein: **[folgt]**), `git_dirty` = `False` |
+| N3 | `& $PY -c "import json,importlib.resources as r; print(json.loads(r.files('ldv_automation').joinpath('_build_info.json').read_text('utf-8')))"` | `git_hash` = Hash des Builds (`a0ee2fc6c870383b898611b7f4299ee15fb94416`), `git_dirty` = `False` |
 | N4 | `& $PY -c "import matplotlib.font_manager; print('Font-Cache ok')"` | `Font-Cache ok`. Der **erste** Import baut den Schriftcache und kann spürbar dauern (Dauer notieren, siehe Prüfanleitung); der zweite ist schnell |
 | N5 | I1 bis I4 und I5 wie im [alten Plan](../2026-11-02_prototyp/installation_messrechner.md) | wie dort |
 | N6 | `& $PY -m ldv_automation gui --simulator` | Oberfläche startet, Reiter „Messen“ und „Auswerten“ sichtbar |
