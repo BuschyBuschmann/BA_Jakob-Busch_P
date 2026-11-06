@@ -85,8 +85,13 @@ uv run pytest --cov --cov-fail-under=90
 
 ## Abbildungen
 - Abbildungen entstehen nur per Skript aus gespeicherten Daten.
-- Skripte liegen unter `software/` (genauer Pfad wird mit dem ersten Abbildungspaket
-  festgelegt), Ausgaben unter `in_progress/thesis/abbildungen/`.
+- Thesis-Abbildungen erzeugt `software/tools/auswertung/darstellung_beispiel.py` (ADR-027).
+  Ablage unter `in_progress/thesis/abbildungen/<Messdatei>/` als
+  `<Messdatei>_<abbildung>.<fmt>` mit `<Messdatei>_manifest.json`; erzeugt wird zuerst
+  außerhalb des Repos, dann kopiert und committet (Nutzerentscheidung 2026-11-06).
+- Thesis-Abbildungen entstehen nur mit sauberem Git-Stand (`git_dirty = false`); Ausnahmen
+  nur mit `--erlaube-dirty` und Kennzeichen im Manifest. Bild-Metadaten tragen Git-Hash und
+  SHA-256 der Messdatei, PDFs kein Erstellungsdatum.
 - Jede Ausgabe nennt das erzeugende Skript und den Git-Hash der Eingangsdaten.
 - Abbildungen mit Mittelwerten nennen Mittelformel (Betragsmittel, quadratisches oder
   arithmetisches Mittel) und Punktzahl im Bild bzw. in der Bildunterschrift
