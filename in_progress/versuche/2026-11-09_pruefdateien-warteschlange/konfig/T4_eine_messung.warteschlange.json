@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "art": "ldv-warteschlange",
+  "erstellt_utc": "2026-11-06T00:01:53.198175+00:00",
+  "paket_version": "0.2.0",
+  "git_hash": "450b8971fdca4d818f10227f5558646f25bda877",
+  "eintraege": [
+    {
+      "art": "messung",
+      "id": "957a1439-c0f8-4936-979f-d8c7bae3a40d",
+      "name": "T4 3x3 wie R",
+      "einstellungsdatei": "D:\\Messdaten\\DAL\\BA Jakob Busch\\vorlagen\\mess_3x3.set",
+      "parameter": {},
+      "zeitlimit_s": 600.0,
+      "notiz": "Versuchsplan 2026-11-09, T4; ohne Parameteraenderung, vergleichbar mit Datei R; Pfad der .set [Annahme], vor Ort pruefen"
+    }
+  ]
+}
