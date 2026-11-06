@@ -3,8 +3,8 @@
 Zentrale Übersicht über offene Aufgaben der Bachelorarbeit. Wird nach jedem Arbeitsschritt
 und jedem Betreuertermin aktualisiert. Details stehen in den verlinkten Dateien.
 
-**Stand:** 2026-10-26 (nach dem ersten Betreuertermin)
-**Nächster fester Termin:** Mo 2026-11-02 – Arbeit am PSV-Messrechner
+**Stand:** 2026-11-06
+**Nächster fester Termin:** Mo 2026-11-09 – ganzer Tag am PSV-Messrechner (COM von Daniel registriert, Anregung freigegeben)
 
 Legende: ☐ offen · ◐ in Arbeit · ☑ erledigt · ⏳ wartet auf andere
 
@@ -65,12 +65,16 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☑ | Kleine Code-Aufgaben aus PSV-Einblicken (Übersicht 2d), reviewt; MINORs zur Entscheidung, Gerätetest offen | – | – | Laborbuch 2026-11-02_k2d-psv-einblicke-code |
 | ☑ | KONVENTIONEN-Vorschläge übernommen (Achse, Polarität vorläufig, Proxy-Ausnahme, Termine, Version); Thesis-Bausteine in kapitel-map | – | – | b29584e |
 | ☐ | Nach Montag: M1–M15 in FG-02/FG-03 nachführen, Golden-File-Test, Abbildungen mit sauberem Git-Hash neu erzeugen | Orchestrator, strukturdynamik-experte | nach 02.11. | |
+| ☑ | Abbildungsskript für Thesis-Abbildungen (alle 4 Ansichten, Manifest, Git-Regel; ADR-027) | software-engineer | – | Laborbuch 2026-11-06_abbildungsskript |
+| ☐ | Nach 09.11.: .svd-Dateien R/A/B und T4–T6 ins Repo, Abbildungen in der Cloud erzeugen (`darstellung_beispiel.py`), Sichtprüfung durch Jakob | Jakob, Orchestrator | nach 09.11. | ADR-027 |
+| ☐ | Möglicher Auftrag: Hash-Quelle in `protokoll/version.py` robust machen (venv in fremdem Git-Repo) | software-engineer | nach Prüfung am 09.11. | Laborbuch 2026-11-06 |
+| ☐ | Versuch 2026-11-09 Prüfdateien/Warteschlange durchführen | Jakob | Mo 09.11. | `in_progress/versuche/2026-11-09_pruefdateien-warteschlange/`, `checkliste_montag.md` |
 
 ## 4 Thesis
 
 | | Aufgabe | Wer | Bis | Hinweis |
 |---|---|---|---|---|
-| ⏳ | P8 Entwurf Inhaltsverzeichnis (Gliederung) – wartet auf die Orga-/To-do-Datei von Daniel | `/ba-planung`, Jakob | diese Woche | SLA-Vorlage |
+| ◐ | P8 Gliederung: Entwurf freigegeben (`in_progress/planung/gliederung.md`), Abstimmung mit Daniel offen (Fragen G1–G4) | `/ba-planung`, Jakob | nächster Betreuertermin | Kapitel-Zuordnung aktualisiert |
 | ⏳ | Orga-/To-do-Datei von Daniel erhalten (angefragt) und in `Input/` hochladen; danach Gliederung starten | Daniel, Jakob | – | |
 | ☐ | P8 Zeitplan mit Meilensteinen (sobald Abgabetermin bekannt) | `/ba-planung`, Jakob | nach Anmeldung | |
 | ☐ | P8 Glossar-Grundgerüst (Abkürzungen, Formelzeichen) | wissenschaftlicher-autor | nach Gliederung | |

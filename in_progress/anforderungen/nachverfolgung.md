@@ -29,7 +29,7 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-040 | – | – | – | – | offen |
 | R-050 | `auswertung/spektren.py`, `mittel.py` (W5-1) | RF-S, RF-B, Golden File (Punktmittel 35/35) | Laborbuch 2026-10-30_w5 | – | getestet (Datei; PSV-Anzeige offen) |
 | R-051 | `auswertung/frf.py` (W5-1) | RF-H, RF-U, RF-G, Bandnorm H1 | Laborbuch 2026-10-30_w5 | – | getestet (Datei; PSV-Anzeige offen) |
-| R-052 | `auswertung/schwingform.py` (W5-1) | RF-3D, RF-W | Laborbuch 2026-10-30_w5 | – | getestet (Phasenbezug M1/M8 offen) |
+| R-052 | `auswertung/schwingform.py` (W5-1); Thesis-Abbildungen `tools/auswertung/darstellung_beispiel.py` (ADR-027) | RF-3D, RF-W; `test_dar_beispielskript.py`, `test_dar_datei.py` | Laborbuch 2026-10-30_w5, 2026-11-06_abbildungsskript | – | getestet (Phasenbezug M1/M8 offen) |
 | R-053 | `auswertung/spitzen.py`, `baender.py` (W5-1); Dämpfung zusätzlich per Modenfit `auswertung/modenfit.py` (W5-2) | RF-P, RF-M, RF-K, Golden File (Bänder 22/22); RF-F1–F9 | Laborbuch 2026-10-30_w5, 2026-10-30_w5-auswertung-stufe2, 2026-11-02_k-achse-frequenzachse | – | getestet (Datei, Achse korrigiert); PSV-Fit-Vergleich teilweise (M11) |
 | R-054 | Plausibilität P-01–P-11 (W5-1); Vergleich von Messungen und Drift `auswertung/vergleich.py`, 3D-Bezug `auswertung/bezug3d.py` (W5-2) | RF-V1–V7, RF-G1–G5 | Laborbuch 2026-10-30_w5-auswertung-stufe2 | – | in Arbeit (Umfang am Entscheidungspunkt; B-5 nur synthetisch, zweite Messung Mo 02.11.) |
 | R-055 | `auswertung/export.py` (Stufe 1), `auswertung/stufe2.py` (B-1), `daempfung` | `test_aw_export_werkzeuge.py`, `test_aw_stufe2.py` | Laborbuch 2026-11-03_r023-r055 | – | getestet (Datei) |

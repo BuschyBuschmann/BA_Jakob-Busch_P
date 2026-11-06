@@ -7,14 +7,19 @@ FG-02 Abschnitt 8: rtol 1e-5, atol 1e-6·max|Größe|, Annahme M11), PSV-CPH an 
 
 from __future__ import annotations
 
+import json
 import re
+from collections.abc import Iterator
+from dataclasses import replace
 from pathlib import Path
 
+import darstellung_beispiel as skript
 import numpy as np
 import pytest
 from matplotlib.figure import Figure
 
 from ldv_automation.auswertung import Toleranzen, werte_aus
+from ldv_automation.auswertung.export import sha256_datei
 from ldv_automation.auswertung.laden import Geladen, lade_svd
 from ldv_automation.auswertung.mittel import HINWEIS_MITTEL_3D_LEISTUNG
 from ldv_automation.auswertung.svd_lesen import lese_svd
@@ -33,6 +38,7 @@ from ldv_automation.darstellung.schwingform import SchwingformOptionen, zeichne_
 from ldv_automation.darstellung.spektrum import SpektrumOptionen, zeichne_spektrum
 from ldv_automation.darstellung.spitzen import HINWEIS_ZETA, SpitzenOptionen, zeichne_spitzen
 from ldv_automation.darstellung.stil import THESIS_STIL
+from ldv_automation.protokoll.version import ermittle_build_info
 
 DATEI = Path(__file__).resolve().parents[3] / "Input" / "20261012_ref_Mitte.svd"
 pytestmark = pytest.mark.skipif(not DATEI.is_file(), reason="Messdatei nicht vorhanden")
@@ -166,3 +172,78 @@ def test_ansichten_2_bis_4_an_der_datei(geladen: Geladen, cache: PaarCache) -> N
         + len(s.marker["unsicher"].get_xdata() if "unsicher" in s.marker else [])
         == d.anzahl_punkte
     )  # alle 135 Punkte bleiben im Bild
+
+
+# --- P-ABB-S1: Abbildungsskript an der Beispieldatei -------------------------------------------
+
+BILDER = ("spektrum", "frf", "spitzen", "schwingform", "schwingform_phase")
+
+
+@pytest.fixture(scope="module")
+def sauberer_stand() -> Iterator[None]:
+    """Fester Software-Stand mit echtem Hash (der Arbeitsbaum ist beim Testen oft nicht sauber)."""
+    echt = ermittle_build_info()
+    if echt.git_hash is None:
+        pytest.skip("kein Git-Hash verfügbar")
+    mp = pytest.MonkeyPatch()
+    mp.setattr(skript, "ermittle_build_info", lambda: replace(echt, git_dirty=False))
+    yield
+    mp.undo()
+
+
+def _lauf_main(ziel: Path) -> int:
+    return skript.main(
+        [str(DATEI), "--ausgabe", str(ziel), "--punkt-label", "132", "--format", "beide"]
+    )
+
+
+@pytest.fixture(scope="module")
+def lauf_ordner(sauberer_stand: None, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    ziel = tmp_path_factory.mktemp("abb") / "ausgabe"
+    vorher = sha256_datei(DATEI)
+    assert _lauf_main(ziel) == 0
+    assert sha256_datei(DATEI) == vorher  # A9: Rohdatei unverändert
+    return ziel
+
+
+def test_abbildungsskript_erzeugt_fuenf_abbildungen_als_png_und_pdf(lauf_ordner: Path) -> None:
+    """A1, A3: Namensschema, Manifest mit 40-stelligem Hash und SHA-256 der Messdatei."""
+    stem = DATEI.stem
+    erwartet = {f"{stem}_{n}.{e}" for n in BILDER for e in ("png", "pdf", "json")}
+    assert {p.name for p in lauf_ordner.iterdir()} == erwartet | {f"{stem}_manifest.json"}
+    m = json.loads((lauf_ordner / f"{stem}_manifest.json").read_text("utf-8"))
+    assert re.fullmatch(r"[0-9a-f]{40}", m["software_git_hash"])
+    assert m["messdatei_sha256"] == sha256_datei(DATEI) and m["git_dirty"] is False
+    assert m["erzeugung"]["punkt_label"] == 132 and m["ausgelassen"] == {}
+    assert m["anzahl_m6_ungueltig"] == 0 and m["anzahl_gamma2_unter_min"] >= 0
+    for n in BILDER:
+        assert (lauf_ordner / f"{stem}_{n}.pdf").read_bytes()[:5] == b"%PDF-"
+        assert (lauf_ordner / f"{stem}_{n}.png").read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_abbildungsskript_zweiter_lauf_liefert_gleiche_dateien(
+    lauf_ordner: Path, tmp_path: Path
+) -> None:
+    """Zweite Methode neben der PSV-Referenz: Reproduzierbarkeit (Bilder bitgleich)."""
+    zweit = tmp_path / "zwei"
+    assert _lauf_main(zweit) == 0
+    for datei in sorted(lauf_ordner.iterdir()):
+        if datei.name.endswith("_manifest.json"):
+            continue  # Zeitstempel und Zielpfad (Aufruf) unterscheiden sich
+        assert datei.read_bytes() == (zweit / datei.name).read_bytes(), datei.name
+
+
+def test_thesis_spektrum_an_label_132_stimmt_mit_dem_psv_cph_ueberein(
+    geladen: Geladen,
+) -> None:
+    """A12 und A2: Kurven der Thesis-Abbildung gegen |PSV-CPH| (rtol 1e-5, atol 1e-6·max)."""
+    d = geladen.messdaten
+    info: dict[str, object] = {}
+    figuren = skript.erzeuge_figuren(d, punkt_label=132, info=info)
+    z = figuren["spektrum"]
+    for komp in ("X", "Y", "Z"):
+        psv = np.abs(d.cph[(f"Vib {komp}", "Ref1")][0])
+        ist = np.asarray(z.linien[komp].get_ydata(), dtype=np.float64)
+        assert TOL.kurve_stimmt(ist, psv), komp
+    assert all(not f.figure.texts for f in figuren.values())  # kein Arbeitsstempel
+    assert info["referenz"] == "Ref1" and info["gamma2_min"] == pytest.approx(0.9)
