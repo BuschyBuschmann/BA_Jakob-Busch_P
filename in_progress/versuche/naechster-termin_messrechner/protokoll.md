@@ -14,8 +14,8 @@ Uhrzeiten immer mit eintragen. Nicht Zutreffendes mit „entfällt“ und Grund 
 | Daniel anwesend / erreichbar (Telefon)? | |
 | **Antwort F1:** COM-Registrierung erfolgt (wer, wann, Befehl)? 10.2/10.3 noch in Gebrauch? | |
 | **Antwort F2: Freigabe der Anregung** (ja/nein, durch wen, Uhrzeit, Bedingungen: Amplitude, Dauer, Aufsicht) | |
-| Antwort F3: Termindauer (geplant ca. 240 min **[Annahme, nach Klärung mit Daniel]**; tatsächlich: ____ min), Ende | |
-| Kurzfall: Termin nur ca. 150 min? (verkürzte Reihenfolge, Ablaufplan 4.2) | ☐ ja ☐ nein |
+| Antwort F3: Mo 2026-11-09, ganzer Tag (Nutzer, 2026-11-05); tatsächlich: ____ min, Ende | |
+| Zeitverlust am Tag? (Streichreihenfolge Ablaufplan 4, Fall 4.2) | ☐ ja ☐ nein |
 | Antwort F4: `SaveTimeDataForScan` beim Mini-Scan erlaubt? Ablage der Zeitdaten | |
 | Antwort F5: Waage vorhanden (Typ, Auflösung)? Abbau des Aufbaus für Wiegen erlaubt? | |
 | Antwort F6: Laser auf Impedanzkopf erlaubt? **Reflexfolie auf der Stirnfläche erlaubt (Zustimmung Daniel)** / Spray / keine; Ersatzpunkt Plattenvorderseite nötig? | |
@@ -48,7 +48,7 @@ Je Knoten: Uhrzeit, Beobachtung, gewählter Pfad. Pfad A = COM an, Pfad B = COM 
 | K5 | Stufe 1: Verbinden ok? | | | |
 | K6 | Anregung freigegeben (siehe F2)? | | | |
 | K7 | PSV hängt / Dialog / Laser unerwartet? | | | |
-| K8 | Zeitstand (Rest in Minuten); gestrichene Punkte; Entscheidung Kurzfall 150 min (Ablaufplan 4.2) | | | |
+| K8 | Zeitstand (Rest in Minuten); gestrichene Punkte; Entscheidung Zeitverlust (Ablaufplan 4.2) | | | |
 | K9 | Sicherung (A2) begonnen | | | |
 
 ## 3 Schritt 0 (A0): Registrierung, Stufe 0, PSV-Instanz
@@ -293,7 +293,7 @@ Klickpfad bestätigt (Alt+2, Analysator → Band-Cursor, Cursor-Eigenschaften �
 | Generator (Amplitude, Signalform, Burstlänge aus C4), Verstärkerstellung | |
 | Raster (3×3, Punkte, Abgleich) | |
 | Zieldatei (neuer Name, Ordner) / Dateigröße / Beginn–Ende (**Rechneruhr**) / Dauer je Punkt | |
-| **Referenzscan** (dieselben 9 Punkte ohne `SaveTimeDataForScan`): Datei, Dauer, SE-Einstellung, Zahl erfasster Blöcke je Punkt | |
+| **Referenzscan:** entfällt, R aus Block 2 (`20261109_ref3x3_01.svd`) ist Referenz, wenn SE und sonstige Einstellungen gleich blieben (Versuchsplan 5.3). Hier von R notieren: Dauer, SE-Einstellung, Zahl erfasster Blöcke je Punkt | |
 | Zeitdaten mit File Access auf der Kopie lesbar (ja/nein, Namen) | |
 | Auswertung später: (a) eigene FFT je Block gegen PSV-Spektren (rtol 1e-5); (b) n_d aus Mittelung über n Blöcke; (c) Streuung je Block gegen FG-02 3.4; (d) Zeitstempel gegen Uhr (M15) | |
 | Auffälligkeiten | |

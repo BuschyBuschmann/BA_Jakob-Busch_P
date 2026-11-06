@@ -1,6 +1,6 @@
 # Ablaufplan: nächster Termin am Messrechner (Entwurf zur Freigabe)
 
-**Status:** ENTWURF (überarbeitet nach Fachprüfung FD-P3), nicht freigegeben · **Datum:** JJJJ-MM-TT (unbekannt) · **Rechner:** BEOWOLF
+**Status:** ENTWURF (überarbeitet nach Fachprüfung FD-P3), nicht freigegeben · **Datum:** 2026-11-09 (Mo, F3) · **Rechner:** BEOWOLF
 **Bearbeiter am Rechner:** Jakob (mit dem Orchestrator direkt, KONVENTIONEN „Arbeitsweise bei Terminen vor Ort“)
 Paket P3 (Planung). Dazu gehören [protokoll.md](protokoll.md) (zum Ausfüllen) und [pruefzettel.md](pruefzettel.md) (Kurzliste zum Abhaken).
 
@@ -8,8 +8,7 @@ Paket P3 (Planung). Dazu gehören [protokoll.md](protokoll.md) (zum Ausfüllen) 
 funktioniert. Deshalb ist der Plan **kein linearer Ablauf**, sondern ein Satz von Blöcken mit
 Entscheidungsbaum. Jeder Abschnitt nennt **Weiter**, **Abbruch** und **Ersatz**.
 
-**Termindauer (Entscheidung des Nutzers 2026-11-02):** Jakob klärt mit Daniel einen längeren Termin, z. B. 4 h. Geplant wird mit **ca. 240 min [Annahme, nach Klärung mit Daniel]**.
-Für den Fall, dass es doch nur ca. 150 min werden, gibt es eine verkürzte Reihenfolge (Abschnitt 4.2). Die Software-Version des neuen Wheels ist **0.2.0** (Entscheidung des Nutzers).
+**Termin (Nutzer, 2026-11-05, F3):** Montag 2026-11-09, **ganzer Tag**. Es wird nicht mehr mit 240 oder 150 min geplant. Die Tagesreihenfolge steht in Abschnitt 4.1, die Reihenfolge bei Zeitverlust in 4.2. Die Software-Version des neuen Wheels ist **0.2.0** (Entscheidung des Nutzers).
 
 Kennzeichnung: **[Annahme]** = nicht belegt, **[offen]** = muss geklärt werden, **[Wissen]** = allgemeines
 Wissen, am Gerät nicht geprüft, **[N]** = Nachrechnung der Fachprüfung (FD-P3) bzw. des Experten, nicht am Gerät geprüft. Alle **Dauern sind grobe Annahmen** (nicht gemessen) und dienen nur der Priorisierung.
@@ -67,6 +66,8 @@ Aufruf immer mit `& $PY ...` (der Pfad enthält Leerzeichen). Das Venv wird nich
 Der Baum ist die Hauptstütze des Termins. Er wird an den Knoten K1 bis K9 durchlaufen; Ergebnis und gewählter Pfad kommen
 ins Protokoll (Abschnitt 2). Die Pfade sind **A** (COM funktioniert), **B** (COM aus) und die Zusatzzweige D (Anregung) und E (ohne PSV).
 
+**Stand 2026-11-05 (Nutzer):** Die COM-Schnittstelle für PSV 10.4 ist von Daniel registriert (Datum und Befehl unbekannt; im Protokoll nachtragen). **Pfad A ist der Hauptweg.** K3 und Pfad B (EP-1) sind nur noch Rückfall. A0 bleibt Pflicht, weil die Registrierung vor Ort per Stufe 0 bestätigt werden muss. Die Anregung ist freigegeben (F2 ja); Name und Uhrzeit trotzdem ins Protokoll.
+
 ```
 START
  |
@@ -104,8 +105,8 @@ START
  |
  K9  Ende: Sicherung A2, Protokoll abschließen. Immer, auch bei Abbruch.
 
-PFAD A (COM an):  A0, A1, B1, X1 (am Ende), B2, B3, B4 (T0 bis T2) --> Entscheidung Messung --> Zweig D; dazu parallel Zweig C und E in Wartezeiten
-PFAD B (COM aus): A0, A1 (nur Skripte/Datei), Zweig C (File Access auf Kopien), Zweig E, Simulator-Vorführung (EP-1), Prüfzettel ohne COM;
+PFAD A (COM an, Hauptweg):  A0, A1, B1, X1 (am Ende), B2, B3, B4 (T0 bis T2) --> Entscheidung Messung --> Zweig D; dazu parallel Zweig C und E in Wartezeiten
+PFAD B (COM aus, nur Rückfall): A0, A1 (nur Skripte/Datei), Zweig C (File Access auf Kopien), Zweig E, Simulator-Vorführung (EP-1), Prüfzettel ohne COM;
                   mit Anregung: Zweig D manuell in PSV (ohne Programm); PSV-Fehlerbild (X1) dokumentieren
 ```
 
@@ -131,9 +132,9 @@ PFAD B (COM aus): A0, A1 (nur Skripte/Datei), Zweig C (File Access auf Kopien), 
 
 | Nr | Frage | Auswirkung |
 |---|---|---|
-| F1 | **Ist die COM-Registrierung erfolgt** (wer, wann, Befehl)? Ist 10.4 die registrierte Version, und ist 10.2/10.3 noch im Einsatz (A1/A2 vom letzten Mal)? | Pfad A oder B |
-| F2 | **Ist die Anregung (Shaker/Verstärker) freigegeben?** Wofür genau (Mini-Scan, Zwei-Amplituden-Test, Wiederholungsmessung T8)? Bis zu welcher Generator-Amplitude? | Zweig D |
-| F3 | Termin: Datum, Beginn, Ende; **ist ein längerer Termin (z. B. 4 h) möglich?** Ist Daniel erreichbar (Registrierung, Rückfragen)? | Zeitplan (240 min nur nach Klärung), Streichliste |
+| F1 | **Ist die COM-Registrierung erfolgt** (wer, wann, Befehl)? Ist 10.4 die registrierte Version, und ist 10.2/10.3 noch im Einsatz (A1/A2 vom letzten Mal)? | **Beantwortet (Nutzer, 2026-11-05):** COM-Schnittstelle für PSV 10.4 von Daniel registriert; Datum und Befehl unbekannt (vor Ort nachtragen). Pfad A ist Hauptweg. **Offen:** 10.2/10.3 noch im Einsatz? |
+| F2 | **Ist die Anregung (Shaker/Verstärker) freigegeben?** Wofür genau (Mini-Scan, Zwei-Amplituden-Test, Wiederholungsmessung T8)? Bis zu welcher Generator-Amplitude? | **Beantwortet (Nutzer, 2026-11-05):** Anregung von Daniel freigegeben (F2 ja). **Offen:** maximale Generator-Amplitude (0,04 V für D3, F2a); Umfang der Freigabe (Mini-Scan, A-B-A, T8) mit Daniel bestätigen. | Zweig D |
+| F3 | Termin: Datum, Beginn, Ende; **ist ein längerer Termin (z. B. 4 h) möglich?** Ist Daniel erreichbar (Registrierung, Rückfragen)? | **Beantwortet (Nutzer, 2026-11-05):** Mo 2026-11-09, ganzer Tag. **Offen:** Beginn, Ende, Erreichbarkeit von Daniel. | Zeitplan 4.1, Streichliste 4 |
 | F4 | Darf beim Mini-Scan `SaveTimeDataForScan` an sein (setzt Signal Enhancement auf „Fast“, nur Testscan)? Wo dürfen die Zeitdaten-Dateien liegen (Größe unbekannt)? | D1 |
 | F5 | Gibt es eine Waage (Genauigkeit, Messbereich) und darf der Impedanzkopf bzw. die Platte dafür aus dem Aufbau genommen werden? | E1 |
 | F6 | Darf der Laser auf den Impedanzkopf gerichtet werden? **Darf eine kleine Reflexfolie (flach, einige mm²) auf die Stirnfläche des Impedanzkopfs geklebt werden** (Zustimmung Daniel; Spray statt Folie als Alternative)? Wenn nein oder Kopf nicht einsehbar: Ersatzpunkt auf der Plattenvorderseite gegenüber der Kopfmontage. | D2 |
@@ -142,11 +143,10 @@ PFAD B (COM aus): A0, A1 (nur Skripte/Datei), Zweig C (File Access auf Kopien), 
 
 ### 3.2 Auf dem Entwicklungsrechner (Orchestrator/Jakob, **[offen]**, nicht Teil dieses Plans)
 
-- Wheel **0.2.0** (Version entschieden) nach dem letzten Commit neu bauen (`version` in `software/pyproject.toml` auf 0.2.0), **gepusht**, Build-Info mit `git_dirty: false`; Git-Hash und SHA-256 der Wheel-Datei notieren. Dateiname erwartet `ldv_automation-0.2.0-py3-none-any.whl` **[Annahme, Standardschema]**; Ablageort im Repository **[offen]**.
+- Wheel **0.2.0** (Version entschieden) nach dem letzten Commit neu bauen (`version` in `software/pyproject.toml` auf 0.2.0), **gepusht**, Build-Info mit `git_dirty: false`; Git-Hash und SHA-256 der Wheel-Datei notieren. Dateiname `ldv_automation-0.2.0-py3-none-any.whl`; Ablage `stick/wheelhouse/` (erledigt, aktueller Build a0ee2fc, siehe Nachtrag 2026-11-05).
   **Nachtrag 2026-11-03 (erledigt):** gebaut aus 6d84318 (`git_dirty: false`; ersetzt die nicht ausgelieferten Builds f66af80 und b5300e1), abgelegt unter `in_progress/versuche/naechster-termin_messrechner/stick/wheelhouse/`, SHA-256 `e6c3940830e81eb75fa5bd156b9d4563e1e838a5168c10be89f93e432f9bc96f`; Skripte und Hashes in `stick/LIESMICH.txt`. Seit 530af41 geändert: K-ACHSE (Auswertung) und K-2D (COM-Adapter: Hinweise bei fehlender Registrierung/Desktop-Modus, SignalDelay lesen) – die Aussage „Adapter unverändert“ unten gilt damit nicht mehr.
   **Nachtrag 2026-11-05:** Der Build 6d84318 wird durch einen neuen Build mit gleicher Versionsnummer 0.2.0 ersetzt (Reiter „Auswerten“ mit neuen Laufzeitpaketen matplotlib 3.11.2 mit Abhängigkeiten, olefile 0.47, tzdata 2026.6; Pins laut `software/tools/wheelhouse/erzeuge_wheelhouse.py`). Die SHA-256 `e6c39…` gilt danach nur noch für 6d84318. Neuer Build: `ldv_automation-0.2.0-py3-none-any.whl`, Git `a0ee2fc6c870383b898611b7f4299ee15fb94416` (git_dirty false), SHA-256 `68221a3c96f2e42ddc3c72b5f9e83a0b5846a1dc6876a2376f0d5a2dbf1e6bd7`, Ablage `stick/wheelhouse/` zusammen mit den 12 neuen Abhängigkeits-Wheels (SHA-256 in `stick/LIESMICH.txt`).
-  Stand heute (geprüft): Das Wheel in Git ist noch der Build 530af41; im Arbeitsverzeichnis liegen noch nicht eingecheckte Änderungen unter
-  `software/src/ldv_automation/auswertung/` (K-ACHSE, `git status`). Der COM-Adapter ist seit 530af41 **unverändert** (`git diff 530af41..HEAD -- software/src` ist leer).
+  Stand 2026-11-05 (`stick/LIESMICH.txt`): Build a0ee2fc (`git_dirty` false) liegt als Wheel mit 12 Abhängigkeits-Wheels unter `stick/wheelhouse/`, SHA-256 in `stick/LIESMICH.txt`. Commits a0ee2fc (Build-Stand) und ec31e8e (Wheel und Wheelhouse) liegen auf `origin/claude/wizardly-carson-mii3uf` (geprüft 2026-11-06). Die Aussage „COM-Adapter unverändert“ gilt nicht mehr (K-2D, siehe oben).
 - Skripte `erkundung.py`, `einstellungen_lesen.py`, `daten_lesen.py` im aktuellen Stand (nach Review: Exit-Codes, Spaltenlängen) bereitstellen.
 - Für Golden File v2 (C3): `daten_lesen.py` hat eine feste Signalliste (`AUSWAHL`, 8 Signale). Die Namen für Kohärenz, H2, PSD/ESD, Terzen stehen in der Erkundung 1b **nicht**
   (die Erkundung listet nur bis zu 8 Kanäle und 6 Signale je Kanal, `MAX_CHANNELS = 8`, `MAX_SIGNALS = 6`; die Domäne „Terzen“ wird nicht aufgelistet). Entweder die Liste vorher erweitern (Paket SKRIPTE) oder am Termin
@@ -166,11 +166,23 @@ PFAD B (COM aus): A0, A1 (nur Skripte/Datei), Zweig C (File Access auf Kopien), 
 
 ## 4 Zeit, Priorität, Streichreihenfolge
 
-### 4.1 Planung mit ca. 240 min
+### 4.1 Planung: ganzer Tag (Mo 2026-11-09)
 
-Termindauer: **ca. 240 min [Annahme, nach Klärung mit Daniel]** (F3; Jakob klärt z. B. 4 h). Letztes Mal waren es 150 min (14:30 bis 17:00).
-Der **Muss-Block** summiert sich nach den Dauer-Annahmen auf 180 min (A0 15 + A1 20 + B1 15 + B2 20 + B3 30 + B4 50 + A2 30) und passt damit mit T0 bis T2 vollständig hinein.
-Verbleiben ca. 60 min. Die Soll-Punkte summieren sich auf ca. 220 min (D2 40, C2 30, E1 15, C3 20, D3 30, E2 10, D1 50, C4 10, X1 15) und passen **nicht alle**; es gilt die Rangfolge unten.
+Termin: **ganzer Tag** (F3, Nutzer 2026-11-05). Die Tagesreihenfolge übernimmt die Blöcke 1 bis 7 aus `../2026-11-09_pruefdateien-warteschlange/versuchsplan.md`, Abschnitt 5.3 (Dauern dort [A]). Die Tabelle unten gibt Priorität und Dauer je Abschnitt an.
+
+| Block (Versuchsplan 5.3) | Inhalt | Dauer [A] | Abschnitte hier |
+|---|---|---|---|
+| 1 | A0, A1, B1, B2, B3, T1, T2; nebenher C1, C4, C3, C2 | 100 bis 130 min | A0 bis B4, C-Zweig |
+| 2 | Freigabe dokumentieren, `mess_3x3.set` aus Kopie, R, A, B | 20 + 3 × 10 min | Versuchsplan 5.1 |
+| 3 | D2, D3 (Amplitude danach zurück auf 0,02 V) | ca. 70 min | D2, D3 |
+| 4 | Trockenlauf, T4, T5, T6 | ca. 95 min | B4, D5 |
+| 5 | D1 (Zeitdaten-Scan, R als Referenz) | 15 bis 20 min | D1 |
+| 6 | D4 oder Teilraster-Vergleich; nebenher C, E2 | 40 bis 85 min | D4, E2 |
+| 7 | E1, X1, A2 | 60 min | E1, X1, A2 |
+
+**Summe der Blockangaben: 430 bis 510 min** [A]. Die Obergrenze liegt über einem Arbeitstag von ca. 8 h [Annahme]; deshalb gilt die Streichreihenfolge unten. **Hinweis:** Die Blockangabe 100 bis 130 min für Block 1 liegt unter der Summe der Einzeldauern hier (A0 15 + A1 20 + B1 25 + B2 20 + B3 30 + T1 20 + T2 30 = 160 min). Sie setzt voraus, dass C-Punkte in Wartezeiten laufen. [offen: Dauern am Tag prüfen]
+
+Der **Muss-Block** summiert sich nach den Dauer-Annahmen auf 180 min (A0 15 + A1 20 + B1 15 + B2 20 + B3 30 + B4 50 + A2 30) und passt damit mit T0 bis T2 hinein. Die Soll-Punkte summieren sich auf ca. 185 bis 190 min (D2 40, C2 30, E1 15, C3 20, D3 30, E2 10, D1 15 bis 20, C4 10, X1 15). Sie passen am ganzen Tag, aber nicht bei Zeitverlust; es gilt die Rangfolge unten.
 Wartezeiten (Registrierung mit Daniel, Scandauer, Download) werden mit Zweig C und E gefüllt, weil diese weder COM noch Anregung brauchen; dadurch rückt mehr hinein, als die Summe vermuten lässt (nicht belegt).
 
 | Nr | Abschnitt | Dauer (Annahme) | Priorität | Voraussetzung COM | Voraussetzung Anregung | Voraussetzung Datei (Kopie) |
@@ -188,7 +200,7 @@ Wartezeiten (Registrierung mit Daniel, Scandauer, Download) werden mit Zweig C u
 | C3 | Golden File v2 (zuerst H1 Ref2/Ref1) | 20 min | Soll, Rang 4 | nein | nein | ja |
 | D3 | Zwei-Amplituden-Test A-B-A (0,02 / 0,04 / 0,02 V) | 30 min | Soll, Rang 5 | nein | **ja** | nein |
 | E2 | Handbücher 10.4 kopieren | 10 min | Soll, Rang 6 | nein | nein | nein |
-| D1 | Mini-Scan 3×3 mit Zeitdaten (+ Referenzscan) | 45 bis 50 min + Scandauer (ca. 3 min je 3×3) | Soll, Rang 7 | nein (in PSV manuell) | **ja** | nein |
+| D1 | Mini-Scan 3×3 mit Zeitdaten (R aus Block 2 als Referenzscan) | 15 bis 20 min (Versuchsplan 5.3) + Scandauer (ca. 3 min je 3×3) | Soll, Rang 7 | nein (in PSV manuell) | **ja** | nein |
 | C4 | Generator-Dialog **nur ablesen** (Signalform, Burstlänge; Voraussetzung der Leckage-Deutung in D1) | 10 min | **Soll**, Rang 8 | nein | nein | ja (oder PSV-Generatordialog) |
 | X1 | Desktop-Modus bewusst testen, Fehlerbild | 15 min | Soll, Rang 9 (bei COM-Fehler vorziehen) | teilweise (Verbinden wird getestet) | nein | nein |
 | B5 | `PolyMath.PeakFit` per COM mit Testdaten | 20 min | Kann | PolyMath-Typbibliothek registriert (Stufe 0, 150024); ProgID ungeprüft; PSV-Registrierung nicht nötig **[Annahme]** | nein | Testdaten |
@@ -204,22 +216,28 @@ Die Rangfolge der Soll-Punkte (D2 > C2 > E1 > C3 > D3 > E2 > D1 > C4 > X1) stamm
 
 ### Streichreihenfolge bei Zeitmangel (zuerst gestrichen wird oben) [Vorschlag, bitte bestätigen]
 
-Nie gestrichen: A0, A1 (mindestens I1 bis I4), B1 bei funktionierender COM, A2.
+Nie gestrichen: A0, A1 (mindestens I1 bis I4), B1 (bei COM), A2. Nicht pauschal: R, A, B (Block 2, bei Anregung-Freigabe), T4, T5 (Entscheidung vor Ort).
 
-1. **Kann:** D5 ab T5, D4, C7, C6, B5, C8 (M14, M15 zuerst, M13 zuletzt), C5
-2. **Soll (niedrig):** X1 (bei COM-Fehler stattdessen vorziehen), C4 (zusammen mit D1; ohne C4 hat D1 keine Leckage-Aussage), D1
+0. **Vorrang laut Versuchsplan 5.3:** zuerst **D4**, dann **D1**, dann **T6** (Teil von D5).
+1. **Kann:** D5 Rest (T3, T7; T4 und T5 nur nach Entscheidung vor Ort, T6 siehe 0), C7, C6, B5, C8 (M14, M15 zuerst, M13 zuletzt), C5
+2. **Soll (niedrig):** X1 (bei COM-Fehler stattdessen vorziehen), C4 (nicht mit D1 streichen, sondern vor `mess_3x3.set` sichern; ohne C4 hat D1 keine Leckage-Aussage)
 3. **Soll (mittel):** E2, D3, C3
 4. **Soll (hoch):** E1, C2, **D2 zuletzt**
 5. **Muss (zuletzt):** B4 T2 und B3 Test-.set, danach B2
 
-### 4.2 Fall: Termin doch nur ca. 150 min
+### 4.2 Zeitverlust am Tag (ersetzt den früheren Fall 150 min)
 
-Entscheidung beim Termin (K8) nach A0, spätestens nach B1. Verkürzte Reihenfolge nach der Fachprüfung (Vorschlag, bitte bestätigen):
+Der Fall „nur 150 min“ entfällt (F3: ganzer Tag). Wird der Tag knapp (K8, EP-6), gilt diese Reihenfolge. Entscheidung nach A0, spätestens nach B1. Verkürzte Reihenfolge nach der Fachprüfung (Vorschlag, bitte bestätigen):
 1. **A1 kürzen** auf I1 bis I4 und Skripte kopieren (ca. 10 min). Das Wheel-Update (0.2.0) bleibt **Pflicht vor T0** (ca. 5 min; Nutzerentscheidung 2026-11-03: Der COM-Adapter hat sich mit K-2D geändert, die neuen Hinweise werden am Gerät mitgetestet). **B2** nur so weit, wie T1/T2 die Konfigurationsdatei brauchen.
-2. **Bei freigegebener Anregung (F2 ja): D2 vor B3/T2** (und D3 A-B-A am Kopfpunkt gleich dahinter). B3 und T2 (60 min) sind nur Einstellungstests; D2 ist nur dort möglich. Reihenfolge: **A0, B1, T1, D2 (+ D3), dann B3/T2 nach Zeit, E1, E2, A2.**
-3. **D4 und D5 entfallen** (Folgetermin).
+2. **Reihenfolge wie Versuchsplan 5.3:** **A0, B1, T1**, B3/T2 (Block 1), dann R, A, B (Block 2, nur bei freigegebener Anregung), dann **D2 (+D3 A-B-A am Kopfpunkt)**, dann E1, E2, A2. D2 darf vor R, A, B gezogen werden, wenn die Sichtbarkeitsprüfung (höchstens 10 min) schnell gelingt (Versuchsplan 5.3).
+3. **Streichen in dieser Reihenfolge:** D4, dann D1, dann T6 (Versuchsplan 5.3, Abschnitt 4). T4 und T5 entfallen nicht pauschal: Entscheidung vor Ort (Versuchsplan 5.2).
 4. Weitere Soll-Punkte nach der Rangfolge oben, soweit Zeit bleibt. **Sichtbarkeitsprüfung von D2 höchstens 10 min**, sonst Ersatzpunkt.
 Ohne Freigabe der Anregung (F2 nein): normaler Muss-Block, danach C2, E1, C3, E2 (alle ohne Anregung).
+
+### 4.3 Auswerten-Prüfung in Wartezeiten
+
+Die Installation N1 bis N7 (`installation_0.2.0.md`) folgt direkt auf A1 und steuert EP-3. Die Prüfungen W1 bis W10 (`pruefanleitung_auswerten.md`) und `tools/auswertung/zeiten_messen.py` laufen in Wartezeiten, etwa während Scans (D1, D4, T4 bis T6); in der Checkliste stehen sie als Wartezeit-Punkte (Block 6). **[offen: Dauer am Messrechner]**
+**Regeln:** nur Kopien der Beispieldatei `20261012_ref_Mitte.svd` oder neue Dateien, nie das Original und nie im Ordner von PSV; keine Messdaten unter PyCharmProject. W-Tests sind Handtests und gelten erst nach deiner Bestätigung. Schlägt N1 bis N3 fehl, wird nichts weiter installiert (EP-3). Befunde und Zahlen in `protokoll.md`. Gleichzeitige Last mit laufender PSV-Messung ist nicht geprüft **[offen]**; [Vorschlag]: während einer laufenden Messung keine Lesezugriffe auf den PSV-Datenordner.
 
 ## 5 Abschnitte (Weiter / Abbruch / Ersatz)
 
@@ -266,7 +284,7 @@ Ohne Freigabe der Anregung (F2 nein): normaler Muss-Block, danach C2, E1, C3, E2
 Das Update bringt die Frequenzachsen-Korrektur der Auswertung (K-ACHSE) und die überarbeiteten Skripte. Ist das Update nicht erreichbar, entfällt nur die Auswertung, nicht der Termin (EP-3).
 
 **Weg G (Git, bevorzugt, Internet nötig; F7):**
-1. Wheel aus dem Repository holen. Neues Wheel **0.2.0** (`ldv_automation-0.2.0-py3-none-any.whl`; Ablageort im Repository **[offen]**, bisher liegt unter `in_progress/versuche/2026-11-02_prototyp/stick/wheelhouse/` nur der Build 530af41 als 0.1.0; der neue Build liegt noch nicht vor, siehe 3.2). Download im Browser über die GitHub-Seite des Repositorys
+1. Wheel aus dem Repository holen. Neues Wheel **0.2.0** (`ldv_automation-0.2.0-py3-none-any.whl`; Build a0ee2fc liegt auf dem Stick unter `in_progress/versuche/naechster-termin_messrechner/stick/wheelhouse/`, SHA-256 in `stick/LIESMICH.txt`; Git-Ablage **[offen]**, siehe 3.2). Download im Browser über die GitHub-Seite des Repositorys
    (`https://github.com/BuschyBuschmann/BA_Jakob-Busch_P`, Arbeitsbranch `claude/wizardly-carson-mii3uf` bzw. der dann aktuelle Branch) → Datei → „Download raw file“.
    Ob das Repository ohne Anmeldung erreichbar ist, ist **[offen]**; am gemeinsam genutzten Messrechner nicht mit dem persönlichen GitHub-Konto anmelden **[Vorschlag]**. Dann Weg S.
 2. SHA-256 prüfen und mit dem vorab notierten Wert (3.2) vergleichen:
@@ -352,6 +370,7 @@ Nach [anleitung_test_set.md](../2026-11-02_prototyp/anleitung_test_set.md): FFT-
 (Ordner lokal, nicht in Polytec-Ordnern, Standard-Einstellungsdateien nicht überschreiben), **Kopie** anlegen, Rückprobe (Laden zeigt dieselben Werte), alles ins Protokoll Abschnitt 8.
 Die Menübezeichnungen sind im Repository nicht belegt: „in PSV die Funktion … verwenden; genaue Bezeichnung vor Ort“ und die gefundenen Pfade ins Protokoll schreiben.
 **Option [Idee, nicht freigegeben]:** eine zweite Kopie als Mini-Scan-Vorlage (Generator an, Zeitdaten an; D1) nur mit Freigabe der Anregung; die Test-.set für T2/T4 bleibt mit Generator aus (Regel S5).
+*Einordnung:* Die Test-.set hier ist nicht die `mess_3x3.set` aus Versuchsplan Abschnitt 4 (Trockenlauf in Versuchsplan 5.2, Schritt 2). Beide Dateien auseinanderhalten.
 **Weiter:** Rückprobe ok. **Abbruch:** PSV fragt unerwartet, Dialog offen: EP-5. **Ersatz:** Keine Punkte definierbar/Abgleich fehlt: Datei ohne Scanpunkte speichern, T2 nur mit Parameter-Lesen und Laden prüfen, im Protokoll vermerken; ohne COM trotzdem anlegen (für später).
 
 ### B4 Prototyp-Prüfung T0 bis T2 (Muss bei COM)
@@ -459,16 +478,16 @@ Ausgabe durchsehen: Jede Zeile mit „übersprungen“ notieren (Name) und mit d
 **Vor jeder Messung in D:** Freigabe F2 im Protokoll mit Name/Uhrzeit; Aufbau-Foto; Verstärkerstellung (Regler) notieren; Generator-Amplitude und -Typ ablesen; Zieldatei neuer Name; Ordner außerhalb von Repo. Entscheidung (Zeit, Grund) ins Protokoll. Messungen in D laufen **direkt in PSV** (Pfad B tauglich), nur D5 über das Programm (COM).
 **Weiter:** Messung ohne Dialog, Datei vorhanden. **Abbruch:** unerwarteter Dialog, Laser/Spiegel unerwartet, Messung hängt: EP-5. **Ersatz:** keine Freigabe: EP-4.
 
-**D1 Mini-Scan 3×3 mit Zeitdaten (Soll, Rang 7, 45 bis 50 min + Scandauer).**
+**D1 Mini-Scan 3×3 mit Zeitdaten (Soll, Rang 7, 15 bis 20 min + Scandauer, R als Referenzscan).**
 *Zweck* (Fachprüfung): (a) **Eigene FFT je Block** (Rechteckfenster, Skalierung FG-02 2.1) gegen die PSV-Spektren (CP/AP) mit **rtol 1·10⁻⁵** (FG-02 §8); Abweichungen weisen auf Delay-Kompensation oder andere Vorverarbeitung hin. (b) **n_d bestimmen** (offene M5-Frage): eigene Mittelung über die ersten n Blöcke, n = 1 … N, gegen PSV; das passende n ist n_d. (c) **Streuung je Block** gegen das Modell aus FG-02 3.4 (σ_|H|/|H| ≈ √(1−γ²)/(|γ|√(2n))). (d) **Messzeit-Stempel gegen die Rechneruhr (M15):** Start- und Endzeit des Scans aufschreiben. Dazu Dateigröße und Wirkung auf Signal Enhancement.
 *Schritte:* In PSV 3×3-Raster auf dem Blech (Generator an, Amplitude wie in der Beispieldatei 0,02 V **[Annahme; mit Daniel abstimmen]**); die Option **SaveTimeDataForScan** (Name der Eigenschaft in COM; Bezeichnung in der Oberfläche **[offen]**, in den Erfassungseinstellungen suchen; in der Beispieldatei aus, Faktenliste C2) einschalten.
 **Hinweis: SaveTimeDataForScan setzt Signal Enhancement (SE) auf „Fast“.** Vorher Einstellung fotografieren, nach dem Test auf den vorherigen Stand zurückstellen und im Protokoll festhalten.
-*Referenzscan:* Die „Wirkung auf SE“ lässt sich nur mit Referenz klären: **zusätzlich dieselben 9 Punkte ohne `SaveTimeDataForScan`** (vorherige SE-Einstellung), gleiche sonstige Einstellungen; beide Dateien vergleichen (Dauer, Spektren, Zahl erfasster Blöcke je Punkt).
+*Referenzscan:* Die „Wirkung auf SE“ lässt sich nur mit Referenz klären: **R aus Block 2** (9 Punkte, vorherige SE-Einstellung, `SaveTimeDataForScan` aus) dient als Referenzscan (Versuchsplan 5.3), wenn gleiche sonstige Einstellungen gelten; beide Dateien vergleichen (Dauer, Spektren, Zahl erfasster Blöcke je Punkt).
 *Dauer:* ca. 17,8 s je Punkt aus dem Beispielscan (40 min / 135 Punkte, **[Annahme aus altem Plan]**), also ca. 3 min je 3×3-Scan.
 *Dateigröße (F4) grob:* 4000 Samples × 4 B = 16 kB je Block und Kanal **[Annahme: float32]**; bei 25 Blöcken und 8 Kanälen ca. 29 MB für 3×3 und ca. 430 MB für 135 Punkte **[N]**.
 *Leckage:* Die Spitzen der Beispieldatei haben τ = 1/(ζ·2πf) = 0,69 s (160,6 Hz) bzw. 0,46 s (247,7 Hz); nach 1,6 s Blocklänge sind noch 9,9 % bzw. 3,2 % der Amplitude übrig (ζ aus B-1 in M11, **[N]**). Deutung nur mit Burstform und -länge aus **C4** (daher C4 Soll).
 Speichern unter neuem Namen; Dauer, Dateigröße, Zeit pro Punkt notieren. Danach Rückleseprobe mit File Access auf der **Kopie**: sind Zeitdaten lesbar?
-*Voraussetzung:* F2 **ja** und F4 **ja**. **Ersatz:** Anregung nicht freigegeben, aber Scan erlaubt (Laser): Scan **ohne Anregung** nur um Dateigröße, Dauer und Lesbarkeit der Zeitdaten zu klären (Aussagen zu H1/Kohärenz entfallen) **[Idee, braucht Freigabe zum Scannen]**.
+*Voraussetzung:* F2 **ja** (erteilt) und F4 **ja** (**offen**, Abschnitt 3.1). *Einordnung:* Versuchsplan 5.3 Block 5; in der Streichreihenfolge nach D4. R aus Versuchsplan 5.1 dient als Referenzscan, wenn SE und sonstige Einstellungen gleich bleiben **[offen: ob ein zusätzlicher Referenzscan nötig ist]**. **Ersatz:** Anregung nicht freigegeben, aber Scan erlaubt (Laser): Scan **ohne Anregung** nur um Dateigröße, Dauer und Lesbarkeit der Zeitdaten zu klären (Aussagen zu H1/Kohärenz entfallen) **[Idee, braucht Freigabe zum Scannen]**.
 
 **D2 Messpunkt auf dem Impedanzkopf (Soll, Rang 1 (hoch), 30 bis 40 min).**
 *Zweck:* Mit einer Messung drei Fragen beantworten: (1) **Vorzeichen (M8):** Ist Ref2 gegenüber Vib und Ref1 gedreht? (2) **SignalDelay:** Wie groß ist die verbleibende Laufzeit τ_res zwischen Vib und Ref2 bzw. Ref1? (3) **Kalibrierung und Amplitudengang:** gilt |H1(Vib Z/Ref2)|·ω = 1 s·rad/s, auch bis 1000 Hz (zugleich Rest von M7 „Amplitudengang“)?
@@ -503,18 +522,19 @@ Speichern unter neuem Namen; Dauer, Dateigröße, Zeit pro Punkt notieren. Danac
 
 **D3 Zwei-Amplituden-Test A-B-A: 0,02 / 0,04 / 0,02 V an Label 132 (Soll, Rang 5, 30 min + Messdauer).**
 *Zweck:* Linearität prüfen und von Drift trennen: Mit nur zwei Messungen wäre Nichtlinearität von Drift nicht unterscheidbar. Die Beispieldatei wurde mit 0,02 V gemessen (Faktenliste C3). Zusätzlich 0,01 V, **falls freigegeben** (F2).
-*Schritte:* Gleicher Punkt wie Label 132 (gleiches Raster/.set wie `20261012_ref_Mitte`, **[offen]**, ob die .set vorliegt; sonst Punkt per Koordinaten (0,19089 / 0,42602 / −0,23125 m) setzen und notieren). **Reihenfolge A-B-A (0,02 / 0,04 / 0,02 V)**, je Messung nur Sekunden bis Minuten, sonst identische Einstellungen (Generator-Amplitude in PSV, Bezeichnung vor Ort), Verstärkerstellung unverändert und notiert, drei neue Dateinamen.
+*Schritte:* Gleicher Punkt wie Label 132 (gleiches Raster/.set wie `20261012_ref_Mitte`; die .set liegt am Messrechner (Nutzer, 2026-11-05), Name und Pfad vor Ort ablesen; sonst Punkt per Koordinaten (0,19089 / 0,42602 / −0,23125 m) setzen und notieren). **Reihenfolge A-B-A (0,02 / 0,04 / 0,02 V)**, je Messung nur Sekunden bis Minuten, sonst identische Einstellungen (Generator-Amplitude in PSV, Bezeichnung vor Ort), Verstärkerstellung unverändert und notiert, drei neue Dateinamen.
 *Option:* D3 am Kopfpunkt (D2) statt an Label 132 (spart das erneute Anfahren); der Vergleich mit der Beispieldatei gehört dann zu D4.
 *Auswertung:* |H1| und Phase **abseits der Spitzenlinien** (an unaufgelösten Spitzen verändert schon eine kleine Frequenzverschiebung den Linienwert stark, B < Δf); f_r und ζ der Spitzen bei 160,6 und 247,7 Hz über B-1. **Unterschied A-A (Drift) gegen A-B (Nichtlinearität).** Schwelle vorab (zufälliger Fehler, n_d = 7): |H| ≈ 9 % bei γ² = 0,9, 2,7 % bei 0,99, 0,85 % bei 0,999 **[N]**.
-*Erwartung Kohärenz < 60 Hz:* Ist sie rauschbegrenzt, sinkt 1−γ² bei doppelter Amplitude etwa um den Faktor 4. Bleibt sie gleich, liegt Nichtlinearität, Zeitvarianz oder Leckage vor **[N]**. **Ref1-Autospektrum** beider Amplituden vergleichen (Kraft-Verhältnis ≈ 2, sonst Verstärker/Shaker-Sättigung).
-**Voraussetzung:** F2 **ja** (auch für 0,04 V). **Ersatz:** nur 0,02 V freigegeben: Messung zweimal wiederholen (A-A, Reproduzierbarkeit/Drift) statt zweiter Amplitude, im Protokoll klar benennen.
+*Erwartung Kohärenz < 60 Hz:* Ist sie rauschbegrenzt, sinkt 1−γ² bei doppelter Amplitude etwa um den Faktor 4. Bleibt sie gleich, liegt Nichtlinearität, Zeitvarianz oder Leckage vor **[N]**. **Ref1-Kraft** beider Amplituden vergleichen: Betrag bzw. CPH mit Kraftverhältnis ≈ 2, Autospektrum AP mit ≈ 4 (AP ∝ F²). Weicht das ab, Verstärker/Shaker-Sättigung prüfen [N, FG-V1 S5g].
+*Einordnung:* Versuchsplan 5.3 Block 3.
+**Voraussetzung:** F2 **ja** (erteilt, Nutzer 2026-11-05); **0,04 V nur nach Klärung der maximalen Amplitude (F2a, offen)**. **Ersatz:** nur 0,02 V freigegeben: Messung zweimal wiederholen (A-A, Reproduzierbarkeit/Drift) statt zweiter Amplitude, im Protokoll klar benennen.
 
 **D4 Wiederholungsmessung T8 (Kann, nur mit Freigabe; Frage an Daniel F2).** Wie [alter Plan, T8](../2026-11-02_prototyp/ablaufplan_vor_ort.md): zweite Messung am selben Aufbau mit den Einstellungen von `20261012_ref_Mitte` (Vergleich B-5, FG-03 Abschnitt 4); wenn möglich zusätzlich mit neu abgeglichenem/verschobenem Raster; neuer Dateiname; Raumtemperatur Anfang/Ende, Uhrzeit, Änderungen am Aufbau notieren. Direkt in PSV oder über das Programm (Entscheidung ins Protokoll).
-**Scandauer ca. 40 min** (Beispieldatei, Annahme aus dem alten Plan) plus ca. 45 min Vorbereitung; passt nur bei einem langen Termin (Planung 240 min) und nach allen Soll-Punkten, sonst **Folgetermin**. D3 A-B-A deckt die kurzzeitige Reproduzierbarkeit teilweise ab.
+**Scandauer ca. 40 min** (Beispieldatei, Annahme aus dem alten Plan) plus ca. 45 min Vorbereitung; passt in den ganzen Tag (Block 6, Versuchsplan 5.3) und nach allen Soll-Punkten, sonst **Folgetermin**. D3 A-B-A deckt die kurzzeitige Reproduzierbarkeit teilweise ab.
 **Ersatz:** keine Freigabe: entfällt (EP-4); ein verkleinertes Raster (D1) kann den Zweck nur teilweise ersetzen.
 
 **D5 T3 bis T7 über das Programm (Kann, nur nach Entscheidung).** Wie [alter Plan, Abschnitt 8](../2026-11-02_prototyp/ablaufplan_vor_ort.md): T3 Meldungsprobe, T4 erste echte Messung (mit Trockenlauf derselben .set, Startdialog prüfen, 4-1 bis 4-3, 4-1a), T5 Abbruch (5-1, 5-2), T6 Warteschlange (drei Messungen), T7 Speichern/Laden.
-Reihenfolge T4 vor T5 vor T6; nach jedem Abbruchkriterium keine weiteren Messtests. **Voraussetzung:** COM ja, Anregung ja für T4 ff. Der Hardwaretest gilt erst nach deiner Bestätigung.
+Reihenfolge T4 vor T5 vor T6; nach jedem Abbruchkriterium keine weiteren Messtests. *Einordnung:* Versuchsplan 5.2 (T4 bis T6) und 5.3 Block 4 (ca. 95 min); T6 ist in der Streichreihenfolge nach D4 und D1 an der Reihe. **Voraussetzung:** COM ja, Anregung ja für T4 ff. Der Hardwaretest gilt erst nach deiner Bestätigung.
 **Optional [Idee]:** D1 und T4 zusammenlegen (gleiche 3×3-Punkte), steht im Widerspruch zur Regel „Generator in der Test-.set aus“; nur nach eigener Entscheidung.
 
 ### Zweig E: ohne PSV, ohne COM, ohne Anregung
@@ -609,7 +629,7 @@ Kein T4 bis T8, kein Mini-Scan (D1), kein D2/D3, Shaker/Verstärker bleiben vom 
 3. **Spätestens 30 min vor Ende:** A2 beginnen (Sicherung, PSV sauber, Shaker getrennt, Dateien kopieren).
 4. Ein begonnener Messschritt wird zu Ende gebracht oder sauber abgebrochen, nicht abgebrochen „halb“ gelassen.
 5. Gestrichene Punkte landen auf der Liste für den Folgetermin (Prüfzettel unten abhaken/übertragen).
-6. **Termin doch nur ca. 150 min:** verkürzte Reihenfolge nach Abschnitt 4.2 (A1 kürzen, bei freigegebener Anregung D2 vor B3/T2, D4/D5 auf den Folgetermin). D2 und E2 werden nie zusammen gestrichen.
+6. **Zeit wird knapp:** verkürzte Reihenfolge nach Abschnitt 4.2 (A1 kürzen); Streichreihenfolge D4, dann D1, dann T6 (Abschnitt 4). D2 und E2 werden nie zusammen gestrichen.
 
 ### EP-7 File Access scheitert (Ergänzung)
 
@@ -619,10 +639,10 @@ Fehler beim Öffnen (Lizenz VBEng vorhanden, ReadOnly funktionierte am 02.11.): 
 
 ## 7 Offene Punkte und Annahmen dieses Plans
 
-- **[offen]** Datum, Beginn, Ende, Verfügbarkeit von Daniel (F3). **Planung mit ca. 240 min [Annahme, nach Klärung mit Daniel]**; Fall 150 min in 4.2.
-- **[offen]** Registrierung erfolgt? Zustimmung (F1); Freigabe Anregung (F2); Internet/GitHub/Stick (F7); Waage (F5).
+- Datum und Tag bestätigt (Mo 2026-11-09, ganzer Tag, F3). **[offen]** Beginn, Ende, Verfügbarkeit von Daniel.
+- **[offen]** Datum und Befehl der COM-Registrierung (F1, Teilantwort); maximale Amplitude (F2a); Internet/GitHub/Stick (F7); Waage (F5); F4, F6, F8.
 - **[offen]** Ablageort der Skripte und Messdaten am Rechner, ob `PyCharmProject` ein Git-Repository ist (C1 alt).
-- **[offen]** neues Wheel **0.2.0** (Build nach K-ACHSE) existiert noch nicht, Ablageort offen; PeakFit-Signatur und -Modell (B5); Burstform/-länge des Generators (C4); ob SE „Fast“ die SignalDelay ändert; Ref2-SignalDelay; ob PSV die Referenzrichtung im Vorzeichen auswertet (unbelegt, im Handbuch nachsehen); Skripte im aktuellen Stand; Namen für Golden File v2; vorab-Kandidatenprüfung für M11.
+- **[offen]** Wheel **0.2.0** (Build a0ee2fc) liegt als Stick-Paket vor; im Repository abgelegt und gepusht (geprüft 2026-11-06); PeakFit-Signatur und -Modell (B5); Burstform/-länge des Generators (C4); ob SE „Fast“ die SignalDelay ändert; Ref2-SignalDelay; ob PSV die Referenzrichtung im Vorzeichen auswertet (unbelegt, im Handbuch nachsehen); Skripte im aktuellen Stand; Namen für Golden File v2; vorab-Kandidatenprüfung für M11.
 - **[offen]** In welchem PSV-Modus die Auswertung am 02.11. lief; Menübezeichnungen für SaveTimeDataForScan, Generator-Amplitude, Export, Test-.set.
 - **[Annahme]** alle Dauern; Pfade `$ARB`/`$T`; Dateinamensschema; „nach höchstens 30 min Entscheidung“ in EP-1; „5 Minuten“ in EP-5; PolyMath ohne PSV-Registrierung nutzbar; Update nicht nötig für T0 bis T2; Kopf bis 1 kHz starr, Folie masselos (D2); Arbeitstoleranzen in D2 (14 µs, ±5 %).
 - Zahlen mit **[N]** stammen aus Nachrechnungen der Fachprüfung (FD-P3) und sind nicht am Gerät geprüft; ζ ≈ 1,4·10⁻³ für die Kandidaten-Vorabrechnung stammt aus nur zwei Spitzen.

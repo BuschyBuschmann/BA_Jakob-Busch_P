@@ -1,14 +1,14 @@
 # Prüfzettel: nächster Termin am Messrechner (Kurzliste zum Abhaken)
 
-Datum: JJJJ-MM-TT · Start ____ · Ende ____ · geplant ca. 240 min **[Annahme, nach Klärung mit Daniel]**; Kurzfall 150 min: Ablaufplan 4.2 · Daniel erreichbar: ja / nein · Anregung freigegeben: ja / nein (Name, Uhrzeit: ________)
+Datum: 2026-11-09 · Start ____ · Ende ____ · Termin: ganzer Tag (Nutzer 2026-11-05), Tagesreihenfolge: [checkliste_montag.md](checkliste_montag.md); Zeitverlust: Ablaufplan 4.2 · Daniel erreichbar: ja / nein · Anregung freigegeben: ja / nein (Name, Uhrzeit: ________)
 Details und Ersatzpläne: [ablaufplan.md](ablaufplan.md) · Ausfüllen: [protokoll.md](protokoll.md)
 Priorität: **M** Muss · **S** Soll (Rang nach Fachprüfung: D2 > C2 > E1 > C3 > D3 > E2 > D1 > C4 > X1) · **K** Kann · Voraussetzung: **COM** = PSV-COM nötig, **ANR** = Anregung (Freigabe) nötig, **–** keine
-Dauern sind Annahmen. Bei Zeitmangel zuerst Kann streichen, dann Soll von hinten nach vorn; **D2 und E2 nie zusammen** (Ablaufplan, Abschnitt 4).
+Dauern sind Annahmen. Bei Zeitmangel gilt die Streichreihenfolge aus Ablaufplan 4 (zuerst D4, D1, T6); **D2 und E2 nie zusammen** (Ablaufplan, Abschnitt 4).
 
 ## Vorher (zu Hause / Entwicklungsrechner)
 
-- [ ] Fragen F1 bis F8 an Daniel gestellt, Antworten notiert (Registrierung, **Anregung**, **längerer Termin z. B. 4 h**, Waage, **Laser auf Kopf und Reflexfolie auf der Stirnfläche**, Internet/Stick, Handbücher, Zeitdaten)
-- [ ] Wheel **0.2.0** (Stand nach K-ACHSE) gebaut, gepusht, Git-Hash und SHA-256 notiert; Skripte im aktuellen Stand; Stick gepackt
+- [ ] Fragen F1 bis F8 an Daniel gestellt, Antworten notiert (Registrierung, **Anregung**, Termin (F3: ganzer Tag, Nutzer 2026-11-05), Waage, **Laser auf Kopf und Reflexfolie auf der Stirnfläche**, Internet/Stick, Handbücher, Zeitdaten)
+- [x] Wheel **0.2.0** gebaut (Build a0ee2fc, SHA-256 in `stick/LIESMICH.txt`), gepusht; Abhängigkeits-Wheels auf dem Stick · [ ] Skripte im aktuellen Stand und Stick gepackt
 - [ ] Kandidaten für M11 **am Einzelpunkt** vorab geprüft ✔ erledigt: 921,5 / 632,5 / 483,8 Hz (Reserve 949,3 / 644,8)? · Namen für Golden File v2 geklärt oder Skript erweitert?
 - [ ] SHA-256 der vorhandenen Handbücher notiert
 - [ ] Prüfzettel ausgedruckt, Handy/Kamera, Maßband
@@ -16,7 +16,8 @@ Dauern sind Annahmen. Bei Zeitmangel zuerst Kann streichen, dann Soll von hinten
 ## Beim Termin: immer
 
 - [ ] **M** (–) **A0 Schritt 0:** `Get-Process PSV` (höchstens 1), **Erkundung Stufe 0 zuerst**, `PSV.AcquisitionInstance` registriert? → ja: Start über **„PSV 10.4 Deutsch“** (`/Acquisition`), **PID notieren**: ______
-- [ ] **M** (–) **A1 Update:** neues Wheel 0.2.0 (`pip install --upgrade --no-deps`; `--force-reinstall` nur als Rückfall), Skripte neu, I1 bis I7 (I3: `ldv-automation 0.2.0`), Git-Hash passt (`git_dirty` false). Kurzfall: nur I1 bis I4 + Skripte (ca. 10 min)
+- [ ] **M** (–) **A1 Update:** neues Wheel 0.2.0 (`pip install --upgrade --no-deps`; `--force-reinstall` nur als Rückfall), Skripte neu, I1 bis I7 (I3: `ldv-automation 0.2.0`), Git-Hash passt (`git_dirty` false). Bei Zeitverlust: nur I1 bis I4 + Skripte (ca. 10 min)
+- [ ] N1 bis N7 Installationsprüfung Auswerten direkt nach A1 (N1 bis N3 fehlgeschlagen: nichts weiter installieren, EP-3) [4.3]
 - [ ] **M** (–) **A2 Sicherung** (spätestens 30 min vor Ende): Ordner, Protokoll, Fotos, Dateien; PSV sauber; Shaker aus
 
 ## Pfad A (COM funktioniert)
@@ -47,12 +48,13 @@ Ohne Anregung und ohne COM möglich (an **Kopien**, nie am Original):
 - [ ] **K** (–) C6 **UFF-Export** als Gegenprobe; **ATFX und ME'scope wählbar?** (Foto der Formatliste)
 - [ ] **K** (–) C7 **File Access bei in PSV geöffneter Datei** (Kopie): Ergebnis/Fehler notieren
 - [ ] **K** (–) C8 **Restpunkte:** M13 3D-Abgleich-Achsen + Kopfpositionen, offline |n_z| ≈ 1 · M14 Elementindizes (nur wenn Elemente) · M15 Messzeit gegen Rechneruhr (aus D1)
+- [ ] **K** (–) W1 bis W10 Auswerten-Prüfung als Handtest in Wartezeiten (erst nach Bestätigung, Ablaufplan 4.3)
 
 Mit Anregung (nur nach Freigabe **und** eigener Entscheidung je Messung; Shaker sonst aus):
 
 - [ ] **S, Rang 1** (ANR) D2 **Messpunkt auf dem Impedanzkopf** (Sichtbarkeit max. 10 min prüfen; Reflexfolie nur mit Zustimmung Daniel, sonst **Ersatzpunkt Plattenvorderseite**; Winkel θ, Vib X/Y mit; **Datei speichern**, Wiederholung; SignalDelay Vib/Ref1/**Ref2** vor/nach; Kohärenz notieren). **Erwartung: Vib Z/Ref2 = −90° (v gegen a), gedrehter Ref2 = +90°**; |H1|·ω = 1; Vib Z/Ref1 am Treibpunkt in [−90°, +90°]. Entscheidungstabelle im Ablaufplan
 - [ ] **S** (ANR) D3 **Zwei-Amplituden-Test A-B-A 0,02 / 0,04 / 0,02 V** an Label 132 (oder Kopfpunkt); drei neue Dateien, Verstärkerstellung notiert; Ref1-Autospektrum, Kohärenz < 60 Hz
-- [ ] **S** (ANR) D1 **Mini-Scan 3×3 mit Zeitdaten** (`SaveTimeDataForScan`; **setzt Signal Enhancement auf „Fast“**: vorher Foto, danach zurückstellen) **plus Referenzscan ohne Zeitdaten**; Scan-Start/-Ende nach Rechneruhr (M15); Dauer, Dateigröße, Lesbarkeit der Zeitdaten
+- [ ] **S** (ANR) D1 **Mini-Scan 3×3 mit Zeitdaten** (`SaveTimeDataForScan`; **setzt Signal Enhancement auf „Fast“**: vorher Foto, danach zurückstellen) (R aus Block 2 dient als Referenzscan, Dauer 15 bis 20 min, Versuchsplan 5.3); Scan-Start/-Ende nach Rechneruhr (M15); Dauer, Dateigröße, Lesbarkeit der Zeitdaten
 - [ ] **S** (COM teilweise) X1 **Desktop-Modus** einmal bewusst: Start „PSV 10.4 Desktop Deutsch“, Stufe 1, **Fehlerbild notieren**, danach zurück zu Acquisition + Gegenprobe
 - [ ] **K** (ANR, nur nach Freigabe: Frage an Daniel; Scandauer ca. 40 min, sonst Folgetermin) D4 **Wiederholungsmessung T8** (gleicher Aufbau, ggf. Raster neu abgeglichen; Temperatur Anfang/Ende)
 - [ ] **K** (nur nach Entscheidung, ANR bei T4 ff.) D5 T3 bis T7
@@ -66,11 +68,11 @@ Mit Anregung (nur nach Freigabe **und** eigener Entscheidung je Messung; Shaker 
 - [ ] Hängt PSV oder steht ein Dialog: **nichts hektisch klicken** (Foto, Skript Strg+C, Daniel), Ersatzplan EP-5
 - [ ] Nach jedem Abbruchkriterium keine weiteren Messtests
 
-## Kurzfall: Termin doch nur ca. 150 min
+## Zeitverlust am Tag (früher Kurzfall 150 min, entfällt)
 
 - [ ] A1 kürzen (I1 bis I4 + Skripte), B2 nur soweit für T1/T2 nötig
-- [ ] Bei Freigabe der Anregung: **A0, B1, T1, D2 (+ D3 A-B-A am Kopfpunkt)**, dann B3/T2 nach Zeit, E1, E2, A2
-- [ ] D4 und D5 auf den Folgetermin
+- [ ] Reihenfolge (Ablaufplan 4.2, wie Versuchsplan 5.3): **A0, B1, T1**, B3/T2, bei Freigabe R/A/B, dann **D2 (+ D3 A-B-A am Kopfpunkt)**, E1, E2, A2
+- [ ] Streichen in der Reihenfolge **D4, D1, T6** (Ablaufplan 4); T4 und T5 nur nach Entscheidung vor Ort; gestrichene Punkte auf den Folgetermin
 
 ## Ende
 
