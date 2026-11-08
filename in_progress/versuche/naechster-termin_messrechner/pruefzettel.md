@@ -8,7 +8,7 @@ Dauern sind Annahmen. Bei Zeitmangel gilt die Streichreihenfolge aus Ablaufplan 
 ## Vorher (zu Hause / Entwicklungsrechner)
 
 - [ ] Fragen F1 bis F8 an Daniel gestellt, Antworten notiert (Registrierung, **Anregung**, Termin (F3: ganzer Tag, Nutzer 2026-11-05), Waage, **Laser auf Kopf und Reflexfolie auf der Stirnfläche**, Internet/Stick, Handbücher, Zeitdaten)
-- [x] Wheel **0.2.0** gebaut (Build a0ee2fc, SHA-256 in `stick/LIESMICH.txt`), gepusht; Abhängigkeits-Wheels auf dem Stick · [ ] Skripte im aktuellen Stand und Stick gepackt
+- [x] Wheel **0.2.0** gebaut (Build a0ee2fc, SHA-256 in `stick/LIESMICH.txt`), gepusht; Abhängigkeits-Wheels auf dem Stick · [x] Skripte im aktuellen Stand im Repo (`stick/`, Stand 2026-11-08) · [ ] Stick gepackt (Jakob)
 - [ ] Kandidaten für M11 **am Einzelpunkt** vorab geprüft ✔ erledigt: 921,5 / 632,5 / 483,8 Hz (Reserve 949,3 / 644,8)? · Namen für Golden File v2 geklärt oder Skript erweitert?
 - [ ] SHA-256 der vorhandenen Handbücher notiert
 - [ ] Prüfzettel ausgedruckt, Handy/Kamera, Maßband

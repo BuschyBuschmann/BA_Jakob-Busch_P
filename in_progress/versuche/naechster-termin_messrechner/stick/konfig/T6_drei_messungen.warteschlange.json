@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "art": "ldv-warteschlange",
+  "erstellt_utc": "2026-11-06T00:01:53.199250+00:00",
+  "paket_version": "0.2.0",
+  "git_hash": "450b8971fdca4d818f10227f5558646f25bda877",
+  "eintraege": [
+    {
+      "art": "messung",
+      "id": "48007a0b-13bf-4b85-8780-c6c4c09e7267",
+      "name": "T6-M1 3x3 unveraendert",
+      "einstellungsdatei": "D:\\Messdaten\\DAL\\BA Jakob Busch\\vorlagen\\mess_3x3.set",
+      "parameter": {},
+      "zeitlimit_s": 600.0,
+      "notiz": "Reproduzierbarkeit gegen T4"
+    },
+    {
+      "art": "pausenpunkt",
+      "id": "d5ff6940-caed-4d02-b699-8682aa10896a",
+      "text": "Pause: Ergebnis M1 ansehen, dann bestaetigen"
+    },
+    {
+      "art": "messung",
+      "id": "1d0c6c25-6ea9-4aa7-8555-a4cfba6a290f",
+      "name": "T6-M2 Betrag 10",
+      "einstellungsdatei": "D:\\Messdaten\\DAL\\BA Jakob Busch\\vorlagen\\mess_3x3.set",
+      "parameter": {
+        "mittelung.typ": "Magnitude",
+        "mittelung.anzahl": 10
+      },
+      "zeitlimit_s": 900.0,
+      "notiz": "Datei B per Programm; Typ-Setter vorher im Trockenlauf mit Ruecklesen pruefen"
+    },
+    {
+      "art": "messung",
+      "id": "15b2eceb-cf0f-4346-89f8-dcb4ca739d2a",
+      "name": "T6-M3 Fehlerpfad Zeitlimit",
+      "einstellungsdatei": "D:\\Messdaten\\DAL\\BA Jakob Busch\\vorlagen\\mess_3x3.set",
+      "parameter": {},
+      "zeitlimit_s": 90.0,
+      "notiz": "Zeitlimit 90 s < Minimum 100,8 s: Zeitlimit muss ausloesen (Fehlerpfad)"
+    }
+  ]
+}

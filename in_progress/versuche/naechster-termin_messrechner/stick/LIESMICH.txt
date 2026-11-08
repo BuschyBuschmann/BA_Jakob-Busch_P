@@ -40,3 +40,19 @@ d9779870b3743ade705e389bbc42d46f3e7778237397e0f9db30326b4f4a5181  erkundung/date
 7bc6611a93213e171d4e8a10303e8a43d9c9420835c53bef4c7f2c72f31b2ad9  erkundung/einstellungen_lesen.py
 a90d45f135fcfe2594f195191fc2ba48cb189e4a8e42431bc23ffa1616a148d7  erkundung/erkundung.py
 1fa6e3dffc0a982b7cc453b26666a2c1b022701f93a735d30cb5d8b1068d6e53  konfig/beispiel_messrechner.json
+1095f5815b620c015d94ed5248fe12dd9adb98bcd07f117519729a5cdf34ad0a  tools/auswertung/darstellung_beispiel.py
+b4394fe10fa2d50b0b64f57ffb5eadf4d6abfe9086383cb234dc22ccd04d4e15  tools/auswertung/zeiten_messen.py
+ee789c6f88c262410828aed145bdc200f367a4824e57a9d90274201c2c65c46f  konfig/T4_eine_messung.warteschlange.json
+2e55985af1780f5b79461dbf199b32afa05b163fa0a94a17583b71d1d9d58d2c  konfig/T6_drei_messungen.warteschlange.json
+
+Ergänzung 2026-11-08 (Stand Git 321e99b):
+- tools/auswertung/ nach $ARB\tools\auswertung\ kopieren (Pfad wie in pruefanleitung_auswerten.md, W1).
+  zeiten_messen.py: Zeitmessung W1. darstellung_beispiel.py: Vorschau der Thesis-Abbildungen,
+  Ausgabe nur in einen Ordner außerhalb von PyCharmProject und Input; endgültige Abbildungen
+  entstehen in der Cloud (ADR-027). Beide in der Cloud mit dem Wheel a0ee2fc in frischer venv
+  geprüft (Linux; Vorschau an der Beispieldatei Exit 0, Build-Info-Quelle build_info).
+- konfig/T4_…, T6_…: Warteschlangendateien für T4/T6 (Versuchsplan 2026-11-09, 5.2); in der
+  Oberfläche laden, Pfad der .set (D:\Messdaten\DAL\BA Jakob Busch\vorlagen\mess_3x3.set [Annahme])
+  prüfen bzw. anpassen.
+- Weiterhin nötig: numpy, PySide6-Essentials, shiboken6, pywin32 aus
+  in_progress/versuche/2026-11-02_prototyp/stick/wheelhouse/ (falls ohne Internet installiert wird).
