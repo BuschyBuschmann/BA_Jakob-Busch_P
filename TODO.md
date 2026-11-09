@@ -4,7 +4,7 @@ Zentrale Übersicht über offene Aufgaben der Bachelorarbeit. Wird nach jedem Ar
 und jedem Betreuertermin aktualisiert. Details stehen in den verlinkten Dateien.
 
 **Stand:** 2026-11-06
-**Nächster fester Termin:** Mo 2026-11-09 – ganzer Tag am PSV-Messrechner (COM von Daniel registriert, Anregung freigegeben)
+**Nächster fester Termin:** 12. oder 13.11.2026 am PSV-Messrechner (Termin 09.11. ausgefallen, Rechner nicht verfügbar)
 
 Legende: ☐ offen · ◐ in Arbeit · ☑ erledigt · ⏳ wartet auf andere
 
@@ -68,7 +68,9 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☑ | Abbildungsskript für Thesis-Abbildungen (alle 4 Ansichten, Manifest, Git-Regel; ADR-027) | software-engineer | – | Laborbuch 2026-11-06_abbildungsskript |
 | ☐ | Nach 09.11.: .svd-Dateien R/A/B und T4–T6 ins Repo, Abbildungen in der Cloud erzeugen (`darstellung_beispiel.py`), Sichtprüfung durch Jakob | Jakob, Orchestrator | nach 09.11. | ADR-027 |
 | ☐ | Möglicher Auftrag: Hash-Quelle in `protokoll/version.py` robust machen (venv in fremdem Git-Repo) | software-engineer | nach Prüfung am 09.11. | Laborbuch 2026-11-06 |
-| ☐ | Versuch 2026-11-09 Prüfdateien/Warteschlange durchführen | Jakob | Mo 09.11. | `in_progress/versuche/2026-11-09_pruefdateien-warteschlange/`, `checkliste_montag.md` |
+| ☐ | Versuch Prüfdateien/Warteschlange durchführen (09.11. ausgefallen; Ordner beim Termin umbenennen) | Jakob | 12./13.11. | `in_progress/versuche/2026-11-09_pruefdateien-warteschlange/`, `checkliste_montag.md` |
+| ☐ | Vorgaben B1–B10 aus dem Betreuertermin 09.11. ins Lastenheft (`/anforderungs-analyst`), dann planen | Orchestrator, Jakob | – | Laborbuch 2026-11-09_betreuertermin-daniel |
+| ☐ | B10 Recherche: Auswertungsmöglichkeiten über PSV hinaus | literatur-rechercheur, strukturdynamik-experte | – | Laborbuch 2026-11-09_betreuertermin-daniel |
 
 ## 4 Thesis
 
