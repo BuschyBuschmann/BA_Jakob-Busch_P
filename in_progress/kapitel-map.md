@@ -13,12 +13,12 @@ Gliederung: `in_progress/planung/gliederung.md` (Entwurf, vom Nutzer am 2026-11-
 | 3.1 Messprinzip 3D-LDV (Platz offen, G2) | I2 2.1, 7.1 | Material teilweise |
 | 3.2 Signalverarbeitung | FG-02 2–3; I2 3 | Material vorhanden |
 | 3.3 Betriebsschwingformen und Dämpfungsschätzung | FG-02 8; FG-03; ADR-025 | Material vorhanden |
-| 3.4 Anforderungen | Lastenheft; Nachverfolgung | Material vorhanden |
+| 3.4 Anforderungen | Lastenheft; Nachverfolgung; Laborbuch 2026-11-09_betreuertermin-daniel (Vorgaben B1–B10) | Material vorhanden; B1–B10 folgen ins Lastenheft |
 | 3.5 Softwarekonzept | ADR-001 ff., ADR-021, ADR-022, ADR-024 | Material vorhanden |
 | 4.1 Analyse der COM-Schnittstelle | Laborbuch 2026-11-02_messrechner-erster-termin; Erkundungsberichte; Faktenliste 02.11. (Baustein „Bewertung der PSV-Schnittstelle“) | Material vorhanden |
-| 4.2 Ansteuerung und Warteschlange | Lastenheft R-001, R-010–R-024; Prüfanleitung U3; `in_progress/versuche/2026-11-02_prototyp/` | Erprobung am Gerät offen |
+| 4.2 Ansteuerung und Warteschlange | Lastenheft R-001, R-010–R-024; Prüfanleitung U3; `in_progress/versuche/2026-11-02_prototyp/`; Betreuertermin 09.11. (B1 Alignment, B3 Benachrichtigung) | Erprobung am Gerät offen |
 | 4.3 Datenübernahme | ADR-020, ADR-023; Laborbuch 2026-11-03_r023-r055; FG-V1 und Prüfdateien R/A/B (Versuch 2026-11-09) | Material vorhanden; Fenster/Mittelung offen |
-| 4.4 Auswertung und Darstellung | FG-02, FG-03; ADR-021, ADR-024, ADR-025; Laborbuch 2026-11-04/05_auswerten-* | Material vorhanden |
+| 4.4 Auswertung und Darstellung | FG-02, FG-03; ADR-021, ADR-024, ADR-025, ADR-027; Laborbuch 2026-11-04/05_auswerten-*, 2026-11-06_abbildungsskript; Betreuertermin 09.11. (B4–B9) | Material vorhanden |
 | 4.5 Benutzeroberfläche | Design-Briefs; ADR-001, ADR-026 | Material vorhanden |
 | 4.6 Versuchsaufbau und Durchführung | Laborbuch 2026-11-02; Fotos; `in_progress/versuche/` (Baustein „Versuchsaufbau“) | Datenblatt PCB offen |
 | 5.1 Verifikation der Software | Referenzfälle FG-02/FG-03; Testberichte im Laborbuch | Material vorhanden |
