@@ -486,15 +486,19 @@
 }
 
 @misc{pyuff,
+  author       = {{\v C}ermelj, Primo{\v z} and Slavi{\v c}, Janko},
   title        = {pyuff -- Python-Paket zum Lesen und Schreiben von Universal-File-Format-Datensaetzen (u. a. 15, 55, 58, 58b, 82, 151, 164, 2411, 2412)},
-  howpublished = {PyPI / pyuff.readthedocs.io; Teil von SDyPy (sdypy-io)},
-  note         = {Prüfstand: metadaten (Software, nur Suchtreffer 2026-10-29: PyPI-Listung, readthedocs, sdypy-io-Dokumentation). Dokumentationsseiten waren in der Cloud-Sitzung nicht abrufbar. Autoren, Version, Lizenz nicht ermittelt; Jahr-Feld leer. Version vor Zitat festlegen.}
+  howpublished = {PyPI / pyuff.readthedocs.io; Quellcode https://github.com/ladisk/pyuff; Teil von SDyPy (sdypy-io)},
+  note         = {Prüfstand: metadaten (Software). Paket R-B10 (2026-11-09): PyPI-JSON direkt abgerufen: pyuff 2.5.8 (Upload 2026-09-25), Autoren laut PyPI "Primoz Cermelj, Janko Slavic"; unterstuetzte Datensatztypen laut PyPI 15, 55, 58, 58b, 82, 151, 164, 1858, 2400, 2411, 2412, 2414, 2420, 2429, 2467. Lizenz in den PyPI-Metadaten nicht angegeben. Dokumentation (readthedocs) nicht abrufbar. Version vor Zitat festlegen.}
 }
 
 @misc{sdypyema,
+  author       = {Slavi{\v c}, Janko and others},
   title        = {pyEMA / sdypy-EMA -- Python-Paket fuer experimentelle und operationelle Modalanalyse},
-  howpublished = {PyPI (pyEMA, sdypy-EMA)},
-  note         = {Prüfstand: metadaten (Software, nur Suchtreffer 2026-10-29: PyPI-Seiten pyEMA und sdypy-EMA mit gleicher Beschreibung: FRF-Matrix und Frequenzen -> Pole, Stabilitaetsdiagramm, LSFD). Ob LSCF enthalten ist, nicht bestaetigt. Kein JOSS-Artikel gefunden. Autoren/Version/Lizenz nicht ermittelt; Jahr-Feld leer.}
+  howpublished = {PyPI (sdypy-EMA, pyEMA); Quellcode https://github.com/sdypy/sdypy-EMA},
+  year         = {2026},
+  doi          = {10.5281/zenodo.4016671},
+  note         = {Prüfstand: metadaten (Software). Paket R-B10 (2026-11-09): PyPI-JSON direkt abgerufen. sdypy-EMA 0.31.0 (Upload 2026-09-29), Autor laut PyPI "Janko Slavic et al.", Klassifikator MIT-Lizenz, requires-python >=3.10, Abhaengigkeiten numpy, scipy, matplotlib, pyuff, tqdm. pyEMA 0.31.0 (2026-09-29) ist laut PyPI ein Port von sdypy-EMA (gleicher Code; pyEMA bis 0.26 eigenstaendig entwickelt, Nachfolger sdypy-EMA). PyPI-Beschreibung: Klasse Model(frf_matrix, frequency_array, lower, upper, pol_order_high), get_poles(), Stabilitaetsdiagramm select_poles(), select_closest_poles(), nat_freq, nat_xi, get_constants() (rekonstruierte FRF, Modalkonstanten). Zenodo-DOI 10.5281/zenodo.4016671 laut PyPI-Badge (nicht aufgeloest; ob Konzept- oder Versions-DOI, offen). Zugrundeliegender Schaetzalgorithmus (z. B. LSCF) in der PyPI-Beschreibung NICHT genannt; readthedocs/GitHub waren nicht erreichbar. Kein begutachteter Artikel gefunden. Version vor Zitat festlegen (Python 3.11 ist laut requires-python unterstuetzt).}
 }
 
 @misc{scipycoherence,
@@ -549,3 +553,252 @@
   note         = {Prüfstand: ungeprüft. Nur Suchtreffer 2026-11-02, weder Händlerdatei noch Herstellerseite abrufbar (Hosts nicht freigegeben). Von Herstellerseite/Datenblatt laut Zusammenfassung des Suchdienstes: Ausgangspolarität "positive" für Kraft und Beschleunigung, Kraft 100 mV/lb, Beschleunigung 100 mV/g (Werte ungeprüft, nicht zitieren). Jahr/Revision unbekannt.}
 }
 
+% ---------- Paket R-B10 (2026-11-09): Auswertungsverfahren ueber die PSV-Standardauswertung hinaus ----------
+% Pruefstand aller folgenden Eintraege: metadaten (Websuche; doi.org, crossref, sciencedirect, openalex u. a. in der Cloud-Sitzung nicht erreichbar). Vornamen, die in Suchtreffern nicht bestaetigt wurden, sind durch {Nachname} geklammert.
+
+@article{peeters2004polymax,
+  author  = {{Peeters} and {Van der Auweraer} and {Guillaume} and {Leuridan}},
+  title   = {The {PolyMAX} frequency-domain method: a new standard for modal parameter estimation?},
+  journal = {Shock and Vibration},
+  year    = {2004},
+  volume  = {11},
+  number  = {3-4},
+  pages   = {395--409},
+  doi     = {10.1155/2004/523692},
+  note    = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: IOS-Press-, DOAJ- und weitere Indexeinträge nennen Autoren (Peeters, Van der Auweraer, Guillaume, Leuridan), Band 11, Heft 3-4, S. 395-409, DOI 10.1155/2004/523692 übereinstimmend. Vornamen nicht bestätigt. Open Access (DOAJ-Listung). Laut Abstract: nicht-iteratives gewichtetes Least-Squares-Verfahren auf MIMO-FRF, Stabilisierungsdiagramm, Fallstudien Automobil und Luftfahrt. Inhalt nicht gelesen.}
+}
+
+@inproceedings{guillaume2003polyreference,
+  author    = {{Guillaume} and {Verboven} and {Vanlanduit} and {Van der Auweraer} and {Peeters}},
+  title     = {A poly-reference implementation of the least-squares complex frequency-domain estimator},
+  booktitle = {Proceedings of the 21st International Modal Analysis Conference (IMAC XXI)},
+  year      = {2003},
+  note      = {Prüfstand: metadaten, UNSICHER. Geprüft 2026-11-09 über Websuche: Autoren laut Issuu-Kopie (Vibrant Technology); Band 21, 2003, S. 183-192 nur aus einem Zitat in einem Bericht übernommen, daher pages-Feld leer; Ort/Datum der Konferenz nicht geprüft. Originalquelle des poly-reference LSCF, spätere Veröffentlichung als PolyMAX siehe peeters2004polymax. Inhalt nicht gelesen.}
+}
+
+@article{peeters1999ssi,
+  author  = {{Peeters} and {De Roeck}},
+  title   = {Reference-based stochastic subspace identification for output-only modal analysis},
+  journal = {Mechanical Systems and Signal Processing},
+  year    = {1999},
+  pages   = {855--878},
+  doi     = {10.1006/mssp.1999.1249},
+  note    = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: mehrere Aggregatoreinträge (u. a. KU Leuven-Eintrag, peeref, Bohrium) mit DOI und S. 855-878; ein Eintrag nennt fehlerhaft 855-854. Band/Heft nicht in den Treffern bestätigt, Felder leer (1999, MSSP Band 13 vermutet, nicht geprüft). Vornamen nicht bestätigt. SSI mit Referenzsensoren; Ausgangspunkt für OMA/SSI. Wegen Anregung ohne gemessene Kraft für den Hammer-/Shaker-Strukturtest nur ergänzend relevant. Inhalt nicht gelesen.}
+}
+
+@article{reynders2012review,
+  author  = {Reynders, Edwin},
+  title   = {System identification methods for (operational) modal analysis: review and comparison},
+  journal = {Archives of Computational Methods in Engineering},
+  year    = {2012},
+  volume  = {19},
+  number  = {1},
+  pages   = {51--124},
+  doi     = {10.1007/s11831-012-9069-x},
+  note    = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: MaRDI-Portal, Bohrium, SciencEGate-Eintrag mit Autor, Band 19(1), S. 51-124 und DOI übereinstimmend. Übersicht über Identifikationsmodelle (u. a. Subspace, Frequenzbereich) mit Monte-Carlo-Vergleich laut Abstract. Inhalt nicht gelesen.}
+}
+
+@article{reynders2012automated,
+  author  = {Reynders, Edwin and Houbrechts, Jeroen and De Roeck, Guido},
+  title   = {Fully automated (operational) modal analysis},
+  journal = {Mechanical Systems and Signal Processing},
+  year    = {2012},
+  volume  = {29},
+  pages   = {228--250},
+  doi     = {10.1016/j.ymssp.2012.01.007},
+  note    = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: RawDataLibrary-Eintrag und mehrere Folgepublikationen zitieren Autoren, Band 29, S. 228-250 und DOI übereinstimmend. Automatisierte Polselektion aus Stabilisierungsdiagrammen (Clustering). Folgearbeiten (nicht aufgenommen) berichten Einschränkungen für stark gedämpfte Moden, nur als Suchtreffer-Hinweis. Inhalt nicht gelesen.}
+}
+
+@article{pintelon2007uncertainty,
+  author  = {Pintelon, Rik and Guillaume, Patrick and Schoukens, Johan},
+  title   = {Uncertainty calculation in (operational) modal analysis},
+  journal = {Mechanical Systems and Signal Processing},
+  year    = {2007},
+  volume  = {21},
+  pages   = {2359--2373},
+  doi     = {10.1016/j.ymssp.2006.11.007},
+  note    = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: VUB-Forschungsportal (Titel, Journal, Band 21, S. 2359-2373, Juni 2007). DOI nur aus einer Folgepublikation übernommen, nicht aufgelöst; Heftnummer nicht bestätigt (Feld leer). Autorenreihenfolge/Vornamen aus Suchanfrage und Treffern, am Original prüfen. Unsicherheitsgrenzen für Modalparameter aus Identifikation. Inhalt nicht gelesen.}
+}
+
+@inproceedings{richardson1982rfp,
+  author    = {Richardson, M. H. and {Formenti}},
+  title     = {Parameter estimation from frequency response measurements using rational fraction polynomials},
+  booktitle = {Proceedings of the 1st International Modal Analysis Conference (IMAC I)},
+  year      = {1982},
+  pages     = {167--181},
+  note      = {Prüfstand: metadaten, UNSICHER. Geprüft 2026-11-09 über Websuche nur indirekt: ein US-Patent (US5579243) zitiert "M. H. Richardson et al.", Titel, IMAC I, S. 167-181 (Jahr im Patent als 1992 angegeben, IMAC I fand 1982 statt, Patentangabe vermutlich Tippfehler); zweiter Autor (Formenti) nicht in den Treffern bestätigt. Folgearbeiten beschreiben RFP als frequenzgewichtetes Fitverfahren mit Bias. Kein Volltext/Abstract gesehen. Am Original oder IMAC-Katalog prüfen.}
+}
+
+@inproceedings{allemang1982mac,
+  author    = {Allemang, R. J. and Brown, D. L.},
+  title     = {A correlation coefficient for modal vector analysis},
+  booktitle = {Proceedings of the 1st International Modal Analysis Conference (IMAC I)},
+  year      = {1982},
+  pages     = {110--116},
+  note      = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: Literaturlisten in SAE-Mobilus- und SEM/Riverpublishers-Kapiteln geben übereinstimmend Autoren, Titel, 1st IMAC 1982, S. 110-116; wird als Ersteinführung des MAC zitiert. Kein Originaleintrag der Veranstalter gesehen. Inhalt nicht gelesen.}
+}
+
+@inproceedings{lieven1988comac,
+  author    = {Lieven, N. A. J. and Ewins, D. J.},
+  title     = {Spatial correlation of mode shapes, the coordinate modal assurance criterion ({COMAC})},
+  booktitle = {Proceedings of the 6th International Modal Analysis Conference (IMAC VI)},
+  address   = {Orlando, FL},
+  year      = {1988},
+  pages     = {690--695},
+  note      = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: Springer-Referenzwerk-Eintrag (10.1007/978-1-4614-4547-0_17) listet Autoren, Titel (dort "Criteria"; Schreibweise variiert), 6th IMAC, Orlando, Februar 1988, S. 690-695. Originalquelle nicht gesehen. Inhalt nicht gelesen.}
+}
+
+@inproceedings{heylen1996frac,
+  author    = {Heylen, W. and Lammens, S.},
+  title     = {{FRAC}: a consistent way of comparing frequency response functions},
+  booktitle = {Proceedings of the Conference on Identification in Engineering Systems},
+  address   = {Swansea},
+  year      = {1996},
+  pages     = {48--57},
+  note      = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: TIB-Katalogeintrag (Konferenzschrift, "Identification in Engineering Systems", 1996, S. 48-57). Ort Swansea aus Suchtreffer-Zusammenfassung nicht bestätigt; Herausgeber unbekannt. Abstract/Formel nicht gesehen. Sekundärquellen (Altair-Dokumentation u. a.): FRAC liefert Wert zwischen 0 und 1; berücksichtigt Amplitudenunterschiede nicht. Inhalt nicht gelesen.}
+}
+
+@book{heylen1998modal,
+  author    = {Heylen, Ward and Lammens, Stefan and Sas, Paul},
+  title     = {Modal Analysis Theory and Testing},
+  publisher = {Katholieke Universiteit Leuven, Faculty of Engineering},
+  address   = {Leuven},
+  year      = {1998},
+  edition   = {2},
+  note      = {Prüfstand: metadaten, UNSICHER. Geprüft 2026-11-09 über Websuche: Open-Library-Katalogeintrag (Ausgabe 1998, KU Leuven, "2nd ed.") und Inhaltsverzeichnis mit den drei Autoren. Keine ISBN gefunden (Verwechslung mit Silva/Maia, Modal Analysis and Testing, Kluwer 1999, vermeiden). Auflage und Jahr der im Bestand vorhandenen Ausgabe am Exemplar prüfen. Inhalt nicht gelesen.}
+}
+
+@book{brincker2015oma,
+  author    = {Brincker, Rune and Ventura, Carlos},
+  title     = {Introduction to Operational Modal Analysis},
+  publisher = {John Wiley \& Sons},
+  year      = {2015},
+  edition   = {1},
+  isbn      = {978-1-119-96315-8},
+  note      = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: MathWorks-Buchseite, Barnes \& Noble, British-Library-Eintrag (2015; E-Book-ISBN 978-1-118-53515-8). Ein E-Book-Händler nennt 2013 (Widerspruch, nicht übernommen). Operational Modal Analysis (ohne gemessene Anregung): für Strukturtests mit Kraftmessung nur ergänzend. Inhalt nicht gelesen.}
+}
+
+@article{kerschen2006nonlinear,
+  author  = {Kerschen, Gaetan and Worden, Keith and Vakakis, Alexander F. and Golinval, Jean-Claude},
+  title   = {Past, present and future of nonlinear system identification in structural dynamics},
+  journal = {Mechanical Systems and Signal Processing},
+  year    = {2006},
+  volume  = {20},
+  number  = {3},
+  pages   = {505--592},
+  doi     = {10.1016/j.ymssp.2005.04.008},
+  note    = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: HEAL-DSpace (NTUA), HAL (hal-01863233), Illinois Experts, KB-Eintrag mit Autoren, Band 20(3), S. 505-592, DOI übereinstimmend. Übersichtsarbeit zu Erkennung, Charakterisierung und Identifikation von Nichtlinearität; Open-Access-Kopie auf HAL laut Treffer (nicht geprüft). Inhalt nicht gelesen.}
+}
+
+@article{mottershead1993updating,
+  author  = {Mottershead, J. E. and Friswell, M. I.},
+  title   = {Model updating in structural dynamics: a survey},
+  journal = {Journal of Sound and Vibration},
+  year    = {1993},
+  volume  = {167},
+  number  = {2},
+  pages   = {347--375},
+  doi     = {10.1006/jsvi.1993.1340},
+  note    = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: Structurae-Eintrag (JSV 167(2), Oktober 1993, S. 347-375, DOI), weitere Katalogeinträge. Reihenfolge der Autoren und Initialen aus Suchanfrage/Treffern, am Original prüfen. Überblick über FE-Modellabgleich. Inhalt nicht gelesen.}
+}
+
+@book{friswell1995fem,
+  author    = {Friswell, Michael I. and Mottershead, John E.},
+  title     = {Finite Element Model Updating in Structural Dynamics},
+  publisher = {Kluwer Academic Publishers},
+  address   = {Dordrecht},
+  series    = {Solid Mechanics and Its Applications},
+  volume    = {38},
+  year      = {1995},
+  isbn      = {0-7923-3431-0},
+  doi       = {10.1007/978-94-015-8508-8},
+  note      = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: Bibliothekskatalog Texas A\&M, Schweitzer, AbeBooks, Lehmanns (ISBN 0-7923-3431-0 / 978-0-7923-3431-6, 31.03.1995; Seitenzahl uneinheitlich 286/292, nicht übernommen). Softcover-Nachdruck 2010 (ISBN 978-90-481-4535-5) unter Springer. Verlagsort Dordrecht nicht bestätigt. Inhalt nicht gelesen.}
+}
+
+@article{rothberg1989pseudo,
+  author  = {Rothberg, S. J. and Baker, J. R. and Halliwell, N. A.},
+  title   = {Laser vibrometry: pseudo-vibrations},
+  journal = {Journal of Sound and Vibration},
+  year    = {1989},
+  volume  = {135},
+  number  = {3},
+  pages   = {516--522},
+  doi     = {10.1016/0022-460X(89)90705-0},
+  note    = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: Loughborough-Repositorium (Autoren, JSV 135(3), S. 516-522, Verweis auf DOI der Verlagsversion). Ersteinführung des Begriffs Pseudo-Vibration (Speckle-Rauschen, das echte Schwingung vortäuscht). Inhalt nicht gelesen.}
+}
+
+@article{rothberg2006speckle,
+  author  = {Rothberg, S. J.},
+  title   = {Numerical simulation of speckle noise in laser vibrometry},
+  journal = {Applied Optics},
+  year    = {2006},
+  volume  = {45},
+  number  = {19},
+  pages   = {4523--4533},
+  note    = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: Loughborough-Repositorium (Preprint "Speckle Noise in Laser Vibrometry") und Folgepublikationen; Alleinautor, Applied Optics 45(19), S. 4523-4533 aus Suchtreffer-Zusammenfassung. DOI nicht bestätigt, Feld leer. Simulation der Speckle-Rauschentstehung (Qualität/Plausibilität von Vibrometerdaten). Inhalt nicht gelesen.}
+}
+
+@article{martarelli2006speckle,
+  author  = {{Martarelli} and {Ewins}},
+  title   = {Continuous scanning laser {D}oppler vibrometry and speckle noise occurrence},
+  journal = {Mechanical Systems and Signal Processing},
+  year    = {2006},
+  volume  = {20},
+  number  = {8},
+  pages   = {2277--2289},
+  doi     = {10.1016/j.ymssp.2005.06.003},
+  note    = {Prüfstand: metadaten, UNSICHER. Geprüft 2026-11-09 über Websuche: Band, Heft, Seiten (2277-2289) und DOI nur aus der Wikipedia-Seite "Continuous-scan laser Doppler vibrometry" (keine zitierfähige Primärquelle); Abstract über Repositorium der Univ. eCampus bestätigt Titel und Thema (Speckle-Rauschen bei kontinuierlich scannendem LDV). Autoren am Original prüfen (Vornamen offen). Inhalt nicht gelesen.}
+}
+
+@article{yuan2023threed,
+  author  = {Yuan, K. and Zhu, W. D.},
+  title   = {Identification of modal parameters of a model turbine blade with a curved surface under random excitation with a three-dimensional continuously scanning laser {D}oppler vibrometer system},
+  journal = {Measurement},
+  year    = {2023},
+  volume  = {214},
+  pages   = {112759},
+  note    = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: NSF-Public-Access-Repositorium (par.nsf.gov, purl/10451721) und peeref-Eintrag mit Titel, Zeitschrift, Band 214, Artikelnr. 112759. DOI nicht bestätigt, Feld leer. Laut Abstract: 3D-CSLDV auf gekrümmter Oberfläche, Abgleich mit kommerziellem 3D-SLDV (Abweichung der ersten sechs gedämpften Eigenfrequenzen < 1,5 %), Koordinatenbeziehungen der drei Vibrometer zu einem Messkoordinatensystem. Initialen/Vornamen am Original prüfen. Inhalt nicht gelesen.}
+}
+
+@misc{rohe2020alignment,
+  author       = {{Rohe} and {Witt}},
+  title        = {Fast computation of laser vibrometer alignment using photogrammetric techniques},
+  howpublished = {Sandia National Laboratories (Veröffentlichung, Veranstaltung/Zeitschrift nicht bestätigt); OSTI 1642948},
+  year         = {2020},
+  note         = {Prüfstand: metadaten, UNSICHER. Geprüft 2026-11-09 über Websuche: Sandia-Publikationsseiten (Titel, Datum 2020) und OSTI-Treffer (purl/1642948); Autoren Rohe und Witt aus der Suchtreffer-Zusammenfassung, Vornamen, Venue (vermutlich Konferenz, nicht bestätigt) und genaue Zuordnung der OSTI-Nummer nicht verifiziert (sandia.gov und osti.gov in der Cloud-Sitzung nicht abrufbar). Laut Abstract: Ausrichtung (Euler-Winkel) der drei Laserköpfe eines 3D-SLDV relativ zum Testkoordinatensystem per Photogrammetrie statt manueller Messung; manuelle Ausrichtung als unquantifizierte Unsicherheitsquelle genannt. Inhalt nicht gelesen.}
+}
+
+@inproceedings{sauer2010closing,
+  author    = {{Sauer} and {Mariappan} and {Schuessler} and {von der Lieth} and {Stone}},
+  title     = {Closing the data gap between simulation and modal test with virtualized testing for an improved {FE} model update},
+  booktitle = {ANSYS Conference \& 28th CADFEM Users' Meeting},
+  address   = {Aachen},
+  year      = {2010},
+  note      = {Prüfstand: metadaten (Konferenzbeitrag, mit Polytec-Beteiligung; graue Literatur, Herstellerbezug). Geprüft 2026-11-09 über Websuche: PDF auf polytec.com (Treffer, Seite nicht abgerufen), Konferenz 3.-5.11.2010 Aachen laut Polytec-Material. Autorenvornamen nicht bestätigt. Methode laut Zusammenfassung: Koordinatensystem aus FE-Modell, Messpunkte aus FE-Knoten, Roboter-geführtes 3D-SLDV. Inhalt nicht gelesen.}
+}
+
+@misc{pyfrf,
+  author       = {Slavi{\v c}, Janko and Novak, Luka and {\v C}esnik, Martin and others},
+  title        = {pyFRF -- Frequenzgangfunktionen in der Strukturdynamik (Python-Paket)},
+  howpublished = {PyPI (pyFRF, sdypy-FRF); Quellcode https://github.com/ladisk/pyFRF},
+  year         = {2026},
+  note         = {Prüfstand: metadaten (Software). Geprüft 2026-11-09: PyPI-JSON direkt abgerufen: pyFRF 1.5.0 (Upload 2026-10-02), Autoren laut PyPI "Janko Slavic, Luka Novak, Martin Cesnik, et al."; sdypy-FRF 0.3.0 als Namespace-Verweis. Laut PyPI-Beschreibung Schätzer H1, H2, Hv und ODS-FRF, Fenster- und Gewichtungsoptionen, Einheitenformen (z. B. receptance). Hinweis in der Beschreibung auf eine Änderung der Schnittstelle in 1.5.0 (Parameter frf_estimator). Lizenz nicht in den Metadaten. Dokumentation (readthedocs) nicht abrufbar, Inhalte nicht geprüft. Version vor Zitat festlegen.}
+}
+
+@misc{sdypy,
+  author       = {Slavi{\v c}, Janko and others},
+  title        = {SDyPy -- Structural Dynamics Python (Dachpaket und Projekt)},
+  howpublished = {PyPI (sdypy); Quellcode https://github.com/sdypy/sdypy},
+  year         = {2026},
+  note         = {Prüfstand: metadaten (Software). Geprüft 2026-11-09: PyPI-JSON direkt abgerufen: sdypy 0.6.0 (Upload 2026-11-06), MIT-Lizenz laut Beschreibung; Namespace-Pakete sdypy-EMA, -io (0.4.0), -FRF (0.3.0), -excitation (0.2.0), -view (0.2.0, 3D-Darstellung und Animation von Moden auf FE-Netzen über PyVista, Eingabe Knoten, Elemente, Modenform (n_Knoten, 3)), -model (0.2.0, Balken-/Schalen-/Tetraederelemente, in Entwicklung laut Beschreibung). Die Version 0.2.0 von sdypy-view und -model sind jung; Reife nicht geprüft. Dokumentation nicht abrufbar. Version vor Zitat festlegen.}
+}
+
+@techreport{iso2019mobility5,
+  author      = {{ISO}},
+  title       = {Mechanical vibration and shock -- Experimental determination of mechanical mobility -- Part 5: Measurements using impact excitation with an exciter which is not attached to the structure},
+  institution = {International Organization for Standardization},
+  type        = {ISO},
+  number      = {ISO 7626-5:2019},
+  year        = {2019},
+  note        = {Prüfstand: metadaten. Geprüft 2026-11-09 über Websuche: ISO-Katalogseite (iso.org/standard/68735.html, 2. Ausgabe, Dezember 2019, ISO/TC 108, 28 Seiten, kostenpflichtig) in den Treffern, Seite selbst nicht abgerufen. Scope laut Zusammenfassung: Mobilität/Akzelerance/dynamische Nachgiebigkeit mit Impulsanregung (freier Impaktor), DFT-basierte Auswertung. Nicht geprüft: andere Teile der Reihe (z. B. Teil 1/2 zu Grundlagen und Sinusanregung) und deren Ausgabestand. Zugang über Nautos (RWTH) prüfen. Inhalt nicht gelesen.}
+}

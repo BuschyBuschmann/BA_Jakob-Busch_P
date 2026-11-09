@@ -228,3 +228,41 @@ Neu/geändert in `literatur.bib`: neu `polytec2022psvpresentationen`, `pcb288d01
 2. Fitalgorithmus des PSV-Peak-Fit (Fitparameter, Gewichtung, Fenster): in keinem vorliegenden Polytec-Dokument beschrieben.
 3. Amplitudengang/Filter des Geschwindigkeitsdecoders bei "Bandbreite 1 kHz": nicht gefunden.
 4. Exakte Zahl der zusätzlichen SE-Mittelungen je Punkt (Rechenregel): nur die Obergrenzen Faktor 3 (Standard) und 5 (Best) bzw. "bis zu fünffach" belegt.
+
+---
+
+# Ergänzung Paket R-B10 (Stand 2026-11-09): Auswertungsverfahren über die PSV-Standardauswertung hinaus
+
+Neu in `literatur.bib`: 24 Einträge (insgesamt 80 Zeilen mit `@`); geändert: `sdypyema` und `pyuff` (PyPI-Metadaten ergänzt). Prüfstand der neuen Fachquellen: `metadaten`; Python-Pakete: Metadaten direkt von PyPI. Zuordnung Quelle → Verfahren und Verlässlichkeit: `in_progress/literatur/2026-11-09_R-B10_auswertungsverfahren.md`. Cloud-Sitzung ohne Zugriff auf doi.org, crossref, sciencedirect, sandia.gov, osti.gov, readthedocs, github.com.
+
+## Volltext benötigt (R-B10)
+
+| Priorität | bibkey / Angabe | Grund | Zugang |
+|---|---|---|---|
+| A | peeters2004polymax: Peeters, Van der Auweraer, Guillaume, Leuridan, "The PolyMAX frequency-domain method: a new standard for modal parameter estimation?", Shock and Vibration 11(3-4), 395-409, 2004, DOI 10.1155/2004/523692 | Referenz für PolyMAX/LSCF; Formeln nur nach Lesen übernehmen | Open Access laut DOAJ-Listung (Download über DOI) |
+| A | ewins2000modal (siehe L1) | Identifikationsverfahren, MAC, ggf. Linearitätsprüfung; Ausgabe klären | Bibliothek |
+| A | rohe2020alignment: Rohe, Witt (Sandia), "Fast computation of laser vibrometer alignment using photogrammetric techniques", 2020 (OSTI 1642948 laut Suchtreffer) | Einzige gefundene Quelle zur Ausrichtung der Laserköpfe und deren Unsicherheit bei 3D-SLDV (B1); Venue/Autorennamen offen | OSTI (frei laut Treffer), sandia.gov/osti.gov bitte als PDF bereitstellen |
+| B | allemang1982mac; lieven1988comac; heylen1996frac (Angaben siehe .bib) | Originale für MAC, COMAC, FRAC; Formeln und Randbedingungen | IMAC-Proceedings (SEM) über UB; FRAC: Proceedings Swansea 1996 (TIB-Katalog), evtl. Fernleihe |
+| B | kerschen2006nonlinear (MSSP 20(3), 505-592, DOI 10.1016/j.ymssp.2005.04.008) | Nichtlinearitätsprüfung/-erkennung | RWTH; Open-Access-Kopie auf HAL (hal-01863233) laut Treffer |
+| B | yuan2023threed (Measurement 214, 112759) | Koordinatensysteme bei 3D-Messung auf gekrümmter Fläche; Kopie par.nsf.gov/servlets/purl/10451721 laut Treffer | RWTH; NSF-Repositorium |
+| B | friswell1995fem; mottershead1993updating | FE-Abgleich, Parameterwahl, Metriken | Bibliothek bzw. RWTH |
+| B | rothberg1989pseudo; rothberg2006speckle | Speckle/Pseudovibration, Plausibilität von Rohdaten | Loughborough-Repositorium (Manuskript frei laut Treffer) bzw. RWTH |
+| B | pintelon2007uncertainty (MSSP 21, 2359-2373, 2007) | Unsicherheit von Modalparametern | RWTH |
+| B | sauer2010closing (Polytec/ANSYS-Konferenzbeitrag, 2010) | FE-getriebene Messpunkte, Alignment; Herstellerbezug | PDF auf polytec.com (Treffer), bitte als PDF bereitstellen |
+| B | Dokumentation der festgelegten Version von sdypy-EMA, pyuff, pyFRF, sdypy-view (readthedocs.io) | Algorithmus (LSCF?), Parameter, Lizenz; heute nicht abrufbar | Als PDF/Screenshot, oder readthedocs.io/github.com für die Cloud-Sitzung freigeben |
+| B | Polytec-Handbuchabschnitte (im Repo) zu Darstellung, Animation, Koordinatensystemen, Alignment (PSV 10.x) | B6-B8: Vorbild der PSV-Visualisierung; nur gezielt zu lesen | Repo (`Input/literatur/polytec/`), Auswertungspaket nötig |
+| C | richardson1982rfp; guillaume2003polyreference; peeters1999ssi; reynders2012review; reynders2012automated; brincker2015oma; heylen1998modal; iso2019mobility5 | Ergänzend / Ursprung der Verfahren; teils Angaben unsicher | IMAC-Proceedings, RWTH, Nautos (ISO) |
+
+## Unsichere Angaben (am Original klären)
+
+- richardson1982rfp: zweiter Autor, Jahr (Patent nennt 1992, IMAC I war 1982).
+- guillaume2003polyreference: Seiten 183-192 und Autoren nur aus Sekundärquellen.
+- heylen1998modal: Auflage/Jahr, keine ISBN gefunden.
+- martarelli2006speckle: Autoren/Band/Seiten/DOI nur über Wikipedia belegt.
+- pintelon2007uncertainty: DOI nur aus Folgezitat, Heft offen.
+- rohe2020alignment: Venue, Vornamen, Zuordnung OSTI-Nummer.
+- peeters1999ssi: Band/Heft.
+
+## Lücken (R-B10)
+
+Siehe Abschnitt 3 der Notiz `2026-11-09_R-B10_auswertungsverfahren.md` (u. a. Herleitung Flächennormale/lokales KOS, Unsicherheit der 3D-Zerlegung, aerospace-spezifische Auswerterichtlinie, Algorithmus von sdypy-EMA).
