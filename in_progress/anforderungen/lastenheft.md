@@ -9,6 +9,8 @@
 - **K**: `KONVENTIONEN.md` (vom Nutzer freigegeben)
 - **L**: Laborbuch `2026-11-02_messrechner-erster-termin` und Übersicht `in_progress/analysen/2026-11-02_nach-termin_uebersicht.md` (Abschnitt 2b)
 - **N3**: Entscheidung Nutzer vom 2026-11-03 (Lastenheft-Ergänzung)
+- **B**: Betreuertermin mit Daniel am 2026-11-09 (Laborbuch `2026-11-09_betreuertermin-daniel`, Vorgaben B1–B10)
+- **N4**: Entscheidung Nutzer vom 2026-11-09 (Lesart der Vorgaben B1, B3, B5; Priorität aller Vorgaben: Muss)
 
 **Priorität:** Muss (Kern der Arbeit) · Soll (wichtig) · Kann (falls Zeit bleibt).
 **Status:** offen · abgestimmt · gestrichen.
@@ -24,6 +26,7 @@ Technischer Hintergrund zur Machbarkeit (keine Anforderungsquelle):
 |---|---|---|---|---|---|
 | R-001 | Die Software steuert die PSV-Software über die COM-Schnittstelle: Verbindung herstellen, Einstellungen laden bzw. setzen, Scan starten, Fortschritt überwachen, Messdatei speichern. | Muss | A, N | Am Messrechner führt die Software eine Messung mit vorgegebener Einstellung aus; die Messdatei liegt danach am vorgegebenen Pfad. Derselbe Ablauf läuft automatisiert gegen den Simulator (siehe R-061). | offen |
 | R-002 | Vor dem Start eines Durchgangs warnt die Software, wenn mehr als ein PSV-Prozess läuft; die Prozess-IDs stehen im Messprotokoll. | Soll | L, N3 | Bei zwei laufenden PSV-Prozessen erscheint vor dem Start eine Warnung und beide PIDs stehen im Protokoll; bei genau einem Prozess erscheint keine Warnung. | offen |
+| R-003 | Die Software führt den 2D- und den 3D-Abgleich (Alignment) der PSV über die COM-Schnittstelle aus und schreibt Status und Ergebnis des Abgleichs ins Messprotokoll. | Muss | B (B1), N4 | Am Messrechner wird ein 2D- und ein 3D-Abgleich aus der Software gestartet; das Messprotokoll enthält danach Zeitpunkt, Art und Ergebnis des Abgleichs (welche Ergebniswerte: O9). | offen |
 
 ## 2 Mess-Warteschlange (Schritt 1)
 
@@ -49,6 +52,7 @@ Technischer Hintergrund zur Machbarkeit (keine Anforderungsquelle):
 | R-022 | Die Messdaten werden aus den Messdateien nach Python übernommen. | Muss | A, E (U4) | Spektren einer Messdatei liegen in Python mit Frequenzachse und Einheiten vor und stimmen mit der Anzeige in der PSV-Software überein. | offen |
 | R-023 | Das Messprotokoll (R-020) enthält ausdrücklich Δf, f_max, Linienzahl und Blockdauer (SampleTime). | Muss | L, N3 | Die vier Angaben stehen mit Einheit in jedem Protokoll. | offen |
 | R-024 | Nach jedem Scan wird die Frequenzachse der Messdatei mit der Einstellung abgeglichen; Abweichungen werden gemeldet. | Muss | L, N3 | Linienzahl und Δf der Datei werden mit der Einstellung verglichen; bei Abweichung steht eine Warnung im Protokoll, bei Übereinstimmung der Vermerk „Achse geprüft“. Toleranz für Δf: offene Frage O7. | offen |
+| R-025 | Die Software benachrichtigt den Nutzer, wenn eine Messung fertig ist, ein Durchgang abgeschlossen ist, eine Messung fehlschlägt oder abbricht und wenn ein Pausenpunkt erreicht ist; Kanal bevorzugt Webex, alternativ E-Mail. | Muss | B (B3), N4 | In jedem der vier Fälle geht eine Nachricht mit Messungsname, Ereignis und Uhrzeit über den eingestellten Kanal heraus (Kanal und Zugang: O10). | offen |
 
 ## 4 Oberfläche
 
@@ -72,10 +76,16 @@ Technischer Hintergrund zur Machbarkeit (keine Anforderungsquelle):
 | R-051 | Übertragungsfunktionen (H1/H2) und Kohärenz werden dargestellt, sofern die Messung einen aktiven Referenzkanal hatte. | Muss | A, N | Für eine Messung mit Referenzkanal werden H1, H2 und Kohärenz dargestellt; Werte stimmen mit der PSV-Software überein. Einheit hängt von der Referenz ab (O4). | offen |
 | R-052 | Betriebsschwingformen werden bei gewählter Frequenz auf der Messgeometrie dargestellt. | Muss | A, N | Bei gewählter Frequenz wird die Schwingform auf der Geometrie dargestellt; ohne Referenz oder Trigger wird nur der Betrag gezeigt und das kenntlich gemacht. | offen |
 | R-053 | Peak-Suche mit Resonanzfrequenz und Dämpfungsschätzung (−3-dB-Breite) sowie Frequenzbänder mit RMS-Werten. | Muss | A, N | Für eine Messdatei werden Peaks mit Frequenz und Dämpfungsschätzung sowie Band-RMS-Werte ausgegeben; Werte stimmen mit der PSV-Software bzw. mit analytischen Referenzfällen überein. | offen |
-| R-054 | Weitergehende Auswertung (z. B. Plausibilitätsprüfungen, Vergleich von Messungen, Modalanalyse). | gestuft | E (U6) | Umfang wird am Entscheidungspunkt nach der Machbarkeitsphase festgelegt. | offen |
+| R-054 | Weitergehende Auswertung (z. B. Plausibilitätsprüfungen, Vergleich von Messungen, Modalanalyse). | gestuft | E (U6) | Umfang wird am Entscheidungspunkt nach der Machbarkeitsphase festgelegt. | offen; Vergleich von Messungen als Muss in R-058 (B, 2026-11-09); weitere Verfahren nach Recherche B10 |
 | R-055 | Jede Dämpfungsangabe nennt die Bandgrenzen und die Methode (z. B. −3-dB-Breite, Modenfit). | Muss | L, N3 | Zu jedem ausgegebenen ζ stehen untere und obere Bandgrenze in Hz und der Name der Methode. | offen |
 | R-056 | Gespeicherte Zeitdaten werden gelesen; Spektren und H1 werden unabhängig von PSV berechnet. | Kann | L, N3 | Für eine Messdatei mit Zeitdaten stimmen die eigenen Spektren bzw. H1 mit PSV überein. Toleranz: offene Frage O8. | offen |
 | R-057 | Plausibilitätsprüfung: Masse aus der Massenlinie geschätzt und gegen die gewogene Masse gestellt. | Kann | L, N3 | Geschätzte und gewogene Masse werden gemeinsam mit ihrer Abweichung ausgegeben. Toleranz: offene Frage O8. | offen |
+| R-058 | Zwei oder mehr Messungen lassen sich vergleichen; ihre Auswertungen lassen sich nebeneinander darstellen. | Muss | B (B4) | Zwei Messdateien sind gleichzeitig geöffnet; dieselbe Ansicht (z. B. Spektrum oder FRF) erscheint für beide nebeneinander bzw. überlagert und eindeutig beschriftet. | offen |
+| R-059 | Der Nutzer kann eigene Diagramme zusammenstellen: frei wählbare Größen, Messpunkte und Messungen in einem Diagramm. | Muss | B (B5), N4 | Aus mindestens zwei Messpunkten oder Messungen entsteht ein gemeinsames Diagramm mit gewählter Größe (z. B. \|H1\| oder Kohärenz) und Legende; es lässt sich als Bild speichern. | offen |
+| R-070 | Messwerte lassen sich in ein lokales Koordinatensystem der Messfläche transformieren (Komponente normal zur Oberfläche und tangential, z. B. bei kugelförmigen Formen). | Muss | B (B6) | Für eine Messgeometrie mit gekrümmter Fläche zeigt die Software die Normalkomponente je Punkt; an einem Referenzfall mit bekannter Normale stimmt sie mit dem Sollwert überein (Formen, Normale, Toleranz: O11). | offen |
+| R-071 | Betriebsschwingformen lassen sich als Animation darstellen. | Muss | B (B7) | Bei gewählter Frequenz zeigt die Software eine animierte Schwingform auf der Messgeometrie; die Phase der Bewegung entspricht der dargestellten Phase. | offen |
+| R-072 | Die Visualisierungen der PSV-Software werden in der Software nachgebildet. | Muss | B (B8) | Für jede Ansicht der Liste aus O12 gibt es eine Entsprechung in der Software. | offen |
+| R-073 | Ausschnitte lassen sich einfach darstellen: Achsenbereiche (Frequenz, Betrag, Phase) und Skalierung (linear/logarithmisch) sind direkt einstellbar. | Muss | B (B9) | In jeder Diagrammansicht lassen sich unterer und oberer Achsenwert eingeben und die Skalierung umschalten; die Einstellung bleibt beim Wechsel des Messpunkts erhalten. | offen |
 
 ## 7 Qualität und Rahmen
 
@@ -89,6 +99,8 @@ Technischer Hintergrund zur Machbarkeit (keine Anforderungsquelle):
 
 Noch nicht festgelegt; mit dem Betreuer zu klären (Erwartungsmanagement F19).
 
+- Bedienung von einem anderen Rechner über eine eigene Netzsteuerung; Fernbedienung erfolgt über Remotedesktop (B, B2).
+
 ## 9 Offene Fragen
 
 | Nr. | Frage | Auswirkung | Bezug |
@@ -101,6 +113,10 @@ Noch nicht festgelegt; mit dem Betreuer zu klären (Erwartungsmanagement F19).
 | O6 | Darf Python 3.11 mit pywin32 auf dem Messrechner installiert werden? **Beantwortet (L, 02.11.):** ja, Python 3.11.9 und pywin32 312 installiert, I1–I7 bestanden. | Voraussetzung für R-001 am Gerät | Erwartungsmanagement F4 |
 | O7 | Mit welcher Toleranz gilt Δf aus der Datei als gleich der Einstellung? | Prüfkriterium von R-024 | R-024 |
 | O8 | Welche Abweichung ist bei R-056 (Spektren/H1 gegen PSV) und R-057 (Masse) zulässig? | Prüfkriterien der Kann-Anforderungen | R-056, R-057 |
+| O9 | Welche Ergebnisse des 2D- und 3D-Abgleichs sollen ins Protokoll (z. B. Restfehler, Konditionszahl, Punktanzahl)? Darf die Software den Abgleich ohne Aufsicht starten? | Akzeptanzkriterium und Ablauf von R-003 | R-003 |
+| O10 | Webex: über welches Konto bzw. welchen Bot, in welchen Raum, institutszulässig? E-Mail: über welchen Server, an welche Adresse? | Machbarkeit und Kanal von R-025 | R-025 |
+| O11 | Welche Formen für die Transformation (Kugel, Zylinder, Freiform)? Woher kommt die Normale (PSV-Geometrie oder vorgegebene Form)? Welche Toleranz? | Umfang und Prüfkriterium von R-070 | R-070 |
+| O12 | Welche PSV-Visualisierungen genau sollen übernommen werden (z. B. Farbdarstellung auf der Geometrie, Kurvenansichten, Mittelwertansicht, Animation)? | Prüfliste von R-072 | R-072 |
 
 ## Änderungsprotokoll
 
@@ -108,3 +124,4 @@ Noch nicht festgelegt; mit dem Betreuer zu klären (Erwartungsmanagement F19).
 |---|---|---|
 | 2026-10-26 | Erstfassung (R-001 bis R-062, O1 bis O6) | A, E, N, K |
 | 2026-11-03 | R-002, R-023, R-024, R-032, R-055, R-056, R-057 ergänzt; O2, O5 teilweise und O4, O6 beantwortet; O7, O8 neu | L, N3 |
+| 2026-11-09 | R-003, R-025, R-058, R-059, R-070–R-073 ergänzt (Muss); R-054 Status ergänzt; Abgrenzung Netzsteuerung; O9–O12 neu | B, N4 |

@@ -8,6 +8,7 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 |---|---|---|---|---|---|
 | R-001 | `geraet/com/adapter.py` (U3) | `tests/geraet_com/*` (gegen COM-Fake) | Laborbuch 2026-10-26_u3, 2026-11-02_messrechner-erster-termin, 2026-11-02_k2d-psv-einblicke-code (Registrierungs-/Desktop-Hinweis); Prüfanleitung U3 | – | getestet (Fake), am Gerät offen (COM nicht registriert, 02.11.) |
 | R-002 | – | – | – | – | offen |
+| R-003 | – | – | – | – | offen |
 | R-010 | `ablauf/steuerung.py` (U2) | `test_u2_1_*` | Laborbuch 2026-10-26_u2 | – | getestet (Simulator) |
 | R-011 | `domaene/eintraege.py`, `domaene/parameter.py` (U1) | `tests/domaene/test_domaene_parameter.py`, `test_domaene_eintraege.py` | Laborbuch 2026-10-26_u1 | – | umgesetzt (Domäne; Ablauf in U2) |
 | R-012 | `domaene/warteschlange.py` (U1) | `test_u1_1_*` | Laborbuch 2026-10-26_u1 | – | getestet (Domäne) |
@@ -23,6 +24,7 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-022 | `software/tools/svd_analyse/svd_lesen.py` (W2, Prototyp) | `tests/tools/svd_analyse/*` (72 Plausibilitätsprüfungen an der Beispieldatei) | Laborbuch 2026-10-29_w2, 2026-11-02_messrechner-erster-termin; Golden File `golden_punkt1_label132.csv` | – | gegen PSV geprüft (Werte bitgleich), Frequenzachse korrigiert (K-ACHSE, bbb539a), Golden-File-Test |
 | R-023 | `protokoll/messprotokoll.py` (`frequenzachse`, schema 2), `ablauf/steuerung.py` | `tests/protokoll/test_protokoll_module.py`, `tests/ablauf/test_ablauf_akzeptanz.py` | Laborbuch 2026-11-03_r023-r055 | – | getestet (Simulator), am Gerät offen |
 | R-024 | – | – | – | – | offen |
+| R-025 | – | – | – | – | offen |
 | R-030 | `gui/` (U4) | `tests/gui/*` (gui-Marker), Handtest-Checkliste U4 | Laborbuch 2026-10-27_u4 | – | umgesetzt (Handtest offen) |
 | R-031 | `sitzung.py` (U2), `gui/anzeige.py`, `gui/tabelle.py` (U4) | `test_u2_12_*`, UI-7/UI-8 | Laborbuch 2026-10-26_u2, 2026-10-27_u4 | – | getestet (Simulator) |
 | R-032 | `gui/auswerten_reiter.py` u. a. (T3a/T3b), `auswertung/laden.py` (`Dateieinstellungen`), Mittelung im Leser | `test_aw_laden*.py`, `test_svd_lesen.py` | Laborbuch 2026-11-03_auswerten-t1 bis 2026-11-05_auswerten-t5 | – | getestet (Simulator/Datei, offscreen, T1–T5); Fenster nicht lesbar, Mittelung plausibel; am Messrechner offen (Prüfanleitung) |
@@ -35,6 +37,12 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-055 | `auswertung/export.py` (Stufe 1), `auswertung/stufe2.py` (B-1), `daempfung` | `test_aw_export_werkzeuge.py`, `test_aw_stufe2.py` | Laborbuch 2026-11-03_r023-r055 | – | getestet (Datei) |
 | R-056 | – | – | – | – | offen |
 | R-057 | – | – | – | – | offen |
+| R-058 | – | – | – | – | offen |
+| R-059 | – | – | – | – | offen |
+| R-070 | – | – | – | – | offen |
+| R-071 | – | – | – | – | offen |
+| R-072 | – | – | – | – | offen |
+| R-073 | – | – | – | – | offen |
 | R-060 | `pyproject.toml` (`requires-python >=3.11,<3.12`) | gesamte Testsuite unter Python 3.11 | Laborbuch 2026-10-27_u4 | – | umgesetzt |
 | R-061 | `geraet/simulator.py` (U2), COM-Fake (U3) | gesamte Testsuite | Laborbuch 2026-10-26_u2, _u3 | – | umgesetzt |
 | R-062 | Standard-Prüfung aus KONVENTIONEN | ruff, mypy --strict, pytest ≥ 90 % (97,95 %) | Laborbuch 2026-10-27_u5 | – | umgesetzt |
