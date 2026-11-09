@@ -1,10 +1,10 @@
-<!-- Fachgrundlage FG-04: Animation der Betriebsschwingform (R-071). Erstellt im Paket FG-04 von strukturdynamik-experte, Stand 2026-11-09. Entwurf, Freigabe durch den Nutzer ausstehend. -->
+<!-- Fachgrundlage FG-04: Animation der Betriebsschwingform (R-071). Erstellt im Paket FG-04 von strukturdynamik-experte, Stand 2026-11-09. Vom Nutzer am 2026-11-09 freigegeben. -->
 
 **Freigabe:** vom Nutzer am 2026-11-09 freigegeben, mit den Empfehlungen E1–E5 und Annahme A-1 (3D-Punkt bewegt sich nur bei drei gültigen Komponenten).
 
 # FG-04 – Animation der Betriebsschwingform (R-071)
 
-> **Status:** Entwurf vom 2026-11-09, **Freigabe durch den Nutzer ausstehend.** Baut auf FG-02 (Abschnitte 2, 3.4, 3.6, 3.7), FG-03 (Abschnitt 5.3) und ADR-025 auf. Widerspricht keiner freigegebenen Festlegung, **präzisiert** aber FG-02 3.6 an einer Stelle (Abschnitt 3.1: dort ist der „Momentanwert für die Animation“ die Schnelle, nicht die Auslenkung). Die Koordinatentransformation (R-070) ist nicht Teil.
+> **Status:** vom Nutzer am 2026-11-09 freigegeben (E1–E5, A-1). Baut auf FG-02 (Abschnitte 2, 3.4, 3.6, 3.7), FG-03 (Abschnitt 5.3) und ADR-025 auf. Widerspricht keiner freigegebenen Festlegung, **präzisiert** aber FG-02 3.6 an einer Stelle (Abschnitt 3.1: dort ist der „Momentanwert für die Animation“ die Schnelle, nicht die Auslenkung). Die Koordinatentransformation (R-070) ist nicht Teil.
 
 ## 1 Zweck und Umfang
 
