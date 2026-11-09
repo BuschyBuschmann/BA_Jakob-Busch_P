@@ -26,7 +26,10 @@ Technischer Hintergrund zur Machbarkeit (keine Anforderungsquelle):
 |---|---|---|---|---|---|
 | R-001 | Die Software steuert die PSV-Software über die COM-Schnittstelle: Verbindung herstellen, Einstellungen laden bzw. setzen, Scan starten, Fortschritt überwachen, Messdatei speichern. | Muss | A, N | Am Messrechner führt die Software eine Messung mit vorgegebener Einstellung aus; die Messdatei liegt danach am vorgegebenen Pfad. Derselbe Ablauf läuft automatisiert gegen den Simulator (siehe R-061). | offen |
 | R-002 | Vor dem Start eines Durchgangs warnt die Software, wenn mehr als ein PSV-Prozess läuft; die Prozess-IDs stehen im Messprotokoll. | Soll | L, N3 | Bei zwei laufenden PSV-Prozessen erscheint vor dem Start eine Warnung und beide PIDs stehen im Protokoll; bei genau einem Prozess erscheint keine Warnung. | offen |
-| R-003 | Die Software führt den 2D- und den 3D-Abgleich (Alignment) der PSV über die COM-Schnittstelle aus und schreibt Status und Ergebnis des Abgleichs ins Messprotokoll. | Muss | B (B1), N4 | Am Messrechner wird ein 2D- und ein 3D-Abgleich aus der Software gestartet; das Messprotokoll enthält danach Zeitpunkt, Art und Ergebnis des Abgleichs (welche Ergebniswerte: O9). | offen |
+| R-003 | Die Software führt den 2D- und den 3D-Abgleich (Alignment) der PSV über die COM-Schnittstelle aus und schreibt Status und Ergebnis des Abgleichs ins Messprotokoll. | Muss | B (B1), N4 | Am Messrechner wird ein 2D- und ein 3D-Abgleich aus der Software gestartet; das Messprotokoll enthält danach Zeitpunkt, Art und Ergebnis des Abgleichs (welche Ergebniswerte: O9). | aufgeteilt in R-003a bis R-003c (Nutzer, 2026-11-09) |
+| R-003a | Die Software liest vor jeder Messung Gültigkeit und Qualität des 3D- und 2D-Abgleichs über COM und schreibt sie ins Messprotokoll; nicht lesbare Werte werden mit Grund als nicht lesbar protokolliert. | Muss | B (B1), N4 | Im Messprotokoll jeder Messung steht der Block `abgleich` mit den gelesenen Werten bzw. „nicht lesbar“ und Grund; am Messrechner stimmen die Werte mit der PSV-Anzeige überein. | offen |
+| R-003b | Die Software prüft vor der Messung den Abgleich gegen konfigurierbare Grenzen (Modus aus, warnen oder verweigern). | Muss | B (B1), N4 | Mit Modus „verweigern“ und ungültigem Abgleich startet kein Scan und die Messung endet mit Fehler „Abgleich“; mit „warnen“ erscheint eine Warnung; Grenzwerte: O9. | offen |
+| R-003c | Die Software löst den 2D- bzw. 3D-Abgleich in PSV aus. | Muss | B (B1), N4 | offen bis zur Klärung mit dem Betreuer (O9); laut Analyse A1-B13 ist ein COM-Aufruf dafür nicht belegt. | offen |
 
 ## 2 Mess-Warteschlange (Schritt 1)
 
@@ -125,3 +128,4 @@ Noch nicht festgelegt; mit dem Betreuer zu klären (Erwartungsmanagement F19).
 | 2026-10-26 | Erstfassung (R-001 bis R-062, O1 bis O6) | A, E, N, K |
 | 2026-11-03 | R-002, R-023, R-024, R-032, R-055, R-056, R-057 ergänzt; O2, O5 teilweise und O4, O6 beantwortet; O7, O8 neu | L, N3 |
 | 2026-11-09 | R-003, R-025, R-058, R-059, R-070–R-073 ergänzt (Muss); R-054 Status ergänzt; Abgrenzung Netzsteuerung; O9–O12 neu | B, N4 |
+| 2026-11-09 | R-003 aufgeteilt in R-003a (lesen), R-003b (prüfen), R-003c (auslösen, offen) | N4, Analyse A1-B13 |

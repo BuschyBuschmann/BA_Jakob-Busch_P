@@ -8,7 +8,10 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 |---|---|---|---|---|---|
 | R-001 | `geraet/com/adapter.py` (U3) | `tests/geraet_com/*` (gegen COM-Fake) | Laborbuch 2026-10-26_u3, 2026-11-02_messrechner-erster-termin, 2026-11-02_k2d-psv-einblicke-code (Registrierungs-/Desktop-Hinweis); Prüfanleitung U3 | – | getestet (Fake), am Gerät offen (COM nicht registriert, 02.11.) |
 | R-002 | – | – | – | – | offen |
-| R-003 | – | – | – | – | offen |
+| R-003 | aufgeteilt in R-003a bis R-003c | – | – | – | – |
+| R-003a | – | – | – | – | offen |
+| R-003b | – | – | – | – | offen |
+| R-003c | – | – | – | – | offen |
 | R-010 | `ablauf/steuerung.py` (U2) | `test_u2_1_*` | Laborbuch 2026-10-26_u2 | – | getestet (Simulator) |
 | R-011 | `domaene/eintraege.py`, `domaene/parameter.py` (U1) | `tests/domaene/test_domaene_parameter.py`, `test_domaene_eintraege.py` | Laborbuch 2026-10-26_u1 | – | umgesetzt (Domäne; Ablauf in U2) |
 | R-012 | `domaene/warteschlange.py` (U1) | `test_u1_1_*` | Laborbuch 2026-10-26_u1 | – | getestet (Domäne) |
