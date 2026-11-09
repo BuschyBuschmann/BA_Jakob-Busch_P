@@ -72,7 +72,9 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☐ | Vorgaben B1–B10 aus dem Betreuertermin 09.11. ins Lastenheft (`/anforderungs-analyst`), dann planen | Orchestrator, Jakob | – | Laborbuch 2026-11-09_betreuertermin-daniel |
 | ◐ | B10 Recherche erledigt (FA-B10: Empfehlung V1–V7; R-B10: 24 Quellen, Prüfstand metadaten); mit Daniel klären: FE-Modell vorhanden (V6)? Fremdbibliothek als Gegenprobe (V7)? Danach Lastenheft | Jakob, Orchestrator | 12./13.11. | `in_progress/analysen/2026-11-09_FA-B10_auswertung-ueber-psv-hinaus.md` |
 | ☐ | Volltexte nach `Input/literatur/` (mind. Priorität A: peeters2004polymax, rohe2020alignment; Liste in leseliste.md) | Jakob | – | Leseliste R-B10 |
-| ☐ | Fragen O9–O12 (Lastenheft) an Daniel | Jakob | 12./13.11. | Lastenheft |
+| ☐ | Fragen an Daniel: A1–A6 (Abgleich), W1–W8 (Benachrichtigung), O11 (KOS-Transformation), O12 (PSV-Ansichten) | Jakob | 12./13.11. | Analyse A1-B13, Lastenheft |
+| ☐ | Am Messrechner: Abgleich einmal lesen (`P1-6-abgleich`), Typbibliothek der PolyAlignment-Typen auslesen | Jakob | 12./13.11. | Analyse A1-B13 |
+| ◐ | Auswerten-Erweiterung: Brief K1-AUSW2 freigegeben; Plan R-073/R-058/R-059 und Analyse 3D-Technik laufen; FG-04 freigegeben | Orchestrator | – | Brief K1-AUSW2, FG-04 |
 
 ## 4 Thesis
 

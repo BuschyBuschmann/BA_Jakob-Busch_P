@@ -113,8 +113,8 @@ Noch nicht festgelegt; mit dem Betreuer zu klären (Erwartungsmanagement F19).
 | O6 | Darf Python 3.11 mit pywin32 auf dem Messrechner installiert werden? **Beantwortet (L, 02.11.):** ja, Python 3.11.9 und pywin32 312 installiert, I1–I7 bestanden. | Voraussetzung für R-001 am Gerät | Erwartungsmanagement F4 |
 | O7 | Mit welcher Toleranz gilt Δf aus der Datei als gleich der Einstellung? | Prüfkriterium von R-024 | R-024 |
 | O8 | Welche Abweichung ist bei R-056 (Spektren/H1 gegen PSV) und R-057 (Masse) zulässig? | Prüfkriterien der Kann-Anforderungen | R-056, R-057 |
-| O9 | Welche Ergebnisse des 2D- und 3D-Abgleichs sollen ins Protokoll (z. B. Restfehler, Konditionszahl, Punktanzahl)? Darf die Software den Abgleich ohne Aufsicht starten? | Akzeptanzkriterium und Ablauf von R-003 | R-003 |
-| O10 | Webex: über welches Konto bzw. welchen Bot, in welchen Raum, institutszulässig? E-Mail: über welchen Server, an welche Adresse? | Machbarkeit und Kanal von R-025 | R-025 |
+| O9 | Fragen A1–A6 an den Betreuer zum Abgleich (Umfang lesen/prüfen/auslösen, Methode, Ergebnis- und Grenzwerte, Bewegung ohne Aufsicht, Verhalten bei ungültigem Abgleich, Protokollierung), Wortlaut in `in_progress/analysen/2026-11-09_A1-B13_alignment-benachrichtigung.md`. Laut Analyse ist das Auslösen per COM nicht belegt; geplant werden zunächst Lesen und Prüfen (Nutzer, 2026-11-09). | Akzeptanzkriterium und Ablauf von R-003 | R-003 |
+| O10 | Fragen W1–W8 an den Betreuer zur Benachrichtigung (Kanal, Webex Bot/Webhook und Konto, E-Mail-Server, Datenschutz, Netzfreigabe, Menge, Fehlerfälle, Zustellfehler), Wortlaut in `in_progress/analysen/2026-11-09_A1-B13_alignment-benachrichtigung.md`. | Machbarkeit und Kanal von R-025 | R-025 |
 | O11 | Welche Formen für die Transformation (Kugel, Zylinder, Freiform)? Woher kommt die Normale (PSV-Geometrie oder vorgegebene Form)? Welche Toleranz? | Umfang und Prüfkriterium von R-070 | R-070 |
 | O12 | Welche PSV-Visualisierungen genau sollen übernommen werden (z. B. Farbdarstellung auf der Geometrie, Kurvenansichten, Mittelwertansicht, Animation)? | Prüfliste von R-072 | R-072 |
 

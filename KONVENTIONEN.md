@@ -55,6 +55,11 @@ uv run pytest --cov --cov-fail-under=90
 - Ein Simulator dieser Schnittstelle ist Pflicht, damit alles ohne Vibrometer testbar ist.
 - Tests dürfen keine echte Hardware voraussetzen. Tests, die Hardware oder die Oberfläche
   brauchen, werden per `pytest`-Marker gekennzeichnet; standardmäßig laufen nur Simulator-Tests.
+- Geheimnisse (Token, Webhook-URL, Passwörter) stehen nie im Repo, in der
+  Konfigurationsdatei des Messrechners oder in Protokollen; die Konfigurationsdatei wird
+  vollständig ins Messprotokoll übernommen (Nutzerentscheidung 2026-11-09).
+- Benachrichtigungen (R-025) blockieren nie: Zustellfehler halten Messung und Durchgang
+  nicht an (Nutzerentscheidung 2026-11-09).
 
 ## Messdaten
 - Messdaten werden in Dateien gespeichert, zusammen mit der Softwareversion (Git-Hash).
