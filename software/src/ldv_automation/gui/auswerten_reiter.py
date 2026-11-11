@@ -62,6 +62,7 @@ from ldv_automation.auswertung.export import (
 from ldv_automation.auswertung.jobs import PruefErgebnis, export_job, lese_job, pruef_job
 from ldv_automation.auswertung.laden import Geladen
 from ldv_automation.darstellung import Ansicht, Zeichnung
+from ldv_automation.darstellung.achsen import AchsenFehler
 from ldv_automation.darstellung.auswahl import (
     KOMPONENTEN,
     DarstellungsFehler,
@@ -85,6 +86,8 @@ from ldv_automation.darstellung.schwingform import SchwingformOptionen
 from ldv_automation.darstellung.spektrum import DB_GRUND, SpektrumOptionen
 from ldv_automation.darstellung.spitzen import SpitzenOptionen
 from ldv_automation.gui import tokens as t
+from ldv_automation.gui.achsen_zustand import ACHSEN_JE_ANSICHT, einheit_aus_achsentitel
+from ldv_automation.gui.achsenleiste import Achsenleiste
 from ldv_automation.gui.anzeige import Knopf
 from ldv_automation.gui.anzeige_aktionen import (
     AKTIONS_TASTEN,
@@ -189,9 +192,16 @@ GRAU_DECKKRAFT = 0.4
 """Deckkraft der Darstellung, solange eine neue Datei gelesen wird (bisherige Datei ausgegraut)."""
 
 TABELLE_STANDARD_ZEILEN = 4
-"""Standardmäßig sichtbare Zeilen der Tabelle in Ansicht 3 (Nutzerentscheidung T3b-3)."""
-PLOT_MIN_HOEHE_SPLITTER_PX = 130
-"""Kleinste Höhe des Plots, wenn die Tabelle ihre Standardhöhe bekommt."""
+"""Sichtbare Zeilen der Tabelle in Ansicht 3 bei genügender Höhe. Bei kleinem Fenster hat der
+Plot Vorrang (Nutzerentscheidung 2026-11-11, KONVENTIONEN.md): Die Tabelle zeigt dann weniger
+Zeilen (:data:`PLOT_MIN_HOEHE_SPLITTER_PX`); T3b-3 gilt nur noch für große Fenster."""
+PLOT_MIN_HOEHE_SPLITTER_PX = 212
+"""Kleinste Höhe des Plots (ohne Achsenleiste) in Ansicht 3: Die Tabelle gibt zuerst nach, der
+Plot behält so Achsenbeschriftung und Spitzen lesbar (Abnahme D-AUSW2-A, Befund 2)."""
+PLOT_WUNSCH_HOEHE_SPLITTER_PX = 264
+"""Gewünschte Höhe des Plots (ohne Achsenleiste) in Ansicht 3 bei der Standardhöhe der Tabelle:
+Die Achse ist dann auch bei 1366 mal 768 mindestens 160 px hoch. Reicht der Platz nicht, gibt die
+Tabelle bis auf ihre Mindesthöhe nach, danach der Plot bis :data:`PLOT_MIN_HOEHE_SPLITTER_PX`."""
 TEXT_KANALPAAR_ANSICHT_4 = "Spitzenliste und Kennzeichen der Linie stammen aus diesem Paar."
 
 _SEITE_LEER = 0
@@ -657,19 +667,12 @@ class AuswertenReiter(QWidget):
         self.lbl_groesse_grund.setVisible(False)
         v.addWidget(self.lbl_groesse_grund)
 
+        # Skala linear/logarithmisch: Achsenleiste AG (R-073, A-2); „dB“ bleibt hier.
         v.addWidget(self._gruppentitel("Amplitude"))
-        self._gruppe_skala = QButtonGroup(self)
-        self.rb_skala_linear = QRadioButton("linear")
-        self.rb_skala_linear.setObjectName("rb_skala_linear")
-        self.rb_skala_log = QRadioButton("logarithmisch")
-        self.rb_skala_log.setObjectName("rb_skala_log")
         self.rb_skala_db = QRadioButton("dB")
         self.rb_skala_db.setObjectName("rb_skala_db")
-        for knopf in (self.rb_skala_linear, self.rb_skala_log, self.rb_skala_db):
-            knopf.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-            self._gruppe_skala.addButton(knopf)
-            v.addWidget(knopf)
-        self.rb_skala_log.setChecked(True)
+        self.rb_skala_db.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        v.addWidget(self.rb_skala_db)
         self.rb_skala_db.setEnabled(False)
         self.rb_skala_db.setToolTip(GRUND_DB)
         self.rb_skala_db.setAccessibleDescription(GRUND_DB)
@@ -689,10 +692,8 @@ class AuswertenReiter(QWidget):
         for kasten in self.chk.values():
             kasten.toggled.connect(self._auswahl_geaendert)
         self._gruppe_groesse.buttonToggled.connect(self._auswahl_geaendert)
-        self._gruppe_skala.buttonToggled.connect(self._auswahl_geaendert)
-        for gruppe in (self._gruppe_groesse, self._gruppe_skala):
-            gruppe.buttonToggled.connect(lambda _k, _an, g=gruppe: tab_halt(g))
-            tab_halt(gruppe)
+        self._gruppe_groesse.buttonToggled.connect(lambda _k, _an: tab_halt(self._gruppe_groesse))
+        tab_halt(self._gruppe_groesse)
         return seite
 
     def _baue_darstellung(self) -> QWidget:
@@ -813,7 +814,27 @@ class AuswertenReiter(QWidget):
         self._plot_seite = QSplitter(Qt.Orientation.Vertical)
         self._plot_seite.setObjectName("plot_seite")
         self._plot_seite.setChildrenCollapsible(False)
-        self._plot_seite.addWidget(self.plot)
+        # AG liegt als Geschwister der Plotfläche (nicht als Kind): Pos1 gilt nur im Teilbaum der
+        # Plotfläche und nähme den Textfeldern sonst den Zeilenanfang (Plan U-A4).
+        self.achsenleiste = Achsenleiste(self.plot.achsen_zustand)
+        self.achsenleiste.geaendert.connect(self._achsen_geaendert)
+        self.plot.grenzen_gezeichnet.connect(self._achsenleiste_aktualisieren)
+        self.plot.achsen_geaendert.connect(self._achsenleiste_aktualisieren)
+        # Die Skala der Amplitude gehört der Achsenleiste; die Namen bleiben für Aufrufer und Tests.
+        betrag = self.achsenleiste.gruppe("betrag")
+        assert betrag.rb_linear is not None and betrag.rb_log is not None
+        self.rb_skala_linear = betrag.rb_linear
+        self.rb_skala_log = betrag.rb_log
+        self.rb_skala_linear.setObjectName("rb_skala_linear")
+        self.rb_skala_log.setObjectName("rb_skala_log")
+        self._plot_spalte = QWidget()
+        self._plot_spalte.setObjectName("plot_spalte")
+        spalte = QVBoxLayout(self._plot_spalte)
+        spalte.setContentsMargins(0, 0, 0, 0)
+        spalte.setSpacing(0)
+        spalte.addWidget(self.achsenleiste)
+        spalte.addWidget(self.plot, 1)
+        self._plot_seite.addWidget(self._plot_spalte)
         self.tabellen = QTabWidget()
         self.tabellen.setObjectName("tabellen")
         self.tabelle_spitzen = TabellenBereich("tabelle_spitzen", SPITZEN_SPALTEN)
@@ -914,11 +935,12 @@ class AuswertenReiter(QWidget):
         kette.append(self.liste_punkte)
         kette += list(self.chk.values())
         kette += [self.rb_groesse_cph, self.rb_groesse_ap]
-        kette += [self.rb_skala_linear, self.rb_skala_log, self.rb_skala_db]
+        kette.append(self.rb_skala_db)
         kette += [self.auswahl_frf.chk_h1, self.auswahl_frf.chk_h2, self.auswahl_frf.chk_phase]
         kette += self.auswahl_sf.tab_kette()
         kette += [self.tabelle_spitzen.tabelle, self.tabelle_baender.tabelle]
         kette += [self.btn_fehler_schliessen, self.btn_oeffnen_leer, self.liste_zuletzt]
+        kette += self.achsenleiste.tab_kette()  # AD → AG → AE (Brief Abschnitt 6)
         kette += self.plot.tab_kette()
         kette.append(self.lbl_pruefung)
         for vorher, nachher in itertools.pairwise(kette):
@@ -1313,6 +1335,7 @@ class AuswertenReiter(QWidget):
         self._datei_pfad = pfad
         self._antrieb = antrieb
         self._a4_wunsch_hz = None
+        self.plot.neue_datei()  # Bereiche zurück, Skalen bleiben (UI-6, R-073)
         self.plot.fadenkreuz.vergiss()
         self._pruefung = None
         self._a4_letzt = None
@@ -1339,7 +1362,6 @@ class AuswertenReiter(QWidget):
             self._aktiviere_ansicht(1)
             for kasten in self.chk.values():
                 kasten.setChecked(True)
-            self.rb_skala_log.setChecked(True)
             self.rb_groesse_cph.setChecked(True)
             self._aktualisiere_groessen()
             self._auswahl = self._lese_auswahl()
@@ -1610,6 +1632,7 @@ class AuswertenReiter(QWidget):
     def _aktiviere_ansicht(self, nr: int) -> None:
         """Schaltet Auswahlseite und gemeinsame Elemente der Ansicht ``nr`` (1 bis 4) um."""
         self._ansicht = nr
+        self.achsenleiste.setze_ansicht(nr)  # Ansicht 4 hat keine Achsenleiste
         self._ad_stapel.setCurrentIndex(nr - 1)
         for i, seite in enumerate(self._ad_seiten):  # der Stapel misst nur die aktuelle Seite
             seite.setSizePolicy(
@@ -1627,6 +1650,37 @@ class AuswertenReiter(QWidget):
             # Qt verteilt die Höhen nach dem Einblenden der Tabelle noch einmal: danach erneut.
             QTimer.singleShot(0, self._splitter_nachziehen)
 
+    def _plot_min_hoehe(self) -> int:
+        """Mindesthöhe des Plotbereichs: Plot (:data:`PLOT_MIN_HOEHE_SPLITTER_PX`) plus Leiste.
+
+        Die Achsenleiste liegt über der Plotfläche und bricht bei Platzmangel um; sie braucht
+        ihre Höhe vollständig (Brief K1-AUSW2: zuerst schrumpft der Plot, nie die Leiste).
+        """
+        leiste = self.achsenleiste
+        if not leiste.isVisibleTo(self):
+            return PLOT_MIN_HOEHE_SPLITTER_PX
+        layout = leiste.layout()
+        breite = self._plot_spalte.width() or leiste.width() or leiste.sizeHint().width()
+        hoehe = layout.heightForWidth(breite) if layout is not None else leiste.sizeHint().height()
+        return PLOT_MIN_HOEHE_SPLITTER_PX + hoehe
+
+    def _achsen_geaendert(self) -> None:
+        """Eingabe in der Achsenleiste (gültig): genau einmal neu zeichnen (UI-37)."""
+        if not self._in_aufbau and self._geladen is not None:
+            self._zeichne()
+
+    def _achsenleiste_aktualisieren(self, *_ansicht: int) -> None:
+        """Zeigt Zustand und wirksame Grenzen der gezeichneten Achsen in der Achsenleiste."""
+        zeichnung = self.plot.zeichnung
+        einheiten: dict[str, str] = {}
+        if zeichnung is not None and self._ansicht in ACHSEN_JE_ANSICHT:
+            for achse, rolle in zip(zeichnung.achsen, zeichnung.rollen, strict=False):
+                if rolle in ACHSEN_JE_ANSICHT[self._ansicht]:
+                    einheiten[rolle] = einheit_aus_achsentitel(achse.get_ylabel())
+            einheiten["frequenz"] = einheit_aus_achsentitel(zeichnung.achsen[-1].get_xlabel())
+        self.achsenleiste.aktualisiere(self.plot.wirksame_grenzen(), einheiten)
+        self._plot_spalte.setMinimumHeight(self._plot_min_hoehe())
+
     def _splitter_nachziehen(self) -> None:
         if self._ansicht == 3 and self.tabellen.isVisible():
             self._splitter_anwenden()
@@ -1634,13 +1688,15 @@ class AuswertenReiter(QWidget):
     def _splitter_anwenden(self) -> None:
         """Gibt der Tabelle ihre Standardhöhe (vier Zeilen) bzw. die gemerkte Höhe.
 
-        Standard: Kopf der Tabelle, Reiterleiste und vier Zeilen zu 32 px. Der Plot behält
+        Standard: Kopf der Tabelle, Reiterleiste und vier Zeilen zu 32 px, soweit der Plot seine
+        gewünschte Höhe (:data:`PLOT_WUNSCH_HOEHE_SPLITTER_PX`) behält. Der Plot behält
         mindestens :data:`PLOT_MIN_HOEHE_SPLITTER_PX`; die Höhe wird nur für diese Sitzung
         gemerkt (:meth:`_splitter_bewegt`).
         """
         gesamt = sum(self._plot_seite.sizes()) or self._plot_seite.height()  # ohne Teilergriff
         if gesamt <= 0:
             return
+        plot_min = self._plot_min_hoehe()
         kopf = self.tabelle_spitzen.tabelle.horizontalHeader().height()
         standard = (
             TABELLE_STANDARD_ZEILEN * ZEILENHOEHE_PX
@@ -1648,11 +1704,19 @@ class AuswertenReiter(QWidget):
             + self.tabellen.tabBar().sizeHint().height()
             + 6
         )
-        ziel = self._tabellen_hoehe if self._tabellen_hoehe is not None else standard
-        ziel = max(min(ziel, gesamt - PLOT_MIN_HOEHE_SPLITTER_PX - 4), 0)  # 4 px: Teilergriff
+        if self._tabellen_hoehe is not None:
+            ziel = (
+                self._tabellen_hoehe
+            )  # vom Nutzer gezogen: gilt, soweit der Plot sein Minimum hat
+        else:
+            # Standard: der Plot hat Vorrang vor den vier Zeilen (Abnahme D-AUSW2-A, Befund 2);
+            # die Tabelle gibt bis auf ihre Mindesthöhe nach.
+            wunsch = plot_min - PLOT_MIN_HOEHE_SPLITTER_PX + PLOT_WUNSCH_HOEHE_SPLITTER_PX
+            ziel = max(min(standard, gesamt - wunsch - 4), self.tabellen.minimumSizeHint().height())
+        ziel = max(min(ziel, gesamt - plot_min - 4), 0)  # 4 px: Teilergriff
         self._plot_seite.setSizes([gesamt - ziel, ziel])
         for _ in range(2):  # Qt rundet und verrechnet den Teilergriff: nachstellen
-            fehlt = PLOT_MIN_HOEHE_SPLITTER_PX - self._plot_seite.sizes()[0]
+            fehlt = plot_min - self._plot_seite.sizes()[0]
             if fehlt <= 0:
                 break
             ziel = max(self._plot_seite.sizes()[1] - fehlt, 0)
@@ -1716,7 +1780,7 @@ class AuswertenReiter(QWidget):
             punkt=None if zeile <= 0 else zeile - 1,
             komponenten=tuple(c for c in KOMPONENTEN if self.chk[c].isChecked()),
             groesse="kohaerent" if self.rb_groesse_cph.isChecked() else "leistung",
-            skala="linear" if self.rb_skala_linear.isChecked() else "log",
+            skala=self.plot.achsen_zustand.skala(1, "betrag"),
         )
 
     def _auswahl_geaendert(self, *_args: object) -> None:
@@ -1758,7 +1822,7 @@ class AuswertenReiter(QWidget):
             self._ansichtstext = None
             zeichner(zoom_behalten=zoom_behalten)
             self._zeige_cursor()
-        except DarstellungsFehler as fehler:
+        except (DarstellungsFehler, AchsenFehler) as fehler:
             self._setze_meldung(f"{t.symbol('fehler')} {fehler}")
             self._fremden_inhalt_ersetzen(str(fehler))
         except Exception as fehler:  # unerwartet: sichtbar melden, Darstellung leeren
@@ -1836,7 +1900,7 @@ class AuswertenReiter(QWidget):
             1,
             Ansicht.SPEKTRUM,
             spektrum,
-            SpektrumOptionen(skala="linear" if a.skala == "linear" else "log"),
+            SpektrumOptionen(skala=self.plot.achsen_zustand.skala(1, "betrag")),
             beschreibung,
             zoom_behalten=zoom_behalten,
         )
@@ -1880,6 +1944,7 @@ class AuswertenReiter(QWidget):
             h1=sel.chk_h1.isChecked(),
             h2=sel.chk_h2.isChecked(),
             phase=sel.chk_phase.isChecked(),
+            skala=self.plot.achsen_zustand.skala(2, "betrag"),
             kennzeichen_phase=kennzeichen_text("phase", self._annahmen()),
         )
         kurven = [n for n, an in (("H1", opt.h1), ("H2", opt.h2)) if an]
@@ -1950,7 +2015,11 @@ class AuswertenReiter(QWidget):
             3,
             Ansicht.SPITZEN,
             sd,
-            SpitzenOptionen(beschriftung_im_bild=False, legende_im_bild=False),
+            SpitzenOptionen(
+                skala=self.plot.achsen_zustand.skala(3, "betrag"),
+                beschriftung_im_bild=False,
+                legende_im_bild=False,
+            ),
             beschreibung,
             zoom_behalten=zoom_behalten,
         )

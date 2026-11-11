@@ -45,7 +45,7 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-070 | – | – | – | – | offen |
 | R-071 | – | – | – | – | offen |
 | R-072 | – | – | – | – | offen |
-| R-073 | – | – | – | – | offen |
+| R-073 | `darstellung/achsen.py`, `gui/achsen_zustand.py`, `gui/achsenleiste.py`, `plotflaeche.py` (ADR-028) | `test_dar_achsen*.py`, `test_dar_regression_achsen.py`, `test_gui_achsen.py`, `test_achsen_zustand.py` | Laborbuch 2026-11-11_auswerten-etappe-a-achsen | 4.4/4.5 | getestet (offscreen); UI-38 am Gerät offen |
 | R-060 | `pyproject.toml` (`requires-python >=3.11,<3.12`) | gesamte Testsuite unter Python 3.11 | Laborbuch 2026-10-27_u4 | – | umgesetzt |
 | R-061 | `geraet/simulator.py` (U2), COM-Fake (U3) | gesamte Testsuite | Laborbuch 2026-10-26_u2, _u3 | – | umgesetzt |
 | R-062 | Standard-Prüfung aus KONVENTIONEN | ruff, mypy --strict, pytest ≥ 90 % (97,95 %) | Laborbuch 2026-10-27_u5 | – | umgesetzt |

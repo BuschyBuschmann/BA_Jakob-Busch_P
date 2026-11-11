@@ -8,6 +8,7 @@ Die Datei kommt aus ``gui_ausw_hilfen.synth_geladen`` (4 Punkte, 64 Linien) übe
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,7 @@ from PySide6.QtWidgets import QAbstractButton, QApplication, QLabel, QWidget
 from pytestqt.qtbot import QtBot
 
 from ldv_automation.darstellung import Ansicht, Zeichnung
+from ldv_automation.darstellung.achsen import AchsenOptionen, Bereich
 from ldv_automation.gui import anzeige_auswerten as aa
 from ldv_automation.gui import auswerten_reiter, plotflaeche, stil, tokens
 from ldv_automation.gui.auswerten_reiter import AuswertenReiter
@@ -561,7 +563,9 @@ def test_oe_3_auswahl_wird_beim_dateiwechsel_zurueckgesetzt(baue: Bauer, qtbot: 
     a.rb_skala_linear.setChecked(True)
     a.rb_groesse_ap.setChecked(True)
     lade(qtbot, w, "C:\\messungen\\zweite.svd")
-    assert a.auswahl == (None, ("X", "Y", "Z", "3D"), "kohaerent", "log")
+    # UI-6 (R-073): Punkt, Komponenten, Größe werden zurückgesetzt, die Skala (linear/log) bleibt
+    assert a.auswahl == (None, ("X", "Y", "Z", "3D"), "kohaerent", "linear")
+    assert a.rb_skala_linear.isChecked()
     assert a.liste_punkte.currentRow() == 0 and a.chk["X"].isChecked()
     assert a.lbl_datei.text() == "zweite.svd"
 
@@ -606,6 +610,8 @@ def test_plot_fokus_zeigt_rahmen(baue: Bauer, qtbot: QtBot) -> None:
 def test_ui_12_zoom_zuruecksetzen_und_neue_datei_setzt_zoom_zurueck(
     baue: Bauer, qtbot: QtBot
 ) -> None:
+    # P-AUSW2 S2: Zurücksetzen heißt „Auto“ und zeichnet neu (neue Achsenobjekte), der Zoom steht
+    # als fester Bereich im Achsenzustand (eine Quelle).
     w, _ = baue()
     a = lade(qtbot, w)
     ax = a.plot.zeichnung.achsen[0]  # type: ignore[union-attr]
@@ -613,8 +619,11 @@ def test_ui_12_zoom_zuruecksetzen_und_neue_datei_setzt_zoom_zurueck(
     ax.set_xlim(5.0, 10.0)
     a.plot.toolbar.push_current()
     assert ax.get_xlim() == (5.0, 10.0)
+    assert a.plot.achsen_zustand.bereich(1, "frequenz") == Bereich(5.0, 10.0)  # Zoom → fest
     a.plot.zoom_zuruecksetzen()
+    ax = a.plot.zeichnung.achsen[0]  # type: ignore[union-attr]
     assert ax.get_xlim() == pytest.approx(x0)
+    assert a.plot.achsen_zustand.bereich(1, "frequenz").ist_auto  # Zurücksetzen → Auto
     ax.set_xlim(5.0, 10.0)
     a.plot.toolbar.push_current()
     a.plot.toolbar.back()  # Zurück: letzter Verlaufseintrag (Standardansicht)
@@ -643,7 +652,8 @@ def test_pos1_zurücksetzen_ueber_knopf(baue: Bauer, qtbot: QtBot) -> None:
     ax.set_xlim(2.0, 4.0)
     a.plot.toolbar.push_current()
     a.plot.toolbar.knoepfe()[0].click()
-    assert ax.get_xlim() == pytest.approx(x0)
+    # Zurücksetzen zeichnet neu (P-AUSW2 S2): die Achsen sind neue Objekte
+    assert a.plot.zeichnung.achsen[0].get_xlim() == pytest.approx(x0)  # type: ignore[union-attr]
 
 
 # --- Tab-Reihenfolge, Geometrie (UI-21, UI-25) ----------------------------------------------------
@@ -820,14 +830,17 @@ def test_zoom_wird_bei_neuem_dateiaufruf_zurueckgesetzt_auch_bei_gleicher_achse(
 
 
 def test_zoom_zurueck_geht_auf_standardansicht(baue: Bauer, qtbot: QtBot) -> None:
+    # P-AUSW2 S2: Nach einem Neuzeichnen beginnt der Verlauf der Werkzeugleiste mit dem dann
+    # gültigen (festen) Ausschnitt; „Zurück“ geht innerhalb einer Zeichnung auf die Standardansicht.
     w, _ = baue()
     a = lade(qtbot, w)
-    x0 = a.plot.zeichnung.achsen[0].get_xlim()  # type: ignore[union-attr]
-    a.plot.zeichnung.achsen[0].set_xlim(5.0, 10.0)  # type: ignore[union-attr]
+    ax = a.plot.zeichnung.achsen[0]  # type: ignore[union-attr]
+    x0 = ax.get_xlim()
+    ax.set_xlim(5.0, 10.0)
     a.plot.toolbar.push_current()
-    a.liste_punkte.setCurrentRow(2)
     a.plot.toolbar.back()
-    assert a.plot.zeichnung.achsen[0].get_xlim() == pytest.approx(x0)  # type: ignore[union-attr]
+    assert ax.get_xlim() == pytest.approx(x0)
+    assert a.plot.achsen_zustand.bereich(1, "frequenz") == Bereich(*x0)  # Verlauf schreibt Grenzen
 
 
 def test_barrierefreiheit_pfad_ist_voll_im_accessible_name(baue: Bauer, qtbot: QtBot) -> None:
@@ -1011,14 +1024,24 @@ class Zeichner:
         self.aufrufe = 0
         self.groessen: list[tuple[float, float]] = []
 
-    def __call__(self, fig: Any, _daten: object, _opt: object, _stil: object) -> Zeichnung:
+    def __call__(self, fig: Any, _daten: object, opt: object, _stil: object) -> Zeichnung:
         self.aufrufe += 1
         fig.clear()
         ax = fig.subplots()
         ax.plot([0.0, 100.0], [0.0, 1.0])
         ax.set_xlim(0.0, 100.0)
+        achsen = getattr(opt, "achsen", None)  # wie die echten Zeichenfunktionen (R-073)
+        if achsen is not None and achsen.frequenz.von is not None:
+            ax.set_xlim(achsen.frequenz.von, achsen.frequenz.bis)
         self.groessen.append((fig.get_figwidth(), fig.get_figheight()))
         return Zeichnung(figure=fig, achsen=(ax,))
+
+
+@dataclasses.dataclass(frozen=True)
+class AttrappenOptionen:
+    """Optionen der Attrappe: nur das Feld ``achsen`` wie bei den echten Zeichenfunktionen."""
+
+    achsen: AchsenOptionen | None = None
 
 
 def baue_plot(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> tuple[PlotFlaeche, Zeichner]:
@@ -1038,7 +1061,7 @@ def test_groessenaenderung_zeichnet_spitzen_neu_und_erhaelt_zoom(
     qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     plot, zeichner = baue_plot(qtbot, monkeypatch)
-    plot.zeichne(Ansicht.SPITZEN, None, None, "Beschreibung")
+    plot.zeichne(Ansicht.SPITZEN, None, AttrappenOptionen(), "Beschreibung")
     qtbot.wait(plotflaeche.NEUZEICHNEN_MS + 100)  # ggf. Resize vom Anzeigen abwarten
     start = zeichner.aufrufe
     plot.zeichnung.achsen[0].set_xlim(20.0, 40.0)  # type: ignore[union-attr]
@@ -1047,7 +1070,7 @@ def test_groessenaenderung_zeichnet_spitzen_neu_und_erhaelt_zoom(
     qtbot.waitUntil(lambda: zeichner.aufrufe > start, timeout=3000)
     assert plot.zeichnung.achsen[0].get_xlim() == pytest.approx((20.0, 40.0))  # type: ignore[union-attr]
     assert plot.canvas.accessibleDescription() == "Beschreibung"
-    plot.zoom_zuruecksetzen()
+    plot.zoom_zuruecksetzen()  # Auto: zeichnet neu, der gemerkte Ausschnitt entfällt
     assert plot.zeichnung.achsen[0].get_xlim() == pytest.approx((0.0, 100.0))  # type: ignore[union-attr]
 
 

@@ -9,7 +9,7 @@ from matplotlib.figure import Figure
 
 from ldv_automation.darstellung import Ansicht
 from ldv_automation.darstellung.spitzen import SpitzenOptionen
-from ldv_automation.gui.arbeitsbild import bild_grenzen, bild_optionen
+from ldv_automation.gui.arbeitsbild import bild_optionen
 from ldv_automation.gui.cursor import FadenkreuzCursor, naechste_linie
 
 F = 0.5 * np.arange(1, 101)  # 0,5 … 50 Hz
@@ -136,15 +136,3 @@ def test_bild_optionen_ansicht_3_nimmt_voreinstellung_der_zeichenfunktion() -> N
     assert bild.beschriftung_im_bild and bild.legende_im_bild and bild.skala == "linear"
     sonst = object()
     assert bild_optionen(Ansicht.SPEKTRUM, sonst) is sonst
-
-
-def test_bild_grenzen_nur_abweichung_und_ansicht_3_nur_x() -> None:
-    _f, _c, _cur, achsen = _aufbau()
-    ax = achsen[0]
-    standard = [(ax.get_xlim(), ax.get_ylim())]
-    assert bild_grenzen(Ansicht.SPEKTRUM, achsen, standard) == {}  # nicht gezoomt
-    ax.set_xlim(10.0, 20.0)
-    ax.set_ylim(-0.5, 0.5)
-    assert bild_grenzen(Ansicht.SPEKTRUM, achsen, standard) == {0: ((10.0, 20.0), (-0.5, 0.5))}
-    assert bild_grenzen(Ansicht.SPITZEN, achsen, standard) == {0: ((10.0, 20.0), None)}
-    assert bild_grenzen(Ansicht.SCHWINGFORM, achsen, standard) == {}

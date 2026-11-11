@@ -74,7 +74,7 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☐ | Volltexte nach `Input/literatur/` (mind. Priorität A: peeters2004polymax, rohe2020alignment; Liste in leseliste.md) | Jakob | – | Leseliste R-B10 |
 | ☐ | Fragen an Daniel: A1–A6 (Abgleich), W1–W8 (Benachrichtigung), O11 (KOS-Transformation), O12 (PSV-Ansichten) | Jakob | 12./13.11. | Analyse A1-B13, Lastenheft |
 | ☐ | Am Messrechner: Abgleich einmal lesen (`P1-6-abgleich`), Typbibliothek der PolyAlignment-Typen auslesen | Jakob | 12./13.11. | Analyse A1-B13 |
-| ◐ | Auswerten-Erweiterung: Brief K1-AUSW2 freigegeben; Plan R-073/R-058/R-059 und Analyse 3D-Technik laufen; FG-04 freigegeben | Orchestrator | – | Brief K1-AUSW2, FG-04 |
+| ◐ | Auswerten-Erweiterung: Etappe A (R-073) fertig; Etappe B (R-058), C (R-059), Animation (R-071, Plan P-AUSW3) und Abgleich (R-003a/b, Plan P-R003) folgen | Orchestrator | – | Pläne P-AUSW2, P-AUSW3, P-R003 |
 
 ## 4 Thesis
 

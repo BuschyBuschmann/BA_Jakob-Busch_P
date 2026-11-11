@@ -72,6 +72,11 @@ C_PLOT_BAND = "#E7E5DF"
 """Schattierung von Frequenzbändern (hellgrau; Kurven darauf mindestens 3:1)."""
 C_PLOT_VERLAUF_HELL = C_LEISTE
 """Helles Ende des Einfarbverlaufs der Betragsfüllung (Ansicht 4)."""
+C_FELD_FEST_BG = C_AKTIV_BG
+"""Hintergrund eines von Hand gesetzten („festen“) Achsenfelds (R-073); dazu 2 px Rahmen."""
+C_FELD_FEST_RAND = C_AKZENT
+"""Rahmen eines festen Achsenfelds (zusätzlich zur Farbe: 2 px statt 1 px und „fest“ im
+``accessibleDescription``)."""
 C_PLOT_SERIE_4 = "#2A7A93"
 """Vierte Serienfarbe (mittlerer Blauton, auf Weiß 4,9:1)."""
 PLOT_SERIENFARBEN = (C_PLOT_HAUPT, C_TEXT, C_TEXT_GEDAEMPFT, C_PLOT_SERIE_4)
@@ -114,6 +119,10 @@ KONTRAST_PAARE: tuple[tuple[str, str, str], ...] = (
     ("warn_rand/warn_bg", C_WARN_RAND, C_WARN_BG),
     ("text/leiste", C_TEXT, C_LEISTE),
     ("fehler/leiste", C_FEHLER, C_LEISTE),
+    # Achsenleiste (R-073, UI-35): festes Feld, Meldung unter dem Feld, Auto-Wert im Feld.
+    ("text/feld_fest_bg", C_TEXT, C_FELD_FEST_BG),
+    ("fehler/bg", C_FEHLER, C_BG),
+    ("text_gedaempft/feld_fest_bg", C_TEXT_GEDAEMPFT, C_FELD_FEST_BG),
 )
 """Text/Hintergrund-Paare, deren Kontrast ≥ 4,5:1 sein muss (UI-23)."""
 
@@ -122,6 +131,8 @@ KONTRAST_PAARE_LINIE: tuple[tuple[str, str, str], ...] = (
     ("plot_serie_3/plot_band", PLOT_SERIENFARBEN[2], C_PLOT_BAND),
     ("plot_serie_4/plot_band", PLOT_SERIENFARBEN[3], C_PLOT_BAND),
     ("akzent/fokus_flaeche", C_AKZENT, C_PLOT_FLAECHE),
+    ("feld_fest_rand/flaeche", C_FELD_FEST_RAND, C_FLAECHE),
+    ("feld_fest_rand/bg", C_FELD_FEST_RAND, C_BG),
 )
 """Linien-Paare mit Mindestkontrast ≥ 3:1 (WCAG 1.4.11, Nicht-Text-Kontrast; UI-22)."""
 

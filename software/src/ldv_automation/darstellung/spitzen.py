@@ -28,6 +28,7 @@ from matplotlib.transforms import ScaledTranslation
 from ldv_automation.auswertung.export import METHODE_SPITZEN
 from ldv_automation.auswertung.spitzen import Spitze
 
+from .achsen import AchsenOptionen, nebenticks_log, wende_frequenz_an, wende_y_an
 from .auswahl import SpitzenDaten
 from .formate import MINUS, achsentitel, frequenz_text, zahl_signifikant_text, zahl_text
 from .stil import Plotstil
@@ -70,11 +71,18 @@ class SpitzenOptionen:
         Bild, die Achse bekommt die Höhe; die Einträge stehen in
         ``Zeichnung.hilfsobjekte["legende_eintraege"]`` (Mittelformel und Punktzahl, Spitzen,
         Band) und die Oberfläche zeigt sie als Text.
+    achsen : AchsenOptionen or None
+        Feste Bereiche und Frequenzskala (R-073, Rolle ``"betrag"``); ``None`` lässt die Achsen
+        unverändert. Ein gesetzter y-Bereich ist der **Datenbereich**: Ist
+        ``beschriftung_im_bild`` gesetzt, kommt der Beschriftungsstreifen oberhalb der oberen
+        Grenze dazu (die obere Achsengrenze im Bild liegt dann über der Eingabe); in der
+        Oberfläche (ohne Streifen) entspricht sie genau der Eingabe.
     """
 
     skala: Skala = "log"
     beschriftung_im_bild: bool = True
     legende_im_bild: bool = True
+    achsen: AchsenOptionen | None = None
 
     def __post_init__(self) -> None:
         if self.skala not in ("linear", "log"):
@@ -225,7 +233,12 @@ def zeichne_spitzen(
         fig.clear()
         constrained_layout(fig)
         ax = fig.subplots()
-        z = Zeichnung(figure=fig, achsen=(ax,), hinweise=(HINWEIS_ZETA,) if daten.spitzen else ())
+        z = Zeichnung(
+            figure=fig,
+            achsen=(ax,),
+            hinweise=(HINWEIS_ZETA,) if daten.spitzen else (),
+            rollen=("betrag",),
+        )
         handles: list[Line2D | Patch] = []
         baender = []
         for f_u, f_o in daten.baender:
@@ -292,10 +305,23 @@ def zeichne_spitzen(
             )
         if opt.skala == "log":
             ax.set_yscale("log", nonpositive="mask")
-        ax.set_xlim(float(daten.frequenz_hz[0]), float(daten.frequenz_hz[-1]))
+        f_min, f_max = float(daten.frequenz_hz[0]), float(daten.frequenz_hz[-1])
+        if opt.achsen is None:
+            ax.set_xlim(f_min, f_max)
+        else:
+            x_fest = wende_frequenz_an(ax, opt.achsen, f_min, f_max)
+            wende_y_an(
+                ax,
+                opt.achsen.y_bereich("betrag"),
+                log=opt.skala == "log",
+                x_gesetzt=x_fest,
+                name="Betrag",
+            )
         ax.set_xlabel(achsentitel("Frequenz", "Hz"))
         ax.set_ylabel(achsentitel(daten.groesse, daten.einheit))
         setze_achsenstil(ax, stil)
+        if opt.achsen is not None:
+            nebenticks_log(ax, dezimalkomma=stil.dezimalkomma)
         z.hilfsobjekte["legende_eintraege"] = [str(h.get_label()) for h in handles]
         if opt.legende_im_bild:
             z.hilfsobjekte["legende"] = _legende(ax, handles, stil)
@@ -319,6 +345,11 @@ def _streifen_und_kasten(
     if daten.gewaehlt is None:
         return
     s = daten.spitzen[daten.gewaehlt]
+    x_unten, x_oben = sorted(ax.get_xlim())
+    if (
+        not x_unten <= s.f_sp_hz <= x_oben
+    ):  # Spitze außerhalb des Frequenzbereichs: keine Beschriftung
+        return
     pt = ax.figure.dpi / 72.0  # px je pt
     pad_pt = _KASTEN_PAD * stil.schrift_pt
     kasten = ax.text(

@@ -410,7 +410,8 @@ def test_pos1_setzt_zoom_zurueck_nur_bei_fokus_im_plot(reiter: Reiter, qtbot: Qt
     assert ax.get_xlim() == pytest.approx((5.0, 10.0))  # Pos1 in der Liste wirkt nicht auf den Plot
     a.plot.canvas.setFocus()
     QTest.keyClick(a.plot.canvas, Qt.Key.Key_Home)
-    qtbot.waitUntil(lambda: ax.get_xlim() == pytest.approx(standard), timeout=3000)
+    # Zurücksetzen zeichnet neu (P-AUSW2 S2): die Achsen sind neue Objekte
+    qtbot.waitUntil(lambda: _achse(a).get_xlim() == pytest.approx(standard), timeout=3000)
     assert a.plot.act_zuruecksetzen.shortcut().toString() == "Home"
     assert "Pos1" in str(a.plot.toolbar.toolitems[0][1])
 

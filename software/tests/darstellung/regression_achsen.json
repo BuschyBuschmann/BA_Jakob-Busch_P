@@ -1,0 +1,578 @@
+{
+ "matplotlib": "3.11.2",
+ "faelle": {
+  "spektrum_mittel_log": {
+   "achsen": [
+    {
+     "xlim": [
+      0.5,
+      32.0
+     ],
+     "ylim": [
+      0.0001413298662606206,
+      0.47088057943090833
+     ],
+     "xscale": "linear",
+     "yscale": "log",
+     "xlabel": "Frequenz [Hz]",
+     "ylabel": "Amplitude [m/s]",
+     "xticks": [
+      "0",
+      "5",
+      "10",
+      "15",
+      "20",
+      "25",
+      "30",
+      "35"
+     ],
+     "yticks": [
+      "10⁻⁴",
+      "0,001",
+      "0,01",
+      "0,1",
+      "1"
+     ],
+     "linien": [
+      {
+       "stil": "-",
+       "farbe": "#000000",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "fd7f85e71ecb8dbfd74b745909f0517801028be101658c268a195efb905259fe"
+      },
+      {
+       "stil": "--",
+       "farbe": "#333333",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "1a8319cb66693439bc75351d348ed0d08e8e0b85878f08b577db76e677cd072a"
+      },
+      {
+       "stil": ":",
+       "farbe": "#666666",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "db1d943ad5198074f3c162aa8c0680e10d691bcbe4efe6b2c4709c509d8b116e"
+      },
+      {
+       "stil": "-.",
+       "farbe": "#808080",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "9f2ba49f64ca3bc68b33c8ade522a6c1ea628cb5f18845d06ea5589292abcb9a"
+      }
+     ]
+    }
+   ],
+   "texte": [
+    "Frequenz [Hz]",
+    "0",
+    "5",
+    "10",
+    "15",
+    "20",
+    "25",
+    "30",
+    "35",
+    "Amplitude [m/s]",
+    "10⁻⁴",
+    "0,001",
+    "0,01",
+    "0,1",
+    "1",
+    "Geschwindigkeit, kohärent mit Ref1\nBetragsmittel |CPH| über 6 Punkte",
+    "Vib X",
+    "Vib Y",
+    "Vib Z",
+    "3D (nicht gegen PSV geprüft)"
+   ],
+   "png_sha256": "29c05760748d0a15619ad97f68867570ae29d7c329b6f25476d0ade06104e02c"
+  },
+  "spektrum_punkt_linear": {
+   "achsen": [
+    {
+     "xlim": [
+      0.5,
+      32.0
+     ],
+     "ylim": [
+      -0.018926016544386307,
+      0.4013936184601421
+     ],
+     "xscale": "linear",
+     "yscale": "linear",
+     "xlabel": "Frequenz [Hz]",
+     "ylabel": "Amplitude [m/s]",
+     "xticks": [
+      "0",
+      "5",
+      "10",
+      "15",
+      "20",
+      "25",
+      "30",
+      "35"
+     ],
+     "yticks": [
+      "−0,05",
+      "0",
+      "0,05",
+      "0,1",
+      "0,15",
+      "0,2",
+      "0,25",
+      "0,3",
+      "0,35",
+      "0,4",
+      "0,45"
+     ],
+     "linien": [
+      {
+       "stil": "-",
+       "farbe": "#000000",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "a09ade8601304d66cba235fbf45d4abfd9927ab5d93fbfaefbed1c59c3cecddc"
+      },
+      {
+       "stil": "--",
+       "farbe": "#333333",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "20848a0dbabafb669bd7628029c70d10094150d5aad7e139066c0dbbb85f2e9b"
+      },
+      {
+       "stil": ":",
+       "farbe": "#666666",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "756712331e4826a545f970824b9fe104415c5c8b10ba79a73de2229c355e7625"
+      },
+      {
+       "stil": "-.",
+       "farbe": "#808080",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "9527680782709ca6a237fd5398378eda79e6b511662cf10ace8d2f1553988144"
+      }
+     ]
+    }
+   ],
+   "texte": [
+    "Frequenz [Hz]",
+    "0",
+    "5",
+    "10",
+    "15",
+    "20",
+    "25",
+    "30",
+    "35",
+    "Amplitude [m/s]",
+    "−0,05",
+    "0",
+    "0,05",
+    "0,1",
+    "0,15",
+    "0,2",
+    "0,25",
+    "0,3",
+    "0,35",
+    "0,4",
+    "0,45",
+    "Geschwindigkeit, kohärent mit Ref1",
+    "Vib X",
+    "Vib Y",
+    "Vib Z",
+    "3D"
+   ],
+   "png_sha256": "494a40c0b92532605de301082f1bfec2b483ad51d3d216224dafda8cb22f0eef"
+  },
+  "frf_punkt_mit_phase": {
+   "achsen": [
+    {
+     "xlim": [
+      0.5,
+      32.0
+     ],
+     "ylim": [
+      0.0005910189281327278,
+      0.4296467874101169
+     ],
+     "xscale": "linear",
+     "yscale": "log",
+     "xlabel": "",
+     "ylabel": "Betrag [(m/s)/N]",
+     "xticks": [],
+     "yticks": [
+      "10⁻⁴",
+      "0,001",
+      "0,01",
+      "0,1",
+      "1"
+     ],
+     "linien": [
+      {
+       "stil": "-",
+       "farbe": "#000000",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "43999c2b411e59d676b64c1dd85673bc5a0b7e03eaf42973a83919fa3fef6490"
+      },
+      {
+       "stil": "--",
+       "farbe": "#333333",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "42737e8615ddcdaeed9511314e88acd6f1495271ea68ec72764625810fec93b2"
+      }
+     ]
+    },
+    {
+     "xlim": [
+      0.5,
+      32.0
+     ],
+     "ylim": [
+      -180.0,
+      180.0
+     ],
+     "xscale": "linear",
+     "yscale": "linear",
+     "xlabel": "",
+     "ylabel": "Phase [°]",
+     "xticks": [],
+     "yticks": [
+      "−180",
+      "−90",
+      "0",
+      "90",
+      "180"
+     ],
+     "linien": [
+      {
+       "stil": "-",
+       "farbe": "#000000",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "3af5bc3b2d9be48600d90b09567f66233f4890f7573fa5620fafee6a2de4e3d4"
+      }
+     ]
+    },
+    {
+     "xlim": [
+      0.5,
+      32.0
+     ],
+     "ylim": [
+      0.0,
+      1.05
+     ],
+     "xscale": "linear",
+     "yscale": "linear",
+     "xlabel": "Frequenz [Hz]",
+     "ylabel": "Kohärenz [1]",
+     "xticks": [
+      "0",
+      "5",
+      "10",
+      "15",
+      "20",
+      "25",
+      "30",
+      "35"
+     ],
+     "yticks": [
+      "0",
+      "0,5",
+      "1"
+     ],
+     "linien": [
+      {
+       "stil": "-",
+       "farbe": "#000000",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "2af8740dcd858da171c2610667f4be0c2c1f14cc020783c343adc39cb8f35536"
+      }
+     ]
+    }
+   ],
+   "texte": [
+    "Betrag [(m/s)/N]",
+    "10⁻⁴",
+    "0,001",
+    "0,01",
+    "0,1",
+    "1",
+    "|H1|",
+    "|H2|",
+    "positiv = Vib Z eilt Ref1 voraus",
+    "⚠ unbestätigt (M8)",
+    "Phase [°]",
+    "−180",
+    "−90",
+    "0",
+    "90",
+    "180",
+    "Frequenz [Hz]",
+    "0",
+    "5",
+    "10",
+    "15",
+    "20",
+    "25",
+    "30",
+    "35",
+    "Kohärenz [1]",
+    "0",
+    "0,5",
+    "1"
+   ],
+   "png_sha256": "d853be868939a8bc39d09f0cd25f05b6a2111733f4b23671a59e48cb1cefc758"
+  },
+  "frf_mittel_ohne_phase": {
+   "achsen": [
+    {
+     "xlim": [
+      0.5,
+      32.0
+     ],
+     "ylim": [
+      0.0005048286677798246,
+      0.36698996424940994
+     ],
+     "xscale": "linear",
+     "yscale": "log",
+     "xlabel": "",
+     "ylabel": "Betrag [(m/s)/N]",
+     "xticks": [],
+     "yticks": [
+      "10⁻⁴",
+      "0,001",
+      "0,01",
+      "0,1",
+      "1"
+     ],
+     "linien": [
+      {
+       "stil": "-",
+       "farbe": "#000000",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "c35823b640c32fb4bcb488540cd1c85186d66e62758ee95d9f1f240836ecf2ee"
+      },
+      {
+       "stil": "--",
+       "farbe": "#333333",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "7409409f6d42880fc963df3607f36745ae17844c2dd92710080dd390379f943f"
+      }
+     ]
+    },
+    {
+     "xlim": [
+      0.5,
+      32.0
+     ],
+     "ylim": [
+      0.0,
+      1.05
+     ],
+     "xscale": "linear",
+     "yscale": "linear",
+     "xlabel": "Frequenz [Hz]",
+     "ylabel": "Kohärenz [1]",
+     "xticks": [
+      "0",
+      "5",
+      "10",
+      "15",
+      "20",
+      "25",
+      "30",
+      "35"
+     ],
+     "yticks": [
+      "0",
+      "0,5",
+      "1"
+     ],
+     "linien": [
+      {
+       "stil": "-",
+       "farbe": "#000000",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "1f576321e5f1696bed26c692ecebf0b50dcd79a77a49b7d329fb5bad428473ea"
+      }
+     ]
+    }
+   ],
+   "texte": [
+    "Betrag [(m/s)/N]",
+    "10⁻⁴",
+    "0,001",
+    "0,01",
+    "0,1",
+    "1",
+    "Betragsmittel |H1| über 6 Punkte",
+    "Betragsmittel |H2| über 6 Punkte",
+    "γ²: arithmetisches Mittel über 6 Punkte",
+    "Frequenz [Hz]",
+    "0",
+    "5",
+    "10",
+    "15",
+    "20",
+    "25",
+    "30",
+    "35",
+    "Kohärenz [1]",
+    "0",
+    "0,5",
+    "1"
+   ],
+   "png_sha256": "393120d67cf85aa6be4d2dd920c89aac22c1c8bbfa9a20c93abd8e453000f25a"
+  },
+  "spitzen_gewaehlt": {
+   "achsen": [
+    {
+     "xlim": [
+      0.5,
+      32.0
+     ],
+     "ylim": [
+      0.0005048310011154246,
+      3.8928209138945684
+     ],
+     "xscale": "linear",
+     "yscale": "log",
+     "xlabel": "Frequenz [Hz]",
+     "ylabel": "Betrag [(m/s)/N]",
+     "xticks": [
+      "0",
+      "5",
+      "10",
+      "15",
+      "20",
+      "25",
+      "30",
+      "35"
+     ],
+     "yticks": [
+      "10⁻⁴",
+      "0,001",
+      "0,01",
+      "0,1",
+      "1",
+      "10"
+     ],
+     "linien": [
+      {
+       "stil": "-",
+       "farbe": "#000000",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "c35823b640c32fb4bcb488540cd1c85186d66e62758ee95d9f1f240836ecf2ee"
+      },
+      {
+       "stil": "None",
+       "farbe": "(0.12156862745098039, 0.4666666666666667, 0.7058823529411765)",
+       "x": "ead7ed2004215b618da3089eaaec3ec614ad50cda6dc1fbe867e588503c57ef8",
+       "y": "6f13dd94ab4a8c8f071fabb6c9f13e156cf2b64006cea7a620ad9389e9b39e19"
+      },
+      {
+       "stil": "None",
+       "farbe": "(1.0, 0.4980392156862745, 0.054901960784313725)",
+       "x": "9fb216660cc21dd84b8c9ff0f42ed8706d3976c2b8a4560125c91bea3f73dbc4",
+       "y": "ff314fe416420d256e56b973a111d5ae40f67e95036d8d7d6614dc6e2674100d"
+      }
+     ]
+    }
+   ],
+   "texte": [
+    "f = 20,031 Hz · ζ ≈ 0,020\n-3dB-Breite, 19,655 … 20,441 Hz\n⚠ auflösungsbegrenzt",
+    "Frequenz [Hz]",
+    "0",
+    "5",
+    "10",
+    "15",
+    "20",
+    "25",
+    "30",
+    "35",
+    "Betrag [(m/s)/N]",
+    "10⁻⁴",
+    "0,001",
+    "0,01",
+    "0,1",
+    "1",
+    "10",
+    "Betragsmittel |H1| über 6 Punkte, Vib Z/Ref1",
+    "Spitzen (2)",
+    "Band 0,500 … 32,000 Hz"
+   ],
+   "png_sha256": "c135667110956bc098e780dbc3fdbd94ec94348abf5c465be741dadb739266a8"
+  },
+  "spitzen_ui_linear": {
+   "achsen": [
+    {
+     "xlim": [
+      0.5,
+      32.0
+     ],
+     "ylim": [
+      -0.012884105981245803,
+      0.2855504867960188
+     ],
+     "xscale": "linear",
+     "yscale": "linear",
+     "xlabel": "Frequenz [Hz]",
+     "ylabel": "Betrag [(m/s)/N]",
+     "xticks": [
+      "0",
+      "5",
+      "10",
+      "15",
+      "20",
+      "25",
+      "30",
+      "35"
+     ],
+     "yticks": [
+      "−0,05",
+      "0",
+      "0,05",
+      "0,1",
+      "0,15",
+      "0,2",
+      "0,25",
+      "0,3"
+     ],
+     "linien": [
+      {
+       "stil": "-",
+       "farbe": "#000000",
+       "x": "7578497e77e306c23bd2b1a4844068c45384291083d74599e93017d424dcf8cc",
+       "y": "c35823b640c32fb4bcb488540cd1c85186d66e62758ee95d9f1f240836ecf2ee"
+      },
+      {
+       "stil": "None",
+       "farbe": "(0.12156862745098039, 0.4666666666666667, 0.7058823529411765)",
+       "x": "ead7ed2004215b618da3089eaaec3ec614ad50cda6dc1fbe867e588503c57ef8",
+       "y": "6f13dd94ab4a8c8f071fabb6c9f13e156cf2b64006cea7a620ad9389e9b39e19"
+      }
+     ]
+    }
+   ],
+   "texte": [
+    "Frequenz [Hz]",
+    "0",
+    "5",
+    "10",
+    "15",
+    "20",
+    "25",
+    "30",
+    "35",
+    "Betrag [(m/s)/N]",
+    "−0,05",
+    "0",
+    "0,05",
+    "0,1",
+    "0,15",
+    "0,2",
+    "0,25",
+    "0,3"
+   ],
+   "png_sha256": "6332ee4d6135f431534e68ec6ccd2c57cd0c2f471ed1a2190fa8827e8ba0f8e3"
+  }
+ }
+}

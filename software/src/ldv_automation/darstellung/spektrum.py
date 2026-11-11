@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from matplotlib import rc_context
 from matplotlib.figure import Figure
 
+from .achsen import AchsenOptionen, nebenticks_log, wende_frequenz_an, wende_y_an
 from .auswahl import SpektrumDaten
 from .formate import achsentitel
 from .stil import Plotstil
@@ -33,9 +34,13 @@ class SpektrumOptionen:
     skala : {"linear", "log"}
         Amplitudenskala (Voreinstellung logarithmisch, OE-2). ``"db"`` ist nicht möglich
         (:data:`DB_GRUND`).
+    achsen : AchsenOptionen or None
+        Feste Bereiche und Frequenzskala (R-073, Rolle ``"betrag"``); ``None`` (Voreinstellung)
+        lässt die Achsen unverändert (Frequenz = Datenbereich, y automatisch).
     """
 
     skala: Skala = "log"
+    achsen: AchsenOptionen | None = None
 
     def __post_init__(self) -> None:
         if self.skala == "db":  # type: ignore[comparison-overlap]
@@ -69,7 +74,7 @@ def zeichne_spektrum(
         fig.clear()
         constrained_layout(fig)
         ax = fig.subplots()
-        zeichnung = Zeichnung(figure=fig, achsen=(ax,), hinweise=daten.hinweise)
+        zeichnung = Zeichnung(figure=fig, achsen=(ax,), hinweise=daten.hinweise, rollen=("betrag",))
         for i, kurve in enumerate(daten.kurven):
             (linie,) = ax.plot(
                 daten.frequenz_hz,
@@ -82,10 +87,23 @@ def zeichne_spektrum(
             zeichnung.linien[kurve.schluessel] = linie
         if opt.skala == "log":
             ax.set_yscale("log", nonpositive="mask")
-        ax.set_xlim(float(daten.frequenz_hz[0]), float(daten.frequenz_hz[-1]))
+        f_min, f_max = float(daten.frequenz_hz[0]), float(daten.frequenz_hz[-1])
+        if opt.achsen is None:
+            ax.set_xlim(f_min, f_max)
+        else:
+            x_fest = wende_frequenz_an(ax, opt.achsen, f_min, f_max)
+            wende_y_an(
+                ax,
+                opt.achsen.y_bereich("betrag"),
+                log=opt.skala == "log",
+                x_gesetzt=x_fest,
+                name="Amplitude",
+            )
         ax.set_xlabel(achsentitel("Frequenz", "Hz"))
         ax.set_ylabel(achsentitel("Amplitude", daten.einheit))
         setze_achsenstil(ax, stil)
+        if opt.achsen is not None:
+            nebenticks_log(ax, dezimalkomma=stil.dezimalkomma)
         titel = daten.bezeichnung
         if daten.mittelformel:  # Mittelformel und Punktzahl im Bild (KONVENTIONEN)
             titel += f"\n{daten.mittelformel}"

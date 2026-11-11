@@ -107,8 +107,9 @@ uv run pytest --cov --cov-fail-under=90
   wahrnehmungsgleichmäßige Farbskalen (`twilight`), kein `hsv`/`jet` (ADR-025).
 - Erstellt werden sie vom `software-engineer` im Umsetzungspaket.
 
-- Zahlenfelder der Oberfläche zeigen Beträge außerhalb von 0,001 bis 1 000 000 als
-  „m·10ⁿ“ mit 3 signifikanten Stellen und lesen diese Schreibweise sowie „e“-Exponenten
+- Zahlenfelder der Oberfläche zeigen Werte einheitlich mit 4 signifikanten Stellen, Beträge
+  außerhalb von 0,001 bis 1 000 000 als
+  „m·10ⁿ“ und lesen diese Schreibweise sowie „e“-Exponenten
   wieder ein; Eingabe ohne Tausendertrennzeichen und ohne Unterstriche
   (Nutzerentscheidung 2026-11-11).
 - Bei kleinem Fenster hat der Plot Vorrang vor Tabellen in derselben Ansicht; die

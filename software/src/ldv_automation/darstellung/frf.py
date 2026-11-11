@@ -15,7 +15,16 @@ import numpy as np
 from matplotlib import rc_context
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.ticker import AutoLocator
 
+from .achsen import (
+    AchsenOptionen,
+    Bereich,
+    nebenticks_log,
+    wende_bereich_an,
+    wende_frequenz_an,
+    wende_y_an,
+)
 from .auswahl import FrfDaten
 from .formate import achsentitel, grad
 from .stil import Plotstil
@@ -60,6 +69,9 @@ class FrfOptionen:
     kennzeichen_phase : str or None
         Kennzeichentext im Kopf des Phasen-Teilbilds (z. B. „unbestätigt (M8: …)“); ``None``
         = kein Kennzeichen. Die Zuordnung Annahme → Größe liegt in der Oberfläche.
+    achsen : AchsenOptionen or None
+        Feste Bereiche und Frequenzskala (R-073; Rollen ``"betrag"`` und ``"phase"`` in Grad;
+        die Kohärenz bleibt fest 0 bis 1,05); ``None`` lässt die Achsen unverändert.
     """
 
     h1: bool = True
@@ -67,6 +79,7 @@ class FrfOptionen:
     phase: bool = False
     skala: Skala = "log"
     kennzeichen_phase: str | None = None
+    achsen: AchsenOptionen | None = None
 
     def __post_init__(self) -> None:
         if not (self.h1 or self.h2):
@@ -89,6 +102,14 @@ def ohne_umbruch(phase_grad: np.ndarray) -> np.ndarray:
     sprung = np.flatnonzero(np.abs(np.diff(ergebnis)) > 180.0)
     ergebnis[sprung + 1] = np.nan
     return ergebnis
+
+
+def _phase_bereich(ax: Axes, bereich: Bereich) -> None:
+    """Setzt den Phasenbereich in Grad; ohne Eingabe bleibt ±180° mit den Ticks der Vorgabe."""
+    if bereich.ist_auto:
+        return
+    wende_bereich_an(ax, bereich, (-180.0, 180.0), "Phase")
+    ax.yaxis.set_major_locator(AutoLocator())
 
 
 def zeichne_frf(fig: Figure, daten: FrfDaten, opt: FrfOptionen, stil: Plotstil) -> Zeichnung:
@@ -119,7 +140,8 @@ def zeichne_frf(fig: Figure, daten: FrfDaten, opt: FrfOptionen, stil: Plotstil) 
             len(hoehen), 1, sharex=True, gridspec_kw={"height_ratios": list(hoehen)}
         )
         achsen_liste: tuple[Axes, ...] = tuple(np.atleast_1d(achsen).tolist())
-        z = Zeichnung(figure=fig, achsen=achsen_liste)
+        rollen = ("betrag", "phase", "kohaerenz") if opt.phase else ("betrag", "kohaerenz")
+        z = Zeichnung(figure=fig, achsen=achsen_liste, rollen=rollen)
         f = daten.frequenz_hz
         ax_betrag = achsen_liste[0]
         mittel = daten.punktzahl is not None
@@ -209,7 +231,22 @@ def zeichne_frf(fig: Figure, daten: FrfDaten, opt: FrfOptionen, stil: Plotstil) 
         ax_koh.set_yticks([0.0, 0.5, 1.0])
         ax_koh.set_ylabel(achsentitel("Kohärenz", "1"))
         ax_koh.set_xlabel(achsentitel("Frequenz", "Hz"))
-        ax_koh.set_xlim(float(f[0]), float(f[-1]))
+        f_min, f_max = float(f[0]), float(f[-1])
+        if opt.achsen is None:
+            ax_koh.set_xlim(f_min, f_max)
+        else:
+            x_fest = wende_frequenz_an(ax_koh, opt.achsen, f_min, f_max)
+            wende_y_an(
+                ax_betrag,
+                opt.achsen.y_bereich("betrag"),
+                log=opt.skala == "log",
+                x_gesetzt=x_fest,
+                name="Betrag",
+            )
+            if opt.phase:
+                _phase_bereich(achsen_liste[1], opt.achsen.y_bereich("phase"))
         for ax in achsen_liste:
             setze_achsenstil(ax, stil)
+            if opt.achsen is not None:
+                nebenticks_log(ax, dezimalkomma=stil.dezimalkomma)
     return z

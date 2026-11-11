@@ -69,6 +69,10 @@ class Zeichnung:
         Zusatztexte der Zeichenfunktion (Platzhalter, Kennzeichen, Beschriftung der Spitze).
     hinweise : tuple of str
         Anzeigehinweise für die Oberfläche (z. B. Formel des Mittels), nicht im Bild.
+    rollen : tuple of str
+        Rolle der y-Achse je Achse in der Reihenfolge von ``achsen`` (``"betrag"``, ``"phase"``,
+        ``"kohaerenz"``); die Oberfläche ordnet damit Achsen und Eingabefelder zu (R-073), ohne
+        Ansichten zu kennen. Leer = keine Achsenwahl (Ansicht 4).
     """
 
     figure: Figure
@@ -78,6 +82,7 @@ class Zeichnung:
     hilfsobjekte: dict[str, Any] = field(default_factory=dict)
     texte: list[Text] = field(default_factory=list)
     hinweise: tuple[str, ...] = ()
+    rollen: tuple[str, ...] = ()
 
     def alle_texte(self) -> list[str]:
         """Alle sichtbaren Texte der Figure (Achsentitel, Ticks nach Zeichnen, Legenden, Texte)."""

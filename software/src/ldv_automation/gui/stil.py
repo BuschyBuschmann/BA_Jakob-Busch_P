@@ -77,6 +77,9 @@ QLineEdit, QSpinBox, QComboBox, QPlainTextEdit {{
 QLineEdit:disabled, QSpinBox:disabled, QComboBox:disabled, QPlainTextEdit:disabled {{
     color: {t.C_DEAKTIVIERT_TEXT}; background: {t.C_DEAKTIVIERT_BG};
 }}
+QLineEdit[fest="true"] {{
+    border: 2px solid {t.C_FELD_FEST_RAND}; background: {t.C_FELD_FEST_BG};
+}}
 *:focus {{ outline: none; }}
 QLabel#lbl_pruefung:focus {{ border: 2px solid {t.C_AKZENT}; }}
 QPushButton:focus, QToolButton:focus, QLineEdit:focus, QSpinBox:focus, QComboBox:focus,
@@ -84,6 +87,12 @@ QPlainTextEdit:focus, QCheckBox:focus, QTableWidget:focus, QListWidget:focus,
 QRadioButton:focus {{
     border: 2px solid {t.C_AKZENT};
 }}
+QLineEdit[fehler="true"], QLineEdit[fehler="true"]:focus {{
+    border: 2px dashed {t.C_FEHLER}; background: {t.C_FLAECHE};
+}}
+QLineEdit[achsenfeld="true"] {{ padding: 1px; }}
+QLineEdit[achsenfeld="true"][fest="true"], QLineEdit[achsenfeld="true"][fehler="true"],
+QLineEdit[achsenfeld="true"]:focus {{ padding: 0; }}
 QTabBar::tab {{
     min-height: {t.KNOPF_MIN_HOEHE_PX - 8}px; padding: 2px 20px; background: {t.C_LEISTE};
     border: 1px solid {t.C_LINIE}; border-bottom: none;

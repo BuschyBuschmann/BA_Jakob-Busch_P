@@ -120,6 +120,12 @@ omit = [
     # `gui/anzeige_aktionen.py`, der Cursor liegt Qt-frei in `gui/cursor.py` (beide voll gemessen).
     "src/ldv_automation/gui/pruefdialog.py",
     "src/ldv_automation/gui/einstellungen_auswerten.py",
+    # R-073 (P-AUSW2 S3): Achsenleiste AG ist ein reines Widget (Eingabefelder, Umschalter,
+    # Flusslayout `FlussLayout._ordne`, Fokus- und Ereignisbehandlung), nur offscreen prüfbar
+    # (`pytest -m gui`, dort zu rund 95 % gemessen). Einlesen, Prüfung, Anzeigeformat und Texte
+    # der Eingaben liegen Qt-frei in `darstellung/achsen.py` (`parse_zahl`, `feld_text`,
+    # `uebernehme_eingabe`), der Zustand in `gui/achsen_zustand.py` (beide voll gemessen).
+    "src/ldv_automation/gui/achsenleiste.py",
 ]
 
 [tool.coverage.report]

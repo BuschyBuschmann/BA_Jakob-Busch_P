@@ -968,7 +968,8 @@ def test_dateiwechsel_loescht_den_zoom_aller_ansichten(baue: Bauer, qtbot: QtBot
     a.plot.zeichnung.achsen[0].set_xlim(20.0, 30.0)  # type: ignore[union-attr]
     a.btn_ansicht[1].click()
     lade(qtbot, a.window(), "C:\\messungen\\zweite.svd")  # type: ignore[arg-type]
-    assert a.plot._zoom == {}
+    zustand = a.plot.achsen_zustand
+    assert not any(zustand.hat_feste(nr) for nr in (1, 2, 3))  # Bereiche aller Ansichten Auto
     a.btn_ansicht[2].click()
     assert a.plot.zeichnung.achsen[0].get_xlim() == pytest.approx((0.5, 32.0))  # type: ignore[union-attr]
 
