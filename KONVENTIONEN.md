@@ -107,6 +107,14 @@ uv run pytest --cov --cov-fail-under=90
   wahrnehmungsgleichmäßige Farbskalen (`twilight`), kein `hsv`/`jet` (ADR-025).
 - Erstellt werden sie vom `software-engineer` im Umsetzungspaket.
 
+- Zahlenfelder der Oberfläche zeigen Beträge außerhalb von 0,001 bis 1 000 000 als
+  „m·10ⁿ“ mit 3 signifikanten Stellen und lesen diese Schreibweise sowie „e“-Exponenten
+  wieder ein; Eingabe ohne Tausendertrennzeichen und ohne Unterstriche
+  (Nutzerentscheidung 2026-11-11).
+- Bei kleinem Fenster hat der Plot Vorrang vor Tabellen in derselben Ansicht; die
+  Tabellenhöhe bleibt von Hand einstellbar (Nutzerentscheidung 2026-11-11, ersetzt
+  „4 Zeilen“ aus T3b-3 für kleine Fenster).
+
 ## Polytec-Konventionen
 Quelle: Analyseberichte I1, I2, I5 und I5-F unter `in_progress/analysen/`.
 - „COM“ bezeichnet im Projekt das Component Object Model von Windows. Serielle Ports
