@@ -115,6 +115,10 @@ uv run pytest --cov --cov-fail-under=90
   Tabellenhöhe bleibt von Hand einstellbar (Nutzerentscheidung 2026-11-11, ersetzt
   „4 Zeilen“ aus T3b-3 für kleine Fenster).
 
+- Relativer Phasenbezug bei 3D-Bezugspunkt: eine gemeinsame Phase einer Komponente des
+  Bezugspunkts (Voreinstellung: betragsgrößte) für alle Punkte und Komponenten; nie
+  komponentenweise drehen (FG-04 Nachtrag 1, Nutzerentscheidung 2026-11-11).
+
 ## Polytec-Konventionen
 Quelle: Analyseberichte I1, I2, I5 und I5-F unter `in_progress/analysen/`.
 - „COM“ bezeichnet im Projekt das Component Object Model von Windows. Serielle Ports
