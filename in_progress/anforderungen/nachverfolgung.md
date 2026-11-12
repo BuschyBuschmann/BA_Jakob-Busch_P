@@ -43,7 +43,7 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-058 | – | – | – | – | offen |
 | R-059 | – | – | – | – | offen |
 | R-070 | – | – | – | – | offen |
-| R-071 | – | – | – | – | offen |
+| R-071 | `auswertung/animation.py` (Rechenkern, ADR-029); Oberfläche offen | `test_aw_animation.py` (RF-A1–A14, RF-N1–N7) | Laborbuch 2026-11-12_animation-rechenkern | 4.4 | in Arbeit (Rechenkern getestet) |
 | R-072 | – | – | – | – | offen |
 | R-073 | `darstellung/achsen.py`, `gui/achsen_zustand.py`, `gui/achsenleiste.py`, `plotflaeche.py` (ADR-028) | `test_dar_achsen*.py`, `test_dar_regression_achsen.py`, `test_gui_achsen.py`, `test_achsen_zustand.py` | Laborbuch 2026-11-11_auswerten-etappe-a-achsen | 4.4/4.5 | getestet (offscreen); UI-38 am Gerät offen |
 | R-060 | `pyproject.toml` (`requires-python >=3.11,<3.12`) | gesamte Testsuite unter Python 3.11 | Laborbuch 2026-10-27_u4 | – | umgesetzt |
