@@ -19,6 +19,7 @@ from ldv_automation.ablauf.uhr import Testuhr
 from ldv_automation.domaene.eintraege import Eintrag, Messung
 from ldv_automation.domaene.parameter import ParameterWert
 from ldv_automation.domaene.warteschlange import Warteschlange
+from ldv_automation.geraet.schnittstelle import Messgeraet
 from ldv_automation.geraet.simulator import (
     DrehbuchEreignis,
     Simulator,
@@ -124,6 +125,7 @@ def aufbau(
     build: BuildInfo = BUILD,
     betriebsart: str = "simulator",
     verbinden: bool = True,
+    huelle: Callable[[Simulator], Messgeraet] | None = None,
 ) -> Aufbau:
     uhr = Testuhr()
     sim = Simulator(
@@ -138,7 +140,7 @@ def aufbau(
     ereignisse: list[AblaufEreignis] = []
     steuerung = Steuerung(
         warteschlange=Warteschlange(eintraege),
-        geraet=sim,
+        geraet=sim if huelle is None else huelle(sim),
         betriebsart=betriebsart,
         uhr=uhr,
         build_info=build,

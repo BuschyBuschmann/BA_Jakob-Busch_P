@@ -15,12 +15,19 @@ Format (UTF-8)::
       "aufruf_grenze_s": 60,
       "aufruf_warnung_s": 5,
       "stop_frist_s": 10,
-      "standard_zeitlimit_s": 600
+      "standard_zeitlimit_s": 600,
+      "abgleich_pruefung": "aus"
     }
 
 ``art`` und ``schema_version`` sind Pflicht, jeder weitere Schlüssel ist optional (sonst
 Standardwert). Die Prüfung ist streng: Unbekannte Schlüssel, falsche Typen und Werte
 außerhalb der Bereiche (:data:`BEREICHE`) führen zu :class:`KonfigFehler` mit JSON-Pfad.
+Prüfung des Abgleichs vor der Messung (R-003b, alle optional): ``abgleich_pruefung``
+(``"aus"`` Voreinstellung, ``"warnen"``, ``"verweigern"``), die Grenzen
+``abgleich_qualitaet_max_m`` (m), ``abgleich_position_max_m`` (m),
+``abgleich_winkel_max_rad`` (rad) und ``abgleich_2d_pruefen`` (true/false). Grenzen haben
+**keinen Standardwert und keine Obergrenze** (jede wäre erfunden); sie müssen endlich und
+> 0 sein und stehen nur hier, nie in der Oberfläche. Das Schema der Datei bleibt 1.
 Die Lademaske wird nur über die Richtlinie des COM-Adapters
 (``richtlinie.lademaske_freigegeben``) zugelassen. Die Bereichsgrenzen sind Annahmen
 (Schutz vor Tippfehlern), keine Gerätedaten.
@@ -32,9 +39,10 @@ import hashlib
 import json
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
+from ldv_automation.ablauf.abgleich import AbgleichModus, AbgleichRegel
 from ldv_automation.ablauf.steuerung import AblaufKonfiguration
 from ldv_automation.geraet.com.konstanten import SettingsMask, lademaske_text
 from ldv_automation.geraet.com.richtlinie import STANDARD_LADEMASKE, lademaske_freigegeben
@@ -78,6 +86,8 @@ class MessrechnerKonfig:
         ``PTCSettings``-Maske für ``Settings.Load``.
     aufruf_grenze_s, aufruf_warnung_s, stop_frist_s, standard_zeitlimit_s : float
         Zeiten in s für Steuerung und Sitzung.
+    abgleich : AbgleichRegel
+        Prüfung des Abgleichs vor der Messung (Standard: aus, keine Grenzen).
     pfad : str or None
         Absoluter Pfad der Datei; ``None`` bei Standardwerten.
     sha256 : str or None
@@ -90,6 +100,7 @@ class MessrechnerKonfig:
     aufruf_warnung_s: float = 5.0
     stop_frist_s: float = 10.0
     standard_zeitlimit_s: float = 600.0
+    abgleich: AbgleichRegel = field(default_factory=AbgleichRegel)
     pfad: str | None = None
     sha256: str | None = None
 
@@ -99,6 +110,7 @@ class MessrechnerKonfig:
             zeitlimit_s=self.standard_zeitlimit_s,
             stop_frist_s=self.stop_frist_s,
             aufruf_grenze_s=self.aufruf_grenze_s,
+            abgleich=self.abgleich,
         )
 
     def protokoll_info(self) -> dict[str, object]:
@@ -113,6 +125,11 @@ class MessrechnerKonfig:
                 "aufruf_warnung_s": self.aufruf_warnung_s,
                 "stop_frist_s": self.stop_frist_s,
                 "standard_zeitlimit_s": self.standard_zeitlimit_s,
+                "abgleich_pruefung": self.abgleich.modus.value,
+                "abgleich_qualitaet_max_m": self.abgleich.qualitaet_max_m,
+                "abgleich_position_max_m": self.abgleich.position_max_m,
+                "abgleich_winkel_max_rad": self.abgleich.winkel_max_rad,
+                "abgleich_2d_pruefen": self.abgleich.pruefe_2d,
             },
         }
 
@@ -120,8 +137,24 @@ class MessrechnerKonfig:
 STANDARD = MessrechnerKonfig()
 """Standardwerte (bisherige Vorgaben aus Plan P2 und K-U2b)."""
 
+ABGLEICH_SCHLUESSEL = (
+    "abgleich_pruefung",
+    "abgleich_qualitaet_max_m",
+    "abgleich_position_max_m",
+    "abgleich_winkel_max_rad",
+    "abgleich_2d_pruefen",
+)
+"""Optionale Schlüssel der Abgleichprüfung (R-003b)."""
+
 _ERLAUBT = frozenset(
-    {"art", "schema_version", "validator_rueckfall_direkt", "lademaske", *BEREICHE}
+    {
+        "art",
+        "schema_version",
+        "validator_rueckfall_direkt",
+        "lademaske",
+        *BEREICHE,
+        *ABGLEICH_SCHLUESSEL,
+    }
 )
 
 
@@ -135,6 +168,44 @@ def _zahl(daten: Mapping[str, object], schluessel: str, standard: float) -> floa
     if not math.isfinite(wert) or not unten <= wert <= oben:
         raise KonfigFehler(f"$.{schluessel}: {wert!r} liegt außerhalb {unten:g} … {oben:g} s")
     return float(wert)
+
+
+def _abgleich_grenze(daten: Mapping[str, object], schluessel: str) -> float | None:
+    """Grenze > 0, endlich, ohne Obergrenze; fehlt der Schlüssel oder ist er ``null``: ``None``.
+
+    ``null`` bedeutet keine Grenze (so gibt es ``protokoll_info()`` aus).
+    """
+    wert = daten.get(schluessel)
+    if wert is None:
+        return None
+    if isinstance(wert, bool) or not isinstance(wert, int | float):
+        raise KonfigFehler(f"$.{schluessel}: Zahl erwartet, erhalten {wert!r}")
+    try:
+        grenze = float(wert)  # sehr große Ganzzahlen: OverflowError
+    except OverflowError:
+        raise KonfigFehler(f"$.{schluessel}: Zahl zu groß für eine Gleitkommazahl") from None
+    if not math.isfinite(grenze) or grenze <= 0:
+        raise KonfigFehler(f"$.{schluessel}: {wert!r} muss endlich und > 0 sein")
+    return grenze
+
+
+def _abgleich_regel(daten: Mapping[str, object]) -> AbgleichRegel:
+    modus_text = daten.get("abgleich_pruefung", AbgleichModus.AUS.value)
+    modi = [m.value for m in AbgleichModus]
+    if not isinstance(modus_text, str) or modus_text not in modi:
+        raise KonfigFehler(
+            f"$.abgleich_pruefung: eine von {', '.join(modi)} erwartet, erhalten {modus_text!r}"
+        )
+    pruefe_2d = daten.get("abgleich_2d_pruefen", False)
+    if not isinstance(pruefe_2d, bool):
+        raise KonfigFehler(f"$.abgleich_2d_pruefen: true/false erwartet, erhalten {pruefe_2d!r}")
+    return AbgleichRegel(
+        modus=AbgleichModus(modus_text),
+        qualitaet_max_m=_abgleich_grenze(daten, "abgleich_qualitaet_max_m"),
+        position_max_m=_abgleich_grenze(daten, "abgleich_position_max_m"),
+        winkel_max_rad=_abgleich_grenze(daten, "abgleich_winkel_max_rad"),
+        pruefe_2d=pruefe_2d,
+    )
 
 
 def _lademaske(daten: Mapping[str, object]) -> int:
@@ -193,6 +264,7 @@ def pruefe_konfig(daten: object) -> MessrechnerKonfig:
         aufruf_warnung_s=warnung,
         stop_frist_s=_zahl(daten, "stop_frist_s", STANDARD.stop_frist_s),
         standard_zeitlimit_s=_zahl(daten, "standard_zeitlimit_s", STANDARD.standard_zeitlimit_s),
+        abgleich=_abgleich_regel(daten),
     )
 
 
@@ -223,6 +295,7 @@ def lade_konfig(pfad: Path) -> MessrechnerKonfig:
         aufruf_warnung_s=konfig.aufruf_warnung_s,
         stop_frist_s=konfig.stop_frist_s,
         standard_zeitlimit_s=konfig.standard_zeitlimit_s,
+        abgleich=konfig.abgleich,
         pfad=str(pfad.resolve()),
         sha256=hashlib.sha256(roh).hexdigest(),
     )

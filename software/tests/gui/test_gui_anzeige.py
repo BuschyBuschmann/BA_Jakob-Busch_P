@@ -615,6 +615,20 @@ def test_protokolltext() -> None:
     assert a.protokolltext(ev("warteschlange_geladen")) is None
 
 
+def test_protokolltext_abgleich_ereignisse_sind_warnungen() -> None:
+    """R-003: Hinweis und Warnung zum Abgleich erscheinen mit Präfix „Warnung:“ (Schritt 6)."""
+
+    def ev(art: str, text: str) -> SitzungsEreignis:
+        return SitzungsEreignis(revision=1, art=art, text=text)
+
+    assert a.protokolltext(ev("abgleich_warnung", "Abgleich nicht_bestanden")) == (
+        "Warnung: Abgleich nicht_bestanden"
+    )
+    assert a.protokolltext(ev("abgleich_hinweis", "Abgleich auffällig: x")) == (
+        "Warnung: Abgleich auffällig: x"
+    )
+
+
 # --- UI-23: Kontrast -----------------------------------------------------------------------
 
 

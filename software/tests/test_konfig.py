@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 
 import ldv_automation.__main__ as einstieg
+from ldv_automation.ablauf.abgleich import AbgleichModus, AbgleichRegel
 from ldv_automation.geraet.com.adapter import PsvComGeraet
 from ldv_automation.geraet.com.richtlinie import STANDARD_LADEMASKE
 from ldv_automation.gui.anzeige import konfiguration_text
@@ -70,7 +71,114 @@ def test_nur_kopf_ergibt_standardwerte_und_werte_werden_uebernommen(tmp_path: Pa
         "aufruf_warnung_s": 8.5,
         "stop_frist_s": 20.0,
         "standard_zeitlimit_s": 1200.0,
+        "abgleich_pruefung": "aus",
+        "abgleich_qualitaet_max_m": None,
+        "abgleich_position_max_m": None,
+        "abgleich_winkel_max_rad": None,
+        "abgleich_2d_pruefen": False,
     }
+
+
+def test_abgleich_standard_ist_aus_ohne_grenzen() -> None:
+    """R-003b A4/A6: ohne Schlüssel Modus aus und keine Standardgrenzen."""
+    regel = STANDARD.abgleich
+    assert regel.modus is AbgleichModus.AUS
+    assert (regel.qualitaet_max_m, regel.position_max_m, regel.winkel_max_rad) == (None,) * 3
+    assert not regel.pruefe_2d
+    assert STANDARD.ablauf_konfiguration().abgleich == regel
+
+
+def test_abgleich_werte_werden_uebernommen_und_ins_protokoll_geschrieben(tmp_path: Path) -> None:
+    """Grenzen aus der Datei: gleiche Zahl in AblaufKonfiguration und Protokollinfo (A6)."""
+    k = lade_konfig(
+        _datei(
+            tmp_path,
+            abgleich_pruefung="verweigern",
+            abgleich_qualitaet_max_m=0.0025,
+            abgleich_position_max_m=1,
+            abgleich_winkel_max_rad=1e-3,
+            abgleich_2d_pruefen=True,
+        )
+    )
+    regel = k.ablauf_konfiguration().abgleich
+    assert regel == AbgleichRegel(
+        modus=AbgleichModus.VERWEIGERN,
+        qualitaet_max_m=0.0025,
+        position_max_m=1.0,
+        winkel_max_rad=1e-3,
+        pruefe_2d=True,
+    )
+    werte = k.protokoll_info()["werte"]
+    assert isinstance(werte, dict)
+    assert werte["abgleich_pruefung"] == "verweigern"
+    assert werte["abgleich_qualitaet_max_m"] == 0.0025
+    assert werte["abgleich_position_max_m"] == 1.0
+    assert werte["abgleich_winkel_max_rad"] == 1e-3
+    assert werte["abgleich_2d_pruefen"] is True
+
+
+@pytest.mark.parametrize(
+    ("werte", "teil"),
+    [
+        ({"abgleich_pruefung": "streng"}, "$.abgleich_pruefung: eine von aus, warnen, verweigern"),
+        ({"abgleich_pruefung": True}, "$.abgleich_pruefung"),
+        ({"abgleich_qualitaet_max_m": 0}, "$.abgleich_qualitaet_max_m: 0 muss endlich und > 0"),
+        ({"abgleich_position_max_m": -1e-3}, "$.abgleich_position_max_m"),
+        ({"abgleich_winkel_max_rad": True}, "$.abgleich_winkel_max_rad: Zahl erwartet"),
+        ({"abgleich_winkel_max_rad": "0.1"}, "$.abgleich_winkel_max_rad: Zahl erwartet"),
+        ({"abgleich_2d_pruefen": "ja"}, "$.abgleich_2d_pruefen: true/false erwartet"),
+    ],
+)
+def test_abgleich_ungueltig_mit_json_pfad(tmp_path: Path, werte: dict[str, Any], teil: str) -> None:
+    with pytest.raises(KonfigFehler) as fehler:
+        lade_konfig(_datei(tmp_path, **werte))
+    assert teil in str(fehler.value) and "messrechner.json" in str(fehler.value)
+
+
+@pytest.mark.parametrize("zahl", ["NaN", "Infinity", "-Infinity"])
+def test_abgleich_grenze_nicht_endlich(tmp_path: Path, zahl: str) -> None:
+    pfad = tmp_path / "k.json"
+    pfad.write_text(
+        '{"art": "ldv-messrechner-konfig", "schema_version": 1, '
+        f'"abgleich_qualitaet_max_m": {zahl}}}',
+        encoding="utf-8",
+    )
+    with pytest.raises(KonfigFehler, match="abgleich_qualitaet_max_m"):
+        lade_konfig(pfad)
+
+
+def test_abgleich_sehr_grosse_ganzzahl_ist_konfigfehler(tmp_path: Path) -> None:
+    pfad = tmp_path / "k.json"
+    pfad.write_text(
+        '{"art": "ldv-messrechner-konfig", "schema_version": 1, '
+        f'"abgleich_qualitaet_max_m": 1{"0" * 400}}}',
+        encoding="utf-8",
+    )
+    with pytest.raises(KonfigFehler, match="abgleich_qualitaet_max_m"):
+        lade_konfig(pfad)
+
+
+def test_abgleich_null_ist_keine_grenze_und_protokoll_info_ist_zurueckkopierbar(
+    tmp_path: Path,
+) -> None:
+    k = lade_konfig(
+        _datei(
+            tmp_path,
+            abgleich_qualitaet_max_m=None,
+            abgleich_position_max_m=None,
+            abgleich_winkel_max_rad=None,
+        )
+    )
+    assert k.abgleich.qualitaet_max_m is None and k.abgleich.winkel_max_rad is None
+    info: Any = k.protokoll_info()
+    werte = {s: w for s, w in info["werte"].items() if s.startswith("abgleich_")}
+    k2 = lade_konfig(_datei(tmp_path, **werte))
+    assert k2.abgleich == k.abgleich
+
+
+def test_abgleich_grosse_grenze_hat_keine_obergrenze(tmp_path: Path) -> None:
+    k = lade_konfig(_datei(tmp_path, abgleich_position_max_m=1e9))
+    assert k.abgleich.position_max_m == 1e9
 
 
 @pytest.mark.parametrize(

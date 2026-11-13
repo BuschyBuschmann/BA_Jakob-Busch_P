@@ -7,6 +7,10 @@ import pytest
 
 from ldv_automation.domaene import ParameterWert
 from ldv_automation.geraet.schnittstelle import (
+    Abgleich2D,
+    Abgleich3D,
+    Abgleichsleser,
+    AbgleichStand,
     AbweichungFehler,
     EinstellungsStand,
     Fortschritt,
@@ -127,3 +131,35 @@ def test_lademaske_ist_teil_von_geraeteinfo() -> None:
     assert ohne.lademaske == ""
     mit = dataclasses.replace(ohne, lademaske="Acquisition|APS")
     assert mit.lademaske == "Acquisition|APS"
+
+
+# --- Abgleichstatus (R-003a, Plan P-R003 Schritt 1) -----------------------------------------
+
+
+def test_abgleich_datentypen_unveraenderlich_mit_defaults() -> None:
+    a3, a2, stand = Abgleich3D(index=0), Abgleich2D(index=1), AbgleichStand()
+    assert (a3.gueltig, a3.qualitaet_ist_m, a3.qualitaet_soll_m) == (None, None, None)
+    assert (a3.positionsunsicherheit_m, a3.winkelunsicherheit_rad) == (None, None)
+    assert (a2.gueltig, a2.scankopfabstand_m, dict(a2.nicht_lesbar)) == (None, None, {})
+    assert stand.abgleich_3d == () and stand.abgleich_2d == ()
+    assert (stand.anzahl_3d, stand.anzahl_2d, stand.hinweis) == (None, None, "")
+    assert dict(stand.nicht_lesbar) == {}
+    for objekt, feld in ((a3, "gueltig"), (a2, "index"), (stand, "hinweis")):
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            setattr(objekt, feld, 1)
+    with pytest.raises(TypeError):
+        Abgleich3D(0)  # type: ignore[call-arg]  # nur Schlüsselwörter
+
+
+def test_abgleichsleser_isinstance_mit_und_ohne_methode() -> None:
+    class Mit:
+        def lies_abgleich(self) -> AbgleichStand:
+            return AbgleichStand()
+
+    class Ohne:
+        pass
+
+    assert isinstance(Mit(), Abgleichsleser)
+    assert not isinstance(Ohne(), Abgleichsleser)
+    # ein Messgeraet-Fake ohne lies_abgleich bleibt ein gültiges Messgeraet, aber kein Leser
+    assert not isinstance(object(), Abgleichsleser)

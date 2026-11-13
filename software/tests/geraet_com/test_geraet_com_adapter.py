@@ -16,20 +16,24 @@ from ldv_automation.domaene.parameter import (
 )
 from ldv_automation.geraet.com.adapter import (
     HINWEIS_DESKTOP_MODUS,
+    MAX_ABGLEICHE,
     MAX_KANAELE,
     ComBetriebsart,
     ComKonfiguration,
     PsvComGeraet,
+    _lies_toleriert,
 )
 from ldv_automation.geraet.com.richtlinie import PRODUKTIV
 from ldv_automation.geraet.com.whitelist import ComFehler
 from ldv_automation.geraet.schnittstelle import (
+    Abgleichsleser,
     AbweichungFehler,
     GeraeteFehler,
     GeraeteZustand,
     GeraetNichtBereitFehler,
     Messgeraet,
     VerweigertFehler,
+    ZeitlimitFehler,
 )
 
 WURZEL = "/messdaten"
@@ -1026,3 +1030,219 @@ def test_proxy_nutzt_den_injizierten_katalog() -> None:
     geraet.verbinde()
     geraet.setze_parameter({"fft.bandbreite_hz": 10000.0})
     assert "FftValidator.Bandwidth:set" in fake.welt.schreibende()
+
+
+# --- Abgleichstatus lesen (R-003a, Plan P-R003 Schritt 2) -----------------------------------
+# Fake-COM als unabhängiges Orakel; alle Zahlen sind erfundene Testwerte, keine Gerätewerte.
+
+
+def _abgleich(art: ComBetriebsart = ComBetriebsart.NUR_LESEN, **psv: Any) -> Any:
+    geraet, fake, _ = _geraet(art, **psv)
+    geraet.verbinde()
+    return geraet, fake
+
+
+def test_abgleich_normalfall_werte_einheiten_und_index_umrechnung() -> None:
+    geraet, fake = _abgleich()
+    stand = geraet.lies_abgleich()
+    assert stand.anzahl_3d == 1 and stand.anzahl_2d == 1 and stand.nicht_lesbar == {}
+    (a3,) = stand.abgleich_3d
+    assert a3.index == 0  # Polytec-Item(1) -> intern 0-basiert
+    assert (a3.gueltig, a3.qualitaet_ist_m, a3.qualitaet_soll_m) == (True, 0.001, 0.002)
+    assert (a3.positionsunsicherheit_m, a3.winkelunsicherheit_rad) == (0.0005, 0.01)
+    assert a3.nicht_lesbar == {}
+    (a2,) = stand.abgleich_2d
+    assert (a2.index, a2.gueltig, a2.scankopfabstand_m) == (0, True, 1.0)
+    items = [a for a in fake.welt.log if a[1] == "Item"]
+    assert [(t, args) for t, _, _, args in items] == [
+        ("Alignment3Ds", (1,)),
+        ("Alignment2Ds", (1,)),
+    ]
+
+
+def test_abgleich_lesen_veraendert_nichts() -> None:
+    """A3: nur ``get``/Item-Aufrufe, keine Schreibzugriffe, keine Verweigerung."""
+    geraet, fake = _abgleich()
+    geraet.lies_abgleich()
+    # ``schreibende`` zählt alle Methodenaufrufe: außer dem Verbinden nur die lesenden ``Item``
+    assert [
+        o for o in fake.welt.schreibende() if o != "AcquisitionInstance.GetApplication:call"
+    ] == [
+        "Alignment3Ds.Item:call",
+        "Alignment2Ds.Item:call",
+    ]
+    assert [a for a in fake.welt.log if a[2] == "set"] == []
+    assert geraet.verweigerungen() == ()
+    aufrufe = [a for a in geraet.aufrufe() if "Alignment" in a.pfad]
+    assert aufrufe  # jeder Zugriff steht im Aufrufprotokoll
+    assert {a.op for a in aufrufe} <= {"get", "call"}
+    assert {a.pfad for a in aufrufe if a.op == "call"} == {
+        "Alignments3D.Item",
+        "Alignments2D.Item",
+    }
+
+
+@pytest.mark.parametrize("art", list(ComBetriebsart))
+def test_abgleich_in_jeder_betriebsart_lesbar(art: ComBetriebsart) -> None:
+    geraet, _ = _abgleich(art)
+    assert geraet.lies_abgleich().anzahl_3d == 1
+
+
+def test_abgleich_mehrere_eintraege_index_0_basiert() -> None:
+    zwei = [
+        {"Valid": True, "CurrentQuality": 1.0},
+        {"Valid": False, "CurrentQuality": 2.0},
+    ]
+    geraet, _ = _abgleich(alignments_3d=zwei)
+    stand = geraet.lies_abgleich()
+    assert [(e.index, e.gueltig, e.qualitaet_ist_m) for e in stand.abgleich_3d] == [
+        (0, True, 1.0),
+        (1, False, 2.0),
+    ]
+    # Felder, die der Fake-Eintrag nicht hat: nicht lesbar mit Grund, Rest bleibt gelesen
+    assert set(stand.abgleich_3d[0].nicht_lesbar) == {
+        "qualitaet_soll_m",
+        "positionsunsicherheit_m",
+        "winkelunsicherheit_rad",
+    }
+
+
+def test_abgleich_count_null() -> None:
+    geraet, _ = _abgleich(alignments_3d=[])
+    stand = geraet.lies_abgleich()
+    assert stand.anzahl_3d == 0 and stand.abgleich_3d == () and stand.nicht_lesbar == {}
+
+
+def test_abgleich_item_liefert_nichts() -> None:
+    geraet, _ = _abgleich(alignments_3d=[None])
+    (a3,) = geraet.lies_abgleich().abgleich_3d
+    assert a3.index == 0 and a3.gueltig is None and a3.qualitaet_ist_m is None
+    assert set(a3.nicht_lesbar) == {
+        "gueltig",
+        "qualitaet_ist_m",
+        "qualitaet_soll_m",
+        "positionsunsicherheit_m",
+        "winkelunsicherheit_rad",
+    }
+    assert all("Item lieferte nichts" in g for g in a3.nicht_lesbar.values())
+
+
+def test_abgleich_has_alignments_false() -> None:
+    geraet, fake = _abgleich(has_alignments=False)
+    stand = geraet.lies_abgleich()
+    assert stand.abgleich_3d == () and stand.anzahl_3d is None
+    assert "Infos.HasAlignments ist False" in stand.nicht_lesbar["Infos.HasAlignments"]
+    assert not any(a[0] == "Infos" and a[1] == "Alignments" for a in fake.welt.log)
+
+
+def test_abgleich_has_alignments_com_fehler() -> None:
+    geraet, fake = _abgleich()
+    fake.welt.fehler[("Infos", "HasAlignments")] = FakeComError("kein Abgleich im Modus")
+    stand = geraet.lies_abgleich()  # wirft nicht
+    assert "kein Abgleich im Modus" in stand.nicht_lesbar["Infos.HasAlignments"]
+
+
+def test_abgleich_alignments_com_fehler_und_sammlungsfehler() -> None:
+    geraet, fake = _abgleich()
+    fake.welt.fehler[("Infos", "Alignments")] = FakeComError("weg")
+    assert "weg" in geraet.lies_abgleich().nicht_lesbar["Infos.Alignments"]
+    fake.welt.fehler.clear()
+    fake.welt.fehler[("Alignments", "Alignments3D")] = FakeComError("3D weg")
+    stand = geraet.lies_abgleich()
+    assert "3D weg" in stand.nicht_lesbar["Alignments.Alignments3D"]
+    assert stand.anzahl_3d is None and stand.anzahl_2d == 1 and len(stand.abgleich_2d) == 1
+
+
+def test_abgleich_count_nicht_lesbar_oder_unbrauchbar() -> None:
+    geraet, fake = _abgleich()
+    fake.welt.fehler[("Alignment3Ds", "Count")] = FakeComError("Count kaputt")
+    stand = geraet.lies_abgleich()
+    assert "Count kaputt" in stand.nicht_lesbar["Alignments3D.Count"]
+    assert stand.anzahl_3d is None and stand.abgleich_3d == ()
+    for roh in ("drei", -1, True, 1.5):
+        g, _ = _abgleich(count_3d=roh)
+        s = g.lies_abgleich()
+        assert "Alignments3D.Count" in s.nicht_lesbar and s.anzahl_3d is None, roh
+
+
+def test_abgleich_com_fehler_nur_bei_einem_feld() -> None:
+    geraet, fake = _abgleich()
+    fake.welt.fehler[("Alignment3D", "CurrentQuality")] = FakeComError("Qualität nicht lesbar")
+    (a3,) = geraet.lies_abgleich().abgleich_3d
+    assert a3.qualitaet_ist_m is None
+    assert set(a3.nicht_lesbar) == {"qualitaet_ist_m"}
+    assert "Qualität nicht lesbar" in a3.nicht_lesbar["qualitaet_ist_m"]
+    assert (a3.gueltig, a3.qualitaet_soll_m) == (True, 0.002)  # übrige Felder gelesen
+
+
+def test_abgleich_valid_kein_bool_und_nicht_endliche_zahlen() -> None:
+    schlecht = {
+        "Valid": 1,
+        "CurrentQuality": float("nan"),
+        "TargetQuality": float("inf"),
+        "PositionUncertainty": "x",
+        "AngleUncertainty": True,
+    }
+    geraet, _ = _abgleich(alignments_3d=[schlecht], alignments_2d=[{"Valid": "ja"}])
+    stand = geraet.lies_abgleich()
+    (a3,) = stand.abgleich_3d
+    assert a3.gueltig is None and a3.qualitaet_ist_m is None and a3.qualitaet_soll_m is None
+    assert a3.positionsunsicherheit_m is None and a3.winkelunsicherheit_rad is None
+    assert set(a3.nicht_lesbar) == {
+        "gueltig",
+        "qualitaet_ist_m",
+        "qualitaet_soll_m",
+        "positionsunsicherheit_m",
+        "winkelunsicherheit_rad",
+    }
+    assert "kein Wahrheitswert" in a3.nicht_lesbar["gueltig"]
+    assert "keine endliche Zahl" in a3.nicht_lesbar["qualitaet_ist_m"]
+    (a2,) = stand.abgleich_2d
+    assert a2.gueltig is None and set(a2.nicht_lesbar) == {"gueltig", "scankopfabstand_m"}
+
+
+def test_abgleich_ganzzahl_als_float_gewandelt() -> None:
+    geraet, _ = _abgleich(alignments_3d=[{**{"Valid": True}, "CurrentQuality": 2}], count_2d=1.0)
+    (a3,) = geraet.lies_abgleich().abgleich_3d
+    assert a3.qualitaet_ist_m == 2.0 and isinstance(a3.qualitaet_ist_m, float)
+
+
+def test_abgleich_schutzgrenze_fuer_die_anzahl() -> None:
+    geraet, fake = _abgleich(count_3d=MAX_ABGLEICHE + 5)
+    stand = geraet.lies_abgleich()
+    assert stand.anzahl_3d == MAX_ABGLEICHE + 5 and len(stand.abgleich_3d) == MAX_ABGLEICHE
+    assert f"nur die ersten {MAX_ABGLEICHE} von {MAX_ABGLEICHE + 5}" in stand.hinweis
+    gelesen = [a for a in fake.welt.log if a[0] == "Alignment3Ds" and a[1] == "Item"]
+    assert len(gelesen) == MAX_ABGLEICHE
+
+
+def test_abgleich_item_index_null_wird_von_der_whitelist_verweigert() -> None:
+    """Der Adapter ruft nie Item(0); die Richtlinie würde es auch verweigern."""
+    geraet, _ = _abgleich()
+    app = geraet._app
+    assert app is not None
+    sammlung = app.Acquisition.Infos.Alignments.Alignments3D
+    with pytest.raises(PermissionError, match="1-basierten Index"):
+        sammlung.Item(0)
+
+
+def test_abgleich_ohne_verbindung_ist_geraetefehler() -> None:
+    geraet, _, _ = _geraet(ComBetriebsart.NUR_LESEN)
+    with pytest.raises(GeraeteFehler, match="Nicht mit PSV verbunden"):
+        geraet.lies_abgleich()
+
+
+def test_lies_toleriert_laesst_zeitlimit_durch() -> None:
+    """Ein Hänger (``ZeitlimitFehler``) wird nie zum „nicht lesbar“-Grund."""
+
+    def haengt() -> object:
+        raise ZeitlimitFehler("hängt")
+
+    with pytest.raises(ZeitlimitFehler):
+        _lies_toleriert(haengt)
+    assert _lies_toleriert(lambda: 5) == (5, None)
+
+
+def test_adapter_erfuellt_abgleichsleser() -> None:
+    geraet, _, _ = _geraet(ComBetriebsart.NUR_LESEN)
+    assert isinstance(geraet, Abgleichsleser)

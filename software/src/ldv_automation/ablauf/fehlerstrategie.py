@@ -40,6 +40,9 @@ class FehlerArt(Enum):
     """Nach dem Scan existiert die Zieldatei nicht."""
     GERAET_UNKLAR = "geraet_unklar"
     """``Stop`` greift nicht in der Frist; Zustand des Geräts unklar."""
+    ABGLEICH = "abgleich"
+    """Prüfung des Abgleichstatus vor der Messung nicht bestanden (R-003b, Modus
+    ``verweigern``); läuft nach ``Settings.Load``, also mit Gerätewirkung, kein Scan."""
 
 
 @dataclass(frozen=True, kw_only=True)

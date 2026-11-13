@@ -6,5 +6,6 @@
   "aufruf_grenze_s": 60,
   "aufruf_warnung_s": 5,
   "stop_frist_s": 10,
-  "standard_zeitlimit_s": 600
+  "standard_zeitlimit_s": 600,
+  "abgleich_pruefung": "aus"
 }

@@ -1124,7 +1124,14 @@ def voraussetzung_zeilen(voraussetzungen: Sequence[Voraussetzung]) -> list[Vorau
 
 _FEHLER_ARTEN = frozenset({"fehler", "interner_fehler", "waechter_fehler"})
 _WARN_ARTEN = frozenset(
-    {"waechter", "befehl_verworfen", "trockenlauf_verworfen", "uebersprungen_nach_fehler"}
+    {
+        "waechter",
+        "befehl_verworfen",
+        "trockenlauf_verworfen",
+        "uebersprungen_nach_fehler",
+        "abgleich_warnung",
+        "abgleich_hinweis",
+    }
 )
 _EIGENE_ZEILE = frozenset(
     {"warteschlange_gespeichert", "warteschlange_geladen", "warteschlange_zurueckgesetzt"}

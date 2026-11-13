@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import subprocess
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta, timezone
@@ -12,7 +13,13 @@ from pathlib import Path
 import pytest
 
 from ldv_automation import __version__
-from ldv_automation.geraet.schnittstelle import EinstellungsStand, GeraeteFehler
+from ldv_automation.geraet.schnittstelle import (
+    Abgleich2D,
+    Abgleich3D,
+    AbgleichStand,
+    EinstellungsStand,
+    GeraeteFehler,
+)
 from ldv_automation.protokoll.ablage import (
     dateibasis,
     haenge_an,
@@ -24,6 +31,7 @@ from ldv_automation.protokoll.ablage import (
 from ldv_automation.protokoll.messprotokoll import (
     PFLICHTFELDER,
     Ereignisprotokoll,
+    abgleich_zu_dict,
     einstellungsstand_zu_dict,
     fehlende_pflichtfelder,
     fehler_zu_dict,
@@ -351,3 +359,92 @@ def test_frequenzachse_quotient_unterlauf_wird_null() -> None:
     assert "nicht verwendbar" in grund["delta_f_berechnet_hz"]
     assert "> 0 und endlich" in grund["delta_f_berechnet_hz"]
     assert set(grund) == {"delta_f_berechnet_hz"}
+
+
+# --- Feld ``abgleich`` (R-003a/b) -------------------------------------------------------------
+
+_PRUEFUNG: dict[str, object] = {
+    "modus": "aus",
+    "ergebnis": "nicht_geprueft",
+    "grenzen": {},
+    "befunde": [],
+}
+
+
+def test_abgleich_steht_nach_frequenzachse_in_den_pflichtfeldern() -> None:
+    assert PFLICHTFELDER.index("abgleich") == PFLICHTFELDER.index("frequenzachse") + 1
+    daten: dict[str, object] = dict.fromkeys(PFLICHTFELDER)
+    del daten["abgleich"]
+    assert fehlende_pflichtfelder(daten) == ["abgleich"]
+
+
+def test_abgleich_zu_dict_gelesen() -> None:
+    stand = AbgleichStand(
+        abgleich_3d=(
+            Abgleich3D(
+                index=0,
+                gueltig=True,
+                qualitaet_ist_m=0.5,
+                qualitaet_soll_m=1.5,
+                positionsunsicherheit_m=0.25,
+                winkelunsicherheit_rad=0.125,
+            ),
+            Abgleich3D(index=1, nicht_lesbar={"gueltig": "weg"}),
+        ),
+        abgleich_2d=(Abgleich2D(index=0, gueltig=False, scankopfabstand_m=2.0),),
+        anzahl_3d=2,
+        anzahl_2d=1,
+        nicht_lesbar={"x": "y"},
+        hinweis="Zusatz",
+    )
+    zeit = zeitstempel(datetime(2026, 11, 11, 12, 0, tzinfo=UTC))
+    d = abgleich_zu_dict(stand, None, zeit, _PRUEFUNG)
+    assert d["gelesen"] is True and d["grund"] is None and d["zeit"] == zeit
+    assert (d["anzahl_3d"], d["anzahl_2d"]) == (2, 1)
+    assert d["abgleich_3d"] == [
+        {
+            "index": 0,
+            "gueltig": True,
+            "qualitaet_ist_m": 0.5,
+            "qualitaet_soll_m": 1.5,
+            "positionsunsicherheit_m": 0.25,
+            "winkelunsicherheit_rad": 0.125,
+            "nicht_lesbar": {},
+        },
+        {
+            "index": 1,
+            "gueltig": None,
+            "qualitaet_ist_m": None,
+            "qualitaet_soll_m": None,
+            "positionsunsicherheit_m": None,
+            "winkelunsicherheit_rad": None,
+            "nicht_lesbar": {"gueltig": "weg"},
+        },
+    ]
+    assert d["abgleich_2d"] == [
+        {"index": 0, "gueltig": False, "scankopfabstand_m": 2.0, "nicht_lesbar": {}}
+    ]
+    assert d["nicht_lesbar"] == {"x": "y"} and d["pruefung"] == _PRUEFUNG
+    assert str(d["hinweis"]).endswith("Zusatz") and "unbestätigt" in str(d["hinweis"])
+
+
+def test_abgleich_zu_dict_nicht_gelesen_und_json_roundtrip() -> None:
+    zeit = zeitstempel(datetime(2026, 11, 11, 12, 0, tzinfo=UTC))
+    d = abgleich_zu_dict(None, "kein Leser", zeit, _PRUEFUNG)
+    assert d["gelesen"] is False and d["grund"] == "kein Leser" and d["zeit"] is None
+    assert d["abgleich_3d"] == [] and d["abgleich_2d"] == []
+    assert d["anzahl_3d"] is None and d["nicht_lesbar"] == {}
+    assert abgleich_zu_dict(None, None, None, _PRUEFUNG)["grund"] == "Abgleich nicht gelesen"
+    assert json.loads(json.dumps(d)) == d
+
+
+def test_abgleich_nicht_endliche_werte_werden_im_protokoll_zu_text(tmp_path: Path) -> None:
+    """``json_sicher`` greift auch im Feld ``abgleich`` (Adapter liefert selbst nie NaN)."""
+    stand = AbgleichStand(abgleich_3d=(Abgleich3D(index=0, qualitaet_ist_m=math.nan),), anzahl_3d=1)
+    daten: dict[str, object] = dict.fromkeys(PFLICHTFELDER)
+    daten["schema_version"] = 2
+    daten["abgleich"] = abgleich_zu_dict(stand, None, None, _PRUEFUNG)
+    pfad = tmp_path / "p.protokoll.json"
+    schreibe_messprotokoll(pfad, daten)
+    gelesen = json.loads(pfad.read_text("utf-8"))
+    assert gelesen["abgleich"]["abgleich_3d"][0]["qualitaet_ist_m"] == "NaN"

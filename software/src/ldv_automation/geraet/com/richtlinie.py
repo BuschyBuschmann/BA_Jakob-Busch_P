@@ -1,6 +1,12 @@
 """Produktiv-Richtlinie des COM-Adapters (Plan P2, Abschnitt 3.3; ADR-007).
 
-Lesende Freigaben haben keine Wirkung auf das Gerät. Jede **schreibende** Operation steht
+Lesende Freigaben haben keine Wirkung auf das Gerät. Dazu gehört der Abgleichstatus
+(R-003a, ADR-007 Nachtrag): ``Infos.HasAlignments``, ``Infos.Alignments`` und darunter nur
+``Count`` sowie ``Item`` (1-basierter Index) der Sammlungen ``Alignments3D``/``Alignments2D``
+und die Properties von ``Alignment3D``/``Alignment2D`` (Gültigkeit, Qualitäten,
+Unsicherheiten, Scankopfabstand). Dafür gibt es **keine** neue S-Nummer und **keine**
+Schreibfreigabe; ``Alignment3D.Calculate`` und alle anderen Methoden bleiben im
+:data:`NIE_KATALOG`. Jede **schreibende** Operation steht
 einzeln mit Nummer (S1-S9), Begründung und Prüfung in dieser Datei; jede hat einen eigenen
 Test (``tests/geraet_com/test_geraet_com_richtlinie.py``).
 
@@ -422,6 +428,16 @@ HARDWARE_LESEN = (
 )
 
 
+ALIGNMENT_3D_LESEN = (
+    "Valid",
+    "CurrentQuality",
+    "TargetQuality",
+    "PositionUncertainty",
+    "AngleUncertainty",
+)
+ALIGNMENT_2D_LESEN = ("Valid", "ScanHeadDistance")
+
+
 def erstelle_richtlinie(katalog: Parameterkatalog = KATALOG) -> Richtlinie:
     """Produktiv-Richtlinie; Wertebereiche von S3/S4 aus ``katalog`` (Adapterkonfiguration)."""
     bandbreite = bandbreiten_pruefung(katalog)
@@ -509,12 +525,22 @@ def _richtlinie(pruefe_bandbreite: WertPruefung, pruefe_linien: WertPruefung) ->
             "Generator": {**_lesen("Active", "Amplitude"), "Waveform": _objekt("Waveform")},
             "Waveform": _lesen("Type", "Name"),
             "Infos": {
-                **_lesen("HasHardware", "HasMeasPoints"),
+                **_lesen("HasHardware", "HasMeasPoints", "HasAlignments"),
                 "Hardware": _objekt("Hardware"),
                 "MeasPoints": _objekt("MeasPoints"),
+                "Alignments": _objekt("Alignments"),
             },
             "Hardware": _lesen(*HARDWARE_LESEN),
             "MeasPoints": _lesen("Count"),
+            # Abgleichstatus (R-003a): nur lesen; Item mit 1-basiertem Index (_pruefe_index)
+            "Alignments": {
+                "Alignments3D": _objekt("Alignments3D"),
+                "Alignments2D": _objekt("Alignments2D"),
+            },
+            "Alignments3D": {"Count": Mitglied(zugriff="get"), "Item": _element("Alignment3D")},
+            "Alignments2D": {"Count": Mitglied(zugriff="get"), "Item": _element("Alignment2D")},
+            "Alignment3D": _lesen(*ALIGNMENT_3D_LESEN),
+            "Alignment2D": _lesen(*ALIGNMENT_2D_LESEN),
         },
         schreiben={
             "FftValidator": {
@@ -606,7 +632,14 @@ NIE_KATALOG: tuple[tuple[str, str, str, Any], ...] = (
     ("Infos", "PositionDevice", "get", None),
     *_aufrufe("PositionDevice", "StartMove", "StartMoveRelative", "StartMoveAbsolute"),
     ("Application", "DigitalPorts", "get", None),
-    *_aufrufe("Alignment3D", "Calculate"),
+    *_aufrufe("Alignment3D", "Calculate", "Invalidate"),
+    *_aufrufe("Alignment2D", "Calculate", "Invalidate"),
+    *_aufrufe("Alignments3D", "Add", "Clear", "Remove"),
+    *_aufrufe("Alignments2D", "Add", "Clear", "Remove"),
+    ("Alignments3D", "Count", "set", 0),
+    ("Alignments2D", "Count", "set", 0),
+    ("Alignment3D", "Valid", "set", True),
+    ("Alignment2D", "Valid", "set", True),
     # Service- und Kalibriermethoden des Scankopfs
     *_aufrufe(
         "ScanHeadControl",

@@ -36,6 +36,15 @@ from pathlib import Path
 from typing import TypeAlias, TypeVar
 from uuid import UUID, uuid4
 
+from ldv_automation.ablauf.abgleich import (
+    AbgleichModus,
+    AbgleichRegel,
+    PruefErgebnis,
+    abgleich_hinweise,
+    pruefe_abgleich,
+    pruefung_nicht_ausgefuehrt_zu_dict,
+    pruefung_zu_dict,
+)
 from ldv_automation.ablauf.fehlerstrategie import (
     FehlerArt,
     FehlerEreignis,
@@ -62,6 +71,8 @@ from ldv_automation.domaene.eintraege import (
 from ldv_automation.domaene.parameter import KATALOG, ParameterWert
 from ldv_automation.domaene.warteschlange import Warteschlange
 from ldv_automation.geraet.schnittstelle import (
+    Abgleichsleser,
+    AbgleichStand,
     EinstellungsStand,
     Fortschritt,
     GeraeteFehler,
@@ -87,6 +98,7 @@ from ldv_automation.protokoll.messprotokoll import (
     MELDUNGEN_HINWEIS,
     SCHEMA_VERSION,
     Ereignisprotokoll,
+    abgleich_zu_dict,
     einstellungsstand_zu_dict,
     fehler_zu_dict,
     frequenzachse_zu_dict,
@@ -160,6 +172,8 @@ class AblaufKonfiguration:
         Geschätzte Dauer je Messpunkt in s, solange im Durchgang keine Messung fertig ist.
     einstellungen_sichern : bool
         ``True``: Einstellungen je Messung als ``.einstellungen.set`` sichern (M6, optional).
+    abgleich : AbgleichRegel
+        Prüfung des Abgleichstatus vor der Messung (R-003b); Standard: aus, keine Grenzen.
     aufruf_grenze_s : float
         Dauert ein einzelner Geräteaufruf länger, gilt das Gerät als unklar
         (``GERAET_UNKLAR``), auch wenn der Aufruf danach normal zurückkehrt
@@ -177,6 +191,7 @@ class AblaufKonfiguration:
     punktdauer_schaetzung_s: float = 1.0
     einstellungen_sichern: bool = False
     aufruf_grenze_s: float = 60.0
+    abgleich: AbgleichRegel = field(default_factory=AbgleichRegel)
 
     def __post_init__(self) -> None:
         for name in (
@@ -365,6 +380,11 @@ class _Aktiv:
     einstellungsdatei_kennung: DateiKennung | None = None
     geaenderte: list[dict[str, object]] = field(default_factory=list)
     einstellungen_ist: dict[str, object] | None = None
+    abgleich: AbgleichStand | None = None
+    abgleich_grund: str | None = None
+    abgleich_zeit: dict[str, str] | None = None
+    abgleich_lesen_begonnen: bool = False
+    abgleich_gate_gelaufen: bool = False
     messpunkte: int | None = None
     meldungen: list[dict[str, object]] = field(default_factory=list)
     fortschritt_quelle: str = "zeitschaetzung"
@@ -456,6 +476,7 @@ class Steuerung:
         self._freigabe_gesetzt = False
         self._trockenlauf_messung: Messung | None = None
         self._erste_trockenmessung = True
+        self._letzter_abgleich_hinweis: str | None = None
         self._interner_fehler: str | None = None
         self._geraete_stand: GeraeteStand | None = None
         self._kenntnis: dict[str, EinstellungsKenntnis] = {}
@@ -1233,6 +1254,7 @@ class Steuerung:
             self._punktdauer_s = None
             self._pause_vorgemerkt = False
             self._erste_trockenmessung = True
+            self._letzter_abgleich_hinweis = None
         self._ereignisprotokoll = Ereignisprotokoll(ordner / EREIGNISPROTOKOLL)
         self._melde(
             "durchgang_start",
@@ -1421,6 +1443,7 @@ class Steuerung:
             aktiv.einstellungen_ist = einstellungsstand_zu_dict(stand)
             aktiv.messpunkte = stand.messpunkte_anzahl
             self._merke_einstellungsstand(aktiv, stand)
+            self._lese_abgleich(aktiv)
             if abweichung is not None:
                 self._messung_fehler(aktiv, FehlerArt.ABWEICHUNG, abweichung, None)
                 return
@@ -1431,6 +1454,8 @@ class Steuerung:
                     f"Modus nach dem Laden {stand.modus!r}, erwartet {ERWARTETER_MODUS!r}",
                     None,
                 )
+                return
+            if self._pruefe_abgleich_vor_messung(aktiv):
                 return
             if self._konf.einstellungen_sichern:
                 ziel = str(ordner / (basis + ENDUNG_EINSTELLUNGEN))
@@ -1457,6 +1482,72 @@ class Steuerung:
             self._messung_fehler(aktiv, FehlerArt.VERWEIGERT, fehler.text, fehler)
         except GeraeteFehler as fehler:
             self._messung_fehler(aktiv, FehlerArt.GERAET, fehler.text, fehler)
+
+    def _lese_abgleich(self, aktiv: _Aktiv) -> None:
+        """R-003a: Abgleich nach dem Laden lesen und für das Protokoll merken.
+
+        Ein Gerät ohne :class:`Abgleichsleser` oder ein Gerätefehler beim Lesen ist
+        „nicht lesbar“ (mit Grund), keine Unterbrechung. Ein Hänger
+        (:class:`ZeitlimitFehler`) läuft über den bestehenden Hängerpfad.
+        """
+        geraet = self.geraet
+        if not isinstance(geraet, Abgleichsleser):
+            aktiv.abgleich_grund = "Gerät bietet kein Lesen des Abgleichs an"
+            return
+        aktiv.abgleich_lesen_begonnen = True
+        try:
+            aktiv.abgleich = self._aufruf("lies_abgleich", geraet.lies_abgleich)
+        except ZeitlimitFehler:
+            raise
+        except GeraeteFehler as fehler:
+            aktiv.abgleich_grund = f"lies_abgleich fehlgeschlagen: {fehler.text}"
+            return
+        aktiv.abgleich_zeit = zeitstempel(self._uhr.jetzt())
+
+    def _pruefe_abgleich_vor_messung(self, aktiv: _Aktiv) -> bool:
+        """R-003b: Hinweis, Warnung oder Fehler je nach Modus; ``True`` = Messung beendet."""
+        regel = self._konf.abgleich
+        aktiv.abgleich_gate_gelaufen = True
+        pruefung = pruefe_abgleich(aktiv.abgleich, aktiv.abgleich_grund, regel)
+        hinweise = list(abgleich_hinweise(aktiv.abgleich, aktiv.abgleich_grund))
+        hinweise.extend(b for b in pruefung.befunde if b not in hinweise)
+        text = "; ".join(hinweise)
+        m = aktiv.messung
+        if text and text != self._letzter_abgleich_hinweis:
+            self._melde(
+                "abgleich_hinweis",
+                f"Abgleich auffällig: {text}",
+                eintrag_id=str(m.id),
+                grenzen=pruefung_zu_dict(regel, pruefung)["grenzen"],
+            )
+        self._letzter_abgleich_hinweis = text
+        if pruefung.ergebnis not in (PruefErgebnis.NICHT_BESTANDEN, PruefErgebnis.NICHT_PRUEFBAR):
+            return False
+        meldung = f"Abgleich {pruefung.ergebnis.value}: " + "; ".join(pruefung.befunde)
+        if regel.modus is AbgleichModus.WARNEN:
+            self._melde(
+                "abgleich_warnung",
+                f"Messung '{m.name}' (Versuch {m.versuch}): {meldung}",
+                eintrag_id=str(m.id),
+            )
+            return False
+        self._messung_fehler(aktiv, FehlerArt.ABGLEICH, meldung, None)
+        return True
+
+    def _abgleichfeld(self, aktiv: _Aktiv) -> dict[str, object]:
+        """Protokollfeld ``abgleich`` (immer vorhanden, auch bei Fehler und Abbruch)."""
+        regel = self._konf.abgleich
+        grund = aktiv.abgleich_grund
+        if aktiv.abgleich is None and grund is None:
+            if aktiv.abgleich_lesen_begonnen:
+                grund = "Messung endete beim Lesen des Abgleichs (Hänger), Ergebnis nicht erhalten"
+            else:
+                grund = "Lesen des Abgleichs nicht erreicht (Messung vorher beendet)"
+        if aktiv.abgleich_gate_gelaufen:
+            pruefung = pruefung_zu_dict(regel, pruefe_abgleich(aktiv.abgleich, grund, regel))
+        else:
+            pruefung = pruefung_nicht_ausgefuehrt_zu_dict(regel)
+        return abgleich_zu_dict(aktiv.abgleich, grund, aktiv.abgleich_zeit, pruefung)
 
     def _merke_einstellungsstand(self, aktiv: _Aktiv, stand: EinstellungsStand) -> None:
         """Merkt den nach dem Laden gelesenen Stand je Einstellungsdatei (Dialog 3.9)."""
@@ -1850,6 +1941,7 @@ class Steuerung:
             ],
             "einstellungen_ist": aktiv.einstellungen_ist,
             "frequenzachse": frequenzachse_zu_dict(aktiv.einstellungen_ist),
+            "abgleich": self._abgleichfeld(aktiv),
             "meldungen": list(aktiv.meldungen),
             "meldungen_hinweis": MELDUNGEN_HINWEIS,
             "fortschritt_quelle": aktiv.fortschritt_quelle,

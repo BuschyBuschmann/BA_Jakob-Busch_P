@@ -38,6 +38,15 @@ Offene Punkte für U2/U3
   ``GeraeteInfo.lademaske`` an die Steuerung gemeldet (für das Messprotokoll).
 * Die Vorprüfung (M1) und der Soll/Ist-Vergleich (M5) liegen in der Steuerung; der
   Vergleich selbst steht in ``ParameterSpec.stimmt_ueberein``.
+
+Abgleichstatus (R-003a/b, Plan P-R003)
+--------------------------------------
+Das Lesen des Abgleichs ist bewusst ein **eigenes** Protocol (:class:`Abgleichsleser`) neben
+:class:`Messgeraet`: Simulator und COM-Adapter erfüllen beide, die Steuerung prüft per
+``isinstance``; ein Gerät ohne Leser (Test-Fakes) gilt als „nicht lesbar“. Der Aufruf ist
+rein lesend, läuft im Geräte-Thread, und liefert Längen in m und Winkel in rad (Einheiten
+laut Polytec-Dokumentation, **am Gerät unbestätigt**). Nicht lesbare Einzelwerte stehen als
+``None`` mit Grund in ``nicht_lesbar`` und führen nicht zu einer Ausnahme.
 """
 
 from __future__ import annotations
@@ -235,6 +244,84 @@ class Fortschritt:
     quelle: str
 
 
+@dataclass(frozen=True, kw_only=True)
+class Abgleich3D:
+    """Ein 3D-Abgleich (COM ``Alignment3D``), nur lesend erhoben (R-003a).
+
+    Parameters
+    ----------
+    index : int
+        0-basierter Index (die Umrechnung auf den 1-basierten Polytec-Index geschieht im
+        Adapter).
+    gueltig : bool or None
+        ``Valid``; ``None`` wenn nicht lesbar.
+    qualitaet_ist_m : float or None
+        ``CurrentQuality`` in m (laut BEM, am Gerät unbestätigt).
+    qualitaet_soll_m : float or None
+        ``TargetQuality`` in m.
+    positionsunsicherheit_m : float or None
+        ``PositionUncertainty`` in m.
+    winkelunsicherheit_rad : float or None
+        ``AngleUncertainty`` in rad.
+    nicht_lesbar : mapping
+        Feldname -> Grund für jedes Feld mit Wert ``None``.
+    """
+
+    index: int
+    gueltig: bool | None = None
+    qualitaet_ist_m: float | None = None
+    qualitaet_soll_m: float | None = None
+    positionsunsicherheit_m: float | None = None
+    winkelunsicherheit_rad: float | None = None
+    nicht_lesbar: Mapping[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, kw_only=True)
+class Abgleich2D:
+    """Ein 2D-Abgleich (COM ``Alignment2D``), nur lesend erhoben (R-003a).
+
+    Parameters
+    ----------
+    index : int
+        0-basierter Index.
+    gueltig : bool or None
+        ``Valid``; ``None`` wenn nicht lesbar.
+    scankopfabstand_m : float or None
+        ``ScanHeadDistance`` in m (laut BEM, am Gerät unbestätigt).
+    nicht_lesbar : mapping
+        Feldname -> Grund für jedes Feld mit Wert ``None``.
+    """
+
+    index: int
+    gueltig: bool | None = None
+    scankopfabstand_m: float | None = None
+    nicht_lesbar: Mapping[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, kw_only=True)
+class AbgleichStand:
+    """Gelesener Abgleichstatus des Geräts (``Infos.Alignments``), nur lesend.
+
+    Parameters
+    ----------
+    abgleich_3d, abgleich_2d : tuple
+        Gelesene Einträge (höchstens so viele, wie der Adapter lesen darf).
+    anzahl_3d, anzahl_2d : int or None
+        ``Count`` der Sammlungen laut Gerät; ``None`` wenn nicht lesbar.
+    nicht_lesbar : mapping
+        Pauschale Gründe (z. B. ``Infos.Alignments`` fehlt), Schlüssel frei, Wert Text.
+    hinweis : str
+        Zusatztext (z. B. Hinweis auf eine Schutzgrenze beim Lesen); leer, wenn keiner.
+    """
+
+    abgleich_3d: tuple[Abgleich3D, ...] = ()
+    abgleich_2d: tuple[Abgleich2D, ...] = ()
+    anzahl_3d: int | None = None
+    anzahl_2d: int | None = None
+    nicht_lesbar: Mapping[str, str] = field(default_factory=dict)
+    hinweis: str = ""
+
+
 # --- Protocol ----------------------------------------------------------------------------
 
 
@@ -360,5 +447,23 @@ class Messgeraet(Protocol):
         """Dauer des gerade blockierenden Geräteaufrufs in s, sonst ``None``.
 
         Thread-sicher; für den Wächter-Thread (Plan P2 2.5).
+        """
+        ...
+
+
+@runtime_checkable
+class Abgleichsleser(Protocol):
+    """Liest den Abgleichstatus des Geräts (R-003a); rein lesend, ohne Wirkung am Gerät."""
+
+    def lies_abgleich(self) -> AbgleichStand:
+        """Liest 3D- und 2D-Abgleich feldweise tolerant.
+
+        Nicht lesbare Einzelwerte stehen als ``None`` mit Grund im Ergebnis, nie als
+        Ausnahme.
+
+        Raises
+        ------
+        GeraeteFehler
+            Nur bei fehlender Verbindung; :class:`ZeitlimitFehler` bei einem Hänger.
         """
         ...

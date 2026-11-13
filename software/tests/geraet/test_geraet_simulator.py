@@ -10,6 +10,9 @@ import pytest
 
 from ldv_automation.ablauf.uhr import Testuhr
 from ldv_automation.geraet.schnittstelle import (
+    Abgleich3D,
+    Abgleichsleser,
+    AbgleichStand,
     GeraeteFehler,
     GeraeteZustand,
     GeraetNichtBereitFehler,
@@ -18,9 +21,13 @@ from ldv_automation.geraet.schnittstelle import (
     ZeitlimitFehler,
 )
 from ldv_automation.geraet.simulator import (
+    SIMULATOR_ABGLEICH,
     SIMULATOR_KENNUNG,
+    AbgleichBeiLaden,
+    AbgleichNichtLesbar,
     HaengenderAufruf,
     Haenger,
+    LangsamerAufruf,
     MeldungBeiPunkt,
     Simulator,
     SimulatorKonfiguration,
@@ -310,3 +317,86 @@ def test_u5_generatorzustand_konfigurierbar() -> None:
         "aktiv": False,
         "amplitude_v": 0.0,
     }
+
+
+# --- Abgleichstatus (R-003a, Plan P-R003 Schritt 3) -----------------------------------------
+
+
+def _ungueltig() -> AbgleichStand:
+    return AbgleichStand(abgleich_3d=(Abgleich3D(index=0, gueltig=False),), anzahl_3d=1)
+
+
+def test_abgleich_standard_und_protocol(tmp_path: Path) -> None:
+    sim = _sim(Testuhr())
+    assert isinstance(sim, Abgleichsleser)
+    stand = sim.lies_abgleich()
+    assert stand is SIMULATOR_ABGLEICH
+    assert stand.abgleich_3d[0].gueltig is True and stand.abgleich_2d[0].gueltig is True
+    assert "Testdaten" in stand.hinweis  # klar als Platzhalter gekennzeichnet
+    assert sim.aufgerufene_methoden()[-1] == "lies_abgleich"
+
+
+def test_abgleich_aus_konfiguration() -> None:
+    sim = _sim(Testuhr(), abgleich=_ungueltig())
+    assert sim.lies_abgleich() == _ungueltig()
+
+
+def test_abgleich_braucht_verbindung_und_ist_in_jeder_betriebsart_lesbar() -> None:
+    sim = Simulator(Testuhr().monotonic)
+    with pytest.raises(GeraeteFehler, match="nicht verbunden"):
+        sim.lies_abgleich()
+    for art in ("nur_lesen", "trockenlauf", "messen"):
+        assert _sim(Testuhr(), art).lies_abgleich().anzahl_3d == 1
+
+
+def test_abgleich_wechselt_je_vorgang(tmp_path: Path) -> None:
+    sim = Simulator(
+        Testuhr().monotonic,
+        drehbuch=[AbgleichBeiLaden(vorgang=1, stand=_ungueltig())],
+    )
+    sim.verbinde()
+    sim.lade_einstellungen(_set(tmp_path))  # Vorgang 0
+    assert sim.lies_abgleich() is SIMULATOR_ABGLEICH
+    sim.lade_einstellungen(_set(tmp_path))  # Vorgang 1: veralteter Abgleich in der .set
+    assert sim.lies_abgleich() == _ungueltig()
+    sim.lade_einstellungen(_set(tmp_path))  # Vorgang 2: zurück auf die Konfiguration
+    assert sim.lies_abgleich() is SIMULATOR_ABGLEICH
+
+
+def test_abgleich_nicht_lesbar_nur_im_vorgang(tmp_path: Path) -> None:
+    sim = Simulator(
+        Testuhr().monotonic,
+        drehbuch=[AbgleichNichtLesbar(vorgang=1, text="Infos.Alignments weg")],
+    )
+    sim.verbinde()
+    sim.lade_einstellungen(_set(tmp_path))
+    assert sim.lies_abgleich().anzahl_3d == 1
+    sim.lade_einstellungen(_set(tmp_path))
+    with pytest.raises(GeraeteFehler, match="Alignments weg") as fehler:
+        sim.lies_abgleich()
+    assert fehler.value.methode == "lies_abgleich"
+
+
+def test_abgleich_haengender_aufruf(tmp_path: Path) -> None:
+    sim = Simulator(
+        Testuhr().monotonic,
+        drehbuch=[HaengenderAufruf(vorgang=0, methode="lies_abgleich", max_echtzeit_s=0.01)],
+    )
+    sim.verbinde()
+    sim.lade_einstellungen(_set(tmp_path))
+    with pytest.raises(ZeitlimitFehler):
+        sim.lies_abgleich()
+
+
+def test_abgleich_langsamer_aufruf(tmp_path: Path) -> None:
+    uhr = Testuhr()
+    sim = Simulator(
+        uhr.monotonic,
+        drehbuch=[LangsamerAufruf(vorgang=0, methode="lies_abgleich", dauer_s=7.0)],
+        schlafen=uhr.sleep,
+    )
+    sim.verbinde()
+    sim.lade_einstellungen(_set(tmp_path))
+    vorher = uhr.monotonic()
+    sim.lies_abgleich()
+    assert uhr.monotonic() - vorher == pytest.approx(7.0, rel=1e-12)

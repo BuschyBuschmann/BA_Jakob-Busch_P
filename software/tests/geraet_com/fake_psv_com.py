@@ -12,7 +12,7 @@ Validator mit Einrasten, fehlender Validator, ``Settings.Load/Save``, COM-Ausnah
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -123,6 +123,19 @@ def _naechster(werte: tuple[Any, ...], wert: Any) -> Any:
     return min(werte, key=lambda w: abs(w - wert))
 
 
+STANDARD_3D: dict[str, Any] = {
+    "Valid": True,
+    "CurrentQuality": 0.001,
+    "TargetQuality": 0.002,
+    "PositionUncertainty": 0.0005,
+    "AngleUncertainty": 0.01,
+}
+"""Testwerte eines 3D-Abgleichs im Fake (erfunden, keine Gerätewerte)."""
+
+STANDARD_2D: dict[str, Any] = {"Valid": True, "ScanHeadDistance": 1.0}
+"""Testwerte eines 2D-Abgleichs im Fake (erfunden, keine Gerätewerte)."""
+
+
 @dataclass
 class FakePsv:
     """Zugriff auf die Knoten des Fakes und auf seinen Scan-Zustand."""
@@ -157,6 +170,11 @@ def baue_psv(
     bandbreiten_hz: tuple[float, ...] = (1250.0, 2500.0, 5000.0, 6250.0, 10000.0),
     linien: tuple[int, ...] = (100, 200, 400, 800, 1600, 3200),
     dateiname_echo: Callable[[str], str] | None = None,
+    has_alignments: bool = True,
+    alignments_3d: Sequence[dict[str, Any] | None] | None = None,
+    alignments_2d: Sequence[dict[str, Any] | None] | None = None,
+    count_3d: Any = None,
+    count_2d: Any = None,
 ) -> FakePsv:
     """Baut einen Fake-PSV im Erfassungsmodus (FFT), Werte nach I5 Abschnitt 2/8."""
     fft_werte: dict[str, Any] = {
@@ -311,10 +329,49 @@ def baue_psv(
         },
     )
     messpunkte = FakeKnoten("MeasPoints", welt, {"Count": 9})
+
+    def sammlung(
+        typ: str,
+        elemente: Sequence[dict[str, Any] | None],
+        standard: dict[str, Any],
+        count: Any,
+    ) -> FakeKnoten:
+        def item(index: int) -> FakeKnoten | None:
+            roh = elemente[index - 1] if index - 1 < len(elemente) else standard
+            return None if roh is None else FakeKnoten(typ, welt, dict(roh))
+
+        anzahl = len(elemente) if count is None else count
+        return FakeKnoten(f"{typ}s", welt, {"Count": anzahl}, {"Item": item})
+
+    ausrichtungen = FakeKnoten(
+        "Alignments",
+        welt,
+        {
+            "Alignments3D": sammlung(
+                "Alignment3D",
+                [STANDARD_3D] if alignments_3d is None else alignments_3d,
+                STANDARD_3D,
+                count_3d,
+            ),
+            "Alignments2D": sammlung(
+                "Alignment2D",
+                [STANDARD_2D] if alignments_2d is None else alignments_2d,
+                STANDARD_2D,
+                count_2d,
+            ),
+        },
+    )
     infos = FakeKnoten(
         "Infos",
         welt,
-        {"HasHardware": hardware, "Hardware": hw, "HasMeasPoints": True, "MeasPoints": messpunkte},
+        {
+            "HasHardware": hardware,
+            "Hardware": hw,
+            "HasMeasPoints": True,
+            "MeasPoints": messpunkte,
+            "HasAlignments": has_alignments,
+            "Alignments": ausrichtungen,
+        },
     )
     psv_ref: list[FakePsv] = []
 

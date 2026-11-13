@@ -35,6 +35,15 @@ Messung aus ``einstellungen_ist.gruppen.fft``, jeweils als eigenes Feld mit Einh
 Das Feld ist immer vorhanden, auch bei ``fehler`` und ``abgebrochen``; nicht lesbare Werte
 stehen als ``null`` mit Grund in ``nicht_lesbar``.
 
+Feld ``abgleich`` (R-003a/b, Schema 2): Abgleichstatus aus COM ``Infos.Alignments``, nur
+lesend erhoben, nach dem Laden der Einstellungsdatei (er gehört zur geladenen ``.set``,
+siehe ``einstellungsdatei.sha256`` und ``lademaske``). Aufbau siehe :func:`abgleich_zu_dict`:
+``gelesen``/``grund``, ``zeit``, ``anzahl_3d``/``anzahl_2d``, je Eintrag ``abgleich_3d`` bzw.
+``abgleich_2d`` (Index 0-basiert, Längen in m, Winkel in rad, Einheit im Feldnamen), pauschal
+``nicht_lesbar``, ``pruefung`` (Modus, Ergebnis, Grenzen, Befunde) und ``hinweis``. Das Feld
+ist immer vorhanden, auch bei ``fehler`` und ``abgebrochen``; nicht lesbare Werte stehen als
+``null`` mit Grund. Die Werte sind am Gerät **unbestätigt**.
+
 Zeitstempel sind Objekte ``{"lokal": "<ISO 8601 mit Zone>", "utc": "<ISO 8601, UTC>"}``.
 
 Ereignisprotokoll: JSON Lines, eine Zeile je Ereignis, nur anhängend.
@@ -48,11 +57,20 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ldv_automation.geraet.schnittstelle import EinstellungsStand, GeraeteFehler
+from ldv_automation.geraet.schnittstelle import (
+    Abgleich2D,
+    Abgleich3D,
+    AbgleichStand,
+    EinstellungsStand,
+    GeraeteFehler,
+)
 from ldv_automation.protokoll.ablage import haenge_an, schreibe_neu
 
 SCHEMA_VERSION = 2
-"""Version 2 (noch nicht ausgeliefert): Feld ``frequenzachse`` (R-023). Vorbehalt der Einheit
+"""Version 2 (noch nicht ausgeliefert): Felder ``frequenzachse`` (R-023) und ``abgleich``
+(R-003a/b; Entscheidung F1 vom 2026-11-09: Wheel 0.2.0 wurde nie auf dem Messrechner
+installiert, es liegen keine Schema-2-Protokolle vor; wird 0.2.0 vorher installiert oder
+entsteht ein Schema-2-Protokoll, ist daraus Schema 3 zu machen). Vorbehalt der Einheit
 von ``blockdauer_s`` im Hinweistext; ``delta_f_berechnet_hz`` ist ``null`` (mit Grund in
 ``nicht_lesbar``), wenn der Quotient nicht > 0 und endlich ist (Unterlauf bei sehr kleiner
 Bandbreite und sehr großer Linienzahl).
@@ -96,6 +114,8 @@ PFLICHTFELDER: tuple[str, ...] = (
     "einstellungen_ist",
     # Frequenzachse (R-023)
     "frequenzachse",
+    # Abgleichstatus (R-003a/b)
+    "abgleich",
     # Meldungen, Fortschritt, Einschränkungen
     "meldungen",
     "meldungen_hinweis",
@@ -251,6 +271,77 @@ def frequenzachse_zu_dict(einstellungen_ist: Mapping[str, object] | None) -> dic
         "blockdauer_s": werte["blockdauer_s"],
         "nicht_lesbar": nicht_lesbar,
         "hinweis": FREQUENZACHSE_HINWEIS,
+    }
+
+
+ABGLEICH_HINWEIS = (
+    "Werte aus COM Infos.Alignments (nur lesend), Einheiten laut BEM, am Gerät unbestätigt; "
+    "gehört zur geladenen Einstellungsdatei (einstellungsdatei.sha256, lademaske)."
+)
+
+
+def _abgleich_3d(e: Abgleich3D) -> dict[str, object]:
+    return {
+        "index": e.index,
+        "gueltig": e.gueltig,
+        "qualitaet_ist_m": e.qualitaet_ist_m,
+        "qualitaet_soll_m": e.qualitaet_soll_m,
+        "positionsunsicherheit_m": e.positionsunsicherheit_m,
+        "winkelunsicherheit_rad": e.winkelunsicherheit_rad,
+        "nicht_lesbar": dict(e.nicht_lesbar),
+    }
+
+
+def _abgleich_2d(e: Abgleich2D) -> dict[str, object]:
+    return {
+        "index": e.index,
+        "gueltig": e.gueltig,
+        "scankopfabstand_m": e.scankopfabstand_m,
+        "nicht_lesbar": dict(e.nicht_lesbar),
+    }
+
+
+def abgleich_zu_dict(
+    stand: AbgleichStand | None,
+    grund: str | None,
+    zeit: Mapping[str, str] | None,
+    pruefung: Mapping[str, object],
+) -> dict[str, object]:
+    """Baut das Protokollfeld ``abgleich`` (R-003a/b).
+
+    Parameters
+    ----------
+    stand : AbgleichStand or None
+        Gelesener Stand; ``None``, wenn nicht gelesen.
+    grund : str or None
+        Grund, warum nicht gelesen wurde (bei ``stand is None``).
+    zeit : mapping or None
+        Zeitstempel des Lesens (:func:`zeitstempel`) oder ``None``.
+    pruefung : mapping
+        Fertiges Feld ``pruefung`` (Modus, Ergebnis, Grenzen, Befunde).
+
+    Returns
+    -------
+    dict
+        ``gelesen``, ``grund``, ``zeit``, ``anzahl_3d``, ``anzahl_2d``, ``abgleich_3d``,
+        ``abgleich_2d``, ``nicht_lesbar`` (pauschal), ``pruefung``, ``hinweis``. Längen in m,
+        Winkel in rad, Index 0-basiert.
+    """
+    gelesen = stand is not None
+    hinweis = ABGLEICH_HINWEIS
+    if stand is not None and stand.hinweis:
+        hinweis = f"{hinweis} {stand.hinweis}"
+    return {
+        "gelesen": gelesen,
+        "grund": None if gelesen else (grund or "Abgleich nicht gelesen"),
+        "zeit": dict(zeit) if zeit is not None and gelesen else None,
+        "anzahl_3d": stand.anzahl_3d if stand is not None else None,
+        "anzahl_2d": stand.anzahl_2d if stand is not None else None,
+        "abgleich_3d": [_abgleich_3d(e) for e in stand.abgleich_3d] if stand is not None else [],
+        "abgleich_2d": [_abgleich_2d(e) for e in stand.abgleich_2d] if stand is not None else [],
+        "nicht_lesbar": dict(stand.nicht_lesbar) if stand is not None else {},
+        "pruefung": dict(pruefung),
+        "hinweis": hinweis,
     }
 
 

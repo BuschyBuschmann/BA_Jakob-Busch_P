@@ -513,3 +513,75 @@ def test_s3_bereich_aus_dem_uebergebenen_katalog() -> None:
     direkt = WhitelistProxy(FakeKnoten("FftProperties", Welt()), "FftProperties", eigene, kontext)
     with pytest.raises(PermissionError, match=r"fft\.linien"):
         direkt.Lines = 1600
+
+
+# --- Abgleichstatus (R-003a, Plan P-R003 Schritt 2, A3) -----------------------------------
+
+ABGLEICH_TYPEN = ("Alignments", "Alignments3D", "Alignments2D", "Alignment3D", "Alignment2D")
+
+
+def test_abgleich_lesefreigaben_vorhanden() -> None:
+    infos = PRODUKTIV.objekte["Infos"]
+    assert infos["HasAlignments"].zugriff == "get"
+    assert infos["Alignments"].liefert == "Alignments"
+    assert set(PRODUKTIV.objekte["Alignments"]) == {"Alignments3D", "Alignments2D"}
+    for sammlung, element in (("Alignments3D", "Alignment3D"), ("Alignments2D", "Alignment2D")):
+        assert set(PRODUKTIV.objekte[sammlung]) == {"Count", "Item"}
+        assert PRODUKTIV.objekte[sammlung]["Item"].liefert == element
+    assert set(PRODUKTIV.objekte["Alignment3D"]) == {
+        "Valid",
+        "CurrentQuality",
+        "TargetQuality",
+        "PositionUncertainty",
+        "AngleUncertainty",
+    }
+    assert set(PRODUKTIV.objekte["Alignment2D"]) == {"Valid", "ScanHeadDistance"}
+
+
+def test_abgleich_teilbaum_hat_nur_item_als_methode_und_keine_schreibrechte() -> None:
+    for typ in ABGLEICH_TYPEN:
+        aufrufe = [n for n, m in PRODUKTIV.objekte[typ].items() if m.zugriff == "call"]
+        assert aufrufe == (["Item"] if typ in ("Alignments3D", "Alignments2D") else []), typ
+        assert typ not in PRODUKTIV.schreiben, typ
+    assert "Alignment3D.Calculate" not in schreibbegruendungen()
+    # Keine Wirkung auf das Gerät: Item hat keine Begründung (keine S-Nummer)
+    assert all(
+        m.begruendung == "" for typ in ABGLEICH_TYPEN for m in PRODUKTIV.objekte[typ].values()
+    )
+
+
+def test_abgleich_katalog_enthaelt_die_neuen_verbote() -> None:
+    katalog = {(t, n, o) for t, n, o, _ in NIE_KATALOG}
+    erwartet = {
+        ("Alignment3D", "Calculate", "call"),
+        ("Alignment3D", "Invalidate", "call"),
+        ("Alignment2D", "Calculate", "call"),
+        ("Alignment2D", "Invalidate", "call"),
+        ("Alignment3D", "Valid", "set"),
+        ("Alignment2D", "Valid", "set"),
+        ("Alignments3D", "Count", "set"),
+        ("Alignments2D", "Count", "set"),
+    }
+    erwartet |= {
+        (t, m, "call") for t in ("Alignments3D", "Alignments2D") for m in ("Add", "Clear", "Remove")
+    }
+    assert erwartet <= katalog
+
+
+@pytest.mark.parametrize("index", [0, -1, 1.0, True, "1", None])
+def test_abgleich_item_nur_mit_1_basiertem_int(index: Any) -> None:
+    kontext = _kontext()
+    welt = Welt()
+    sammlung = FakeKnoten("Alignments3D", welt, {"Count": 1}, {"Item": lambda i: None})
+    proxy = WhitelistProxy(sammlung, "Alignments3D", PRODUKTIV, kontext)
+    with pytest.raises(PermissionError, match="1-basierten Index"):
+        proxy.Item(index)
+    assert welt.log == []
+
+
+def test_abgleich_item_1_wird_durchgereicht() -> None:
+    welt = Welt()
+    kind = FakeKnoten("Alignment3D", welt, {"Valid": True})
+    sammlung = FakeKnoten("Alignments3D", welt, {"Count": 1}, {"Item": lambda i: kind})
+    proxy = WhitelistProxy(sammlung, "Alignments3D", PRODUKTIV, _kontext(schreiben_erlaubt=False))
+    assert proxy.Item(1).Valid is True

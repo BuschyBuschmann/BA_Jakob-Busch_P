@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import enum
 import functools
+import math
 import os.path
 import time
 from collections.abc import Callable, Collection, Iterator, Mapping
@@ -62,6 +63,9 @@ from ldv_automation.geraet.com.whitelist import (
     oeffne,
 )
 from ldv_automation.geraet.schnittstelle import (
+    Abgleich2D,
+    Abgleich3D,
+    AbgleichStand,
     AbweichungFehler,
     EinstellungsStand,
     EinstellungsWert,
@@ -92,6 +96,10 @@ START_ZEITLIMIT_MS = 30000
 
 MAX_KANAELE = 16
 """Obergrenze gelesener Kanäle im Einstellungsstand (Ressourcenschranke)."""
+
+MAX_ABGLEICHE = 16
+"""Schutzgrenze: höchstens so viele 3D- bzw. 2D-Abgleiche werden je Sammlung gelesen
+(Ressourcenschranke des Adapters, **kein** Gerätewert)."""
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
@@ -233,6 +241,41 @@ def _als_float(wert: object, pfad: str) -> float:
     if isinstance(wert, int | float) and not isinstance(wert, bool):
         return float(wert)
     raise GeraeteFehler(f"{pfad}: Zahl erwartet, erhalten {wert!r}", methode=pfad)
+
+
+def _lies_toleriert(lesen: Callable[[], object]) -> tuple[object, str | None]:
+    """Führt einen lesenden Zugriff aus; COM- und Whitelist-Fehler werden zum Grund-Text.
+
+    Ein hängender Aufruf (:class:`~ldv_automation.geraet.schnittstelle.ZeitlimitFehler`)
+    wird bewusst **nicht** gefangen.
+    """
+    try:
+        return lesen(), None
+    except ComFehler as exc:
+        return None, f"COM-Fehler beim Lesen: {exc.text}"
+    except PermissionError as exc:
+        return None, f"nicht freigegeben: {exc}"
+
+
+def _bool_oder_grund(wert: object, grund: str | None) -> tuple[bool | None, str | None]:
+    if grund is not None:
+        return None, grund
+    if isinstance(wert, bool):
+        return wert, None
+    return None, f"Wert {wert!r} ist kein Wahrheitswert"
+
+
+def _float_oder_grund(wert: object, grund: str | None) -> tuple[float | None, str | None]:
+    """Endliche Zahl (ohne ``bool``) als ``float`` (float64-Wandlung an der Adaptergrenze)."""
+    if grund is not None:
+        return None, grund
+    if isinstance(wert, int | float) and not isinstance(wert, bool) and math.isfinite(wert):
+        return float(wert), None
+    return None, f"Wert {wert!r} nicht verwendbar (keine endliche Zahl)"
+
+
+def _nur_float(wert: object) -> float | None:
+    return wert if isinstance(wert, float) else None
 
 
 def _gleicher_pfad(a: str, b: str) -> bool:
@@ -786,6 +829,136 @@ class PsvComGeraet:
             werte["signalform_typ"] = None
             werte["signalform_typ__fehler"] = exc.text
         return werte
+
+    @_geraeteaufruf
+    def lies_abgleich(self) -> AbgleichStand:
+        """R-003a: Abgleichstatus (``Infos.Alignments``), nur lesend, feldweise tolerant.
+
+        Jeder Wert wird einzeln gelesen; ein COM-Fehler bei einem Feld macht nur dieses
+        Feld zu ``None`` (Grund in ``nicht_lesbar``). Die Polytec-Indizes sind 1-basiert
+        (Annahme, am Gerät unbestätigt, I5 P2-12); der Index im Ergebnis ist 0-basiert.
+        Pro Sammlung werden höchstens :data:`MAX_ABGLEICHE` Einträge gelesen.
+        """
+        _, acq, _ = self._verbunden()
+        pauschal: dict[str, str] = {}
+        infos, grund = _lies_toleriert(lambda: acq.Infos)
+        if infos is None:
+            pauschal["Infos"] = grund or "Infos nicht verfügbar"
+            return AbgleichStand(nicht_lesbar=pauschal)
+        assert isinstance(infos, WhitelistProxy)
+        vorhanden, grund = _lies_toleriert(lambda: infos.HasAlignments)
+        if vorhanden is not True:
+            pauschal["Infos.HasAlignments"] = grund or f"Infos.HasAlignments ist {vorhanden!r}"
+            return AbgleichStand(nicht_lesbar=pauschal)
+        alignments, grund = _lies_toleriert(lambda: infos.Alignments)
+        if alignments is None:
+            pauschal["Infos.Alignments"] = grund or "Infos.Alignments lieferte nichts"
+            return AbgleichStand(nicht_lesbar=pauschal)
+        assert isinstance(alignments, WhitelistProxy)
+        hinweise: list[str] = []
+        eintraege_3d, anzahl_3d = self._lies_sammlung(
+            alignments, "Alignments3D", self._lies_3d, pauschal, hinweise
+        )
+        eintraege_2d, anzahl_2d = self._lies_sammlung(
+            alignments, "Alignments2D", self._lies_2d, pauschal, hinweise
+        )
+        return AbgleichStand(
+            abgleich_3d=tuple(e for e in eintraege_3d if isinstance(e, Abgleich3D)),
+            abgleich_2d=tuple(e for e in eintraege_2d if isinstance(e, Abgleich2D)),
+            anzahl_3d=anzahl_3d,
+            anzahl_2d=anzahl_2d,
+            nicht_lesbar=pauschal,
+            hinweis="; ".join(hinweise),
+        )
+
+    @staticmethod
+    def _lies_sammlung(
+        alignments: WhitelistProxy,
+        name: str,
+        lies_eintrag: Callable[[int, WhitelistProxy | None, str | None], Abgleich3D | Abgleich2D],
+        pauschal: dict[str, str],
+        hinweise: list[str],
+    ) -> tuple[list[Abgleich3D | Abgleich2D], int | None]:
+        sammlung, grund = _lies_toleriert(lambda: getattr(alignments, name))
+        if sammlung is None:
+            pauschal[f"Alignments.{name}"] = grund or f"{name} lieferte nichts"
+            return [], None
+        assert isinstance(sammlung, WhitelistProxy)
+        roh, grund = _lies_toleriert(lambda: sammlung.Count)
+        anzahl = ganzzahl_oder_none(roh) if grund is None else None
+        if anzahl is None or anzahl < 0:
+            pauschal[f"{name}.Count"] = grund or f"Count {roh!r} nicht verwendbar"
+            return [], None
+        eintraege: list[Abgleich3D | Abgleich2D] = []
+        for nr in range(1, min(anzahl, MAX_ABGLEICHE) + 1):  # Polytec-Index 1-basiert
+            item, item_grund = _lies_toleriert(functools.partial(sammlung.Item, nr))
+            eintraege.append(
+                lies_eintrag(nr - 1, item if isinstance(item, WhitelistProxy) else None, item_grund)
+            )
+        if anzahl > MAX_ABGLEICHE:
+            hinweise.append(f"{name}: nur die ersten {MAX_ABGLEICHE} von {anzahl} gelesen")
+        return eintraege, anzahl
+
+    @staticmethod
+    def _lies_3d(index: int, obj: WhitelistProxy | None, grund: str | None) -> Abgleich3D:
+        felder = (
+            ("gueltig", "Valid"),
+            ("qualitaet_ist_m", "CurrentQuality"),
+            ("qualitaet_soll_m", "TargetQuality"),
+            ("positionsunsicherheit_m", "PositionUncertainty"),
+            ("winkelunsicherheit_rad", "AngleUncertainty"),
+        )
+        werte, nicht_lesbar = PsvComGeraet._lies_abgleichfelder(
+            obj, grund, felder, bool_felder={"gueltig"}
+        )
+        return Abgleich3D(
+            index=index,
+            gueltig=werte["gueltig"] if isinstance(werte["gueltig"], bool) else None,
+            qualitaet_ist_m=_nur_float(werte["qualitaet_ist_m"]),
+            qualitaet_soll_m=_nur_float(werte["qualitaet_soll_m"]),
+            positionsunsicherheit_m=_nur_float(werte["positionsunsicherheit_m"]),
+            winkelunsicherheit_rad=_nur_float(werte["winkelunsicherheit_rad"]),
+            nicht_lesbar=nicht_lesbar,
+        )
+
+    @staticmethod
+    def _lies_2d(index: int, obj: WhitelistProxy | None, grund: str | None) -> Abgleich2D:
+        felder = (("gueltig", "Valid"), ("scankopfabstand_m", "ScanHeadDistance"))
+        werte, nicht_lesbar = PsvComGeraet._lies_abgleichfelder(
+            obj, grund, felder, bool_felder={"gueltig"}
+        )
+        return Abgleich2D(
+            index=index,
+            gueltig=werte["gueltig"] if isinstance(werte["gueltig"], bool) else None,
+            scankopfabstand_m=_nur_float(werte["scankopfabstand_m"]),
+            nicht_lesbar=nicht_lesbar,
+        )
+
+    @staticmethod
+    def _lies_abgleichfelder(
+        obj: WhitelistProxy | None,
+        item_grund: str | None,
+        felder: tuple[tuple[str, str], ...],
+        *,
+        bool_felder: set[str],
+    ) -> tuple[dict[str, bool | float | None], dict[str, str]]:
+        werte: dict[str, bool | float | None] = {}
+        nicht_lesbar: dict[str, str] = {}
+        for schluessel, com_name in felder:
+            if obj is None:
+                werte[schluessel] = None
+                nicht_lesbar[schluessel] = item_grund or "Item lieferte nichts"
+                continue
+            roh, grund = _lies_toleriert(functools.partial(getattr, obj, com_name))
+            wert: bool | float | None
+            if schluessel in bool_felder:
+                wert, grund = _bool_oder_grund(roh, grund)
+            else:
+                wert, grund = _float_oder_grund(roh, grund)
+            werte[schluessel] = wert
+            if grund is not None:
+                nicht_lesbar[schluessel] = grund
+        return werte, nicht_lesbar
 
     @_geraeteaufruf
     def speichere_einstellungen(self, pfad: str) -> None:

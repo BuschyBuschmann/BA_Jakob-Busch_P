@@ -444,6 +444,12 @@ def _pruefe_schema(daten: dict[str, object]) -> None:
     )
     assert {"linien_anzahl", "blockdauer_s", "nicht_lesbar", "hinweis"} <= set(fa)
     assert set(fa["nicht_lesbar"]) == {k for k, v in fa.items() if v is None}
+    ab = daten["abgleich"]  # R-003 A1: immer vorhanden, auch bei fehler/abgebrochen
+    assert isinstance(ab, dict)
+    assert {"gelesen", "grund", "zeit", "anzahl_3d", "anzahl_2d", "abgleich_3d"} <= set(ab)
+    assert {"abgleich_2d", "nicht_lesbar", "pruefung", "hinweis"} <= set(ab)
+    assert (ab["grund"] is None) == ab["gelesen"]
+    assert set(ab["pruefung"]) == {"modus", "ergebnis", "grenzen", "befunde"}
     assert (daten["messdatei_sha256"] is None) != (daten["messdatei_sha256_grund"] is None)
     for feld in ("zeit_start", "zeit_ende"):
         zeit = daten[feld]

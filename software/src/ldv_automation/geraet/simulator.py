@@ -27,6 +27,11 @@ Nachgebildet (Plan P2, Abschnitt 5):
     Aufruf, keine Datei.
 11. Meldungen an Punkt k.
 12. Aufrufprotokoll.
+13. Abgleichstatus (R-003a): :meth:`Simulator.lies_abgleich` liefert den Stand der
+    Konfiguration (Platzhalter-Testdaten, **keine** Gerätewerte); das Drehbuch kann ihn mit
+    ``lade_einstellungen`` wechseln (:class:`AbgleichBeiLaden`, bildet einen veralteten
+    Abgleich in der ``.set`` nach) oder das Lesen scheitern lassen
+    (:class:`AbgleichNichtLesbar`).
 
 Nicht nachgebildet: nicht fortlaufende Punktreihenfolge (Plan 5, Punkt 4). Der
 Fortschritt zählt nur erledigte Punkte; die Reihenfolge spielt dafür keine Rolle.
@@ -51,6 +56,9 @@ from typing import TypeAlias
 
 from ldv_automation.domaene.parameter import ParameterWert
 from ldv_automation.geraet.schnittstelle import (
+    Abgleich2D,
+    Abgleich3D,
+    AbgleichStand,
     EinstellungsStand,
     Fortschritt,
     GeraeteFehler,
@@ -173,6 +181,26 @@ class MeldungBeiPunkt:
     text: str
 
 
+@dataclass(frozen=True, kw_only=True)
+class AbgleichBeiLaden:
+    """Mit ``lade_einstellungen`` im Vorgang ``vorgang`` wechselt der Abgleich auf ``stand``.
+
+    Bildet den Fall nach, dass die geladene ``.set`` einen anderen (z. B. veralteten oder
+    ungültigen) Abgleich mitbringt. Der Stand gilt bis zum nächsten Laden.
+    """
+
+    vorgang: int
+    stand: AbgleichStand
+
+
+@dataclass(frozen=True, kw_only=True)
+class AbgleichNichtLesbar:
+    """``lies_abgleich`` scheitert im Vorgang ``vorgang`` mit Gerätefehler ``text``."""
+
+    vorgang: int
+    text: str = "Simulator: Abgleich nicht lesbar"
+
+
 DrehbuchEreignis: TypeAlias = (
     LadeFehler
     | TeilLaden
@@ -184,10 +212,33 @@ DrehbuchEreignis: TypeAlias = (
     | HaengenderAufruf
     | LangsamerAufruf
     | MeldungBeiPunkt
+    | AbgleichBeiLaden
+    | AbgleichNichtLesbar
 )
 
 
 # --- Konfiguration -----------------------------------------------------------------------
+
+SIMULATOR_ABGLEICH = AbgleichStand(
+    abgleich_3d=(
+        Abgleich3D(
+            index=0,
+            gueltig=True,
+            qualitaet_ist_m=0.001,
+            qualitaet_soll_m=0.002,
+            positionsunsicherheit_m=0.0005,
+            winkelunsicherheit_rad=0.01,
+        ),
+    ),
+    abgleich_2d=(Abgleich2D(index=0, gueltig=True, scankopfabstand_m=1.0),),
+    anzahl_3d=1,
+    anzahl_2d=1,
+    hinweis="Simulator: Platzhalter-Testdaten, keine Gerätewerte",
+)
+"""Standard-Abgleich des Simulators: ein gültiger 3D- und ein gültiger 2D-Abgleich.
+
+Die Zahlen sind **erfundene Testdaten** (kein Gerätewert, keine Grenze, keine Empfehlung);
+Tests, die Grenzen prüfen, bilden ihre Werte selbst."""
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -231,6 +282,9 @@ class SimulatorKonfiguration:
         Gelesene Generatoramplitude in V (``None``: nicht lesbar).
     generatoren_an : bool or None
         Gelesenes ``GeneratorsOn``; ``None`` (Standard): wird nicht gemeldet.
+    abgleich : AbgleichStand
+        Von :meth:`Simulator.lies_abgleich` gemeldeter Abgleich (Standard:
+        :data:`SIMULATOR_ABGLEICH`, Platzhalter-Testdaten).
     """
 
     psv_laeuft: bool = True
@@ -259,6 +313,7 @@ class SimulatorKonfiguration:
     generator_aktiv: bool | None = False
     generator_amplitude_v: float | None = 0.0
     generatoren_an: bool | None = None
+    abgleich: AbgleichStand = SIMULATOR_ABGLEICH
 
     def __post_init__(self) -> None:
         if self.punkte_anzahl <= 0:
@@ -346,6 +401,7 @@ class Simulator:
         self._fremd = self.konfiguration.fremde_messung
         self._werte: dict[str, ParameterWert] = dict(_STANDARDWERTE)
         self._modus = "Fft"
+        self._abgleich = self.konfiguration.abgleich
         self._vorgang = -1
         self._scan: _Scan | None = None
         self._meldungen: list[Meldung] = []
@@ -527,6 +583,10 @@ class Simulator:
         self._werte = dict(_STANDARDWERTE)
         teil = self._ereignisse(TeilLaden)
         self._modus = teil[0].modus if teil and isinstance(teil[0], TeilLaden) else "Fft"
+        self._abgleich = self.konfiguration.abgleich
+        for e in self._ereignisse(AbgleichBeiLaden):
+            assert isinstance(e, AbgleichBeiLaden)
+            self._abgleich = e.stand
 
     def setze_parameter(self, parameter: Mapping[str, ParameterWert]) -> None:
         """Setzt Parameter; Bandbreite und Linien rasten ein."""
@@ -597,6 +657,16 @@ class Simulator:
                 "generator": generator,
             },
         )
+
+    def lies_abgleich(self) -> AbgleichStand:
+        """Liest den Abgleichstatus (Konfiguration bzw. Wechsel durch ``AbgleichBeiLaden``)."""
+        self._protokolliere("lies_abgleich")
+        self._pruefe_verbunden("lies_abgleich")
+        self._vielleicht_haengen("lies_abgleich")
+        for e in self._ereignisse(AbgleichNichtLesbar):
+            assert isinstance(e, AbgleichNichtLesbar)
+            raise GeraeteFehler(e.text, methode="lies_abgleich")
+        return self._abgleich
 
     def speichere_einstellungen(self, pfad: str) -> None:
         """Legt eine Platzhalter-Einstellungsdatei an (nie überschreiben)."""
