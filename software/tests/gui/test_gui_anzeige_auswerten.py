@@ -126,11 +126,11 @@ def test_ui_15_laden_sperrt_oeffnen_ansichten_und_auswahl() -> None:
 def test_geladen_alle_ansichten_frei_export_und_bild_bedienbar() -> None:
     t = aa.bedienbarkeit_auswerten(Zustand.GELADEN)
     assert t["oeffnen"].aktiv and t["auswahl"].aktiv
-    for nr in (1, 2, 3, 4):
+    for nr in (1, 2, 3, 4, 5):  # 5 = Diagramm (R-058)
         assert t[f"ansicht_{nr}"].aktiv
     for name in ("export", "bild"):  # T4: bedienbar
         assert t[name].aktiv
-    assert {1, 2, 3, 4} == aa.FREIGESCHALTETE_ANSICHTEN
+    assert {1, 2, 3, 4, 5} == aa.FREIGESCHALTETE_ANSICHTEN
 
 
 def test_ui_24_texte_der_zustaende() -> None:

@@ -105,6 +105,17 @@ QPushButton[art="segment"]:checked {{
     border: 2px solid {t.C_AKZENT}; background: {t.C_AKTIV_BG};
 }}
 QPushButton[art="segment"]:disabled:checked {{ border-color: {t.C_LINIE}; }}
+QFrame[art="chip"] {{ background: {t.C_FLAECHE}; border: 1px solid {t.C_LINIE}; }}
+QFrame[art="chip"][aktiv="true"] {{ background: {t.C_AKTIV_BG}; border: 2px solid {t.C_AKZENT}; }}
+QPushButton[art="chip"] {{ border: none; background: transparent; padding: 0 6px; min-height: 0; }}
+QPushButton[art="chip"]:focus {{ border: 2px solid {t.C_AKZENT}; }}
+QToolButton[art="chipx"] {{
+    padding: 0; min-height: 0; min-width: 0; border: none; background: transparent;
+    font-weight: bold;
+}}
+QToolButton[art="chipx"]:hover {{ background: {t.C_AUSWAHL_BG}; }}
+QToolButton[art="chipx"]:focus {{ border: 2px solid {t.C_AKZENT}; }}
+QToolButton[art="chipx"]:disabled {{ color: {t.C_DEAKTIVIERT_TEXT}; background: transparent; }}
 QListWidget {{
     background: {t.C_FLAECHE}; border: 1px solid {t.C_LINIE};
     selection-background-color: {t.C_AUSWAHL_BG}; selection-color: {t.C_TEXT};

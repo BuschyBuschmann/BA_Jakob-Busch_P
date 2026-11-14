@@ -40,8 +40,8 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-055 | `auswertung/export.py` (Stufe 1), `auswertung/stufe2.py` (B-1), `daempfung` | `test_aw_export_werkzeuge.py`, `test_aw_stufe2.py` | Laborbuch 2026-11-03_r023-r055 | – | getestet (Datei) |
 | R-056 | – | – | – | – | offen |
 | R-057 | – | – | – | – | offen |
-| R-058 | – | – | – | – | offen |
-| R-059 | – | – | – | – | offen |
+| R-058 | `gui/messungen.py`, `messungsleiste.py`, `serien.py`, `auswahl_diagramm.py`, `darstellung/serien_daten.py`, `diagramm.py` (ADR-028) | `test_gui_messungen.py`, `test_gui_ansicht_5.py`, `test_gui_ausw2_korrektur*.py`, `test_dar_diagramm.py`, `test_messungen_logik.py`, `test_serien_logik.py` | Laborbuch 2026-11-14_auswerten-etappe-b-vergleich | 4.4/4.5 | getestet (offscreen); UI-38 am Gerät offen |
+| R-059 | Teile in Ansicht 5 (Serien, Größe, Legende); S8–S10 offen | `test_gui_ansicht_5.py`, `test_serien_logik.py` | Laborbuch 2026-11-14_auswerten-etappe-b-vergleich | 4.4/4.5 | in Arbeit |
 | R-070 | – | – | – | – | offen |
 | R-071 | `auswertung/animation.py` (Rechenkern, ADR-029); Oberfläche offen | `test_aw_animation.py` (RF-A1–A14, RF-N1–N7) | Laborbuch 2026-11-12_animation-rechenkern | 4.4 | in Arbeit (Rechenkern getestet) |
 | R-072 | – | – | – | – | offen |

@@ -186,6 +186,32 @@ class PaarCache:
         """Paare im Speicher (ältestes zuerst)."""
         return tuple(self._paare)
 
+    def alle_paare(self) -> tuple[PaarAuswertung, ...]:
+        """Ausgewertete Paare im Speicher (ältestes zuerst), z. B. für die Speicherangabe."""
+        return tuple(self._paare.values())
+
+    @property
+    def groesse(self) -> int:
+        """Anzahl der gehaltenen Paare (LRU)."""
+        return self._groesse
+
+    def setze_groesse(self, groesse: int) -> None:
+        """Ändert die Zahl der gehaltenen Paare (LRU); überzählige älteste Paare entfallen.
+
+        Die Rechnung selbst bleibt unberührt (P-AUSW2 S5: mehrere Messungen, jede Messung hält
+        mindestens so viele Paare, wie ihre Serien verschiedene Paare brauchen).
+
+        Raises
+        ------
+        ValueError
+            ``groesse`` kleiner als 1.
+        """
+        if groesse < 1:
+            raise ValueError(f"groesse muss >= 1 sein: {groesse}")
+        self._groesse = groesse
+        while len(self._paare) > self._groesse:
+            self._paare.popitem(last=False)
+
     def gueltig(self) -> BoolArray:
         """Gültigkeit je Punkt (Annahme M6), ``(P,)``."""
         return self.annahmen.gueltig_je_punkt(self.daten.anzahl_punkte)

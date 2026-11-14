@@ -26,10 +26,11 @@ Anzeigeformat und Texte liegen Qt-frei in :mod:`ldv_automation.darstellung.achse
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QRect, QSize, Qt, Signal
 from PySide6.QtWidgets import (
+    QComboBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -71,6 +72,12 @@ _MELDUNGEN = (TEXT_KEINE_ZAHL, TEXT_LOG_NUR_POSITIV, TEXT_REIHENFOLGE)
 """Standardmeldungen; die längste bestimmt die reservierte Breite der Meldezeile."""
 _ABSTAND_PX = 12
 """Abstand zwischen den Gruppen nebeneinander (8-px-Raster)."""
+_ZEILE_ABSTAND_PX = 4
+"""Abstand der Teile innerhalb einer Gruppe (Beschriftung, Felder, Einheit, Skala)."""
+_ZEILE_ABSTAND_KOMPAKT_PX = 2
+"""Dasselbe bei kleinem Fenster: Frequenz, Betrag und „Auto“ bleiben bei 1100 px in einer Zeile."""
+_ABSTAND_KOMPAKT_PX = 8
+"""Abstand zwischen den Gruppen bei kleinem Fenster."""
 _ZEILENABSTAND_PX = 2
 """Abstand zwischen den Zeilen der Leiste (jede Gruppe trägt ihre Meldezeile selbst)."""
 
@@ -102,6 +109,11 @@ class FlussLayout(QLayout):
         self._elemente: list[QLayoutItem] = []
         self._abstand = abstand
         self._zeilenabstand = abstand if zeilenabstand is None else zeilenabstand
+
+    def setze_abstand(self, abstand: int) -> None:
+        """Ändert den Abstand zwischen den Elementen (Zeilenabstand bleibt)."""
+        self._abstand = abstand
+        self.invalidate()
 
     def addItem(self, item: QLayoutItem) -> None:  # noqa: N802  # Qt-Name
         """Fügt ein Element am Ende hinzu."""
@@ -192,11 +204,24 @@ class _Gruppe(QFrame):
         self.lbl_einheit.setObjectName(f"{praefix}_einheit")
         self.lbl_einheit.setProperty("art", "gedaempft")
         self.lbl_name.setBuddy(self.ed_von)
+        # Ansicht 5, nebeneinander: Auswahl der Betragsgröße, auf die sich die Felder beziehen
+        self.cb_groesse: QComboBox | None = None
+        if rolle == "betrag":
+            self.cb_groesse = QComboBox()
+            self.cb_groesse.setObjectName(f"{praefix}_groesse")
+            self.cb_groesse.setAccessibleName("Größe der Betragsfelder")
+            self.cb_groesse.setToolTip(
+                "Größe, auf die sich Bereich und Skala des Betrags beziehen "
+                "(nebeneinander: jede Größe hat ihre eigene Achse)"
+            )
+            self.cb_groesse.setVisible(False)
         zeile = QHBoxLayout()
+        self._zeile = zeile
         zeile.setContentsMargins(0, 0, 0, 0)
-        zeile.setSpacing(4)
+        zeile.setSpacing(_ZEILE_ABSTAND_PX)
         for widget in (
             self.lbl_name,
+            *([self.cb_groesse] if self.cb_groesse is not None else []),
             self.ed_von,
             self.lbl_trenner,
             self.ed_bis,
@@ -242,6 +267,10 @@ class _Gruppe(QFrame):
         self.lbl_meldung.setVisible(False)
         gitter.addWidget(self.lbl_meldung, 1, 0)
 
+    def setze_kompakt(self, kompakt: bool) -> None:
+        """Enger Abstand der Teile einer Gruppe (kleines Fenster)."""
+        self._zeile.setSpacing(_ZEILE_ABSTAND_KOMPAKT_PX if kompakt else _ZEILE_ABSTAND_PX)
+
     @staticmethod
     def _feld(objekt: str, accessible: str) -> QLineEdit:
         feld = QLineEdit()
@@ -281,6 +310,10 @@ class Achsenleiste(QWidget):
     """Der Zustand wurde durch eine gültige Eingabe, den Skalaumschalter oder „Alles auf Auto“
     geändert; die Plotfläche ist neu zu zeichnen (genau einmal je Eingabe)."""
 
+    groesse_gewaehlt = Signal(str)
+    """Die Betragsgröße der Betragsfelder wurde gewählt (Ansicht 5, nebeneinander); der Zustand
+    ist schon umgestellt, die Felder sind aus den Grenzen der Größe neu zu zeigen."""
+
     def __init__(self, zustand: AchsenZustand, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("achsenleiste")
@@ -299,6 +332,7 @@ class Achsenleiste(QWidget):
         # Leiste bei 1100 mal 680 so niedrig, dass der Plot in Ansicht 3 seine Mindesthöhe behält.
         layout = FlussLayout(self, zeilenabstand=_ZEILENABSTAND_PX)
         layout.setContentsMargins(0, 2, 0, 2)
+        self._fluss = layout
         for gruppe in self._gruppen.values():
             layout.addWidget(gruppe)
         self.btn_auto = QPushButton("Alles auf Auto")
@@ -309,6 +343,9 @@ class Achsenleiste(QWidget):
         self.btn_auto.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.btn_auto.clicked.connect(self._alles_auto)
         layout.addWidget(self.btn_auto)
+        cb = self._gruppen["betrag"].cb_groesse
+        assert cb is not None
+        cb.activated.connect(self._groesse_aktiviert)
         for gruppe in self._gruppen.values():
             for seite in ("von", "bis"):
                 feld = gruppe.feld(seite)
@@ -341,6 +378,8 @@ class Achsenleiste(QWidget):
         """Bedienbare Elemente in Tab-Reihenfolge (Brief Abschnitt 6: AD → AG → AE)."""
         kette: list[QWidget] = []
         for gruppe in self._gruppen.values():
+            if gruppe.cb_groesse is not None and not gruppe.cb_groesse.isHidden():
+                kette.append(gruppe.cb_groesse)
             kette += [gruppe.ed_von, gruppe.ed_bis]
             if gruppe.rb_linear is not None and gruppe.rb_log is not None:
                 kette += [gruppe.rb_linear, gruppe.rb_log]
@@ -353,8 +392,65 @@ class Achsenleiste(QWidget):
         self._wirksam = {}
         self._verwerfe_fehler()
         self._verwerfe_entwuerfe()
+        self.setze_groessen([], self._zustand.groesse_5)  # nur Ansicht 5 nebeneinander bietet an
         self._zeige_skalen()
         self.setVisible(ansicht in ACHSEN_JE_ANSICHT)
+
+    def setze_kompakt(self, kompakt: bool) -> None:
+        """Kurze Beschriftungen bei schmalem Fenster (Skalaknöpfe „lin“/„log“, „Auto“).
+
+        Die vollständigen Namen bleiben in ``accessibleName`` und Tooltip; die Leiste braucht so
+        bei 1100 px Breite nur noch eine Zeile für Frequenz und Betrag.
+        """
+        self._fluss.setze_abstand(_ABSTAND_KOMPAKT_PX if kompakt else _ABSTAND_PX)
+        for gruppe in self._gruppen.values():
+            gruppe.setze_kompakt(kompakt)
+            if gruppe.rb_linear is not None and gruppe.rb_log is not None:
+                gruppe.rb_linear.setText("lin" if kompakt else "linear")
+                gruppe.rb_log.setText("log" if kompakt else "logarithmisch")
+                gruppe.rb_linear.setToolTip("linear" if kompakt else "")
+                gruppe.rb_log.setToolTip("logarithmisch" if kompakt else "")
+        self.btn_auto.setText("Auto" if kompakt else "Alles auf Auto")
+        self.updateGeometry()
+
+    def setze_groessen(self, angebot: Sequence[tuple[str, str]], aktuell: str) -> None:
+        """Bietet die Betragsgrößen an, auf die sich die Betragsfelder beziehen können.
+
+        Parameters
+        ----------
+        angebot : sequence of (str, str)
+            Kennung und Anzeigename der gezeichneten Betragsgrößen; weniger als zwei blenden die
+            Auswahl aus (die Felder gehören dann zur einzigen Größe).
+        aktuell : str
+            Kennung der Größe, auf die sich die Felder jetzt beziehen.
+        """
+        cb = self._gruppen["betrag"].cb_groesse
+        assert cb is not None
+        kennungen = [k for k, _name in angebot]
+        sichtbar = len(angebot) > 1
+        cb.blockSignals(True)
+        if kennungen != [cb.itemData(i) for i in range(cb.count())]:
+            cb.clear()
+            for kennung, name in angebot:
+                cb.addItem(name, kennung)
+        if aktuell in kennungen:
+            cb.setCurrentIndex(kennungen.index(aktuell))
+        cb.blockSignals(False)
+        if cb.isHidden() == sichtbar:
+            cb.setVisible(sichtbar)
+            self.updateGeometry()
+
+    def _groesse_aktiviert(self, index: int) -> None:
+        """Auswahl der Größe: Entwürfe und Meldungen entfallen, der Zustand bezieht sich um."""
+        cb = self._gruppen["betrag"].cb_groesse
+        assert cb is not None
+        kennung = cb.itemData(index)
+        if not isinstance(kennung, str) or kennung == self._zustand.groesse_5:
+            return
+        self._verwerfe_fehler()
+        self._verwerfe_entwuerfe()
+        self._zustand.setze_groesse_5(kennung)
+        self.groesse_gewaehlt.emit(kennung)
 
     def aktualisiere(
         self, wirksam: Mapping[str, tuple[float, float]], einheiten: Mapping[str, str]

@@ -21,7 +21,8 @@ from __future__ import annotations
 import functools
 import itertools
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -37,6 +38,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGraphicsOpacityEffect,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -80,13 +82,24 @@ from ldv_automation.darstellung.auswahl import (
     waehle_ebene,
 )
 from ldv_automation.darstellung.bild import baue_stempel
+from ldv_automation.darstellung.diagramm import TEILBILDER_MAX, DiagrammOptionen, teilbilder
 from ldv_automation.darstellung.formate import frequenz_text
 from ldv_automation.darstellung.frf import FrfOptionen
 from ldv_automation.darstellung.schwingform import SchwingformOptionen
+from ldv_automation.darstellung.serien_daten import (
+    DiagrammSerie,
+    SerienSpec,
+    betrag_groesse,
+    loese_alle_auf,
+)
 from ldv_automation.darstellung.spektrum import DB_GRUND, SpektrumOptionen
 from ldv_automation.darstellung.spitzen import SpitzenOptionen
 from ldv_automation.gui import tokens as t
-from ldv_automation.gui.achsen_zustand import ACHSEN_JE_ANSICHT, einheit_aus_achsentitel
+from ldv_automation.gui.achsen_zustand import (
+    ACHSEN_JE_ANSICHT,
+    BETRAG_GROESSEN_5,
+    einheit_aus_achsentitel,
+)
 from ldv_automation.gui.achsenleiste import Achsenleiste
 from ldv_automation.gui.anzeige import Knopf
 from ldv_automation.gui.anzeige_aktionen import (
@@ -154,6 +167,12 @@ from ldv_automation.gui.auswahl_auswerten import (
     AuswahlSpitzen,
     tab_halt,
 )
+from ldv_automation.gui.auswahl_diagramm import (
+    AuswahlDiagramm,
+    MessungsAngabe,
+    SerienDialog,
+    SerienEintrag,
+)
 from ldv_automation.gui.daten_auswerten import (
     BAENDER_SPALTEN,
     SPITZEN_SPALTEN,
@@ -165,10 +184,28 @@ from ldv_automation.gui.daten_auswerten import (
     spitze_der_linie,
     spitzen_zeilen,
 )
+from ldv_automation.gui.dialoge import frage
 from ldv_automation.gui.einstellungen_auswerten import AuswertenEinstellungen
+from ldv_automation.gui.messungen import MESSUNGEN_MAX, Messung, Messungen, MessungsZustand
+from ldv_automation.gui.messungsleiste import Messungsleiste
 from ldv_automation.gui.plotflaeche import PlotFlaeche
 from ldv_automation.gui.plotstil import baue_plotstil
 from ldv_automation.gui.pruefdialog import KuerzLabel, PruefDialog, PruefLabel
+from ldv_automation.gui.serien import (
+    TEXT_KEINE_SERIE,
+    TEXT_SERIEN_VOLL,
+    SerienFehler,
+    SerienListe,
+    baue_spec,
+    groessen_verfuegbar,
+    kopf_text,
+    messungs_zugriff,
+    paare_je_messung,
+    serie_text,
+    serien_fuer_alle,
+    standard_paar,
+    unmoeglich_text,
+)
 from ldv_automation.gui.stil import schrift
 from ldv_automation.gui.tabellen_auswerten import ZEILENHOEHE_PX, TabellenBereich
 from ldv_automation.hintergrund import (
@@ -202,6 +239,22 @@ PLOT_WUNSCH_HOEHE_SPLITTER_PX = 264
 """Gewünschte Höhe des Plots (ohne Achsenleiste) in Ansicht 3 bei der Standardhöhe der Tabelle:
 Die Achse ist dann auch bei 1366 mal 768 mindestens 160 px hoch. Reicht der Platz nicht, gibt die
 Tabelle bis auf ihre Mindesthöhe nach, danach der Plot bis :data:`PLOT_MIN_HOEHE_SPLITTER_PX`."""
+TEXT_BILD_ANSICHT_5 = "Bild speichern ist für Ansicht 5 noch nicht freigeschaltet."
+_BETRAG_NAMEN = {"spektrum": "Spektrum", "h1": "|H1|", "h2": "|H2|"}
+"""Kurznamen der Betragsgrößen für die Auswahl der Achsenleiste (Ansicht 5, nebeneinander)."""
+KOMPAKT_BREITE_PX = 1200
+"""Unter dieser Breite des Reiters wird die Oberfläche kompakt: Dateiname neben den Chips,
+Hinweis „Höchstens vier Serien“ und lange Beschriftungen der Achsenleiste entfallen (Plot und
+Chips bekommen den Platz; die vollständigen Texte stehen in Tooltips)."""
+
+TEXT_HINZU_ERST_DATEI = "Zuerst eine Messdatei öffnen."
+"""Tooltip von ``Messung hinzufügen …`` ohne Datei (Brief K1-AUSW2 Abschnitt 4)."""
+TEXT_HINZU_LAEDT = "Die Datei wird gerade gelesen."
+TEXT_ENTFERNEN_ERSETZT = (
+    "Messung {kurzname} wird gerade durch „Öffnen …“ ersetzt und lässt sich jetzt nicht entfernen."
+)
+TEXT_HINZU_VOLL = f"Höchstens {MESSUNGEN_MAX} Messungen; zuerst eine entfernen."
+TEXT_DIESELBE_DATEI = "Dieselbe Datei wie {kurzname}."
 TEXT_KANALPAAR_ANSICHT_4 = "Spitzenliste und Kennzeichen der Linie stammen aus diesem Paar."
 
 _SEITE_LEER = 0
@@ -349,6 +402,12 @@ class _Parameterzeile(QFrame):
         self.blende_aus()
 
 
+def _sha_von(geladen: Geladen) -> str | None:
+    """Prüfsumme der Datei aus der Herkunft (``None`` ohne Herkunft)."""
+    herkunft = geladen.messdaten.herkunft
+    return herkunft.sha256 if herkunft is not None else None
+
+
 class AuswertenReiter(QWidget):
     """Inhalt des Reiters „Auswerten“.
 
@@ -380,15 +439,20 @@ class AuswertenReiter(QWidget):
         self.setObjectName("auswerten_inhalt")
         self._ausfuehrer = ausfuehrer
         self._zustand = AuswertenZustand.KEINE_DATEI
-        self._geladen: Geladen | None = None
-        self._cache: PaarCache | None = None
+        self._messungen = Messungen()
+        self._serien = SerienListe()
+        self._serien_aufgeloest: dict[tuple[object, ...], DiagrammSerie] = {}
         self._auswahl = _Auswahl()
         self._job_id = 0
+        self._ersetze_ziel: int | None = None
+        self._aktiviere_danach: int | None = None
+        self._dialog_tiefe = 0
+        self._kompakt = False
+        self._zusatz: dict[int, Auftrag] = {}
+        self._b_messung: int | None = None
         self._auftrag_a: tuple[int, Auftrag, str] | None = None
         self._auftrag_b: tuple[int, Auftrag] | None = None
-        self._pruefung: PruefErgebnis | None = None
         self._fehlertext: str | None = None
-        self._pruef_fehler: str | None = None
         self._ansicht = 1
         self._paare: tuple[tuple[str, str], ...] = ()
         self._spitze: int | None = None
@@ -408,8 +472,6 @@ class AuswertenReiter(QWidget):
         self._git_hash = git_hash if git_hash is not None else (lambda: (None, None))
         self._letzter_ordner = self._einstellungen.letzter_ordner()
         self._abfrage_ms = abfrage_ms
-        self._datei_pfad: str | None = None
-        self._antrieb: tuple[str, str, Any] | None = None
         self._auftrag_c: tuple[Auftrag, str] | None = None
         self._meldung = ""
         self._meldung_pfade: tuple[str, ...] = ()
@@ -488,14 +550,21 @@ class AuswertenReiter(QWidget):
         self.btn_oeffnen = QPushButton("Öffnen …")
         self.btn_oeffnen.setObjectName("btn_oeffnen")
         self.btn_oeffnen.setProperty("art", "primaer")
+        self.btn_messung_hinzu = QPushButton("Messung hinzufügen …")
+        self.btn_messung_hinzu.setObjectName("btn_messung_hinzu")
+        self.messungsleiste = Messungsleiste()
         self.lbl_datei = QLabel("–")
         self.lbl_datei.setObjectName("lbl_datei")
         self.lbl_datei.setFont(schrift(fett=True))
+        self.lbl_datei.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.lbl_datei.setMinimumWidth(90)  # bei kleinem Fenster gekürzt, Platz gehört den Chips
         self.lbl_pfad = _LinksKuerzLabel()
         self.lbl_pfad.setObjectName("lbl_pfad")
         self.lbl_pfad.setFont(schrift(t.SCHRIFT_PT, mono=True))
         self.lbl_pfad.setProperty("art", "gedaempft")
-        namen = QVBoxLayout()
+        self._namen_box = QWidget()  # eigener Behälter: ausgeblendet gibt er den Platz frei
+        namen = QVBoxLayout(self._namen_box)
+        namen.setContentsMargins(0, 0, 0, 0)
         namen.setSpacing(0)
         namen.addWidget(self.lbl_datei)
         namen.addWidget(self.lbl_pfad)
@@ -506,16 +575,23 @@ class AuswertenReiter(QWidget):
         self.lbl_arbeitsansicht = QLabel("Arbeitsansicht")
         self.lbl_arbeitsansicht.setObjectName("lbl_arbeitsansicht")
         self.lbl_arbeitsansicht.setProperty("art", "gedaempft")
-        for knopf in (self.btn_oeffnen, self.btn_export, self.btn_bild):
+        for knopf in (self.btn_oeffnen, self.btn_messung_hinzu, self.btn_export, self.btn_bild):
             knopf.setAutoDefault(False)
             knopf.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         z.addWidget(self.btn_oeffnen)
+        z.addWidget(self.btn_messung_hinzu)
         z.addSpacing(8)
-        z.addLayout(namen, 1)
+        z.addWidget(self.messungsleiste, 2)  # freier Platz geht zuerst an die Chips
+        z.addSpacing(8)
+        z.addWidget(self._namen_box, 1)
         z.addWidget(self.btn_export)
         z.addWidget(self.btn_bild)
         z.addWidget(self.lbl_arbeitsansicht)
         self.btn_oeffnen.clicked.connect(self._oeffnen_geklickt)
+        self.btn_messung_hinzu.clicked.connect(self._messung_hinzu_geklickt)
+        self.messungsleiste.wechsel.connect(self._aktiviere_messung)
+        self.messungsleiste.entfernen.connect(self._entferne_geklickt)
+        self.messungsleiste.umbenennen.connect(self._umbenennen_geklickt)
         return leiste
 
     def _baue_ansichtswahl(self) -> QFrame:
@@ -605,11 +681,13 @@ class AuswertenReiter(QWidget):
         self.auswahl_frf = AuswahlFrf()
         self.auswahl_spitzen = AuswahlSpitzen()
         self.auswahl_sf = AuswahlSchwingform()
+        self.auswahl_diagramm = AuswahlDiagramm(baue_plotstil())
         self._ad_seiten = [
             self._baue_auswahl_spektrum(),
             self.auswahl_frf,
             self.auswahl_spitzen,
             self.auswahl_sf,
+            self.auswahl_diagramm,
         ]
         for seite in self._ad_seiten:
             self._ad_stapel.addWidget(seite)
@@ -620,6 +698,12 @@ class AuswertenReiter(QWidget):
         self.auswahl_frf.geaendert.connect(self._ansicht_geaendert)
         self.auswahl_sf.geaendert.connect(self._ansicht_geaendert)
         self.auswahl_sf.spitze_gewaehlt.connect(self._spitze_fuer_schwingform)
+        self.auswahl_diagramm.groesse_geaendert.connect(self._groesse_5_geaendert)
+        self.auswahl_diagramm.geaendert.connect(self._optionen_5_geaendert)
+        self.auswahl_diagramm.serie_neu.connect(self._serie_neu)
+        self.auswahl_diagramm.serie_alle.connect(self._serie_alle)
+        self.auswahl_diagramm.serie_entfernen.connect(self._serie_entfernen_geklickt)
+        self.auswahl_diagramm.serie_sichtbar.connect(self._serie_sichtbar_geaendert)
         return self.auswahlspalte
 
     @staticmethod
@@ -818,6 +902,7 @@ class AuswertenReiter(QWidget):
         # Plotfläche und nähme den Textfeldern sonst den Zeilenanfang (Plan U-A4).
         self.achsenleiste = Achsenleiste(self.plot.achsen_zustand)
         self.achsenleiste.geaendert.connect(self._achsen_geaendert)
+        self.achsenleiste.groesse_gewaehlt.connect(self._achsenleiste_aktualisieren)
         self.plot.grenzen_gezeichnet.connect(self._achsenleiste_aktualisieren)
         self.plot.achsen_geaendert.connect(self._achsenleiste_aktualisieren)
         # Die Skala der Amplitude gehört der Achsenleiste; die Namen bleiben für Aufrufer und Tests.
@@ -929,7 +1014,9 @@ class AuswertenReiter(QWidget):
 
     def _tab_reihenfolge(self) -> None:
         """AA → AC → AD → AE (Plot, Werkzeugleiste) → AF (Prüftext); AB ohne Fokus (Abschnitt 8)."""
-        kette: list[QWidget] = [self.btn_oeffnen, self.btn_export, self.btn_bild]
+        kette: list[QWidget] = [self.btn_oeffnen, self.btn_messung_hinzu]
+        kette += self.messungsleiste.tab_kette()
+        kette += [self.btn_export, self.btn_bild]
         kette += [self.btn_ansicht[nr] for nr in sorted(self.btn_ansicht)]
         kette.append(self.combo_kanalpaar)
         kette.append(self.liste_punkte)
@@ -938,6 +1025,7 @@ class AuswertenReiter(QWidget):
         kette.append(self.rb_skala_db)
         kette += [self.auswahl_frf.chk_h1, self.auswahl_frf.chk_h2, self.auswahl_frf.chk_phase]
         kette += self.auswahl_sf.tab_kette()
+        kette += self.auswahl_diagramm.tab_kette()
         kette += [self.tabelle_spitzen.tabelle, self.tabelle_baender.tabelle]
         kette += [self.btn_fehler_schliessen, self.btn_oeffnen_leer, self.liste_zuletzt]
         kette += self.achsenleiste.tab_kette()  # AD → AG → AE (Brief Abschnitt 6)
@@ -947,6 +1035,82 @@ class AuswertenReiter(QWidget):
             QWidget.setTabOrder(vorher, nachher)
 
     # --- Zugriff ---------------------------------------------------------------------------
+
+    # --- Delegation an die aktive Messung (P-AUSW2 S4) --------------------------------------
+    # Der bestehende Code (und die Tests) arbeiten weiter mit ``_geladen``, ``_cache`` usw.;
+    # diese Eigenschaften lesen und schreiben die Felder der **aktiven** Messung.
+
+    def _feld(self, name: str) -> Any:
+        m = self._messungen.aktive
+        return getattr(m, name) if m is not None else None
+
+    def _setze_feld(self, name: str, wert: Any) -> None:
+        m = self._messungen.aktive
+        if m is None:
+            if wert is None:
+                return
+            raise RuntimeError(f"Keine aktive Messung für {name}.")
+        setattr(m, name, wert)
+
+    @property
+    def _geladen(self) -> Geladen | None:
+        result: Geladen | None = self._feld("geladen")
+        return result
+
+    @_geladen.setter
+    def _geladen(self, wert: Geladen | None) -> None:
+        self._setze_feld("geladen", wert)
+
+    @property
+    def _cache(self) -> PaarCache | None:
+        result: PaarCache | None = self._feld("cache")
+        return result
+
+    @_cache.setter
+    def _cache(self, wert: PaarCache | None) -> None:
+        self._setze_feld("cache", wert)
+
+    @property
+    def _datei_pfad(self) -> str | None:
+        result: str | None = self._feld("pfad")
+        return result
+
+    @_datei_pfad.setter
+    def _datei_pfad(self, wert: str | None) -> None:
+        if wert is not None:
+            self._setze_feld("pfad", wert)
+
+    @property
+    def _pruefung(self) -> PruefErgebnis | None:
+        result: PruefErgebnis | None = self._feld("pruefung")
+        return result
+
+    @_pruefung.setter
+    def _pruefung(self, wert: PruefErgebnis | None) -> None:
+        self._setze_feld("pruefung", wert)
+
+    @property
+    def _pruef_fehler(self) -> str | None:
+        result: str | None = self._feld("pruef_fehler")
+        return result
+
+    @_pruef_fehler.setter
+    def _pruef_fehler(self, wert: str | None) -> None:
+        self._setze_feld("pruef_fehler", wert)
+
+    @property
+    def _antrieb(self) -> tuple[str, str, Any] | None:
+        result: tuple[str, str, Any] | None = self._feld("antrieb")
+        return result
+
+    @_antrieb.setter
+    def _antrieb(self, wert: tuple[str, str, Any] | None) -> None:
+        self._setze_feld("antrieb", wert)
+
+    @property
+    def messungen(self) -> Messungen:
+        """Die geöffneten Messungen (Kurznamen, aktive Messung)."""
+        return self._messungen
 
     @property
     def zustand(self) -> AuswertenZustand:
@@ -981,7 +1145,7 @@ class AuswertenReiter(QWidget):
 
     def laeuft(self) -> bool:
         """Meldet, ob ein Hintergrundauftrag (Stufe A oder B) läuft."""
-        return self._auftrag_a is not None or self._auftrag_b is not None
+        return self._auftrag_a is not None or self._auftrag_b is not None or bool(self._zusatz)
 
     # --- Zustand ---------------------------------------------------------------------------
 
@@ -1001,6 +1165,8 @@ class AuswertenReiter(QWidget):
 
     def _bild_grund(self) -> str | None:
         """Grund, warum die gezeigte Ansicht kein Bild liefert (Platzhaltertext statt Plot)."""
+        if self._zustand is AuswertenZustand.GELADEN and self._ansicht == 5:
+            return TEXT_BILD_ANSICHT_5  # Bildstempel für mehrere Dateien: P-AUSW2 S9
         if self._zustand is AuswertenZustand.GELADEN and (
             self._ansichtstext is not None or self.plot.letzter_aufruf is None
         ):
@@ -1018,6 +1184,7 @@ class AuswertenReiter(QWidget):
             self.btn_oeffnen, tabelle["oeffnen"], "Messdatei öffnen", self.act_oeffnen, "oeffnen"
         )
         self._setze(self.btn_oeffnen_leer, tabelle["oeffnen"])
+        self._setze(self.btn_messung_hinzu, self._hinzu_knopf(), "Weitere Messdatei laden")
         self._setze(
             self.btn_export,
             tabelle["export"],
@@ -1041,9 +1208,33 @@ class AuswertenReiter(QWidget):
                 f"ansicht_{nr}",
             )
 
+    def _hinzu_knopf(self) -> Knopf:
+        """Bedienbarkeit von ``Messung hinzufügen …`` (Brief K1-AUSW2 Abschnitt 4)."""
+        if self._zustand is AuswertenZustand.LADEN:
+            return Knopf(False, TEXT_HINZU_LAEDT)
+        if self._geladen is None:
+            return Knopf(False, TEXT_HINZU_ERST_DATEI)
+        if self._messungen.ist_voll:
+            return Knopf(False, TEXT_HINZU_VOLL)
+        return Knopf(True)
+
+    def _chips_aktualisieren(self) -> None:
+        """Zeigt die Messungen als Chips (Zustand, aktive Messung, Speicherangabe) neu."""
+        kette = self.messungsleiste.chip_ids()
+        self.messungsleiste.setze(
+            self._messungen, self._messungen.speicher_mib, gesperrt=self._ersetzte_messung()
+        )
+        if self.messungsleiste.chip_ids() != kette:
+            self._tab_reihenfolge()  # Chips kamen hinzu oder fielen weg
+        self._sync_knoepfe()
+
+    def _ersetzte_messung(self) -> int | None:
+        """Kennung der Messung, die „Öffnen …“ gerade ersetzt (sie lässt sich nicht entfernen)."""
+        return self._ersetze_ziel if self._zustand is AuswertenZustand.LADEN else None
+
     def _wende_zustand_an(self) -> None:
         """Aktivierung, Tooltips und sichtbare Seite je Zustand (Brief Abschnitt 6)."""
-        self._sync_knoepfe()
+        self._chips_aktualisieren()
         auswahl = bedienbarkeit_auswerten(self._zustand)["auswahl"]
         self._ad_inhalt.setEnabled(auswahl.aktiv)
         self.auswahlspalte.setToolTip("" if auswahl.aktiv else auswahl.grund)
@@ -1091,21 +1282,64 @@ class AuswertenReiter(QWidget):
         )
         return pfad or None
 
-    def _oeffnen_geklickt(self) -> None:
-        pfad = self._waehle_datei()
-        if pfad:
-            self.oeffne_datei(pfad)
+    @contextmanager
+    def _dialog(self) -> Iterator[None]:
+        """Klammert modale Dialoge (Datei, Rückfrage, Kurzname).
 
-    def oeffne_datei(self, pfad: str) -> None:
+        Die Ereignisschleife des Dialogs lässt die Abfrage weiterlaufen. Eine Zusatzmessung, die
+        währenddessen fertig wird, bleibt bereit, wird aber nicht aktiviert (Aktivwechsel
+        zurückgestellt, :meth:`_ergebnis_zusatz`); so bleibt die beim Klick aktive Messung die,
+        die „Öffnen …“ ersetzt und anzeigt. Nach dem äußersten Dialog wird sie nachgeholt, sofern
+        nicht „Öffnen …“ läuft (dann nach dessen Ende, :meth:`_aktiviere_nachgeladene`).
+        """
+        self._dialog_tiefe += 1
+        try:
+            yield
+        finally:
+            self._dialog_tiefe -= 1
+            if (
+                self._dialog_tiefe == 0
+                and self._aktiviere_danach is not None
+                and self._zustand is AuswertenZustand.GELADEN
+            ):
+                self._aktiviere_nachgeladene()
+
+    def _oeffnen_geklickt(self) -> None:
+        with self._dialog():
+            aktive = self._messungen.aktive  # Ziel steht beim Klick fest, vor jedem Dialog
+            ziel_id = aktive.id if aktive is not None else None
+            pfad = self._waehle_datei()
+            if pfad:
+                self.oeffne_datei(pfad, ziel_id=ziel_id)
+
+    def oeffne_datei(self, pfad: str, *, ziel_id: int | None = None) -> None:
         """Liest ``pfad`` im Hintergrund; laufende Aufträge werden abgebrochen (Job-ID).
 
         Parameters
         ----------
         pfad : str
             Pfad der ``.svd``-Datei.
+        ziel_id : int, optional
+            Die zu ersetzende Messung (beim Klick aktiv); ohne Angabe die jetzt aktive. Gibt es
+            sie nicht mehr, kommt die Datei als neue Messung dazu.
         """
+        with self._dialog():
+            self._oeffne_datei(pfad, ziel_id)
+
+    def _oeffne_datei(self, pfad: str, ziel_id: int | None) -> None:
+        aktive = self._messungen.finde(ziel_id) if ziel_id is not None else self._messungen.aktive
+        anzahl = self._serien_betroffen(aktive.id) if aktive is not None else 0
+        if aktive is not None and anzahl:
+            text = (
+                f"Die Messung {aktive.kurzname} wird durch die neue Datei ersetzt. {anzahl} "
+                f"{'Serie' if anzahl == 1 else 'Serien'} in Ansicht 5 "
+                f"{'wird' if anzahl == 1 else 'werden'} mit entfernt."
+            )
+            if not self._bestaetige_ersetzen("Messung ersetzen", text):
+                return
         self._abbrechen()
         self._job_id += 1
+        self._ersetze_ziel = aktive.id if aktive is not None else None
         try:  # derselbe Rückfallschutz wie nach dem Lesen: kein hängendes „Laden“
             self._zeige_pruefung()  # abgebrochene Stufe B steht nicht mehr als „wird berechnet“
             self._letzter_ordner = str(Path(pfad).parent)
@@ -1167,7 +1401,12 @@ class AuswertenReiter(QWidget):
             self._rueckfall(
                 (("Fehlerband (Anhang)", lambda: self.lbl_fehler.setText(self._fehlertext or "")),)
             )
-        if self._auftrag_a is None and self._auftrag_b is None and self._auftrag_c is None:
+        if (
+            self._auftrag_a is None
+            and self._auftrag_b is None
+            and self._auftrag_c is None
+            and not self._zusatz
+        ):
             self._timer.stop()
 
     def _zeige_pruefung(self) -> None:
@@ -1194,7 +1433,8 @@ class AuswertenReiter(QWidget):
                 eintrag[1].abbrechen()
         self._auftrag_a = None
         self._auftrag_b = None
-        if self._auftrag_c is None:  # ein laufender Export wird weiter abgefragt
+        self._b_messung = None
+        if self._auftrag_c is None and not self._zusatz:  # Export und Zusatzladen laufen weiter
             self._timer.stop()
 
     def export_laeuft(self) -> bool:
@@ -1204,6 +1444,7 @@ class AuswertenReiter(QWidget):
     def beende(self) -> None:
         """Bricht laufende Aufträge (auch einen Export) ab und stoppt die Abfrage (Schließen)."""
         self._abbrechen()
+        self._zusatz_abbrechen()
         if self._auftrag_c is not None:
             self._auftrag_c[0].abbrechen()
             self._auftrag_c = None
@@ -1233,7 +1474,16 @@ class AuswertenReiter(QWidget):
         if c is not None and c[0].fertig():
             self._auftrag_c = None
             self._ergebnis_c(c[0])
-        if self._auftrag_a is None and self._auftrag_b is None and self._auftrag_c is None:
+        for messung_id, auftrag_z in list(self._zusatz.items()):
+            if auftrag_z.fertig():
+                del self._zusatz[messung_id]
+                self._ergebnis_zusatz(messung_id, auftrag_z)
+        if (
+            self._auftrag_a is None
+            and self._auftrag_b is None
+            and self._auftrag_c is None
+            and not self._zusatz
+        ):
             self._timer.stop()
 
     def _ergebnis_a(self, job: int, auftrag: Auftrag, pfad: str) -> None:
@@ -1243,22 +1493,34 @@ class AuswertenReiter(QWidget):
             return
         except AuftragFehler as fehler:
             self._lesefehler(fehler.meldung)
+            self._aktiviere_nachgeladene()
             return
         self._uebernehme(job, geladen, pfad)
 
     def _ergebnis_b(self, auftrag: Auftrag) -> None:
+        """Stufe B fertig: Ergebnis gehört der Messung, für die sie gestartet wurde."""
+        ziel = (
+            self._messungen.finde(self._b_messung)
+            if self._b_messung is not None
+            else self._messungen.aktive
+        )
+        self._b_messung = None
         try:
             ergebnis = auftrag.ergebnis()
         except AuftragAbgebrochen:
             self._zeige_pruefung()
             return
         except AuftragFehler as fehler:
-            self._pruef_fehler = fehler.meldung
+            if ziel is not None:
+                ziel.pruef_fehler = fehler.meldung
             self._zeige_pruefung()
             return
-        self._pruefung = ergebnis
-        self._zeige_pruefung()
-        self._kennzeichen_aktualisieren()
+        if ziel is None:  # Messung inzwischen entfernt
+            return
+        ziel.pruefung = ergebnis
+        if ziel is self._messungen.aktive:
+            self._zeige_pruefung()
+            self._kennzeichen_aktualisieren()
 
     def _kennzeichen_aktualisieren(self) -> None:
         """Übernimmt die Annahmen aus Stufe B in Beschriftung und Darstellung (M8)."""
@@ -1270,7 +1532,7 @@ class AuswertenReiter(QWidget):
                 kennzeichen_beschreibung("phase", self._annahmen()),
             )
         self.auswahl_frf.setze_phase_erklaerung(kennzeichen_beschreibung("phase", self._annahmen()))
-        if self._ansicht in (2, 4):
+        if self._ansicht in (2, 4, 5):
             self._zeichne(zoom_behalten=True)
 
     def _verwerfe_datei(self) -> list[str]:
@@ -1285,11 +1547,11 @@ class AuswertenReiter(QWidget):
             Fehler der Rückfallschritte (leer, wenn alles gelang); der Aufrufer hängt sie an die
             Fehlermeldung an.
         """
-        self._geladen = None
-        self._cache = None
-        self._datei_pfad = None
-        self._pruefung = None
-        self._pruef_fehler = None
+        self._zusatz_abbrechen()
+        self._messungen.leere()
+        self._serien.leere()
+        self._serien_aufgeloest.clear()
+        self.auswahl_diagramm.zuruecksetzen()
         self._a4_letzt = None
         self._in_aufbau = True
         try:
@@ -1307,89 +1569,487 @@ class AuswertenReiter(QWidget):
         finally:
             self._in_aufbau = False
 
+    @staticmethod
+    def _bereite_auf(
+        geladen: Geladen,
+    ) -> tuple[PaarCache, tuple[tuple[str, str], ...], tuple[str, str, Any] | None]:
+        """Aufbereiten einer geladenen Datei: Cache, Kanalpaare und Antriebspunkt.
+
+        Prüft nebenbei, dass Punktliste und Parameterzeile entstehen können; scheitert etwas, ist
+        das ein Lesefehler (Aufrufer).
+        """
+        daten = geladen.messdaten
+        cache = PaarCache(daten)
+        punkt_eintraege(daten.punkte.label, daten.punkte.koordinaten_m)
+        parameter_zellen(geladen.einstellungen)
+        verfuegbare_groessen(daten, KOMPONENTEN)
+        paare = kanalpaare(daten)
+        return cache, paare, waehle_antriebspunkt(paare)
+
     def _uebernehme(self, job: int, geladen: Geladen, pfad: str) -> None:
-        """Stufe A fertig: Ansicht 1 sofort zeigen, Stufe B im Hintergrund starten.
+        """Stufe A fertig (``Öffnen``): Ansicht 1 sofort zeigen, Stufe B im Hintergrund starten.
 
         Tempo (Nutzerentscheidung): Zielwert für den Erstaufbau und für jeden Wechsel von Punkt,
         Komponente, Größe oder Skala ist **unter 400 ms** (statt 100 ms im Brief); er ist am
         Messrechner zu messen. ``PaarCache`` und Zeichnen laufen bewusst im GUI-Thread, eine
         Verlagerung in den Hintergrund ist nicht vorgesehen.
 
-        Scheitert die Aufbereitung (Cache, Punktliste, Parameterzeile, Auswahl), meldet der Reiter
-        das wie einen Lesefehler (Fehlerband mit Pfad). Davor wird nichts am Reiter geändert, die
-        bisherige Datei bleibt; scheitert es danach, geht der Reiter in „Keine Datei“.
+        Die Datei ersetzt die aktive Messung (Kurzname bleibt, Serien der alten Messung
+        entfallen), bei „Keine Datei“ ist sie die erste Messung. Scheitert die Aufbereitung
+        (Cache, Punktliste, Parameterzeile, Auswahl), meldet der Reiter das wie einen Lesefehler
+        (Fehlerband mit Pfad). Davor wird nichts am Reiter geändert, die bisherige Datei bleibt;
+        scheitert es danach, geht der Reiter in „Keine Datei“.
         """
-        daten = geladen.messdaten
         try:
-            cache = PaarCache(daten)
-            eintraege = punkt_eintraege(daten.punkte.label, daten.punkte.koordinaten_m)
-            zellen = parameter_zellen(geladen.einstellungen)
-            verfuegbare_groessen(daten, KOMPONENTEN)
-            paare = kanalpaare(daten)
-            antrieb = waehle_antriebspunkt(paare)
+            cache, paare, antrieb = self._bereite_auf(geladen)
         except Exception as fehler:  # jede Ausnahme der Aufbereitung ist ein Lesefehler
             self._lesefehler(f"{pfad}: Auswertung nicht möglich: {fehler}")
+            self._aktiviere_nachgeladene()
             return
-        self._geladen = geladen
-        self._cache = cache
-        self._datei_pfad = pfad
-        self._antrieb = antrieb
+        # Das Ziel ist fest an die beim Öffnen aktive Messung gebunden (nie die gerade aktive);
+        # gibt es sie nicht mehr, kommt die Datei als neue Messung dazu.
+        alt = self._messungen.finde(self._ersetze_ziel)
+        self._ersetze_ziel = None
+        if alt is None and self._messungen.ist_voll:
+            self._lesefehler(f"{pfad}: Höchstens {MESSUNGEN_MAX} Messungen.")
+            self._aktiviere_nachgeladene()
+            return
+        if alt is not None:
+            self._messungen.ersetze(
+                alt.id, pfad, geladen=geladen, cache=cache, antrieb=antrieb, paare=paare
+            )
+            self._serien_entfernen(alt.id)
+        else:
+            neu = self._messungen.hinzufuegen(pfad)
+            self._messungen.fertig(
+                neu.id, geladen=geladen, cache=cache, antrieb=antrieb, paare=paare
+            )
+        if not self._zeige_aktive(pfad, neue_datei=True):
+            self._aktiviere_nachgeladene()
+            return
+        self._setze_meldung(geladen_text(pfad))
+        self._einstellungen.merke_datei(pfad)
+        self._setze_zustand(AuswertenZustand.GELADEN)
+        self._zeichne()
+        if not self._aktiviere_nachgeladene():
+            self._starte_pruefung(job)
+
+    def _aktiviere_nachgeladene(self) -> bool:
+        """Aktiviert eine Messung, die während „Öffnen …“ fertig wurde (nach dessen Ende).
+
+        Returns
+        -------
+        bool
+            ``True``, wenn eine Messung aktiviert wurde (sie startet die Prüfung selbst).
+        """
+        ziel_id, self._aktiviere_danach = self._aktiviere_danach, None
+        messung = self._messungen.finde(ziel_id)
+        if (
+            messung is None
+            or messung is self._messungen.aktive
+            or messung.zustand is not MessungsZustand.BEREIT
+            or self._zustand is not AuswertenZustand.GELADEN
+        ):
+            return False
+        self._aktiviere_messung(messung.id)
+        return self._messungen.aktive is messung
+
+    def _zeige_aktive(self, pfad: str, *, neue_datei: bool) -> bool:
+        """Zeigt die aktive Messung in AD, AB, AA und Plot (Ansicht, Auswahl zurückgesetzt).
+
+        Parameters
+        ----------
+        pfad : str
+            Pfad der aktiven Messung (für die Fehlermeldung).
+        neue_datei : bool
+            ``True`` bei ``Öffnen``: Bereiche der Achsen zurück (UI-6) und Ansicht 1. ``False``
+            beim Wechsel der aktiven Messung: Achsenbereiche und Ansicht bleiben (UI-3).
+
+        Returns
+        -------
+        bool
+            ``False``, wenn der Aufbau scheiterte (Fehlerband steht, Reiter ohne Datei).
+        """
+        messung = self._messungen.aktive
+        assert messung is not None and messung.geladen is not None
+        daten = messung.geladen.messdaten
+        eintraege = punkt_eintraege(daten.punkte.label, daten.punkte.koordinaten_m)
+        zellen = parameter_zellen(messung.geladen.einstellungen)
         self._a4_wunsch_hz = None
-        self.plot.neue_datei()  # Bereiche zurück, Skalen bleiben (UI-6, R-073)
+        if neue_datei:
+            self.plot.neue_datei()  # Bereiche zurück, Skalen bleiben (UI-6, R-073)
         self.plot.fadenkreuz.vergiss()
-        self._pruefung = None
         self._a4_letzt = None
         self._a4_komponente = None
-        self._pruef_fehler = None
+        ansicht = 1 if neue_datei else self._ansicht
         self._in_aufbau = True
         try:
             self.liste_punkte.clear()
             self.liste_punkte.addItems(eintraege)
             self.liste_punkte.setCurrentRow(0)
-            self._paare = paare
+            self._paare = messung.paare
             self._spitze = None
             self._a3_schluessel = None
             self._a4_geladen = False
             self._a4_paar_schluessel = None
             self.combo_kanalpaar.clear()
-            for antwort, referenz in paare:
+            for antwort, referenz in messung.paare:
                 self.combo_kanalpaar.addItem(kanalpaar_text(antwort, referenz))
             self.auswahl_frf.zuruecksetzen()
             self.auswahl_frf.setze_phase_erklaerung(
                 kennzeichen_beschreibung("phase", Annahmen().eintraege())
             )
-            self.btn_ansicht[1].setChecked(True)
-            self._aktiviere_ansicht(1)
+            self.btn_ansicht[ansicht].setChecked(True)
+            self._aktiviere_ansicht(ansicht)
             for kasten in self.chk.values():
                 kasten.setChecked(True)
             self.rb_groesse_cph.setChecked(True)
             self._aktualisiere_groessen()
             self._auswahl = self._lese_auswahl()
-            self.lbl_datei.setText(dateiname_von(pfad))
-            self.lbl_pfad.setText(pfad)
+            self.lbl_datei.setText(messung.dateiname)
+            self.lbl_pfad.setText(messung.pfad)
             self.parameterzeile.setze_zellen(zellen)
         except Exception as fehler:  # Qt-Aufbau schlägt fehl: nichts halb geladen stehen lassen
             self._in_aufbau = False
-            folge = self._verwerfe_datei()
+            folge = self._verwerfe_anzeige(messung)
             self._lesefehler(f"{pfad}: Anzeige nicht möglich: {fehler}" + folgefehler_text(folge))
-            return
+            return False
         finally:
             self._in_aufbau = False
-        self._setze_meldung(geladen_text(pfad))
-        self._einstellungen.merke_datei(pfad)
-        self._setze_zustand(AuswertenZustand.GELADEN)
-        self._zeichne()
-        herkunft = daten.herkunft
+        return True
+
+    def _verwerfe_anzeige(self, messung: Messung) -> list[str]:
+        """Anzeigefehler einer Messung: nur diese wird verworfen, die übrigen bleiben.
+
+        Gibt es keine weitere bereite Messung, geht der Reiter in „Keine Datei“
+        (:meth:`_verwerfe_datei`); sonst wird die nun aktive Messung gezeigt.
+
+        Returns
+        -------
+        list of str
+            Fehler der Rückfallschritte (der Aufrufer hängt sie an die Meldung an).
+        """
+        self._serien_entfernen(messung.id)
+        self._messungen.entferne(messung.id)
+        if self._b_messung == messung.id and self._auftrag_b is not None:
+            self._auftrag_b[1].abbrechen()
+            self._auftrag_b = None
+            self._b_messung = None
+        rest = self._messungen.aktive
+        if rest is None:
+            return self._verwerfe_datei()
+        folge = self._rueckfall(
+            (
+                ("Anzeige der übrigen Messung", lambda: self._zeige_rest(rest)),
+                ("Chips", self._chips_aktualisieren),
+            )
+        )
+        return folge
+
+    def _zeige_rest(self, rest: Messung) -> None:
+        """Zeigt die nach einem Anzeigefehler verbliebene aktive Messung."""
+        if self._zeige_aktive(rest.pfad, neue_datei=False):
+            self._zeichne()
+            self._starte_pruefung(self._job_id)
+
+    def _starte_pruefung(self, job: int) -> None:
+        """Startet Stufe B für die aktive Messung, wenn noch kein Ergebnis vorliegt.
+
+        Höchstens ein Auftrag gleichzeitig; der Wechsel der aktiven Messung bricht den laufenden
+        ab (:meth:`_aktiviere_messung`).
+        """
+        messung = self._messungen.aktive
+        if messung is None or messung.geladen is None:
+            return
+        if self._auftrag_b is not None:
+            if self._b_messung == messung.id:
+                return  # läuft schon für diese Messung
+            self._auftrag_b[1].abbrechen()  # nie einen laufenden Auftrag verwaist überschreiben
+            self._auftrag_b = None
+            self._b_messung = None
+        if messung.pruefung is not None or messung.pruef_fehler is not None:
+            self._zeige_pruefung()
+            return
+        herkunft = messung.geladen.messdaten.herkunft
         sha = herkunft.sha256 if herkunft is not None else None
         try:
-            auftrag = self._ausfuehrer.starte(pruef_job, pfad, sha, antrieb)
+            auftrag = self._ausfuehrer.starte(pruef_job, messung.pfad, sha, messung.antrieb)
         except Exception as fehler:  # Prozess nicht startbar: Prüfung nicht möglich
-            self._pruef_fehler = str(fehler)
+            messung.pruef_fehler = str(fehler)
             self._zeige_pruefung()
             return
         self._auftrag_b = (job, auftrag)
+        self._b_messung = messung.id
         self._zeige_pruefung()
         self._timer.start()
+
+    # --- Weitere Messungen (R-058, P-AUSW2 S5) -------------------------------------------------
+
+    def _serien_entfernen(self, messung_id: int) -> None:
+        """Entfernt die Serien von Ansicht 5, die zu einer entfallenen Messung gehören."""
+        self._serien.entferne_messung(messung_id)
+        self._serien_aufgeloest = {
+            k: v for k, v in self._serien_aufgeloest.items() if k[0] != messung_id
+        }
+
+    def _serien_betroffen(self, messung_id: int) -> int:
+        """Zahl der Serien in Ansicht 5, die zu der Messung gehören (UI-14)."""
+        return self._serien.betroffene(messung_id)
+
+    def _zusatz_abbrechen(self) -> None:
+        """Bricht alle Ladeaufträge zusätzlicher Messungen ab (Schließen, Rückfallpfad)."""
+        for auftrag in self._zusatz.values():
+            auftrag.abbrechen()
+        self._zusatz.clear()
+
+    def _messung_hinzu_geklickt(self) -> None:
+        with self._dialog():
+            pfad = self._waehle_datei()
+            if pfad:
+                self.messung_hinzufuegen(pfad)
+
+    def messung_hinzufuegen(self, pfad: str) -> None:
+        """Lädt eine weitere ``.svd`` im Hintergrund als zusätzliche Messung (R-058).
+
+        Die Oberfläche bleibt bedienbar; die Messung erscheint sofort als Chip „lädt …“, wird nach
+        dem Laden aktiv und bleibt bis dahin für Serien unwählbar. Es lädt höchstens eine Messung
+        gleichzeitig, weitere warten (Speicherspitze). Ohne geladene Datei, während ``Öffnen``
+        läuft oder bei erreichter Höchstzahl (:data:`~ldv_automation.gui.messungen.MESSUNGEN_MAX`)
+        passiert nichts.
+
+        Parameters
+        ----------
+        pfad : str
+            Pfad der ``.svd``-Datei (dieselbe Datei zweimal ist erlaubt, Hinweis in AF).
+        """
+        if not self._hinzu_knopf().aktiv:
+            return
+        self._messungen.hinzufuegen(pfad)
+        self._letzter_ordner = str(Path(pfad).parent)
+        self._einstellungen.merke_ordner(self._letzter_ordner)
+        self.schliesse_fehlerband()
+        self._starte_naechsten()
+        self._chips_aktualisieren()
+
+    def _starte_naechsten(self) -> None:
+        """Startet den Ladeauftrag der nächsten wartenden Messung (höchstens einer gleichzeitig)."""
+        messung = self._messungen.naechster_ladeauftrag()
+        if messung is None:
+            return
+        messung.gestartet = True
+        try:
+            auftrag = self._ausfuehrer.starte(lese_job, messung.pfad)
+        except Exception as fehler:  # Prozess nicht startbar: wie ein Lesefehler der Datei
+            self._messungen.entferne(messung.id)
+            self._zusatz_fehler(f"{messung.pfad}: {fehler}")
+            self._starte_naechsten()
+            return
+        self._zusatz[messung.id] = auftrag
+        self._timer.start()
+
+    def _zusatz_fehler(self, text: str) -> None:
+        """Fehlerband für eine zusätzliche Messung; die bisherigen Messungen bleiben unverändert."""
+        self._fehlertext = fehler_band_text(text)
+        folge = self._rueckfall(
+            (
+                ("Fehlerband (Text)", lambda: self.lbl_fehler.setText(self._fehlertext or "")),
+                ("Fehlerband (sichtbar)", lambda: self.band_fehler.setVisible(True)),
+                ("Chips", self._chips_aktualisieren),
+            )
+        )
+        if folge:
+            self._fehlertext += folgefehler_text(folge)
+            self._rueckfall(
+                (("Fehlerband (Anhang)", lambda: self.lbl_fehler.setText(self._fehlertext or "")),)
+            )
+
+    def _ergebnis_zusatz(self, messung_id: int, auftrag: Auftrag) -> None:
+        """Stufe A einer zusätzlichen Messung fertig: aufbereiten, bereit machen, aktivieren."""
+        messung = self._messungen.finde(messung_id)
+        if messung is None:  # in der Zwischenzeit entfernt
+            self._starte_naechsten()
+            return
+        try:
+            geladen = auftrag.ergebnis()
+            cache, paare, antrieb = self._bereite_auf(geladen)
+        except AuftragAbgebrochen:
+            self._messungen.entferne(messung_id)
+        except AuftragFehler as fehler:
+            self._messungen.entferne(messung_id)
+            self._zusatz_fehler(fehler.meldung)
+        except Exception as fehler:  # Aufbereitung scheitert wie beim Öffnen: Lesefehler
+            self._messungen.entferne(messung_id)
+            self._zusatz_fehler(f"{messung.pfad}: Auswertung nicht möglich: {fehler}")
+        else:
+            gleiche = next(
+                (
+                    m
+                    for m in self._messungen.bereite()
+                    if m.sha256 is not None and m.sha256 == _sha_von(geladen)
+                ),
+                None,
+            )
+            self._messungen.fertig(
+                messung_id, geladen=geladen, cache=cache, antrieb=antrieb, paare=paare
+            )
+            self._starte_naechsten()
+            if self._zustand is AuswertenZustand.GELADEN and not self._dialog_tiefe:
+                self._aktiviere_messung(messung_id)
+            else:  # Dialog offen oder „Öffnen …“ läuft: aktiv wird sie danach
+                self._aktiviere_danach = messung_id
+                self._chips_aktualisieren()
+            if gleiche is not None:
+                self._setze_meldung(
+                    f"{t.symbol('warnung')} "
+                    + TEXT_DIESELBE_DATEI.format(kurzname=gleiche.kurzname)
+                )
+            return
+        self._starte_naechsten()
+        self._chips_aktualisieren()
+
+    def _aktiviere_messung(self, messung_id: int) -> None:
+        """Macht eine bereite Messung zur aktiven (Chip-Klick, nach dem Laden).
+
+        Achsenbereiche, Skalen und Ansicht bleiben (UI-3); Auswahl in AD und Tabellen werden wie
+        bei einer neuen Datei zurückgesetzt. Stufe B läuft nur für die aktive Messung: ein
+        laufender Auftrag der bisherigen wird abgebrochen und verworfen.
+        """
+        messung = self._messungen.finde(messung_id)
+        if (
+            messung is None
+            or messung.zustand is not MessungsZustand.BEREIT
+            or self._zustand is not AuswertenZustand.GELADEN
+        ):
+            return
+        if messung is self._messungen.aktive:
+            self._chips_aktualisieren()
+            return
+        if self._auftrag_b is not None:
+            self._auftrag_b[1].abbrechen()
+            self._auftrag_b = None
+            self._b_messung = None
+        self._messungen.setze_aktiv(messung_id)
+        if not self._zeige_aktive(messung.pfad, neue_datei=False):
+            return
+        self._setze_meldung(f"Messung {messung.kurzname} aktiv: {messung.dateiname}")
+        self._chips_aktualisieren()
+        self._zeichne()
+        self._starte_pruefung(self._job_id)
+
+    def _bestaetige_entfernen(self, titel: str, text: str) -> bool:  # pragma: no cover - modal
+        """Fragt vor dem Entfernen einer Messung mit Serien nach (Tests ersetzen die Methode)."""
+        return self._frage_bestaetigung(titel, text, "Entfernen")
+
+    def _bestaetige_ersetzen(self, titel: str, text: str) -> bool:  # pragma: no cover - modal
+        """Fragt vor „Öffnen …“ nach, wenn Serien der ersetzten Messung entfallen (UI-14)."""
+        return self._frage_bestaetigung(titel, text, "Ersetzen")
+
+    def _frage_bestaetigung(self, titel: str, text: str, ja_text: str) -> bool:  # pragma: no cover
+        """Modale Frage mit deutschen Knöpfen; Standard und Esc sind „Abbrechen“."""
+        box, ja = frage(self, titel, text, ja_text, "Abbrechen", ja_gefahr=True)
+        box.exec()
+        return box.clickedButton() is ja
+
+    def _frage_kurzname(self, aktuell: str, grund: str) -> str | None:  # pragma: no cover - modal
+        """Fragt einen neuen Kurznamen ab (Tests ersetzen die Methode); ``None`` = abgebrochen."""
+        text, ok = QInputDialog.getText(
+            self, "Kurzname ändern", grund or "Kurzname der Messung:", text=aktuell
+        )
+        return text if ok else None
+
+    def _entfernen_gesperrt(self, messung_id: int) -> bool:
+        """Sperre für die Messung, die „Öffnen …“ gerade ersetzt (mit Meldung in AF)."""
+        if messung_id != self._ersetzte_messung():
+            return False
+        messung = self._messungen.finde(messung_id)
+        kurzname = messung.kurzname if messung is not None else ""
+        self._setze_meldung(TEXT_ENTFERNEN_ERSETZT.format(kurzname=kurzname))
+        return True
+
+    def _entferne_geklickt(self, messung_id: int) -> None:
+        """Entfernen-Knopf oder Entf am Chip: bei betroffenen Serien erst nachfragen (UI-14)."""
+        messung = self._messungen.finde(messung_id)
+        if messung is None:
+            return
+        if self._entfernen_gesperrt(messung_id):
+            return
+        anzahl = self._serien_betroffen(messung_id)
+        if anzahl:
+            text = (
+                f"Die Messung {messung.kurzname} wird entfernt. {anzahl} "
+                f"{'Serie' if anzahl == 1 else 'Serien'} in Ansicht 5 "
+                f"{'wird' if anzahl == 1 else 'werden'} mit entfernt."
+            )
+            with self._dialog():
+                if not self._bestaetige_entfernen("Messung entfernen", text):
+                    return
+        self.entferne_messung(messung_id)
+
+    def entferne_messung(self, messung_id: int) -> None:
+        """Entfernt eine Messung samt ihren Serien (ohne Rückfrage; die Rückfrage steht davor).
+
+        War sie aktiv, rückt die vorige bereite Messung nach; war es die letzte, geht der Reiter
+        in „Keine Datei“. Ladende Messungen werden abgebrochen.
+        """
+        messung = self._messungen.finde(messung_id)
+        if messung is None or self._entfernen_gesperrt(messung_id):
+            return
+        war_aktiv = messung is self._messungen.aktive
+        laufend = self._zusatz.pop(messung_id, None)
+        if laufend is not None:
+            laufend.abbrechen()
+        if self._b_messung == messung_id and self._auftrag_b is not None:
+            self._auftrag_b[1].abbrechen()
+            self._auftrag_b = None
+            self._b_messung = None
+        if self._aktiviere_danach == messung_id:
+            self._aktiviere_danach = None
+        self._messungen.entferne(messung_id)
+        self._serien_entfernen(messung_id)
+        neu = self._messungen.aktive
+        if war_aktiv and neu is None:
+            self._abbrechen()  # kein Auftrag darf nach „Keine Datei“ weiterlaufen
+            self._verwerfe_datei()  # leert Anzeige, bricht die übrigen Ladeaufträge ab
+            self.schliesse_fehlerband()
+            self._setze_zustand(AuswertenZustand.KEINE_DATEI)
+            self._zeige_pruefung()
+            return
+        if war_aktiv and neu is not None:
+            if not self._zeige_aktive(neu.pfad, neue_datei=False):
+                return
+            self._setze_meldung(f"Messung {neu.kurzname} aktiv: {neu.dateiname}")
+            self._zeichne()
+            self._starte_pruefung(self._job_id)
+        elif self._ansicht == 5:
+            self._zeichne()
+        self._starte_naechsten()
+        self._chips_aktualisieren()
+
+    def _umbenennen_geklickt(self, messung_id: int) -> None:
+        """Doppelklick am Chip: Kurzname ändern (Pflicht, eindeutig), Meldung bei Fehler."""
+        messung = self._messungen.finde(messung_id)
+        if messung is None:
+            return
+        grund = ""
+        while True:
+            with self._dialog():
+                neu = self._frage_kurzname(messung.kurzname, grund)
+            if neu is None:
+                return
+            fehler = self._messungen.umbenennen(messung_id, neu)
+            if fehler is None:
+                break
+            grund = f"{t.symbol('fehler')} {fehler}"
+            if not self._wiederhole_kurzname():
+                self._setze_meldung(grund)
+                return
+        self._chips_aktualisieren()
+        if self._ansicht == 5:
+            self._zeichne()
+
+    def _wiederhole_kurzname(self) -> bool:  # pragma: no cover - modal
+        """Nach einem ungültigen Kurznamen erneut fragen (Tests ersetzen die Methode)."""
+        return True
 
     # --- Meldungen und Cursor ----------------------------------------------------------------
 
@@ -1650,6 +2310,21 @@ class AuswertenReiter(QWidget):
             # Qt verteilt die Höhen nach dem Einblenden der Tabelle noch einmal: danach erneut.
             QTimer.singleShot(0, self._splitter_nachziehen)
 
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802  # Qt-Name
+        """Schaltet bei schmalem Fenster (< :data:`KOMPAKT_BREITE_PX`) auf kompakte Anzeige."""
+        super().resizeEvent(event)
+        self._setze_kompakt(event.size().width() < KOMPAKT_BREITE_PX)
+
+    def _setze_kompakt(self, kompakt: bool) -> None:
+        """Kompakte Anzeige: Dateiname neben den Chips weg, kurze Achsenbeschriftungen."""
+        if kompakt == self._kompakt:
+            return
+        self._kompakt = kompakt
+        self._namen_box.setVisible(not kompakt)
+        self.achsenleiste.setze_kompakt(kompakt)
+        self.auswahl_diagramm.setze_kompakt(kompakt)
+        self._plot_spalte.setMinimumHeight(self._plot_min_hoehe())
+
     def _plot_min_hoehe(self) -> int:
         """Mindesthöhe des Plotbereichs: Plot (:data:`PLOT_MIN_HOEHE_SPLITTER_PX`) plus Leiste.
 
@@ -1673,12 +2348,24 @@ class AuswertenReiter(QWidget):
         """Zeigt Zustand und wirksame Grenzen der gezeichneten Achsen in der Achsenleiste."""
         zeichnung = self.plot.zeichnung
         einheiten: dict[str, str] = {}
+        wirksam = self.plot.wirksame_grenzen()
         if zeichnung is not None and self._ansicht in ACHSEN_JE_ANSICHT:
+            # Ansicht 5: die Zeichnung trägt die Größe als Rolle (E11); die Betragsfelder der
+            # Leiste beziehen sich auf die Größe des Achsenzustands.
+            betrag_rolle = self.plot.achsen_zustand.groesse_5 if self._ansicht == 5 else "betrag"
+            alias = {betrag_rolle: "betrag"}
             for achse, rolle in zip(zeichnung.achsen, zeichnung.rollen, strict=False):
-                if rolle in ACHSEN_JE_ANSICHT[self._ansicht]:
+                rolle = alias.get(rolle, rolle)
+                if rolle in ACHSEN_JE_ANSICHT[self._ansicht] and rolle not in einheiten:
                     einheiten[rolle] = einheit_aus_achsentitel(achse.get_ylabel())
             einheiten["frequenz"] = einheit_aus_achsentitel(zeichnung.achsen[-1].get_xlabel())
-        self.achsenleiste.aktualisiere(self.plot.wirksame_grenzen(), einheiten)
+            if self._ansicht == 5:
+                wirksam = {
+                    alias.get(k, k): v
+                    for k, v in wirksam.items()
+                    if k in ("frequenz", "phase", betrag_rolle)
+                }
+        self.achsenleiste.aktualisiere(wirksam, einheiten)
         self._plot_spalte.setMinimumHeight(self._plot_min_hoehe())
 
     def _splitter_nachziehen(self) -> None:
@@ -1817,6 +2504,7 @@ class AuswertenReiter(QWidget):
             2: self._zeichne_ansicht_2,
             3: self._zeichne_ansicht_3,
             4: self._zeichne_ansicht_4,
+            5: self._zeichne_ansicht_5,
         }[self._ansicht]
         try:
             self._ansichtstext = None
@@ -2194,3 +2882,273 @@ class AuswertenReiter(QWidget):
         hinweise = "\n".join(zeichnung.hinweise)
         sel.setze_hinweise(hinweise)
         self._a4_letzt = (sd, opt, beschreibung, kopf, hinweise)
+
+    # --- Ansicht 5: eigenes Diagramm aus Serien (R-058, R-059; P-AUSW2 S7) ---------------------
+
+    def _kurzname(self, messung_id: int) -> str:
+        messung = self._messungen.finde(messung_id)
+        return messung.kurzname if messung is not None else "?"
+
+    def _standard_paar_der_messung(
+        self, messung_id: int, komponente: str | None
+    ) -> tuple[str, str] | None:
+        messung = self._messungen.finde(messung_id)
+        return standard_paar(messung, komponente) if messung is not None else None
+
+    def _aktualisiere_auswahl_5(self) -> None:
+        """Größen (Verfügbarkeit mit Begründung) und Teilgröße des Spektrums in AD."""
+        sel = self.auswahl_diagramm
+        sel.setze_groessen(groessen_verfuegbar(self._messungen))
+        gruende = [
+            verfuegbare_groessen(m.geladen.messdaten, KOMPONENTEN)["kohaerent"]
+            for m in self._messungen.bereite()
+            if m.geladen is not None
+        ]
+        sel.setze_teilgroesse_moeglich(
+            None if any(g is None for g in gruende) or not gruende else gruende[0]
+        )
+
+    def _cache_groessen_anpassen(self) -> None:
+        """Hält je Messung so viele Kanalpaare, wie ihre Serien brauchen (2 bis 4).
+
+        Sonst rechnet jeder Wechsel der Serie 250 ms neu (P-AUSW2 Abschnitt 3).
+        """
+        bedarf = paare_je_messung(self._serien.specs)
+        for messung in self._messungen.bereite():
+            if messung.cache is None:
+                continue
+            ziel = max(2, min(4, bedarf.get(messung.id, 0)))
+            if messung.cache.groesse != ziel:
+                messung.cache.setze_groesse(ziel)
+
+    def _groesse_5_geaendert(self, groesse: str) -> None:
+        """Radioknopf „Größe“: überlagert hat das Diagramm eine Größe, alle Serien ziehen mit."""
+        del groesse
+        sel = self.auswahl_diagramm
+        if sel.anordnung() == "ueberlagert" and len(self._serien):
+            entfallen = self._serien.wandle_groesse(sel.groesse(), self._standard_paar_der_messung)
+            sel.setze_meldung(
+                f"{entfallen} Serie(n) entfielen, weil sie dadurch doppelt wären."
+                if entfallen
+                else ""
+            )
+        if not self._in_aufbau and self._geladen is not None:
+            self._zeichne()
+
+    def _optionen_5_geaendert(self) -> None:
+        """Teilgröße des Spektrums oder Anordnung geändert."""
+        sel = self.auswahl_diagramm
+        if self._serien.specs:
+            entfallen = self._serien.setze_teilgroesse(sel.teilgroesse())
+            sel.setze_meldung(
+                f"{entfallen} Serie(n) entfielen, weil sie dadurch doppelt wären."
+                if entfallen
+                else ""
+            )
+        if not self._in_aufbau and self._geladen is not None:
+            self._zeichne()
+
+    def _serie_anlegen(self, spec: SerienSpec) -> bool:
+        """Legt eine Serie an; Hinweistext in AD bei Dopplung oder voller Liste."""
+        sel = self.auswahl_diagramm
+        try:
+            self._serien.hinzufuegen(spec)
+        except SerienFehler as fehler:
+            sel.setze_meldung(str(fehler))
+            return False
+        sel.setze_meldung("")
+        return True
+
+    def _angaben_der_messungen(self) -> list[MessungsAngabe]:
+        return [
+            MessungsAngabe(
+                m.id,
+                m.kurzname,
+                tuple(int(x) for x in m.geladen.messdaten.punkte.label),
+                m.paare,
+            )
+            for m in self._messungen.bereite()
+            if m.geladen is not None
+        ]
+
+    def _frage_serie(self) -> SerienSpec | None:  # pragma: no cover - modaler Dialog
+        """Zeigt den Serien-Dialog (Tests ersetzen die Methode); ``None`` = abgebrochen."""
+        sel = self.auswahl_diagramm
+        aktive = self._messungen.aktive
+        dialog = SerienDialog(
+            self._angaben_der_messungen(),
+            sel.groesse(),
+            sel.teilgroesse(),
+            nebeneinander=sel.anordnung() == "nebeneinander",
+            aktiv_id=aktive.id if aktive is not None else None,
+            parent=self,
+        )
+        return dialog.ergebnis() if dialog.exec() == QDialog.DialogCode.Accepted else None
+
+    def _serie_neu(self) -> None:
+        """``+ Serie``: Dialog, dann anlegen und neu zeichnen."""
+        if self._geladen is None:
+            return
+        spec = self._frage_serie()
+        if spec is not None and self._serie_anlegen(spec):
+            self._zeichne()
+
+    def _vorlage_fuer_alle(self) -> SerienSpec | None:
+        """Auswahl für „Für alle Messungen“: gewählte Serie, sonst letzte, sonst Voreinstellung."""
+        sel = self.auswahl_diagramm
+        specs = self._serien.specs
+        zeile = sel.liste_serien.currentRow()
+        if 0 <= zeile < len(specs):
+            return specs[zeile]
+        if specs:
+            return specs[-1]
+        aktive = self._messungen.aktive
+        if aktive is None:
+            return None
+        try:
+            return baue_spec(
+                aktive.id,
+                None,
+                sel.groesse(),
+                komponente="Z",
+                kanalpaar=standard_paar(aktive, "Z"),
+                teilgroesse=sel.teilgroesse(),
+            )
+        except SerienFehler as fehler:
+            sel.setze_meldung(str(fehler))
+            return None
+
+    def _serie_alle(self) -> None:
+        """``Für alle Messungen``: je Messung eine Serie mit derselben Auswahl (UI-12).
+
+        Fehlt das Label oder das Kanalpaar in einer Messung, entfällt ihre Serie; der Grund steht
+        in AD und in der Meldezeile (AF). Passt nicht alles in die Liste (höchstens vier), werden
+        so viele angelegt wie passen.
+        """
+        vorlage = self._vorlage_fuer_alle()
+        if vorlage is None or self._geladen is None:
+            return
+        specs, gruende = serien_fuer_alle(vorlage, self._messungen.bereite())
+        for spec in specs:
+            try:
+                self._serien.hinzufuegen(spec)
+            except SerienFehler as fehler:
+                if str(fehler) == TEXT_SERIEN_VOLL:
+                    gruende.append(f"{self._kurzname(spec.messung_id)}: {fehler}")
+                # doppelte Serien sind schon da: nichts zu melden
+        symbol = t.symbol("fehler") if gruende else ""
+        text = " ".join(f"{symbol} {g}" for g in gruende)
+        self.auswahl_diagramm.setze_meldung(text)
+        self._zeichne()
+        if gruende:  # AF zeigt den Grund auch nach dem Neuzeichnen
+            self._setze_meldung(text)
+
+    def _serie_entfernen_geklickt(self, zeile: int) -> None:
+        if 0 <= zeile < len(self._serien):
+            self._serien.entferne(zeile)
+            self.auswahl_diagramm.setze_meldung("")
+            self._zeichne()
+
+    def _serie_sichtbar_geaendert(self, zeile: int, sichtbar: bool) -> None:
+        if 0 <= zeile < len(self._serien):
+            self._serien.setze_sichtbar(zeile, sichtbar)
+            self._zeichne()
+
+    def _zeichne_ansicht_5(self, *, zoom_behalten: bool) -> None:
+        """Ansicht 5: Diagramm aus den Serien aller Messungen (R-058, R-059).
+
+        Die Serien werden nur neu aufgelöst, wenn sich ihre Beschreibung geändert hat
+        (``_serien_aufgeloest``); Achsen-, Sichtbarkeits- und Anordnungswechsel rechnen nichts.
+        Nicht darstellbare Serien stehen mit Grund in AD (und AF); ohne Serie steht ein Hinweis.
+        """
+        sel = self.auswahl_diagramm
+        self._aktualisiere_auswahl_5()
+        specs = self._serien.specs
+        self._cache_groessen_anpassen()
+        if not specs:
+            sel.setze_serien([], symbol_fehler=t.symbol("fehler"))
+            sel.setze_voll(False)
+            sel.setze_hinweise("")
+            self.lbl_plotkopf.setText("")
+            self._leere_plot()
+            self._ansichtstext = TEXT_KEINE_SERIE
+            return
+        anordnung = sel.anordnung()
+        daten = loese_alle_auf(
+            specs,
+            messungs_zugriff(self._messungen),
+            anordnung=anordnung,
+            bereits=self._serien_aufgeloest,
+        )
+        self._serien_aufgeloest = {s.spec.aufloesung_schluessel(): s for s in daten.serien}
+        probleme = {spec.schluessel(): grund for spec, grund in daten.nicht_darstellbar}
+        # Die Größe steht im Eintrag nur, wo sie unterscheidet: nebeneinander mit mehreren Größen.
+        mit_groesse = anordnung == "nebeneinander" and len({s.groesse for s in specs}) > 1
+        sel.setze_serien(
+            [
+                SerienEintrag(
+                    serie_text(s, self._kurzname(s.messung_id), mit_groesse=mit_groesse),
+                    s.slot,
+                    s.sichtbar,
+                    probleme.get(s.schluessel(), ""),
+                )
+                for s in specs
+            ],
+            symbol_fehler=t.symbol("fehler"),
+        )
+        sel.setze_voll(self._serien.ist_voll)
+        phasen = any(s.groesse == "phase" and s.sichtbar for s in daten.serien)
+        zustand = self.plot.achsen_zustand
+        gezeichnet = [
+            t.groesse
+            for t in teilbilder(daten.serien, anordnung)[:TEILBILDER_MAX]
+            if betrag_groesse(t.groesse)
+        ]
+        if gezeichnet and zustand.groesse_5 not in gezeichnet:
+            zustand.setze_groesse_5(gezeichnet[0])  # deren Bereich und Skala kommen wieder (E11)
+        # Nebeneinander mit mehreren Betragsgrößen: die Achsenleiste bietet die Größe der
+        # Betragsfelder zur Wahl an (sonst gelten sie für die eine gezeichnete Größe).
+        self.achsenleiste.setze_groessen(
+            [(g, _BETRAG_NAMEN[g]) for g in dict.fromkeys(gezeichnet)]
+            if anordnung == "nebeneinander"
+            else [],
+            zustand.groesse_5,
+        )
+        opt = DiagrammOptionen(
+            anordnung=anordnung,
+            skalen={g: zustand.skala(5, g) for g in BETRAG_GROESSEN_5},
+            kennzeichen_phase=kennzeichen_text("phase", self._annahmen()) if phasen else None,
+        )
+        kurznamen = list(dict.fromkeys(s.kurzname for s in daten.serien))
+        groessen = [s.groesse for s in daten.serien if s.sichtbar]
+        beschreibung = self._beschreibung_5(daten.serien, kurznamen, groessen, anordnung)
+        zeichnung = self._zeichne_plot(
+            5, Ansicht.DIAGRAMM, daten, opt, beschreibung, zoom_behalten=zoom_behalten
+        )
+        self.lbl_plotkopf.setText(kopf_text(kurznamen, groessen, anordnung))
+        gruende = [
+            unmoeglich_text(spec, self._kurzname(spec.messung_id), grund, symbol=t.symbol("fehler"))
+            for spec, grund in daten.nicht_darstellbar
+        ]
+        sel.setze_hinweise("\n".join([*gruende, *zeichnung.hinweise]))
+        if gruende:
+            self._setze_meldung(" · ".join(gruende))
+
+    @staticmethod
+    def _beschreibung_5(
+        serien: Sequence[DiagrammSerie],
+        kurznamen: Sequence[str],
+        groessen: Sequence[str],
+        anordnung: str,
+    ) -> str:
+        """Textalternative des Diagramms: Serien, Größe, Anordnung, Frequenzbereich (Brief 6)."""
+        if not serien:
+            return "Ansicht 5: Diagramm ohne darstellbare Serie."
+        f_min = min(float(s.frequenz_hz[0]) for s in serien)
+        f_max = max(float(s.frequenz_hz[-1]) for s in serien)
+        texte = "; ".join(s.legende.replace("\n", ", ") for s in serien if s.sichtbar)
+        return (
+            f"Ansicht 5: Diagramm aus {len(serien)} Serien der Messungen {', '.join(kurznamen)}, "
+            f"Größe {', '.join(dict.fromkeys(groessen))}, {anordnung}: {texte}. "
+            f"Frequenzbereich {frequenz_text(f_min, 3)} bis {frequenz_text(f_max, 3)}."
+        )

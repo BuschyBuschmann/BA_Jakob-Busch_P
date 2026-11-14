@@ -34,11 +34,12 @@ from PySide6.QtWidgets import QFrame, QToolButton, QVBoxLayout, QWidget
 
 from ldv_automation.darstellung import Ansicht, Plotstil, Zeichnung
 from ldv_automation.darstellung.bild import Stempel, speichere_arbeitsbild
+from ldv_automation.darstellung.diagramm import zeichne_diagramm
 from ldv_automation.darstellung.frf import zeichne_frf
 from ldv_automation.darstellung.schwingform import zeichne_schwingform
 from ldv_automation.darstellung.spektrum import zeichne_spektrum
 from ldv_automation.darstellung.spitzen import zeichne_spitzen
-from ldv_automation.gui.achsen_zustand import ACHSEN_JE_ANSICHT, AchsenZustand
+from ldv_automation.gui.achsen_zustand import ACHSEN_JE_ANSICHT, Y_ROLLEN_5, AchsenZustand
 from ldv_automation.gui.anzeige_aktionen import AKTIONS_TASTEN
 from ldv_automation.gui.anzeige_auswerten import ANSICHT_NAMEN
 from ldv_automation.gui.arbeitsbild import bild_optionen
@@ -49,7 +50,7 @@ __all__ = ["NEUZEICHNEN_ANSICHTEN", "NEUZEICHNEN_MS", "PlotFlaeche", "PlotToolba
 
 NEUZEICHNEN_MS = 150
 """Entprellzeit: erst wenn die Größe so lange stillsteht, wird neu gezeichnet."""
-NEUZEICHNEN_ANSICHTEN = frozenset({Ansicht.SPITZEN, Ansicht.SCHWINGFORM})
+NEUZEICHNEN_ANSICHTEN = frozenset({Ansicht.SPITZEN, Ansicht.SCHWINGFORM, Ansicht.DIAGRAMM})
 """Ansichten, die Größen in pt zum Zeichenzeitpunkt messen (Beschriftungsabstände, Pfeillängen)
 und deshalb bei Größenänderung der Figure neu gezeichnet werden. Ansicht 1 und 2 haben nur
 Achsen im ``constrained``-Layout, das beim Skalieren des Canvas selbst nachzieht
@@ -71,6 +72,7 @@ ZEICHNER: dict[Ansicht, Zeichner] = {
     Ansicht.FRF: zeichne_frf,
     Ansicht.SPITZEN: zeichne_spitzen,
     Ansicht.SCHWINGFORM: zeichne_schwingform,
+    Ansicht.DIAGRAMM: zeichne_diagramm,
 }
 """Zeichenfunktion je Ansicht (genau eine je Ansicht, gemeinsam mit den Thesis-Skripten)."""
 
@@ -334,7 +336,7 @@ class PlotFlaeche(QFrame):
         Parameters
         ----------
         ansicht : Ansicht
-            Welche der vier Ansichten.
+            Welche der Ansichten (1 bis 5).
         daten, optionen : object
             Daten und Optionen der Zeichenfunktion (``SpektrumDaten``/``SpektrumOptionen`` …).
         beschreibung : str, optional
@@ -404,20 +406,34 @@ class PlotFlaeche(QFrame):
 
     @staticmethod
     def _lese_grenzen(ansicht: Ansicht, zeichnung: Zeichnung) -> dict[str, tuple[float, float]]:
-        """Sichtbare Grenzen je Rolle (``frequenz`` sowie ``betrag``/``phase``) der Zeichnung."""
+        """Sichtbare Grenzen je Rolle der Zeichnung (``frequenz``, y-Rollen).
+
+        Die y-Rollen sind ``betrag``/``phase``; in Ansicht 5 die Größe des Teilbilds (E11:
+        ``spektrum``, ``h1``, ``h2``, ``phase``). Hat eine Rolle mehrere Achsen (gleiche Größe in
+        Teilbildern mit verschiedener Einheit), steht die erste unter der Rolle und jede weitere
+        unter ``"<Rolle>#<n>"``, damit der Zoom jedes Teilbilds erkannt wird.
+        """
         if ansicht.value not in ACHSEN_JE_ANSICHT or not zeichnung.achsen:
             return {}
         x = zeichnung.achsen[0].get_xlim()
         grenzen = {"frequenz": (float(x[0]), float(x[1]))}
+        erlaubt = Y_ROLLEN_5 if ansicht.value == 5 else ACHSEN_JE_ANSICHT[ansicht.value]
         for achse, rolle in zip(zeichnung.achsen, zeichnung.rollen, strict=False):
-            if rolle in ACHSEN_JE_ANSICHT[ansicht.value]:
+            if rolle in erlaubt:
                 y = achse.get_ylim()
-                grenzen[rolle] = (float(y[0]), float(y[1]))
+                schluessel = rolle
+                n = 0
+                while schluessel in grenzen:
+                    n += 1
+                    schluessel = f"{rolle}#{n}"
+                grenzen[schluessel] = (float(y[0]), float(y[1]))
         return grenzen
 
     def wirksame_grenzen(self) -> dict[str, tuple[float, float]]:
         """Grenzen der gezeigten Darstellung je Rolle (leer ohne Darstellung oder in Ansicht 4)."""
-        return dict(self._bekannt) if self._bekannt else {}
+        if not self._bekannt:
+            return {}
+        return {k: v for k, v in self._bekannt.items() if "#" not in k}
 
     def _synchronisiere(self) -> bool:
         """Schreibt Grenzen, die seit dem Zeichnen an den Achsen geändert wurden, in den Zustand.
@@ -443,7 +459,7 @@ class PlotFlaeche(QFrame):
                 for n, o in zip((von, bis), alt, strict=True)
             ):
                 continue
-            self._achsen.uebernehme_grenzen(self._ansicht.value, rolle, von, bis)
+            self._achsen.uebernehme_grenzen(self._ansicht.value, rolle.split("#")[0], von, bis)
             geaendert = True
         self._bekannt = aktuell
         return geaendert

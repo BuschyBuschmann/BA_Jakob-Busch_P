@@ -71,6 +71,7 @@ AKTIONS_TASTEN: Mapping[str, tuple[str, str]] = {
     "ansicht_2": ("Ctrl+2", "Strg+2"),
     "ansicht_3": ("Ctrl+3", "Strg+3"),
     "ansicht_4": ("Ctrl+4", "Strg+4"),
+    "ansicht_5": ("Ctrl+5", "Strg+5"),
     "reiter_messen": ("Alt+1", "Alt+1"),
     "reiter_auswerten": ("Alt+2", "Alt+2"),
     "zoom": ("Home", "Pos1"),

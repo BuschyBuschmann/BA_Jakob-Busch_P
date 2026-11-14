@@ -126,6 +126,12 @@ omit = [
     # der Eingaben liegen Qt-frei in `darstellung/achsen.py` (`parse_zahl`, `feld_text`,
     # `uebernehme_eingabe`), der Zustand in `gui/achsen_zustand.py` (beide voll gemessen).
     "src/ldv_automation/gui/achsenleiste.py",
+    # R-058 (P-AUSW2 S5, S7): Chips der Messungen (AA) und Auswahlseite von Ansicht 5 (AD) sind
+    # reine Widgets, nur offscreen prüfbar (`pytest -m gui`). Kurznamen, aktive Messung, Ladewarte-
+    # schlange und Speicher liegen Qt-frei in `gui/messungen.py`, Serienregeln und Texte in
+    # `gui/serien.py` (beide voll gemessen).
+    "src/ldv_automation/gui/messungsleiste.py",
+    "src/ldv_automation/gui/auswahl_diagramm.py",
 ]
 
 [tool.coverage.report]

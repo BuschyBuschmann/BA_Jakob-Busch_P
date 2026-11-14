@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import math
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from decimal import Decimal
 
@@ -45,6 +45,7 @@ __all__ = [
     "wende_bereich_an",
     "wende_frequenz_an",
     "wende_y_an",
+    "wende_y_gruppe_an",
 ]
 
 TEXT_REIHENFOLGE = "Unterer Wert muss kleiner sein als der obere."
@@ -475,6 +476,32 @@ def wende_y_an(ax: Axes, bereich: Bereich, *, log: bool, x_gesetzt: bool, name: 
         auto = (float(ax.get_ylim()[0]), float(ax.get_ylim()[1]))
     unten, oben = _wirksam(bereich, auto, skala, name)
     ax.set_ylim(unten, oben)
+
+
+def wende_y_gruppe_an(
+    achsen: Sequence[Axes], bereich: Bereich, *, log: bool, x_gesetzt: bool, name: str = ""
+) -> None:
+    """Wie :func:`wende_y_an` für Achsen mit **gemeinsamer** y-Achse (Teilbilder gleicher Größe).
+
+    Die automatische Seite folgt den Daten aller Achsen der Gruppe (bei gesetztem
+    Frequenzbereich über den sichtbaren Bereich), damit die gekoppelten Teilbilder dieselbe
+    Spanne zeigen. Die Achsen müssen ``sharey`` verbinden; gesetzt wird einmal.
+
+    Raises
+    ------
+    AchsenFehler
+        Ungültiger Bereich (siehe :func:`pruefe_bereich`).
+    """
+    skala: Skala = "log" if log else "linear"
+    if bereich.ist_auto and not x_gesetzt:
+        return
+    autos = [a for ax in achsen if (a := sichtbare_y_grenzen(ax, log=log)) is not None]
+    if x_gesetzt and autos:
+        auto = (min(a[0] for a in autos), max(a[1] for a in autos))
+    else:
+        auto = (float(achsen[0].get_ylim()[0]), float(achsen[0].get_ylim()[1]))
+    unten, oben = _wirksam(bereich, auto, skala, name)
+    achsen[0].set_ylim(unten, oben)
 
 
 def wende_bereich_an(ax: Axes, bereich: Bereich, auto: tuple[float, float], name: str = "") -> None:

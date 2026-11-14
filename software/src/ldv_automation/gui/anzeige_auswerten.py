@@ -129,11 +129,14 @@ ANSICHT_NAMEN: Mapping[int, str] = {
     2: "H1/H2 und Kohärenz",
     3: "Spitzen und Bänder",
     4: "Schwingform",
+    5: "Diagramm",
 }
-"""Namen der vier Ansichten (Knopftext „1 Spektrum“, ``accessibleName`` „Ansicht 1: Spektrum“)."""
+"""Namen der Ansichten (Knopftext „1 Spektrum“, ``accessibleName`` „Ansicht 1: Spektrum“).
 
-FREIGESCHALTETE_ANSICHTEN: frozenset[int] = frozenset({1, 2, 3, 4})
-"""Ansichten, die bedienbar sind (T3b: alle vier)."""
+Ansicht 5 ist das eigene Diagramm aus Serien (R-058/R-059)."""
+
+FREIGESCHALTETE_ANSICHTEN: frozenset[int] = frozenset({1, 2, 3, 4, 5})
+"""Ansichten, die bedienbar sind (alle fünf)."""
 EXPORT_FREIGESCHALTET = True
 """``Daten exportieren …`` ist bedienbar (T4)."""
 BILD_FREIGESCHALTET = True

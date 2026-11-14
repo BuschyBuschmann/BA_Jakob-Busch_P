@@ -41,12 +41,13 @@ Skala = Literal["linear", "log"]
 
 
 class Ansicht(Enum):
-    """Die vier Ansichten der Auswertungsoberfläche."""
+    """Die Ansichten der Auswertungsoberfläche (5 = eigenes Diagramm aus Serien, R-058/R-059)."""
 
     SPEKTRUM = 1
     FRF = 2
     SPITZEN = 3
     SCHWINGFORM = 4
+    DIAGRAMM = 5
 
 
 @dataclass(eq=False)
