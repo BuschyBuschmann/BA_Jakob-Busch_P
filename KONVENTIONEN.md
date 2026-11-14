@@ -120,6 +120,17 @@ uv run pytest --cov --cov-fail-under=90
   Bezugspunkts (Voreinstellung: betragsgrößte) für alle Punkte und Komponenten; nie
   komponentenweise drehen (FG-04 Nachtrag 1, Nutzerentscheidung 2026-11-11).
 
+- Unter 1200 px Breite zeigt die Auswertung eine kompakte Darstellung (kurze Beschriftungen,
+  Dateiname nur im Chip) (Nutzerentscheidung 2026-11-14).
+- Testtoleranz eines Werts aus einer Fachgrundlage: halbe Einheit der letzten angegebenen
+  Stelle (Nutzerentscheidung 2026-11-14).
+- Der Abgleich (`Infos.Alignments`) wird je Messung nach dem Laden der `.set` nur lesend
+  erhoben und im Feld `abgleich` protokolliert; Prüfgrenzen stehen nur in der
+  Konfigurationsdatei, ohne Standardwerte, mit Einheit im Schlüsselnamen (ADR-030,
+  Nutzerentscheidung 2026-11-14).
+- Erfundene Gerätewerte in Simulatoren und Testständen nur als ausdrücklich gekennzeichnete
+  Platzhalter (Nutzerentscheidung 2026-11-14).
+
 ## Polytec-Konventionen
 Quelle: Analyseberichte I1, I2, I5 und I5-F unter `in_progress/analysen/`.
 - „COM“ bezeichnet im Projekt das Component Object Model von Windows. Serielle Ports
