@@ -131,6 +131,10 @@ uv run pytest --cov --cov-fail-under=90
 - Erfundene Gerätewerte in Simulatoren und Testständen nur als ausdrücklich gekennzeichnete
   Platzhalter (Nutzerentscheidung 2026-11-14).
 
+- Animation: Bei der Option Schnelle steht die Skalierung in s, daneben immer die reale
+  Überhöhung; in der 3D-Animation gilt der räumliche Punktabstand; der Satz zur Bedeutung
+  von θ = 0 gehört zu den Pflichtangaben (FG-04 Nachtrag 2, Nutzerentscheidung 2026-11-15).
+
 ## Polytec-Konventionen
 Quelle: Analyseberichte I1, I2, I5 und I5-F unter `in_progress/analysen/`.
 - „COM“ bezeichnet im Projekt das Component Object Model von Windows. Serielle Ports
