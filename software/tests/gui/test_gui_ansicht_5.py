@@ -20,10 +20,7 @@ from ldv_automation.auswertung.laden import Geladen
 from ldv_automation.darstellung.achsen import Bereich
 from ldv_automation.darstellung.serien_daten import SerienSpec
 from ldv_automation.gui.auswahl_diagramm import SerienDialog
-from ldv_automation.gui.auswerten_reiter import (
-    TEXT_BILD_ANSICHT_5,
-    AuswertenReiter,
-)
+from ldv_automation.gui.auswerten_reiter import AuswertenReiter
 from ldv_automation.gui.hauptfenster import Hauptfenster
 from ldv_automation.gui.serien import (
     SERIEN_MAX,
@@ -241,7 +238,6 @@ def test_dopplung_und_fuenfte_serie_mit_hinweistext(baue: Bauer) -> None:
     lege_an(a, *[baue_spec(mid(a, 0), 11 + i, "h1", kanalpaar=PAAR) for i in range(3)])
     assert len(a._serien) == SERIEN_MAX
     assert not sel.btn_serie_neu.isEnabled() and sel.btn_serie_neu.toolTip() == TEXT_SERIEN_VOLL
-    assert sel.lbl_voll.isVisibleTo(a)
     assert not a._serie_anlegen(baue_spec(mid(a, 1), 10, "h1", kanalpaar=PAAR))
     assert sel.lbl_meldung.text() == TEXT_SERIEN_VOLL
 
@@ -475,11 +471,14 @@ def test_wechsel_der_aktiven_messung_aendert_das_diagramm_nicht(baue: Bauer) -> 
     assert achsen(a)[0].get_xlim() == xlim  # type: ignore[attr-defined]
 
 
-def test_bild_speichern_ist_in_ansicht_5_noch_gesperrt_export_nicht(baue: Bauer) -> None:
+def test_bild_speichern_ist_in_ansicht_5_frei_ohne_serie_gesperrt_export_bleibt(
+    baue: Bauer,
+) -> None:
     a, _, _, _ = aufbau(baue)
     ansicht_5(a)
+    assert not a.btn_bild.isEnabled()  # ohne Serie gibt es nichts zu speichern
     lege_an(a, baue_spec(mid(a, 0), 10, "h1", kanalpaar=PAAR))
-    assert not a.btn_bild.isEnabled() and a.btn_bild.toolTip() == TEXT_BILD_ANSICHT_5
+    assert a.btn_bild.isEnabled()  # S9: Bild speichern ist in Ansicht 5 freigeschaltet
     assert a.btn_export.isEnabled()  # Export bleibt auf die aktive Messung bezogen
     a.btn_ansicht[1].click()
     assert a.btn_bild.isEnabled()

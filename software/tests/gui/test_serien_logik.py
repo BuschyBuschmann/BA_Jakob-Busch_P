@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from gui_ausw_hilfen import synth_geladen
 
@@ -21,8 +23,11 @@ from ldv_automation.gui.serien import (
     messungs_zugriff,
     paare_je_messung,
     serie_text,
+    serien_aus_ansicht,
     serien_fuer_alle,
     standard_paar,
+    stempel_dateien,
+    uebernimm,
     unmoeglich_text,
 )
 
@@ -201,3 +206,225 @@ def test_texte() -> None:
         "Diagramm · Messungen A, B · |H1| · nebeneinander"
     )
     assert kopf_text([], [], "ueberlagert") == "Diagramm · Messungen – · – · überlagert"
+
+
+# --- S8: Bearbeiten, Übernahme aus Ansicht 1 bis 3, Stempeldateien -------------------------
+
+
+def test_ersetze_behaelt_slot_und_haekchen_und_lehnt_dopplung_ab() -> None:
+    liste = SerienListe()
+    for i in range(3):
+        liste.hinzufuegen(h1(1, 10 + i))
+    liste.setze_sichtbar(1, False)
+    neu = liste.ersetze(1, h1(2, 10))
+    assert (neu.slot, neu.sichtbar, neu.messung_id) == (1, False, 2)
+    assert liste.specs[1] == neu and len(liste) == 3
+    with pytest.raises(SerienFehler, match=TEXT_SERIE_DOPPELT):
+        liste.ersetze(0, h1(1, 12))  # gleicht der dritten Serie
+    assert liste.specs[0].punkt_label == 10  # unverändert
+    liste.ersetze(2, h1(1, 12))  # sich selbst ersetzen ist keine Dopplung
+
+
+def test_ansicht_1_uebernimmt_je_komponente_eine_serie_mit_teilgroesse() -> None:
+    u = serien_aus_ansicht(
+        1,
+        5,
+        punkt_label=11,
+        komponenten=("X", "3D"),
+        teilgroesse="leistung",
+        kanalpaar=PAAR,
+    )
+    assert u.groesse == "spektrum" and u.teilgroesse == "leistung" and u.ansicht == 1
+    assert [(s.komponente, s.punkt_label, s.teilgroesse, s.messung_id) for s in u.specs] == [
+        ("X", 11, "leistung", 5),
+        ("3D", 11, "leistung", 5),
+    ]
+    with pytest.raises(SerienFehler, match="Komponente"):
+        serien_aus_ansicht(
+            1, 5, punkt_label=None, komponenten=(), teilgroesse="kohaerent", kanalpaar=PAAR
+        )
+
+
+def test_ansicht_2_uebernimmt_h1_oder_nur_h2_mit_dem_punkt() -> None:
+    u = serien_aus_ansicht(
+        2, 5, punkt_label=12, komponenten=("X",), teilgroesse="kohaerent", kanalpaar=PAAR
+    )
+    assert [(s.groesse, s.kanalpaar, s.punkt_label) for s in u.specs] == [("h1", PAAR, 12)]
+    nur_h2 = serien_aus_ansicht(
+        2,
+        5,
+        punkt_label=None,
+        komponenten=("X",),
+        teilgroesse="kohaerent",
+        kanalpaar=PAAR,
+        h1=False,
+        h2=True,
+    )
+    assert nur_h2.groesse == "h2" and nur_h2.specs[0].punkt_label is None
+    beide = serien_aus_ansicht(
+        2,
+        5,
+        punkt_label=None,
+        komponenten=("X",),
+        teilgroesse="kohaerent",
+        kanalpaar=PAAR,
+        h1=True,
+        h2=True,
+    )
+    assert beide.groesse == "h1"  # beide gewählt: |H1|
+    with pytest.raises(SerienFehler, match="Referenz"):
+        serien_aus_ansicht(
+            2, 5, punkt_label=None, komponenten=("X",), teilgroesse="kohaerent", kanalpaar=None
+        )
+
+
+def test_ansicht_3_uebernimmt_das_betragsmittel_oder_ohne_referenz_das_leistungsmittel() -> None:
+    mit = serien_aus_ansicht(
+        3, 5, punkt_label=12, komponenten=("X",), teilgroesse="kohaerent", kanalpaar=PAAR
+    )
+    assert [(s.groesse, s.punkt_label, s.kanalpaar) for s in mit.specs] == [("h1", None, PAAR)]
+    ohne = serien_aus_ansicht(
+        3,
+        5,
+        punkt_label=None,
+        komponenten=("X",),
+        teilgroesse="kohaerent",
+        kanalpaar=None,
+        kanal="Vib Z",
+    )
+    assert ohne.groesse == "spektrum" and ohne.teilgroesse == "leistung"
+    assert (ohne.specs[0].komponente, ohne.specs[0].teilgroesse) == ("Z", "leistung")
+    with pytest.raises(SerienFehler, match="Vib-Kanal"):
+        serien_aus_ansicht(
+            3,
+            5,
+            punkt_label=None,
+            komponenten=("X",),
+            teilgroesse="kohaerent",
+            kanalpaar=None,
+            kanal="Ref1",
+        )
+    with pytest.raises(SerienFehler, match="Ansicht 4"):
+        serien_aus_ansicht(
+            4, 5, punkt_label=None, komponenten=("X",), teilgroesse="kohaerent", kanalpaar=PAAR
+        )
+
+
+def test_uebernahme_legt_an_zaehlt_dopplungen_und_rest() -> None:
+    u = serien_aus_ansicht(
+        1, 1, punkt_label=10, komponenten=("X", "Y", "Z", "3D"), teilgroesse="kohaerent",
+        kanalpaar=PAAR,
+    )  # fmt: skip
+    liste = SerienListe()
+    liste.hinzufuegen(baue_spec(1, 10, "spektrum", komponente="Y"))
+    liste.hinzufuegen(h1(1, 10))
+    erg = uebernimm(
+        liste, u, diagramm_groesse="spektrum", diagramm_teilgroesse="kohaerent", nebeneinander=False
+    )
+    # Y gab es schon; X und Z passen; 3D kommt nicht mehr hinein (vier Serien)
+    assert (erg.angelegt, erg.vorhanden, erg.rest) == (2, 1, 1) and not erg.vollstaendig
+    assert len(liste) == SERIEN_MAX
+    assert erg.text(1) == (
+        "2 Serien aus Ansicht 1 übernommen; 1 gab es schon; 1 passte nicht (höchstens 4 Serien)."
+    )
+    leer = SerienListe()
+    ein = uebernimm(
+        leer,
+        serien_aus_ansicht(
+            2, 1, punkt_label=None, komponenten=("X",), teilgroesse="kohaerent", kanalpaar=PAAR
+        ),
+        diagramm_groesse="spektrum",  # bei leerer Liste ohne Bedeutung
+        diagramm_teilgroesse="kohaerent",
+        nebeneinander=False,
+    )
+    assert ein.text(2) == "1 Serie aus Ansicht 2 übernommen." and ein.vollstaendig
+
+
+def test_uebernahme_wechselt_weder_groesse_noch_teilgroesse_still() -> None:
+    liste = SerienListe()
+    liste.hinzufuegen(h1(1, 10))
+    spektrum = serien_aus_ansicht(
+        1, 1, punkt_label=None, komponenten=("X",), teilgroesse="kohaerent", kanalpaar=PAAR
+    )
+    with pytest.raises(SerienFehler, match="Ansicht 1 zeigt Spektrum"):
+        uebernimm(
+            liste,
+            spektrum,
+            diagramm_groesse="h1",
+            diagramm_teilgroesse="kohaerent",
+            nebeneinander=False,
+        )
+    assert len(liste) == 1  # unverändert
+    # nebeneinander darf die Größe wechseln (je Serie eine Größe) ...
+    erg = uebernimm(
+        liste,
+        spektrum,
+        diagramm_groesse="h1",
+        diagramm_teilgroesse="kohaerent",
+        nebeneinander=True,
+    )
+    assert erg.angelegt == 1
+    # ... aber die Teilgröße des Spektrums gilt für alle Serien
+    leistung = serien_aus_ansicht(
+        1, 1, punkt_label=None, komponenten=("Z",), teilgroesse="leistung", kanalpaar=PAAR
+    )
+    with pytest.raises(SerienFehler, match=re.escape("Spektrum als √AP, das Diagramm als |CPH|")):
+        uebernimm(
+            liste,
+            leistung,
+            diagramm_groesse="h1",
+            diagramm_teilgroesse="kohaerent",
+            nebeneinander=True,
+        )
+    assert len(liste) == 2
+
+
+def test_teilgroesse_wird_nur_bei_spektren_in_der_liste_geprueft() -> None:
+    """Liste nur mit |H1|: ein √AP-Spektrum bei |CPH| am Diagramm wird übernommen (Annahme 6).
+
+    Sobald ein Spektrum in der Liste steht, gilt die Teilgröße des Diagramms wieder.
+    """
+    liste = SerienListe()
+    liste.hinzufuegen(h1(1, 10))
+    leistung = serien_aus_ansicht(
+        1, 1, punkt_label=None, komponenten=("X",), teilgroesse="leistung", kanalpaar=PAAR
+    )
+    erg = uebernimm(
+        liste,
+        leistung,
+        diagramm_groesse="h1",
+        diagramm_teilgroesse="kohaerent",
+        nebeneinander=True,
+    )
+    assert (erg.angelegt, erg.rest) == (1, 0) and erg.vollstaendig
+    assert [(s.groesse, s.teilgroesse) for s in liste.specs] == [
+        ("h1", "kohaerent"),
+        ("spektrum", "leistung"),
+    ]
+    kohaerent = serien_aus_ansicht(
+        1, 1, punkt_label=None, komponenten=("Y",), teilgroesse="kohaerent", kanalpaar=PAAR
+    )
+    with pytest.raises(SerienFehler, match=re.escape("Spektrum als |CPH|, das Diagramm als √AP")):
+        uebernimm(
+            liste,
+            kohaerent,
+            diagramm_groesse="h1",
+            diagramm_teilgroesse="leistung",
+            nebeneinander=True,
+        )
+    assert len(liste) == 2
+
+
+def test_stempel_dateien_nur_sichtbare_je_messung_einmal_in_serienfolge() -> None:
+    class Attrappe:
+        def __init__(self, kurz: str, name: str, sichtbar: bool) -> None:
+            self.kurzname, self.dateiname, self.sichtbar = kurz, name, sichtbar
+
+    serien = [
+        Attrappe("B", "b.svd", True),
+        Attrappe("A", "a.svd", True),
+        Attrappe("B", "b.svd", True),
+        Attrappe("C", "c.svd", False),
+    ]
+    erg = stempel_dateien(serien)  # type: ignore[arg-type]
+    assert erg == (("B", "b.svd"), ("A", "a.svd"))

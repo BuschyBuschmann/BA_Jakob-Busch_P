@@ -51,8 +51,9 @@ C_STATUSZEILE = "#1D2327"
 """Hintergrund der Statuszeile (Zone A)."""
 C_STATUSZEILE_TEXT = "#FFFFFF"
 """Text der Statuszeile."""
-C_DEAKTIVIERT_TEXT = "#6B747C"
-"""Text deaktivierter Knöpfe und Felder."""
+C_DEAKTIVIERT_TEXT = "#626B72"
+"""Text deaktivierter Knöpfe und Felder. Kontrast ≥ 4,5:1 auf ``C_DEAKTIVIERT_BG`` und ``C_FLAECHE``
+(UI-35; ``#6B747C`` lag bei 3,99:1, Abnahme D-AUSW2-C)."""
 C_DEAKTIVIERT_BG = "#ECEBE6"
 """Hintergrund deaktivierter Knöpfe und Felder."""
 
@@ -123,6 +124,11 @@ KONTRAST_PAARE: tuple[tuple[str, str, str], ...] = (
     ("text/feld_fest_bg", C_TEXT, C_FELD_FEST_BG),
     ("fehler/bg", C_FEHLER, C_BG),
     ("text_gedaempft/feld_fest_bg", C_TEXT_GEDAEMPFT, C_FELD_FEST_BG),
+    # Ansicht 5 (P-AUSW2 S10, UI-35): aktiver Chip der Messungsleiste, gesperrte Größe mit
+    # Begründung (Radioknopf auf der Fläche der Auswahlspalte).
+    ("text/aktiv_bg", C_TEXT, C_AKTIV_BG),
+    ("deaktiviert_text/flaeche", C_DEAKTIVIERT_TEXT, C_FLAECHE),
+    ("deaktiviert_text/deaktiviert_bg", C_DEAKTIVIERT_TEXT, C_DEAKTIVIERT_BG),
 )
 """Text/Hintergrund-Paare, deren Kontrast ≥ 4,5:1 sein muss (UI-23)."""
 

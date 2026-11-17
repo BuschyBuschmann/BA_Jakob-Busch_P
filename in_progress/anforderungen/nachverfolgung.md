@@ -41,7 +41,7 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-056 | – | – | – | – | offen |
 | R-057 | – | – | – | – | offen |
 | R-058 | `gui/messungen.py`, `messungsleiste.py`, `serien.py`, `auswahl_diagramm.py`, `darstellung/serien_daten.py`, `diagramm.py` (ADR-028) | `test_gui_messungen.py`, `test_gui_ansicht_5.py`, `test_gui_ausw2_korrektur*.py`, `test_dar_diagramm.py`, `test_messungen_logik.py`, `test_serien_logik.py` | Laborbuch 2026-11-14_auswerten-etappe-b-vergleich | 4.4/4.5 | getestet (offscreen); UI-38 am Gerät offen |
-| R-059 | Teile in Ansicht 5 (Serien, Größe, Legende); S8–S10 offen | `test_gui_ansicht_5.py`, `test_serien_logik.py` | Laborbuch 2026-11-14_auswerten-etappe-b-vergleich | 4.4/4.5 | in Arbeit |
+| R-059 | `gui/serien.py`, `auswahl_diagramm.py`, `auswerten_reiter.py`, `darstellung/diagramm.py`, `bild.py` (ADR-028) | `test_gui_diagramm.py`, `test_serien_logik.py`, `test_gui_ansicht_5.py`, `test_dar_bild.py` | Laborbuch 2026-11-18_auswerten-etappe-c-diagramme | 4.4/4.5 | getestet (offscreen); UI-38 am Gerät offen |
 | R-070 | – | – | – | – | offen |
 | R-071 | `auswertung/animation.py`, `darstellung/animation_daten.py`, `animation3d.py`, `gui/animation_steuerung.py` (ADR-029); Oberfläche AN6–AN9 offen | `test_aw_animation.py`, `test_dar_animation_*.py`, `test_animation_steuerung.py` | Laborbuch 2026-11-12_animation-rechenkern, 2026-11-18_animation-daten-zeichnung | 4.4 | in Arbeit (Kern, Daten, Zeichnung, Steuerung getestet) |
 | R-072 | – | – | – | – | offen |

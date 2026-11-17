@@ -15,6 +15,8 @@ from ldv_automation.darstellung.bild import (
     neue_figure,
     speichere_arbeitsbild,
 )
+from ldv_automation.darstellung.diagramm import DiagrammOptionen, zeichne_diagramm
+from ldv_automation.darstellung.serien_daten import SerienSpec, loese_alle_auf
 from ldv_automation.darstellung.spektrum import SpektrumOptionen, zeichne_spektrum
 from ldv_automation.darstellung.stil import THESIS_STIL, Plotstil
 
@@ -114,3 +116,60 @@ def test_arbeitsbild_formatfehler(sd: SpektrumDaten, tmp_path: Path) -> None:
             STIL,
         )
     assert not (tmp_path / "x.jpg").exists()
+
+
+def test_stempel_mit_mehreren_dateien_nennt_ansicht_hash_und_je_datei_eine_zeile() -> None:
+    s = baue_stempel(
+        ansicht="Ansicht 5 Diagramm",
+        git_hash="abc123",
+        dateien=(("A", "ref_Mitte.svd"), ("B", "ref_Rand.svd")),
+        unbestaetigt=("M8",),
+    )
+    assert s.zeilen == (
+        f"{ARBEITSANSICHT} · Ansicht 5 Diagramm · abc123",
+        "A: ref_Mitte.svd",
+        "B: ref_Rand.svd",
+        "⚠ enthält unbestätigte Größen (M8)",
+    )
+    ohne_hash = baue_stempel(ansicht="x", git_hash=None, dateien=(("A", "a.svd"),))
+    assert ohne_hash.zeilen[0].endswith("Git-Hash unbekannt")
+    # alte Aufrufe mit dateiname= bleiben gültig, ``dateien`` hat Vorrang
+    beide = baue_stempel(dateiname="x.svd", ansicht="x", git_hash="h", dateien=(("A", "a.svd"),))
+    assert "x.svd" not in beide.zeilen[0] and beide.zeilen[1] == "A: a.svd"
+    with pytest.raises(ValueError, match="Dateinamen"):
+        baue_stempel(ansicht="x", git_hash="h")
+
+
+def test_diagramm_bild_traegt_den_stempel_die_zeichenfunktion_allein_nicht(
+    tmp_path: Path,
+) -> None:
+    md = dd.synthetische_messdaten()
+    cache = PaarCache(md)
+    messungen = {1: (md, cache, "A", "a.svd"), 2: (md, cache, "B", "b.svd")}
+    daten = loese_alle_auf(
+        [
+            SerienSpec(1, None, "spektrum", komponente="Z", slot=0),
+            SerienSpec(2, None, "spektrum", komponente="Z", slot=1),
+        ],
+        messungen.get,
+        anordnung="ueberlagert",
+    )
+    stempel = baue_stempel(
+        ansicht="Ansicht 5 Diagramm",
+        git_hash="abc123",
+        dateien=(("A", "a.svd"), ("B", "b.svd")),
+        unbestaetigt=("M8",),
+    )
+    z = speichere_arbeitsbild(
+        lambda fig: zeichne_diagramm(fig, daten, DiagrammOptionen(), STIL),
+        tmp_path / "d.png",
+        stempel,
+        STIL,
+    )
+    texte = z.alle_texte()
+    assert all(zeile in texte for zeile in stempel.zeilen)
+    ohne = zeichne_diagramm(neue_figure(THESIS_STIL), daten, DiagrammOptionen(), THESIS_STIL)
+    reines = ohne.alle_texte()
+    assert not any("Arbeitsansicht" in t or "unbestätigte Größen" in t for t in reines)
+    assert "A: a.svd" not in reines and "B: b.svd" not in reines
+    assert len(ohne.linien) == len(z.linien) == 2  # dieselbe Zeichnung mit und ohne Stempel

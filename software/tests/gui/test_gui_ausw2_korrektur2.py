@@ -15,7 +15,7 @@ from ldv_automation.gui.achsen_zustand import AchsenZustand
 from ldv_automation.gui.achsenleiste import Achsenleiste
 from ldv_automation.gui.auswerten_reiter import KOMPAKT_BREITE_PX, AuswertenReiter
 from ldv_automation.gui.messungen import MessungsZustand
-from ldv_automation.gui.serien import baue_spec
+from ldv_automation.gui.serien import TEXT_SERIEN_VOLL, baue_spec
 
 pytestmark = pytest.mark.gui
 
@@ -317,17 +317,17 @@ def test_kompakte_achsenleiste_braucht_bei_804_px_eine_zeile(qtbot) -> None:  # 
     assert flach <= zeile + 2
 
 
-def test_kompakt_hinweis_serien_voll_nur_im_tooltip_anordnung_nebeneinander(baue: Bauer) -> None:
+def test_serien_voll_nur_im_tooltip_anordnung_nebeneinander_bei_kompakt(baue: Bauer) -> None:
     a, _ = start(baue, A)
     sel = a.auswahl_diagramm
     sel.setze_voll(True)
-    assert not sel.lbl_voll.isHidden()
+    assert not sel.btn_serie_neu.isEnabled() and sel.btn_serie_neu.toolTip() == TEXT_SERIEN_VOLL
     groesse_melden(a, 1100)
-    assert sel.lbl_voll.isHidden() and sel.btn_serie_neu.toolTip() != ""
+    assert sel.btn_serie_neu.toolTip() == TEXT_SERIEN_VOLL
     assert sel._anordnung_zeile.direction() == QBoxLayout.Direction.LeftToRight
-    sel.setze_voll(True)  # bleibt ausgeblendet
-    assert sel.lbl_voll.isHidden()
+    sel.setze_voll(True)  # bleibt gesperrt, Grund im Tooltip
+    assert sel.btn_serie_neu.toolTip() == TEXT_SERIEN_VOLL
     groesse_melden(a, 1366)
-    assert not sel.lbl_voll.isHidden()
+    assert sel.btn_serie_neu.toolTip() == TEXT_SERIEN_VOLL
     assert sel._anordnung_zeile.direction() == QBoxLayout.Direction.TopToBottom
     a.beende()

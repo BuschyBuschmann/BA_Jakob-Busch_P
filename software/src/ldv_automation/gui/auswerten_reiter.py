@@ -196,14 +196,18 @@ from ldv_automation.gui.serien import (
     TEXT_SERIEN_VOLL,
     SerienFehler,
     SerienListe,
+    Uebernahme,
     baue_spec,
     groessen_verfuegbar,
     kopf_text,
     messungs_zugriff,
     paare_je_messung,
     serie_text,
+    serien_aus_ansicht,
     serien_fuer_alle,
     standard_paar,
+    stempel_dateien,
+    uebernimm,
     unmoeglich_text,
 )
 from ldv_automation.gui.stil import schrift
@@ -239,13 +243,14 @@ PLOT_WUNSCH_HOEHE_SPLITTER_PX = 264
 """Gewünschte Höhe des Plots (ohne Achsenleiste) in Ansicht 3 bei der Standardhöhe der Tabelle:
 Die Achse ist dann auch bei 1366 mal 768 mindestens 160 px hoch. Reicht der Platz nicht, gibt die
 Tabelle bis auf ihre Mindesthöhe nach, danach der Plot bis :data:`PLOT_MIN_HOEHE_SPLITTER_PX`."""
-TEXT_BILD_ANSICHT_5 = "Bild speichern ist für Ansicht 5 noch nicht freigeschaltet."
+TEXT_BILD_KEINE_SERIE = "Bild speichern: Das Diagramm hat keine sichtbare, darstellbare Serie."
 _BETRAG_NAMEN = {"spektrum": "Spektrum", "h1": "|H1|", "h2": "|H2|"}
 """Kurznamen der Betragsgrößen für die Auswahl der Achsenleiste (Ansicht 5, nebeneinander)."""
 KOMPAKT_BREITE_PX = 1200
 """Unter dieser Breite des Reiters wird die Oberfläche kompakt: Dateiname neben den Chips,
-Hinweis „Höchstens vier Serien“ und lange Beschriftungen der Achsenleiste entfallen (Plot und
-Chips bekommen den Platz; die vollständigen Texte stehen in Tooltips)."""
+lange Beschriftungen der Achsenleiste entfallen (Plot und Chips bekommen den Platz; die
+vollständigen Texte stehen in Tooltips). Der Hinweis „Höchstens vier Serien“ steht unter der
+Serienliste in keiner Breite, sondern nur im Tooltip von „+ Serie“."""
 
 TEXT_HINZU_ERST_DATEI = "Zuerst eine Messdatei öffnen."
 """Tooltip von ``Messung hinzufügen …`` ohne Datei (Brief K1-AUSW2 Abschnitt 4)."""
@@ -454,6 +459,7 @@ class AuswertenReiter(QWidget):
         self._auftrag_b: tuple[int, Auftrag] | None = None
         self._fehlertext: str | None = None
         self._ansicht = 1
+        self._letzte_ansicht_1_3 = 1
         self._paare: tuple[tuple[str, str], ...] = ()
         self._spitze: int | None = None
         self._ansichtstext: str | None = None
@@ -702,6 +708,8 @@ class AuswertenReiter(QWidget):
         self.auswahl_diagramm.geaendert.connect(self._optionen_5_geaendert)
         self.auswahl_diagramm.serie_neu.connect(self._serie_neu)
         self.auswahl_diagramm.serie_alle.connect(self._serie_alle)
+        self.auswahl_diagramm.serie_aus_ansicht.connect(self._serie_aus_ansicht)
+        self.auswahl_diagramm.serie_bearbeiten.connect(self._serie_bearbeiten)
         self.auswahl_diagramm.serie_entfernen.connect(self._serie_entfernen_geklickt)
         self.auswahl_diagramm.serie_sichtbar.connect(self._serie_sichtbar_geaendert)
         return self.auswahlspalte
@@ -1165,12 +1173,18 @@ class AuswertenReiter(QWidget):
 
     def _bild_grund(self) -> str | None:
         """Grund, warum die gezeigte Ansicht kein Bild liefert (Platzhaltertext statt Plot)."""
-        if self._zustand is AuswertenZustand.GELADEN and self._ansicht == 5:
-            return TEXT_BILD_ANSICHT_5  # Bildstempel für mehrere Dateien: P-AUSW2 S9
         if self._zustand is AuswertenZustand.GELADEN and (
             self._ansichtstext is not None or self.plot.letzter_aufruf is None
         ):
             return TEXT_BILD_KEINE_DARSTELLUNG
+        aufruf = self.plot.letzter_aufruf
+        if (
+            self._zustand is AuswertenZustand.GELADEN
+            and self._ansicht == 5
+            and aufruf is not None
+            and not any(s.sichtbar for s in getattr(aufruf[1], "serien", ()))
+        ):
+            return TEXT_BILD_KEINE_SERIE  # nur unsichtbare oder nicht darstellbare Serien
         return None
 
     def _sync_knoepfe(self) -> None:
@@ -1533,7 +1547,7 @@ class AuswertenReiter(QWidget):
             )
         self.auswahl_frf.setze_phase_erklaerung(kennzeichen_beschreibung("phase", self._annahmen()))
         if self._ansicht in (2, 4, 5):
-            self._zeichne(zoom_behalten=True)
+            self._zeichne()
 
     def _verwerfe_datei(self) -> list[str]:
         """Setzt den Reiter in den Zustand „Keine Datei“ zurück (nach einem Fehler beim Aufbau).
@@ -2214,20 +2228,33 @@ class AuswertenReiter(QWidget):
         self._sync_knoepfe()
 
     def _bild_geklickt(self) -> None:
-        """``Bild speichern …`` (UI-17): Arbeitsbild mit Stempel, Zoom übernommen."""
+        """``Bild speichern …`` (UI-17, UI-19): Arbeitsbild mit Stempel, Zoom übernommen.
+
+        Ansicht 5 nennt im Stempel **alle** Dateien, die im Bild eine Linie haben (Kurzname und
+        Dateiname je Zeile); die anderen Ansichten die aktive Datei.
+        """
         if self._zustand is not AuswertenZustand.GELADEN or self._datei_pfad is None:
             return
         if self._bild_grund() is not None:
             return
-        gewaehlt = self._waehle_bild_ziel(bild_vorschlag(self._datei_pfad, self._ansicht))
-        if not gewaehlt:
-            return
         aufruf = self.plot.letzter_aufruf
         assert aufruf is not None  # _bild_grund() hat die leere Fläche ausgeschlossen
         ansicht, daten, optionen = aufruf
+        vorschlag_pfad = self._datei_pfad
+        dateien: tuple[tuple[str, str], ...] = ()
+        if ansicht is Ansicht.DIAGRAMM:
+            serien = tuple(getattr(daten, "serien", ()))
+            dateien = stempel_dateien(serien)
+            erste = next((s for s in serien if s.sichtbar), None)
+            messung = self._messungen.finde(erste.spec.messung_id) if erste is not None else None
+            vorschlag_pfad = messung.pfad if messung is not None else self._datei_pfad
+        gewaehlt = self._waehle_bild_ziel(bild_vorschlag(vorschlag_pfad, self._ansicht))
+        if not gewaehlt:
+            return
         git_hash, geaendert = self._git_hash()
         stempel = baue_stempel(
-            dateiname=dateiname_von(self._datei_pfad),
+            dateiname=None if dateien else dateiname_von(self._datei_pfad),
+            dateien=dateien,
             ansicht=stempel_ansicht(self._ansicht),
             git_hash=git_hash_text(git_hash, geaendert),
             unbestaetigt=bild_unbestaetigt(ansicht.value, daten, optionen, self._annahmen()),
@@ -2292,6 +2319,8 @@ class AuswertenReiter(QWidget):
     def _aktiviere_ansicht(self, nr: int) -> None:
         """Schaltet Auswahlseite und gemeinsame Elemente der Ansicht ``nr`` (1 bis 4) um."""
         self._ansicht = nr
+        if nr in (1, 2, 3):
+            self._letzte_ansicht_1_3 = nr  # Quelle von „Aus aktueller Ansicht übernehmen“
         self.achsenleiste.setze_ansicht(nr)  # Ansicht 4 hat keine Achsenleiste
         self._ad_stapel.setCurrentIndex(nr - 1)
         for i, seite in enumerate(self._ad_seiten):  # der Stapel misst nur die aktuelle Seite
@@ -2308,7 +2337,7 @@ class AuswertenReiter(QWidget):
         if nr == 3:
             self._splitter_anwenden()
             # Qt verteilt die Höhen nach dem Einblenden der Tabelle noch einmal: danach erneut.
-            QTimer.singleShot(0, self._splitter_nachziehen)
+            QTimer.singleShot(0, self, self._splitter_nachziehen)  # an die Lebensdauer gebunden
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802  # Qt-Name
         """Schaltet bei schmalem Fenster (< :data:`KOMPAKT_BREITE_PX`) auf kompakte Anzeige."""
@@ -2419,12 +2448,12 @@ class AuswertenReiter(QWidget):
         if nr not in FREIGESCHALTETE_ANSICHTEN or self._geladen is None:
             return
         self._aktiviere_ansicht(nr)
-        self._zeichne(zoom_behalten=True)
+        self._zeichne()
 
     def _ansicht_geaendert(self) -> None:
         """Bedienelement einer Auswahlseite (Ansicht 2 oder 4) geändert."""
         if not self._in_aufbau and self._geladen is not None:
-            self._zeichne(zoom_behalten=True)
+            self._zeichne()
 
     def _paar(self) -> tuple[str, str] | None:
         """Gewähltes Kanalpaar (``None`` = Datei ohne Referenz)."""
@@ -2436,7 +2465,7 @@ class AuswertenReiter(QWidget):
         self._a3_schluessel = None
         self._a4_paar_schluessel = None
         if not self._in_aufbau and self._geladen is not None:
-            self._zeichne(zoom_behalten=True)
+            self._zeichne()
 
     def _annahmen(self) -> Sequence[AnnahmeEintrag]:
         """Annahmen der Auswertung: aus Stufe B, bis dahin die Voreinstellungen (``Annahmen``)."""
@@ -2488,9 +2517,9 @@ class AuswertenReiter(QWidget):
         finally:
             self._in_aufbau = False
         self._auswahl = self._lese_auswahl()
-        self._zeichne(zoom_behalten=True)
+        self._zeichne()
 
-    def _zeichne(self, *, zoom_behalten: bool = False) -> None:
+    def _zeichne(self) -> None:
         """Zeichnet die gewählte Ansicht mit der gemeinsamen Zeichenfunktion in die Plotfläche.
 
         Erwartete Fehler der Datenauswahl (``DarstellungsFehler``) stehen in der Meldezeile,
@@ -2508,7 +2537,7 @@ class AuswertenReiter(QWidget):
         }[self._ansicht]
         try:
             self._ansichtstext = None
-            zeichner(zoom_behalten=zoom_behalten)
+            zeichner()
             self._zeige_cursor()
         except (DarstellungsFehler, AchsenFehler) as fehler:
             self._setze_meldung(f"{t.symbol('fehler')} {fehler}")
@@ -2524,13 +2553,9 @@ class AuswertenReiter(QWidget):
         daten: object,
         optionen: object,
         beschreibung: str,
-        *,
-        zoom_behalten: bool,
     ) -> Zeichnung:
         """Zeichnet in die Plotfläche und merkt, welche Ansicht sie jetzt zeigt."""
-        zeichnung = self.plot.zeichne(
-            ansicht, daten, optionen, beschreibung, zoom_behalten=zoom_behalten
-        )
+        zeichnung = self.plot.zeichne(ansicht, daten, optionen, beschreibung)
         self._plot_ansicht = nr
         return zeichnung
 
@@ -2550,9 +2575,7 @@ class AuswertenReiter(QWidget):
             return
         if self._ansicht == 4 and self._a4_letzt is not None:
             daten, optionen, beschreibung, kopf, hinweise = self._a4_letzt
-            self._zeichne_plot(
-                4, Ansicht.SCHWINGFORM, daten, optionen, beschreibung, zoom_behalten=True
-            )
+            self._zeichne_plot(4, Ansicht.SCHWINGFORM, daten, optionen, beschreibung)
             self.lbl_plotkopf.setText(kopf)
             self.auswahl_sf.setze_hinweise(hinweise)
             return
@@ -2568,7 +2591,7 @@ class AuswertenReiter(QWidget):
         self.lbl_fehler.setText(self._fehlertext)
         self.band_fehler.setVisible(True)
 
-    def _zeichne_ansicht_1(self, *, zoom_behalten: bool) -> None:
+    def _zeichne_ansicht_1(self) -> None:
         assert self._geladen is not None and self._cache is not None
         daten = self._geladen.messdaten
         a = self._auswahl
@@ -2590,7 +2613,6 @@ class AuswertenReiter(QWidget):
             spektrum,
             SpektrumOptionen(skala=self.plot.achsen_zustand.skala(1, "betrag")),
             beschreibung,
-            zoom_behalten=zoom_behalten,
         )
         self.lbl_plotkopf.setText(
             plotkopf_text(
@@ -2617,7 +2639,7 @@ class AuswertenReiter(QWidget):
             ansicht, self._dateiname(), auswahl_text, komponenten, float(f[0]), float(f[-1])
         )
 
-    def _zeichne_ansicht_2(self, *, zoom_behalten: bool) -> None:
+    def _zeichne_ansicht_2(self) -> None:
         """Ansicht 2: Betrag, optional Phase, Kohärenz des gewählten Kanalpaars (UI-5, UI-6)."""
         assert self._geladen is not None and self._cache is not None
         paar = self._paar()
@@ -2642,7 +2664,6 @@ class AuswertenReiter(QWidget):
             daten,
             opt,
             self._beschreibung(2, daten.auswahl_text, [kanalpaar_text(*paar), *kurven]),
-            zoom_behalten=zoom_behalten,
         )
         self.lbl_plotkopf.setText(
             plotkopf_text(
@@ -2677,7 +2698,7 @@ class AuswertenReiter(QWidget):
             self._a3_schluessel = schluessel  # erst nach vollständigem Füllen (sonst Neuversuch)
         return self._a3_spitzen
 
-    def _zeichne_ansicht_3(self, *, zoom_behalten: bool) -> None:
+    def _zeichne_ansicht_3(self) -> None:
         """Ansicht 3: Kurve mit Spitzen und Band, Tabellen für Spitzen und Bänder (UI-7, UI-8)."""
         assert self._geladen is not None and self._cache is not None
         daten = self._geladen.messdaten
@@ -2709,7 +2730,6 @@ class AuswertenReiter(QWidget):
                 legende_im_bild=False,
             ),
             beschreibung,
-            zoom_behalten=zoom_behalten,
         )
         gewaehlt = spitzen[self._spitze] if self._spitze is not None else None
         self.auswahl_spitzen.setze_kurve("\n".join(zeichnung.hilfsobjekte["legende_eintraege"]))
@@ -2735,7 +2755,7 @@ class AuswertenReiter(QWidget):
         if self._ansicht != 3 or index == self._spitze:
             return
         self._spitze = index
-        self._zeichne(zoom_behalten=True)
+        self._zeichne()
 
     # --- Ansicht 4 --------------------------------------------------------------------------
 
@@ -2818,7 +2838,7 @@ class AuswertenReiter(QWidget):
         if 0 <= index < len(spitzen):
             self.auswahl_sf.setze_frequenz(float(spitzen[index].f_sp_hz))  # type: ignore[attr-defined]
 
-    def _zeichne_ansicht_4(self, *, zoom_behalten: bool) -> None:
+    def _zeichne_ansicht_4(self) -> None:
         """Ansicht 4: Schwingform bei einer Linie, Betrag oder Phase (UI-9, UI-10)."""
         assert self._geladen is not None and self._cache is not None
         daten = self._geladen.messdaten
@@ -2861,9 +2881,7 @@ class AuswertenReiter(QWidget):
         beschreibung = self._beschreibung(
             4, f"Linie {frequenz_text(sd.f_hz, 3)}", [sd.komponente, darstellung]
         )
-        zeichnung = self._zeichne_plot(
-            4, Ansicht.SCHWINGFORM, sd, opt, beschreibung, zoom_behalten=zoom_behalten
-        )
+        zeichnung = self._zeichne_plot(4, Ansicht.SCHWINGFORM, sd, opt, beschreibung)
         kopf = plotkopf_text(
             self._dateiname(),
             f"Linie {frequenz_text(sd.f_hz, 3)}",
@@ -2973,16 +2991,29 @@ class AuswertenReiter(QWidget):
 
     def _frage_serie(self) -> SerienSpec | None:  # pragma: no cover - modaler Dialog
         """Zeigt den Serien-Dialog (Tests ersetzen die Methode); ``None`` = abgebrochen."""
+        return self._zeige_serien_dialog(None)
+
+    def _frage_serie_bearbeiten(self, spec: SerienSpec) -> SerienSpec | None:  # pragma: no cover
+        """Zeigt den Serien-Dialog mit ``spec`` vorbelegt (Tests ersetzen die Methode)."""
+        return self._zeige_serien_dialog(spec)
+
+    def _zeige_serien_dialog(
+        self, vorgabe: SerienSpec | None
+    ) -> SerienSpec | None:  # pragma: no cover
         sel = self.auswahl_diagramm
         aktive = self._messungen.aktive
         dialog = SerienDialog(
             self._angaben_der_messungen(),
-            sel.groesse(),
+            sel.groesse() if vorgabe is None else vorgabe.groesse,
             sel.teilgroesse(),
             nebeneinander=sel.anordnung() == "nebeneinander",
             aktiv_id=aktive.id if aktive is not None else None,
+            vorgabe=vorgabe,
             parent=self,
         )
+        return self._fuehre_dialog_aus(dialog)
+
+    def _fuehre_dialog_aus(self, dialog: SerienDialog) -> SerienSpec | None:  # pragma: no cover
         return dialog.ergebnis() if dialog.exec() == QDialog.DialogCode.Accepted else None
 
     def _serie_neu(self) -> None:
@@ -2992,6 +3023,88 @@ class AuswertenReiter(QWidget):
         spec = self._frage_serie()
         if spec is not None and self._serie_anlegen(spec):
             self._zeichne()
+
+    def _serie_bearbeiten(self, zeile: int) -> None:
+        """``Bearbeiten`` (oder Doppelklick): Dialog mit der Serie vorbelegt, Slot bleibt."""
+        if not 0 <= zeile < len(self._serien) or self._geladen is None:
+            return
+        neu = self._frage_serie_bearbeiten(self._serien.specs[zeile])
+        if neu is None:
+            return
+        sel = self.auswahl_diagramm
+        try:
+            self._serien.ersetze(zeile, neu)
+        except SerienFehler as fehler:
+            sel.setze_meldung(str(fehler))
+            return
+        sel.setze_meldung("")
+        self._zeichne()
+
+    def _auswahl_der_ansicht(self) -> Uebernahme | None:
+        """Auswahl der letzten Ansicht 1 bis 3 als Serien (``None``: Grund steht in AD)."""
+        aktive = self._messungen.aktive
+        if aktive is None or aktive.geladen is None:
+            return None
+        daten = aktive.geladen.messdaten
+        ansicht = self._letzte_ansicht_1_3
+        a = self._lese_auswahl()
+        label = int(daten.punkte.label[a.punkt]) if a.punkt is not None else None
+        ap = daten.ap
+        kanal = next((k for k in ap if k.startswith("Vib")), next(iter(ap), None))
+        try:
+            return serien_aus_ansicht(
+                ansicht,
+                aktive.id,
+                punkt_label=label,
+                komponenten=a.komponenten,
+                teilgroesse=a.groesse,
+                kanalpaar=self._paar(),
+                h1=self.auswahl_frf.chk_h1.isChecked(),
+                h2=self.auswahl_frf.chk_h2.isChecked(),
+                kanal=kanal,
+            )
+        except SerienFehler as fehler:
+            self.auswahl_diagramm.setze_meldung(str(fehler))
+            return None
+
+    def _serie_aus_ansicht(self) -> None:
+        """``Aus aktueller Ansicht übernehmen``: Auswahl der Ansicht 1 bis 3 als Serie(n).
+
+        Ersetzt keine vorhandene Serie. Bei leerer Liste bestimmt die Übernahme die Größe des
+        Diagramms; sonst wird nichts gewechselt, wenn die Größe nicht passt (der Grund steht in
+        AD). Mehr als vier Serien: so viele wie passen, AF nennt den Rest.
+        """
+        if self._geladen is None:
+            return
+        sel = self.auswahl_diagramm
+        uebernahme = self._auswahl_der_ansicht()
+        if uebernahme is None:
+            return
+        if not len(self._serien):
+            sel.setze_groesse(uebernahme.groesse, uebernahme.teilgroesse)
+        spektrum_neu = uebernahme.groesse == "spektrum" and not any(
+            s.groesse == "spektrum" for s in self._serien.specs
+        )
+        try:
+            ergebnis = uebernimm(
+                self._serien,
+                uebernahme,
+                diagramm_groesse=sel.groesse(),
+                diagramm_teilgroesse=sel.teilgroesse(),
+                nebeneinander=sel.anordnung() == "nebeneinander",
+            )
+        except SerienFehler as fehler:
+            sel.setze_meldung(f"{t.symbol('warnung')} {fehler}")
+            return
+        if spektrum_neu and ergebnis.angelegt:
+            # Die Teilgröße des Diagramms gilt für alle Spektren (siehe _optionen_5_geaendert);
+            # ohne diesen Schritt stünde |CPH| im Diagramm neben einer √AP-Serie.
+            sel.setze_teilgroesse(uebernahme.teilgroesse)
+        text = ergebnis.text(uebernahme.ansicht)
+        sel.setze_meldung(text)
+        self._zeichne()
+        if not ergebnis.vollstaendig or ergebnis.vorhanden:  # AF zeigt es auch nach dem Zeichnen
+            self._setze_meldung(f"{t.symbol('warnung')} {text}")
 
     def _vorlage_fuer_alle(self) -> SerienSpec | None:
         """Auswahl für „Für alle Messungen“: gewählte Serie, sonst letzte, sonst Voreinstellung."""
@@ -3054,7 +3167,7 @@ class AuswertenReiter(QWidget):
             self._serien.setze_sichtbar(zeile, sichtbar)
             self._zeichne()
 
-    def _zeichne_ansicht_5(self, *, zoom_behalten: bool) -> None:
+    def _zeichne_ansicht_5(self) -> None:
         """Ansicht 5: Diagramm aus den Serien aller Messungen (R-058, R-059).
 
         Die Serien werden nur neu aufgelöst, wenn sich ihre Beschreibung geändert hat
@@ -3122,9 +3235,7 @@ class AuswertenReiter(QWidget):
         kurznamen = list(dict.fromkeys(s.kurzname for s in daten.serien))
         groessen = [s.groesse for s in daten.serien if s.sichtbar]
         beschreibung = self._beschreibung_5(daten.serien, kurznamen, groessen, anordnung)
-        zeichnung = self._zeichne_plot(
-            5, Ansicht.DIAGRAMM, daten, opt, beschreibung, zoom_behalten=zoom_behalten
-        )
+        zeichnung = self._zeichne_plot(5, Ansicht.DIAGRAMM, daten, opt, beschreibung)
         self.lbl_plotkopf.setText(kopf_text(kurznamen, groessen, anordnung))
         gruende = [
             unmoeglich_text(spec, self._kurzname(spec.messung_id), grund, symbol=t.symbol("fehler"))

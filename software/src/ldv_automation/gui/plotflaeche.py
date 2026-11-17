@@ -323,8 +323,6 @@ class PlotFlaeche(QFrame):
         daten: object,
         optionen: object,
         beschreibung: str = "",
-        *,
-        zoom_behalten: bool = False,
     ) -> Zeichnung:
         """Zeichnet ``ansicht`` mit der gemeinsamen Zeichenfunktion in die Figure.
 
@@ -340,10 +338,8 @@ class PlotFlaeche(QFrame):
         daten, optionen : object
             Daten und Optionen der Zeichenfunktion (``SpektrumDaten``/``SpektrumOptionen`` …).
         beschreibung : str, optional
-            Textalternative des Plots (``accessibleDescription``).
-        zoom_behalten : bool, optional
-            Ohne Wirkung: Den Ausschnitt hält der Achsenzustand (eine Quelle). Der Parameter
-            bleibt bis P-AUSW2 S10, damit Aufrufer und Tests nicht brechen.
+            Textalternative des Plots (``accessibleDescription``). Den Ausschnitt hält der
+            Achsenzustand (eine Quelle), die Fläche braucht dafür keinen Parameter.
 
         Returns
         -------
@@ -356,7 +352,6 @@ class PlotFlaeche(QFrame):
             Der Achsenzustand enthält einen ungültigen Bereich (die Oberfläche prüft Eingaben
             vorher; das ist die Absicherung).
         """
-        del zoom_behalten
         self._synchronisiere()
         zeichnung = ZEICHNER[ansicht](
             self._figure, daten, self._mit_achsen(ansicht, optionen), self._stil
@@ -669,7 +664,7 @@ class PlotFlaeche(QFrame):
             return
         ansicht, daten, optionen, beschreibung = self._letzter_aufruf
         try:
-            self.zeichne(ansicht, daten, optionen, beschreibung, zoom_behalten=True)
+            self.zeichne(ansicht, daten, optionen, beschreibung)
         except Exception as fehler:  # Zeichenfunktion scheitert: melden statt verschlucken
             self.fehler.emit(str(fehler))
 

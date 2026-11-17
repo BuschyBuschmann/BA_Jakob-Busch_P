@@ -53,33 +53,51 @@ class Stempel:
 
 def baue_stempel(
     *,
-    dateiname: str,
+    dateiname: str | None = None,
     ansicht: str,
     git_hash: str | None,
     unbestaetigt: Sequence[str] = (),
     warn_symbol: str = "⚠",
+    dateien: Sequence[tuple[str, str]] = (),
 ) -> Stempel:
     """Stempel „Arbeitsansicht – nicht für die Thesis · Datei · Ansicht · Git-Hash“.
 
+    Mit ``dateien`` (Ansicht 5: mehrere Messungen) steht in der Kopfzeile statt der Datei nur
+    „Ansicht · Git-Hash“, danach je Datei eine Zeile ``<Kurzname>: <Dateiname>``.
+
     Parameters
     ----------
-    dateiname : str
-        Name der Messdatei.
+    dateiname : str, optional
+        Name der Messdatei (eine Datei). Entfällt, wenn ``dateien`` gesetzt ist.
     ansicht : str
         Name der Ansicht, z. B. „Ansicht 1 Spektrum“.
     git_hash : str or None
         Git-Hash der Software; ``None`` ergibt „Git-Hash unbekannt“.
     unbestaetigt : sequence of str
         Nummern der Annahmen, von denen unbestätigte Größen im Bild abhängen (z. B. ``("M8",)``);
-        leer = keine zweite Zeile.
+        leer = keine Warnzeile.
     warn_symbol : str
         Symbol der Warnzeile (Oberfläche: ``tokens.symbol("warnung")``).
+    dateien : sequence of tuple of str
+        ``(Kurzname, Dateiname)`` jeder beteiligten Messung (Ansicht 5); leer = eine Datei über
+        ``dateiname``.
+
+    Raises
+    ------
+    ValueError
+        Weder ``dateiname`` noch ``dateien`` angegeben.
     """
-    erste = f"{ARBEITSANSICHT} · {dateiname} · {ansicht} · {git_hash or 'Git-Hash unbekannt'}"
-    if not unbestaetigt:
-        return Stempel(zeilen=(erste,))
-    zweite = f"{warn_symbol} enthält unbestätigte Größen ({', '.join(unbestaetigt)})"
-    return Stempel(zeilen=(erste, zweite))
+    hash_text = git_hash or "Git-Hash unbekannt"
+    if dateien:
+        zeilen = [f"{ARBEITSANSICHT} · {ansicht} · {hash_text}"]
+        zeilen += [f"{kurzname}: {name}" for kurzname, name in dateien]
+    elif dateiname is not None:
+        zeilen = [f"{ARBEITSANSICHT} · {dateiname} · {ansicht} · {hash_text}"]
+    else:
+        raise ValueError("Der Stempel braucht einen Dateinamen oder eine Liste von Dateien.")
+    if unbestaetigt:
+        zeilen.append(f"{warn_symbol} enthält unbestätigte Größen ({', '.join(unbestaetigt)})")
+    return Stempel(zeilen=tuple(zeilen))
 
 
 def neue_figure(

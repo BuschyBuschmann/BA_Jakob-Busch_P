@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import dataclass
 
 from ldv_automation.auswertung.daten import Messdaten
 from ldv_automation.darstellung.auswahl import Groesse, PaarCache
@@ -19,6 +20,7 @@ from ldv_automation.darstellung.diagramm import Anordnung
 from ldv_automation.darstellung.serien_daten import (
     GROESSEN,
     GROESSEN_NAMEN,
+    DiagrammSerie,
     GroessenId,
     MessungsZugriff,
     SerienSpec,
@@ -33,8 +35,11 @@ __all__ = [
     "TEXT_KEINE_SERIE",
     "TEXT_SERIEN_VOLL",
     "TEXT_SERIE_DOPPELT",
+    "TEXT_UEBERNAHME_ANSICHT_4",
     "SerienFehler",
     "SerienListe",
+    "Uebernahme",
+    "UebernahmeErgebnis",
     "baue_spec",
     "groessen_verfuegbar",
     "komponente_von_paar",
@@ -42,8 +47,11 @@ __all__ = [
     "messungs_zugriff",
     "paare_je_messung",
     "serie_text",
+    "serien_aus_ansicht",
     "serien_fuer_alle",
     "standard_paar",
+    "stempel_dateien",
+    "uebernimm",
     "unmoeglich_text",
 ]
 
@@ -115,6 +123,23 @@ class SerienListe:
     def entferne(self, index: int) -> SerienSpec:
         """Entfernt die Serie an Position ``index``."""
         return self._specs.pop(index)
+
+    def ersetze(self, index: int, spec: SerienSpec) -> SerienSpec:
+        """Ändert die Serie an Position ``index`` (``Bearbeiten``); Slot und Sichtbarkeit bleiben.
+
+        Raises
+        ------
+        SerienFehler
+            Dieselbe Serie gibt es schon an anderer Stelle (:data:`TEXT_SERIE_DOPPELT`).
+        """
+        alt = self._specs[index]
+        if any(
+            i != index and s.schluessel() == spec.schluessel() for i, s in enumerate(self._specs)
+        ):
+            raise SerienFehler(TEXT_SERIE_DOPPELT)
+        neu = dataclasses.replace(spec, slot=alt.slot, sichtbar=alt.sichtbar)
+        self._specs[index] = neu
+        return neu
 
     def setze_sichtbar(self, index: int, sichtbar: bool) -> None:
         """Blendet eine Serie ein oder aus (sie zählt weiter für die Achsenwahl, UI-21)."""
@@ -276,6 +301,192 @@ def serien_fuer_alle(
             continue
         serien.append(dataclasses.replace(vorlage, messung_id=m.id))
     return serien, gruende
+
+
+# --- Aus aktueller Ansicht übernehmen ---------------------------------------
+
+
+@dataclass(frozen=True)
+class Uebernahme:
+    """Serien, die die Auswahl einer Ansicht 1 bis 3 beschreibt (``Aus aktueller Ansicht``).
+
+    Attributes
+    ----------
+    ansicht : int
+        Quelle (1 bis 3).
+    specs : tuple of SerienSpec
+        Die Serien (ohne vergebenen Slot).
+    groesse : GroessenId
+        Größe aller Serien.
+    teilgroesse : Groesse
+        Teilgröße des Spektrums (bei anderen Größen ohne Bedeutung).
+    """
+
+    ansicht: int
+    specs: tuple[SerienSpec, ...]
+    groesse: GroessenId
+    teilgroesse: Groesse
+
+
+@dataclass(frozen=True)
+class UebernahmeErgebnis:
+    """Was die Übernahme in der Liste bewirkt hat.
+
+    Attributes
+    ----------
+    angelegt, vorhanden, rest : int
+        Neu angelegte Serien, bereits vorhandene (nicht doppelt) und wegen der Grenze
+        (:data:`SERIEN_MAX`) nicht angelegte.
+    """
+
+    angelegt: int
+    vorhanden: int
+    rest: int
+
+    def text(self, ansicht: int) -> str:
+        """Meldung für AD und AF („2 Serien aus Ansicht 1 übernommen; 1 passte nicht …“)."""
+        teile = [f"{_serien_wort(self.angelegt)} aus Ansicht {ansicht} übernommen"]
+        if self.vorhanden:
+            teile.append(f"{self.vorhanden} gab es schon")
+        if self.rest:
+            wort = "passte" if self.rest == 1 else "passten"
+            teile.append(f"{self.rest} {wort} nicht ({TEXT_SERIEN_VOLL_KURZ})")
+        return "; ".join(teile) + "."
+
+    @property
+    def vollstaendig(self) -> bool:
+        """Alles, was die Ansicht beschreibt, steht jetzt in der Liste."""
+        return self.rest == 0
+
+
+TEXT_SERIEN_VOLL_KURZ = f"höchstens {SERIEN_MAX} Serien"
+TEXT_UEBERNAHME_ANSICHT_4 = "Aus Ansicht 4 lässt sich keine Serie übernehmen."
+
+
+def _serien_wort(n: int) -> str:
+    return "1 Serie" if n == 1 else f"{n} Serien"
+
+
+def serien_aus_ansicht(
+    ansicht: int,
+    messung_id: int,
+    *,
+    punkt_label: int | None,
+    komponenten: Sequence[str],
+    teilgroesse: Groesse,
+    kanalpaar: tuple[str, str] | None,
+    h1: bool = True,
+    h2: bool = False,
+    kanal: str | None = None,
+) -> Uebernahme:
+    """Beschreibt die Auswahl der Ansicht 1 bis 3 als Serien der Messung ``messung_id``.
+
+    * Ansicht 1: je gewählte Komponente eine Serie (Spektrum, Teilgröße der Ansicht).
+    * Ansicht 2: |H1| des Kanalpaars (|H2|, wenn nur dieses gewählt ist), Punkt der Ansicht.
+    * Ansicht 3: die gezeigte Kurve, das Betragsmittel |H1| des Kanalpaars; ohne Referenz
+      (``kanalpaar=None``) das Leistungsmittel √AP des Kanals ``kanal`` (Spektrum).
+
+    Raises
+    ------
+    SerienFehler
+        Die Ansicht beschreibt keine Serie (keine Komponente, kein Kanalpaar, Ansicht 4).
+    """
+    if ansicht == 1:
+        if not komponenten:
+            raise SerienFehler("Ansicht 1 hat keine Komponente gewählt.")
+        specs = tuple(
+            baue_spec(messung_id, punkt_label, "spektrum", komponente=c, teilgroesse=teilgroesse)
+            for c in komponenten
+        )
+        return Uebernahme(1, specs, "spektrum", teilgroesse)
+    if ansicht == 2:
+        if kanalpaar is None:
+            raise SerienFehler("Ansicht 2 hat ohne Referenz kein Kanalpaar.")
+        groesse: GroessenId = "h2" if h2 and not h1 else "h1"
+        spec = baue_spec(messung_id, punkt_label, groesse, kanalpaar=kanalpaar)
+        return Uebernahme(2, (spec,), groesse, "kohaerent")
+    if ansicht == 3:
+        if kanalpaar is not None:
+            return Uebernahme(
+                3, (baue_spec(messung_id, None, "h1", kanalpaar=kanalpaar),), "h1", "kohaerent"
+            )
+        if kanal is None or not kanal.startswith("Vib ") or kanal[-1] not in "XYZ":
+            raise SerienFehler("Ansicht 3 zeigt ohne Referenz keinen Vib-Kanal X, Y oder Z.")
+        spec = baue_spec(messung_id, None, "spektrum", komponente=kanal[-1], teilgroesse="leistung")
+        return Uebernahme(3, (spec,), "spektrum", "leistung")
+    raise SerienFehler(TEXT_UEBERNAHME_ANSICHT_4)
+
+
+def uebernimm(
+    liste: SerienListe,
+    uebernahme: Uebernahme,
+    *,
+    diagramm_groesse: GroessenId,
+    diagramm_teilgroesse: Groesse,
+    nebeneinander: bool,
+) -> UebernahmeErgebnis:
+    """Legt die Serien der Übernahme an, ohne vorhandene zu ersetzen.
+
+    Ist die Liste leer, bestimmt die Übernahme Größe und Teilgröße des Diagramms (der Aufrufer
+    stellt sie danach ein). Sonst gilt: Überlagert wird nicht gewechselt (eine Größe je
+    Diagramm), und die Teilgröße des Spektrums gilt für alle Serien; passt die Größe nicht,
+    ändert sich nichts und der Grund wird gemeldet. Die Teilgröße wird nur geprüft, wenn die
+    Liste schon eine Spektrum-Serie enthält; sonst bringt die Übernahme ihre Teilgröße mit (der
+    Aufrufer stellt sie danach am Diagramm ein). Überschreitet die Übernahme :data:`SERIEN_MAX`,
+    werden so viele angelegt wie passen.
+
+    Raises
+    ------
+    SerienFehler
+        Größe oder Teilgröße passen nicht zum Diagramm (Liste bleibt unverändert).
+    """
+    if len(liste):
+        if not nebeneinander and uebernahme.groesse != diagramm_groesse:
+            raise SerienFehler(
+                f"Ansicht {uebernahme.ansicht} zeigt {GROESSEN_NAMEN[uebernahme.groesse]}, das "
+                f"Diagramm {GROESSEN_NAMEN[diagramm_groesse]}; nicht übernommen. Größe im "
+                "Diagramm ändern oder „nebeneinander“ wählen."
+            )
+        spektrum_in_liste = any(s.groesse == "spektrum" for s in liste.specs)
+        if (
+            spektrum_in_liste
+            and uebernahme.groesse == "spektrum"
+            and uebernahme.teilgroesse != diagramm_teilgroesse
+        ):
+            raise SerienFehler(
+                f"Ansicht {uebernahme.ansicht} zeigt das Spektrum als "
+                f"{TEILGROESSE_NAMEN[uebernahme.teilgroesse]}, das Diagramm als "
+                f"{TEILGROESSE_NAMEN[diagramm_teilgroesse]}; nicht übernommen."
+            )
+    angelegt = vorhanden = rest = 0
+    for spec in uebernahme.specs:
+        try:
+            liste.hinzufuegen(spec)
+        except SerienFehler as fehler:
+            if str(fehler) == TEXT_SERIE_DOPPELT:
+                vorhanden += 1
+            else:
+                rest += 1
+        else:
+            angelegt += 1
+    return UebernahmeErgebnis(angelegt, vorhanden, rest)
+
+
+TEILGROESSE_NAMEN: Mapping[str, str] = {"kohaerent": "|CPH|", "leistung": "√AP"}
+"""Anzeigename der Teilgröße des Spektrums (Meldungen)."""
+
+
+def stempel_dateien(serien: Iterable[DiagrammSerie]) -> tuple[tuple[str, str], ...]:
+    """Kurzname und Dateiname jeder Messung, die im Bild eine Linie hat (Stempel, UI-19).
+
+    Nur sichtbare Serien zählen (was im Bild nicht steht, steht nicht im Stempel); jede
+    Messung einmal, in der Reihenfolge der Serien.
+    """
+    gesehen: dict[tuple[str, str], None] = {}
+    for s in serien:
+        if s.sichtbar:
+            gesehen.setdefault((s.kurzname, s.dateiname), None)
+    return tuple(gesehen)
 
 
 def groessen_verfuegbar(messungen: Messungen) -> dict[GroessenId, str | None]:

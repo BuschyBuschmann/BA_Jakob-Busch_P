@@ -2,9 +2,10 @@
 
 Dünnes Widgetmodul (Abdeckung nur mit ``pytest -m gui``): Größe (Radioknöpfe, eine für das ganze
 Diagramm), Anordnung, Serienliste mit Linienprobe und Sichtbar-Häkchen sowie die Knöpfe
-``+ Serie``, ``Entfernen`` und ``Für alle Messungen``. Regeln und Texte liegen Qt-frei in
+``+ Serie``, ``Bearbeiten``, ``Entfernen``, ``Aus aktueller Ansicht übernehmen`` und
+``Für alle Messungen``. Regeln und Texte liegen Qt-frei in
 :mod:`.serien`; das Widget meldet nur Bedienung über Signale. Der Serien-Dialog (``+ Serie``) ist
-ein kleiner modaler Dialog (Esc schließt) und liefert eine
+ein kleiner modaler Dialog (Esc schließt; zum Bearbeiten mit der Serie vorbelegt) und liefert eine
 :class:`~ldv_automation.darstellung.serien_daten.SerienSpec`.
 """
 
@@ -32,6 +33,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ldv_automation.darstellung.auswahl import Groesse
 from ldv_automation.darstellung.diagramm import Anordnung
 from ldv_automation.darstellung.serien_daten import (
     GROESSEN,
@@ -56,6 +58,11 @@ _PEN_STILE: Mapping[str, Qt.PenStyle] = {
     ":": Qt.PenStyle.DotLine,
     "-.": Qt.PenStyle.DashDotLine,
 }
+TEXT_ERST_SERIE_WAEHLEN = "Zuerst eine Serie in der Liste wählen."
+ABSTAND_PX = 6
+ABSTAND_KOMPAKT_PX = 3
+"""Abstand der Elemente der Spalte; im kleinen Fenster enger (mehr von der Serienliste sichtbar)."""
+SCHMAL_PADDING_PX = 8
 LISTE_MIN_HOEHE_PX = 56
 """Mindesthöhe der Serienliste (leer oder ein Eintrag); sonst wächst sie mit den Zeilen."""
 PROBE_BREITE_PX = 36
@@ -108,8 +115,10 @@ class AuswahlDiagramm(QWidget):
         Radioknopf „Größe“ (eine Größe für das ganze Diagramm).
     geaendert : (kein Wert)
         Teilgröße oder Anordnung geändert (neu zeichnen).
-    serie_neu, serie_alle : (kein Wert)
-        ``+ Serie`` bzw. ``Für alle Messungen``.
+    serie_neu, serie_alle, serie_aus_ansicht : (kein Wert)
+        ``+ Serie``, ``Für alle Messungen`` bzw. ``Aus aktueller Ansicht übernehmen``.
+    serie_bearbeiten : int
+        ``Bearbeiten`` (oder Doppelklick) mit der Zeile der gewählten Serie.
     serie_entfernen : int
         ``Entfernen`` mit der Zeile der gewählten Serie.
     serie_sichtbar : int, bool
@@ -120,6 +129,8 @@ class AuswahlDiagramm(QWidget):
     geaendert = Signal()
     serie_neu = Signal()
     serie_alle = Signal()
+    serie_aus_ansicht = Signal()
+    serie_bearbeiten = Signal(int)
     serie_entfernen = Signal(int)
     serie_sichtbar = Signal(int, bool)
 
@@ -130,7 +141,11 @@ class AuswahlDiagramm(QWidget):
         self._fuellt = False
         v = QVBoxLayout(self)
         v.setContentsMargins(0, 0, 8, 0)
-        v.setSpacing(6)
+        v.setSpacing(ABSTAND_PX)
+        self._spalte = v
+        # Drei Knöpfe in einer Zeile passen nur mit schmalerem Innenabstand in die 260 px breite
+        # Spalte (Standard 16 px je Seite).
+        self.setStyleSheet(f'QPushButton[art="schmal"] {{ padding: 0 {SCHMAL_PADDING_PX}px; }}')
 
         v.addWidget(_titel("Größe"))
         self._gruppe_groesse = QButtonGroup(self)
@@ -190,20 +205,39 @@ class AuswahlDiagramm(QWidget):
         v.addWidget(_titel("Serien (Häkchen = sichtbar)"))
         self.btn_serie_neu = QPushButton("+ Serie")
         self.btn_serie_neu.setObjectName("btn_serie_neu")
+        self.btn_serie_bearbeiten = QPushButton("Bearbeiten")
+        self.btn_serie_bearbeiten.setObjectName("btn_serie_bearbeiten")
         self.btn_serie_entfernen = QPushButton("Entfernen")
         self.btn_serie_entfernen.setObjectName("btn_serie_entfernen")
+        self.btn_serie_aus_ansicht = QPushButton("Aus aktueller Ansicht übernehmen")
+        self.btn_serie_aus_ansicht.setObjectName("btn_serie_aus_ansicht")
         self.btn_serie_alle = QPushButton("Für alle Messungen")
         self.btn_serie_alle.setObjectName("btn_serie_alle")
-        for taste in (self.btn_serie_neu, self.btn_serie_entfernen, self.btn_serie_alle):
+        for taste in (
+            self.btn_serie_neu,
+            self.btn_serie_bearbeiten,
+            self.btn_serie_entfernen,
+            self.btn_serie_aus_ansicht,
+            self.btn_serie_alle,
+        ):
             taste.setAutoDefault(False)
             taste.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        for taste in (self.btn_serie_neu, self.btn_serie_bearbeiten, self.btn_serie_entfernen):
+            taste.setProperty("art", "schmal")
+        self.btn_serie_neu.setAccessibleName("Serie hinzufügen")
+        self.btn_serie_bearbeiten.setAccessibleName("Gewählte Serie bearbeiten")
+        self.btn_serie_entfernen.setAccessibleName("Gewählte Serie entfernen")
+        self.btn_serie_aus_ansicht.setAccessibleName("Auswahl der aktuellen Ansicht als Serie")
+        self.btn_serie_alle.setAccessibleName("Serie für alle Messungen anlegen")
         # Die Knöpfe stehen über der Liste: Bei vier Serien und kleinem Fenster (1100 mal 680)
         # bleiben sie sichtbar, statt unter der Liste aus der Spalte zu rutschen (Design-Abnahme).
         knopfzeile = QHBoxLayout()
         knopfzeile.setSpacing(6)
         knopfzeile.addWidget(self.btn_serie_neu)
+        knopfzeile.addWidget(self.btn_serie_bearbeiten)
         knopfzeile.addWidget(self.btn_serie_entfernen)
         v.addLayout(knopfzeile)
+        v.addWidget(self.btn_serie_aus_ansicht)
         v.addWidget(self.btn_serie_alle)
         self.liste_serien = QListWidget()
         self.liste_serien.setObjectName("liste_serien")
@@ -214,11 +248,6 @@ class AuswahlDiagramm(QWidget):
         self.liste_serien.setWordWrap(True)
         self.liste_serien.setTextElideMode(Qt.TextElideMode.ElideRight)
         v.addWidget(self.liste_serien)
-        self.lbl_voll = _gedaempft("lbl_serien_voll", TEXT_SERIEN_VOLL)
-        self.lbl_voll.setVisible(False)
-        self._voll = False
-        self._kompakt = False
-        v.addWidget(self.lbl_voll)
         self.lbl_meldung = _gedaempft("lbl_serien_meldung")
         self.lbl_meldung.setVisible(False)
         v.addWidget(self.lbl_meldung)
@@ -231,8 +260,11 @@ class AuswahlDiagramm(QWidget):
         self._gruppe_anordnung.buttonToggled.connect(lambda _k, _an: self._anordnung_geaendert())
         self.liste_serien.itemChanged.connect(self._item_geaendert)
         self.liste_serien.currentRowChanged.connect(lambda _r: self._sync_knoepfe())
+        self.liste_serien.itemDoubleClicked.connect(lambda _item: self._bearbeiten_geklickt())
         self.btn_serie_neu.clicked.connect(self.serie_neu)
         self.btn_serie_alle.clicked.connect(self.serie_alle)
+        self.btn_serie_aus_ansicht.clicked.connect(self.serie_aus_ansicht)
+        self.btn_serie_bearbeiten.clicked.connect(self._bearbeiten_geklickt)
         self.btn_serie_entfernen.clicked.connect(self._entfernen_geklickt)
         self._sync_knoepfe()
 
@@ -242,7 +274,7 @@ class AuswahlDiagramm(QWidget):
         """Gewählte Größe des Diagramms."""
         return next((g for g, k in self.rb_groesse.items() if k.isChecked()), "spektrum")
 
-    def teilgroesse(self) -> str:
+    def teilgroesse(self) -> Groesse:
         """Teilgröße des Spektrums: ``"kohaerent"`` (|CPH|) oder ``"leistung"`` (√AP)."""
         return "kohaerent" if self.rb_teil_cph.isChecked() else "leistung"
 
@@ -254,7 +286,8 @@ class AuswahlDiagramm(QWidget):
         """Bedienbare Teile in Tab-Reihenfolge."""
         kette: list[QWidget] = [*self.rb_groesse.values(), self.rb_teil_cph, self.rb_teil_ap]
         kette += [self.rb_anordnung_ueberlagert, self.rb_anordnung_nebeneinander]
-        kette += [self.btn_serie_neu, self.btn_serie_entfernen, self.btn_serie_alle]
+        kette += [self.btn_serie_neu, self.btn_serie_bearbeiten, self.btn_serie_entfernen]
+        kette += [self.btn_serie_aus_ansicht, self.btn_serie_alle]
         kette.append(self.liste_serien)
         return kette
 
@@ -278,6 +311,35 @@ class AuswahlDiagramm(QWidget):
         finally:
             self._fuellt = False
         self._teil.setVisible(self.groesse() == "spektrum")
+
+    def setze_groesse(self, groesse: GroessenId, teilgroesse: str | None = None) -> None:
+        """Stellt Größe (und Teilgröße des Spektrums) ein, ohne ein Signal zu senden.
+
+        Für ``Aus aktueller Ansicht übernehmen`` bei leerer Liste: Die Übernahme legt die Größe
+        fest. Der Aufrufer zeichnet danach neu.
+        """
+        self._fuellt = True
+        try:
+            self.rb_groesse[groesse].setChecked(True)
+            if teilgroesse is not None:
+                (self.rb_teil_cph if teilgroesse == "kohaerent" else self.rb_teil_ap).setChecked(
+                    True
+                )
+        finally:
+            self._fuellt = False
+        self._teil.setVisible(groesse == "spektrum")
+
+    def setze_teilgroesse(self, teilgroesse: str) -> None:
+        """Stellt die Teilgröße des Spektrums ohne Signal ein.
+
+        Für die Übernahme in eine Liste ohne Spektrum: Die neue Spektrum-Serie und das Diagramm
+        haben danach dieselbe Teilgröße.
+        """
+        self._fuellt = True
+        try:
+            (self.rb_teil_cph if teilgroesse == "kohaerent" else self.rb_teil_ap).setChecked(True)
+        finally:
+            self._fuellt = False
 
     def setze_teilgroesse_moeglich(self, grund: str | None) -> None:
         """Sperrt |CPH| ohne Referenz (Rückfall auf √AP)."""
@@ -323,23 +385,24 @@ class AuswahlDiagramm(QWidget):
         liste.setMaximumHeight(hoehe)
 
     def setze_voll(self, voll: bool) -> None:
-        """``+ Serie`` bei voller Liste sperren (Text unter den Knöpfen)."""
-        self._voll = voll
-        self.btn_serie_neu.setEnabled(not voll)
-        self.btn_serie_neu.setToolTip(TEXT_SERIEN_VOLL if voll else "")
-        self.lbl_voll.setVisible(voll and not self._kompakt)
+        """``+ Serie`` bei voller Liste sperren; der Grund steht im Tooltip (kein Hinweistext)."""
+        for knopf in (self.btn_serie_neu, self.btn_serie_aus_ansicht):
+            knopf.setEnabled(not voll)
+            knopf.setToolTip(TEXT_SERIEN_VOLL if voll else "")
 
     def setze_kompakt(self, kompakt: bool) -> None:
-        """Kleines Fenster: Platz für die Serienliste (vier Serien bei 1100 mal 680 sichtbar).
+        """Kleines Fenster: Platz für die Serienliste.
 
-        Der Hinweis „Höchstens vier Serien“ steht dann nur im Tooltip von ``+ Serie``, die beiden
-        Knöpfe der Anordnung stehen nebeneinander.
+        Die beiden Knöpfe der Anordnung stehen dann nebeneinander.
         """
-        self._kompakt = kompakt
-        self.lbl_voll.setVisible(self._voll and not kompakt)
+        self._spalte.setSpacing(ABSTAND_KOMPAKT_PX if kompakt else ABSTAND_PX)
         self._anordnung_zeile.setDirection(
             QBoxLayout.Direction.LeftToRight if kompakt else QBoxLayout.Direction.TopToBottom
         )
+        # setDirection() erneuert nur das Layout der Box; ihre Größe steht im Layout der Spalte
+        # zwischengespeichert. Ohne updateGeometry() bliebe die alte Höhe (zwei Zeilen) darin
+        # stehen, und die Auswahlspalte behielte eine um eine Zeile zu große Mindesthöhe.
+        self._anordnung_box.updateGeometry()
 
     def setze_meldung(self, text: str) -> None:
         """Hinweis unter den Knöpfen (z. B. „Diese Serie gibt es bereits.“)."""
@@ -369,7 +432,10 @@ class AuswahlDiagramm(QWidget):
     # --- Bedienung -------------------------------------------------------------------------
 
     def _sync_knoepfe(self) -> None:
-        self.btn_serie_entfernen.setEnabled(self.liste_serien.currentRow() >= 0)
+        gewaehlt = self.liste_serien.currentRow() >= 0
+        for knopf in (self.btn_serie_bearbeiten, self.btn_serie_entfernen):
+            knopf.setEnabled(gewaehlt)
+            knopf.setToolTip("" if gewaehlt else TEXT_ERST_SERIE_WAEHLEN)
 
     def _groesse_gewaehlt(self, _knopf: QRadioButton, an: bool) -> None:
         tab_halt(self._gruppe_groesse)
@@ -394,6 +460,11 @@ class AuswahlDiagramm(QWidget):
         self.serie_sichtbar.emit(
             self.liste_serien.row(item), item.checkState() == Qt.CheckState.Checked
         )
+
+    def _bearbeiten_geklickt(self) -> None:
+        zeile = self.liste_serien.currentRow()
+        if zeile >= 0:
+            self.serie_bearbeiten.emit(zeile)
 
     def _entfernen_geklickt(self) -> None:
         zeile = self.liste_serien.currentRow()
@@ -455,6 +526,10 @@ class SerienDialog(QDialog):
         Größe je Serie wählbar.
     aktiv_id : int, optional
         Vorgewählte Messung.
+    vorgabe : SerienSpec, optional
+        Zu bearbeitende Serie: alle Felder sind mit ihr vorbelegt, der Titel heißt „Serie
+        bearbeiten“. Hat sie eine Messung, die der Dialog nicht kennt, bleibt die Vorbelegung
+        bei der ersten Messung.
     parent : QWidget, optional
         Elternwidget.
     """
@@ -467,11 +542,12 @@ class SerienDialog(QDialog):
         *,
         nebeneinander: bool,
         aktiv_id: int | None = None,
+        vorgabe: SerienSpec | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("dialog_serie")
-        self.setWindowTitle("Serie hinzufügen")
+        self.setWindowTitle("Serie hinzufügen" if vorgabe is None else "Serie bearbeiten")
         self.setModal(True)
         self._messungen = {m.id: m for m in messungen}
         self._teilgroesse = teilgroesse
@@ -486,7 +562,9 @@ class SerienDialog(QDialog):
         self.combo_groesse.setAccessibleName("Größe der Serie")
         for g in GROESSEN:
             self.combo_groesse.addItem(GROESSEN_NAMEN[g], g)
-        self.combo_groesse.setCurrentIndex(GROESSEN.index(groesse))
+        self.combo_groesse.setCurrentIndex(
+            GROESSEN.index(groesse if vorgabe is None else vorgabe.groesse)
+        )
         self.combo_punkt = QComboBox()
         self.combo_punkt.setObjectName("combo_serie_punkt")
         self.combo_punkt.setAccessibleName("Punkt oder Mittel")
@@ -521,10 +599,28 @@ class SerienDialog(QDialog):
         self._groesse_sichtbar = nebeneinander
         self.combo_messung.currentIndexChanged.connect(self._messung_gewaehlt)
         self.combo_groesse.currentIndexChanged.connect(self._groesse_gewaehlt)
-        if aktiv_id is not None and (i := self.combo_messung.findData(aktiv_id)) >= 0:
+        vorwahl = aktiv_id if vorgabe is None else vorgabe.messung_id
+        if vorwahl is not None and (i := self.combo_messung.findData(vorwahl)) >= 0:
             self.combo_messung.setCurrentIndex(i)
         self._messung_gewaehlt()
         self._groesse_gewaehlt()
+        if vorgabe is not None:
+            self._belege_vor(vorgabe)
+
+    def _belege_vor(self, spec: SerienSpec) -> None:
+        """Stellt Punkt, Komponente und Kanalpaar der zu bearbeitenden Serie ein."""
+        if spec.punkt_label is not None and (i := self.combo_punkt.findData(spec.punkt_label)) >= 0:
+            self.combo_punkt.setCurrentIndex(i)
+        if (
+            spec.komponente is not None
+            and (i := self.combo_komponente.findData(spec.komponente)) >= 0
+        ):
+            self.combo_komponente.setCurrentIndex(i)
+        if spec.kanalpaar is not None:
+            for i in range(self.combo_paar.count()):
+                if self.combo_paar.itemData(i) == spec.kanalpaar:
+                    self.combo_paar.setCurrentIndex(i)
+                    break
 
     def _messung_gewaehlt(self, _index: int = 0) -> None:
         m = self._messungen.get(self.combo_messung.currentData())
