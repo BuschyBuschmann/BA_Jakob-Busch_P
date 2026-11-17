@@ -54,7 +54,9 @@ VERSION = f"{PAKET}.protokoll.version"
 AUSWERTUNG_EXTERN = ("numpy", "olefile")
 
 #: Externe Pakete von ``darstellung`` (Zeichenfunktionen, UI-18: ohne Qt, ohne pyplot).
-DARSTELLUNG_EXTERN = ("numpy", "matplotlib")
+#: ``mpl_toolkits``: ``mplot3d`` (``Axes3D``) der 3D-Animation (ADR-029, UI-33). Es liegt im selben
+#: Wheel wie ``matplotlib`` (keine neue Abhängigkeit), importiert weder ``pyplot`` noch Qt.
+DARSTELLUNG_EXTERN = ("numpy", "matplotlib", "mpl_toolkits")
 
 #: In ``darstellung`` verbotene Module trotz erlaubtem ``matplotlib`` (Namens-Präfix je
 #: Pfadglied): globaler pyplot-Zustand, Qt-Backends, Qt-Pakete.
@@ -402,6 +404,7 @@ def test_ausw_darstellung_verbotene_externe_importe_werden_erkannt(
     "inhalt",
     [
         "import numpy as np\nfrom matplotlib.figure import Figure\n",
+        "from mpl_toolkits.mplot3d import Axes3D\n",
         "from matplotlib.backends.backend_agg import FigureCanvasAgg\n",
         "import matplotlib\nfrom matplotlib.ticker import FuncFormatter\nimport math\n",
         "from ldv_automation.auswertung import daten\n",
@@ -558,6 +561,20 @@ def test_ausw_laufzeit_darstellung_laedt_weder_qt_noch_pyplot() -> None:
         pytest.skip("darstellung/ noch nicht angelegt (kommt mit T2); Regel ist vorbereitet")
     geladen = _geladene_verbotene(
         f"{PAKET}.darstellung", ("PySide6", "shiboken6", "matplotlib.pyplot", "pylab")
+    )
+    assert geladen == []
+
+
+@pytest.mark.parametrize("untermodul", ["animation_daten", "animation3d"])
+def test_ui_33_laufzeit_animation_laedt_weder_qt_noch_pyplot(untermodul: str) -> None:
+    """UI-33: die 3D-Zeichenfunktion und ihre Daten kommen ohne Qt und ohne pyplot aus.
+
+    ``mpl_toolkits.mplot3d`` ist erlaubt (ADR-029); die Laufzeitprüfung belegt, dass sein Import
+    weder ``pyplot`` noch ein Qt-Paket nachlädt.
+    """
+    geladen = _geladene_verbotene(
+        f"{PAKET}.darstellung.{untermodul}",
+        ("PySide6", "shiboken6", "matplotlib.pyplot", "pylab"),
     )
     assert geladen == []
 

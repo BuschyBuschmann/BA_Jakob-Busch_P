@@ -14,6 +14,8 @@ Module:
 - :mod:`.zeichnung` – Rückgabeobjekt, gemeinsame Bausteine
 - :mod:`.spektrum`, :mod:`.frf`, :mod:`.spitzen`, :mod:`.schwingform` – die Zeichenfunktionen
 - :mod:`.bild` – Arbeitsbild mit Stempel
+- :mod:`.animation_daten`, :mod:`.animation3d` – Daten und 3D-Zeichenfunktion der Animation
+  der Betriebsschwingform (R-071; ``mplot3d``, ADR-029)
 """
 
 from .stil import THESIS_STIL, Plotstil

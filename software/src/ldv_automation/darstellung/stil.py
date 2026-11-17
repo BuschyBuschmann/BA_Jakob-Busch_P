@@ -17,6 +17,7 @@ from matplotlib import colormaps
 from matplotlib.colors import Colormap, LinearSegmentedColormap
 
 __all__ = [
+    "DIVERGIEREND_FARBEN_BUNT",
     "LINIENARTEN",
     "THESIS_STIL",
     "ZYKLISCHE_SKALA",
@@ -35,6 +36,13 @@ sichtbar), bei ±180° gibt es also keinen Sprung. Anders als ``hsv`` oder ``jet
 Regenbogenverlauf mit Helligkeitssprüngen. In Graustufen ist sie **nicht** eindeutig (eine
 stetige Helligkeit auf dem Kreis nimmt jeden Wert mindestens zweimal an, FA-AUSW F-4c); die
 Phase steht deshalb zusätzlich im Pfeilwinkel."""
+
+DIVERGIEREND_FARBEN_BUNT: tuple[str, str, str] = ("#A9D0EC", "#8C8C8C", "#5A2D0C")
+"""Vorschlag für die divergierende Skala der Oberfläche: hellblau, neutralgrau, dunkelbraun.
+
+Die Helligkeit fällt von „negativ“ nach „positiv“ streng monoton (Luma 202, 140, 52), das
+Vorzeichen bleibt in Graustufen lesbar; Blau und Braun sind bei Rot-Grün-Schwäche unterscheidbar,
+es kommt kein Gelb vor. Der endgültige Farbvorschlag ist Sache des ``ui-designer`` (Abnahme)."""
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -60,6 +68,9 @@ class Plotstil:
         Linienarten je Serie, paarweise verschieden.
     verlauf_hell : str
         Hellstes Ende des Einfarbverlaufs der Betragsfüllung (Ansicht 4).
+    div_negativ, div_mitte, div_positiv : str
+        Farben der divergierenden Skala (Auslenkung mit Vorzeichen, Animation): hell für
+        negativ, neutral in der Mitte, dunkel für positiv (Voreinstellung Graustufen).
     schrift_pt : float
         Schriftgröße in pt (Achsen, Ticks, Legende).
     schriftfamilie : tuple of str
@@ -83,6 +94,9 @@ class Plotstil:
     serienfarben: tuple[str, ...] = ("#000000", "#333333", "#666666", "#808080")
     linienarten: tuple[str, ...] = LINIENARTEN
     verlauf_hell: str = "#F2F2F2"
+    div_negativ: str = "#E6E6E6"
+    div_mitte: str = "#9A9A9A"
+    div_positiv: str = "#1A1A1A"
     schrift_pt: float = 9.0
     schriftfamilie: tuple[str, ...] = ("DejaVu Sans",)
     linienbreite_pt: float = 1.0
@@ -110,6 +124,17 @@ class Plotstil:
     def verlauf(self) -> Colormap:
         """Einfarbverlauf von :attr:`verlauf_hell` nach :attr:`haupt` (Betragsfüllung)."""
         return LinearSegmentedColormap.from_list("ldv_verlauf", [self.verlauf_hell, self.haupt])
+
+    def divergierend(self) -> Colormap:
+        """Divergierende Skala mit monotoner Helligkeit (negativ hell, positiv dunkel).
+
+        Drei Stützfarben :attr:`div_negativ`, :attr:`div_mitte`, :attr:`div_positiv`. Weil die
+        Helligkeit vom negativen zum positiven Ende streng fällt, ist das Vorzeichen auch in
+        Graustufen lesbar (Brief K1-AUSW2 Abschnitt 2); kein ``RdBu``, kein ``hsv``/``jet``.
+        """
+        return LinearSegmentedColormap.from_list(
+            "ldv_divergierend", [self.div_negativ, self.div_mitte, self.div_positiv]
+        )
 
     def zyklisch(self) -> Colormap:
         """Zyklische Farbskala der Phase (:data:`ZYKLISCHE_SKALA`)."""

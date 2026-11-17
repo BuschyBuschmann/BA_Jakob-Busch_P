@@ -144,6 +144,12 @@ module = ["win32com", "win32com.*", "pythoncom", "winreg"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+# mpl_toolkits.mplot3d (Axes3D der Animation, darstellung/animation3d.py, ADR-029) liefert keine
+# Typinformationen mit; die Objekte stehen dort als ``Any``.
+module = ["mpl_toolkits.mplot3d", "mpl_toolkits.mplot3d.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 # olefile (.svd-Leser in ldv_automation.auswertung) liefert keine Typinformationen mit.
 module = ["olefile", "olefile.*"]
 ignore_missing_imports = true
