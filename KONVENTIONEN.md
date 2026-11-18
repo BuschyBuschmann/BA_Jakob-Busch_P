@@ -49,6 +49,10 @@ uv run pytest --cov --cov-fail-under=90
 - Die `PINS` im Wheelhouse-Skript entsprechen exakt den Laufzeitpaketen in `uv.lock`
   (ein Test erzwingt das).
 - Zufall nur über einen übergebenen Seed bzw. `numpy.random.Generator`.
+- Qt-Oberfläche: Nach jedem Umbau eines Layouts zur Laufzeit (z. B. `setDirection`,
+  Ein-/Ausblenden, Wechsel in die kompakte Darstellung) ruft der Code `updateGeometry()` am
+  umgebauten Widget auf, damit das Elternlayout keine veraltete Größe verwendet
+  (Nutzerentscheidung 2026-11-18).
 
 ## Hardware
 - Zugriff auf das Vibrometer (COM) nur über eine abstrakte Schnittstelle.
@@ -134,6 +138,11 @@ uv run pytest --cov --cov-fail-under=90
 - Animation: Bei der Option Schnelle steht die Skalierung in s, daneben immer die reale
   Überhöhung; in der 3D-Animation gilt der räumliche Punktabstand; der Satz zur Bedeutung
   von θ = 0 gehört zu den Pflichtangaben (FG-04 Nachtrag 2, Nutzerentscheidung 2026-11-15).
+- Doppelte Messpunkte in der 3D-Animation: Punkte mit Abstand ≤ ε = max(1e-8 m, 1e-6·S)
+  gelten als doppelt; gezeichnet wird nur der Repräsentant nach FG-04 Nachtrag 3, der
+  Hinweis nennt die Anzahl (Nutzerentscheidung 2026-11-18).
+- Stempel einer gespeicherten Abbildung aus Ansicht 5: eine Zeile je Messung; die gewählte
+  Teilgröße gilt für alle Serien (Nutzerentscheidung 2026-11-18).
 
 ## Polytec-Konventionen
 Quelle: Analyseberichte I1, I2, I5 und I5-F unter `in_progress/analysen/`.
