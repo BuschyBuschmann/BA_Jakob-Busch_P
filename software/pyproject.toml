@@ -132,6 +132,11 @@ omit = [
     # `gui/serien.py` (beide voll gemessen).
     "src/ldv_automation/gui/messungsleiste.py",
     "src/ldv_automation/gui/auswahl_diagramm.py",
+    # R-071 (P-AUSW3 AN6): Die Animationsfläche ist ein reines Widget (Canvas mit Qt-Ereignissen,
+    # QTimer, Fokusrahmen), nur offscreen prüfbar (`pytest -m gui`). Winkel und Uhr, Blick, Tasten,
+    # Rückfallstufen und Texte liegen Qt-frei in `gui/animation_steuerung.py` (voll gemessen), die
+    # Zeichnung in `darstellung/animation3d.py`.
+    "src/ldv_automation/gui/animationsflaeche.py",
 ]
 
 [tool.coverage.report]

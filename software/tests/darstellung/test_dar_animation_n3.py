@@ -160,7 +160,7 @@ def test_duplikate_loesen_keinen_ueberlagerungshinweis_aus() -> None:
     assert a.hinweis_ueberhoehung(0.5 * 0.02 / D_REF * 0.99) is None
     assert a.hinweis_ueberhoehung(0.5 * 0.02 / D_REF) is not None
     text = a.hinweis_duplikate
-    assert text is not None and text.startswith("1 Punkte liegen auf dem Ort")
+    assert text is not None and text.startswith("1 Punkt liegt auf dem Ort")
     assert _daten(_raster(0.02)).hinweis_duplikate is None
 
 
@@ -293,7 +293,7 @@ def test_ein_punkt_schnelle_kappa_gleich_eins_durch_omega() -> None:
     kappa = 1.0 / OMEGA  # 1,592 ms
     text = pflichttexte(a, 0.0, kappa, THESIS_STIL, kein_nachbarabstand=True)[0]
     assert text == (
-        "Skalierung 0,001592 s (κ = 1/ω, kein Nachbarabstand) (Bild = Skalierung · Schnelle) · "
+        "Skalierung 0,001592 s (Bild = Skalierung · Schnelle; κ = 1/ω, kein Nachbarabstand) · "
         "Amplitude wie Auslenkung mit Überhöhung \N{MULTIPLICATION SIGN}1,000"
     )
     assert "κ = 1/ω, kein Nachbarabstand" in _alle(_bild(a))

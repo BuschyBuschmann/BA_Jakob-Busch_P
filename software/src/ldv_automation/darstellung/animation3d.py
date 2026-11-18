@@ -231,16 +231,23 @@ def kennzeichen_texte(
     """Kennzeichen ``(Phase M8, Koordinaten M12)`` des Bildes (FG-04 Nachtrag 2 5.2, 8 Nr. 2).
 
     Bei absolutem Bezug gilt M8, im 3D-Modus M12; ein Bild ohne diese Kennzeichen entsteht nicht.
-    Ein vom Aufrufer gesetzter Text hat Vorrang. M8 entfällt nur, wenn die Annahmenliste der
+    Ein vom Aufrufer gesetzter Text hat Vorrang; ein leerer oder nur aus Leerraum bestehender
+    Text gilt als nicht gesetzt und unterdrückt kein Pflichtkennzeichen (FG-04 Nachtrag 2: ein
+    Bild ohne diese Kennzeichen entsteht nicht). M8 entfällt nur, wenn die Annahmenliste der
     Daten M8 als bestätigt führt (die Oberfläche ändert dann nichts, UI-11); M12 steht nicht in
-    dieser Liste und gilt im 3D-Modus immer.
+    dieser Liste (nur in ``AnnahmenStufe2``, die die Daten nicht tragen) und gilt im 3D-Modus
+    immer.
     """
     phase = opt.kennzeichen_phase
+    if phase is not None and not phase.strip():
+        phase = None
     if phase is None and daten.bezug_modus == "absolut":
         m8 = [a for a in daten.annahmen if a.nr == "M8"]
         if not m8 or any(a.ist_annahme for a in m8):
             phase = KENNZEICHEN_M8
     koordinaten = opt.kennzeichen_koordinaten
+    if koordinaten is not None and not koordinaten.strip():
+        koordinaten = None
     if koordinaten is None and daten.komponente == "3D":
         koordinaten = KENNZEICHEN_M12
     return phase, koordinaten
@@ -414,7 +421,8 @@ def pflichttexte(
     (:func:`nullpunkt_satz`), getrennt durch ``"\n"``. Mit ``kein_nachbarabstand``
     (:func:`ohne_nachbarabstand`) kennzeichnet (a) den realen Maßstab ausdrücklich: „Überhöhung
     (Malzeichen) 1,000 (reale Größe, kein Nachbarabstand)“, bei Schnelle „Skalierung 0,001592 s
-    (κ = 1/ω, kein Nachbarabstand) …“.
+    (Bild = Skalierung · Schnelle; κ = 1/ω, kein Nachbarabstand) …“ (eine Klammer, nie zwei
+    aneinanderstoßende).
 
     Returns
     -------
@@ -436,9 +444,9 @@ def pflichttexte(
         s_aeq = daten.ueberhoehung_aequivalent(ueberhoehung)
         kappa_text = zahl_kurz_text(ueberhoehung, 4, dezimalkomma=komma)
         aeq_text = zahl_kurz_text(s_aeq, 4, dezimalkomma=komma)
-        real = " (κ = 1/ω, kein Nachbarabstand)" if kein_nachbarabstand else ""
+        real = "; κ = 1/ω, kein Nachbarabstand" if kein_nachbarabstand else ""
         text_a = (
-            f"Skalierung {kappa_text} s{real} (Bild = Skalierung · Schnelle) · "
+            f"Skalierung {kappa_text} s (Bild = Skalierung · Schnelle{real}) · "
             f"Amplitude wie Auslenkung mit Überhöhung {_MAL}{aeq_text}"
         )
         f_a, e_a = skaliere_einheit(daten.d_ref_auslenkung, daten.einheit_auslenkung)

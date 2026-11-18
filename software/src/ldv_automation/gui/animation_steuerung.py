@@ -33,6 +33,7 @@ from ldv_automation.darstellung.animation3d import (
     AnimationsOptionen,
     Blick,
     effektive_ueberhoehung,
+    kennzeichen_texte,
     ohne_nachbarabstand,
     pflichttexte,
 )
@@ -608,12 +609,16 @@ def beschreibung_animation(
     stil: Plotstil,
     *,
     laeuft: bool = False,
+    kennzeichen_phase: str | None = None,
+    kennzeichen_koordinaten: str | None = None,
 ) -> str:
     r"""Textalternative der Animation (zugängliche Beschreibung, UI-26).
 
     Nennt die Pflichtangaben (Überhöhung bzw. Skalierung, Spitzenauslenkung bzw. -schnelle,
-    Frequenz, Winkel, Bezug, Bedeutung von θ = 0), die Zahl der Punkte und die Zahl der
-    stehenden gekennzeichneten Punkte.
+    Frequenz, Winkel, Bezug, Bedeutung von θ = 0), die Zahl der Punkte, die Zahl der
+    stehenden gekennzeichneten Punkte und dieselben Kennzeichen wie das Bild
+    (:func:`~ldv_automation.darstellung.animation3d.kennzeichen_texte`: M8 bei absolutem Bezug,
+    sofern nicht bestätigt; M12 im 3D-Modus).
 
     Parameters
     ----------
@@ -627,8 +632,17 @@ def beschreibung_animation(
         Für Dezimalkomma.
     laeuft : bool
         Wiedergabe aktiv.
+    kennzeichen_phase, kennzeichen_koordinaten : str or None
+        Vom Aufrufer gesetzte Kennzeichentexte wie in
+        :class:`~ldv_automation.darstellung.animation3d.AnimationsOptionen`; sonst gelten die
+        Standardtexte.
     """
-    s = effektive_ueberhoehung(daten, AnimationsOptionen(ueberhoehung=ueberhoehung))
+    opt = AnimationsOptionen(
+        ueberhoehung=ueberhoehung,
+        kennzeichen_phase=kennzeichen_phase,
+        kennzeichen_koordinaten=kennzeichen_koordinaten,
+    )
+    s = effektive_ueberhoehung(daten, opt)
     kein_nachbar = ohne_nachbarabstand(daten, ueberhoehung)
     texte = tuple(
         t.replace("\n", ". ")
@@ -643,5 +657,6 @@ def beschreibung_animation(
     ]
     if gekennzeichnet:
         teile.append(f"davon {gekennzeichnet} stehend und gekennzeichnet")
+    teile.extend(f"Kennzeichen: {t}" for t in kennzeichen_texte(daten, opt) if t)
     teile.append(zustand)
     return ". ".join(teile) + "."

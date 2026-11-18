@@ -58,6 +58,7 @@ from .auswahl import (
     _standard_referenz,
     waehle_ebene,
 )
+from .formate import zahl_kurz_text
 
 __all__ = [
     "BEWEGT",
@@ -236,9 +237,15 @@ class AnimationsDaten:
         """
         if self.n_dup == 0:
             return None
+        grenze = zahl_kurz_text(self.eps_dup_m, 4)  # Dezimalkomma, 4 signifikante Stellen
+        if self.n_dup == 1:
+            return (
+                f"1 Punkt liegt auf dem Ort eines anderen Punkts (Abstand \u2264 {grenze} m) "
+                "und zählt beim Nachbarabstand nicht mit"
+            )
         return (
-            f"{self.n_dup} Punkte liegen auf dem Ort eines anderen Punkts (Abstand \u2264 "
-            f"{self.eps_dup_m:.1e} m) und zählen beim Nachbarabstand nicht mit"
+            f"{self.n_dup} Punkte liegen auf dem Ort anderer Punkte (Abstand \u2264 {grenze} m) "
+            "und zählen beim Nachbarabstand nicht mit"
         )
 
     @property
