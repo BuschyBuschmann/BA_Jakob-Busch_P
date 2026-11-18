@@ -1,4 +1,6 @@
-# Protokoll 2026-11-09: Prüfdateien Fenster/Mittelung und Messung über die Warteschlange (zum Ausfüllen)
+# Protokoll (Termin Mo 2026-11-23): Prüfdateien Fenster/Mittelung und Messung über die Warteschlange (zum Ausfüllen)
+
+> **Verschoben auf 2026-11-23 (Montag, ganzer Tag). Der Termin am 2026-11-09 ist ausgefallen (Messrechner nicht verfügbar); keiner seiner Punkte wurde durchgeführt.** Der Ordnername bleibt unverändert. Aktualisiert am 2026-11-18 (Paket P-TERMIN-23): Termin, Dateinamen der Messdateien (`20261123_…`) und Build-Platzhalter; Parameter, Raster und Kriterien unverändert.
 
 Gehört zu [versuchsplan.md](versuchsplan.md). Allgemeine Punkte des Tages (Kopf, Installation, Erkundung, D2, D3, D1, D4, E1) stehen im [Protokoll des Termins](../naechster-termin_messrechner/protokoll.md). Abschluss über `/laborbuch`.
 
@@ -6,9 +8,9 @@ Gehört zu [versuchsplan.md](versuchsplan.md). Allgemeine Punkte des Tages (Kopf
 
 | Feld | Eintrag |
 |---|---|
-| Datum, Beginn, Ende | |
+| Datum (Soll 2026-11-23), Beginn, Ende | |
 | Personen | |
-| Software (Git-Hash aus Build-Info, Soll a0ee2fc…, `git_dirty` false) | |
+| Software (Git-Hash aus Build-Info, Soll ‹BUILD-HASH›, `git_dirty` false; SHA-256 des Wheels Soll ‹SHA-256›) | |
 | PSV-Version | |
 | Raumtemperatur Beginn / Ende [°C] | |
 | Änderungen am Aufbau seit 12.10. | |
@@ -22,9 +24,9 @@ Gehört zu [versuchsplan.md](versuchsplan.md). Allgemeine Punkte des Tages (Kopf
 
 | Datei | Soll | Ist (Fenster, Mittelung, Anzahl) | Uhrzeit Start/Ende | Dauer [min] | Größe [MB] | SHA-256 | Foto-Nr. | Bemerkung |
 |---|---|---|---|---|---|---|---|---|
-| R `20261109_ref3x3_01.svd` | Rechteck, komplex, 7 | | | | | | | |
-| A `20261109_hann3x3_01.svd` | Hanning, komplex, 7 | | | | | | | |
-| B `20261109_betrag10_3x3_01.svd` | Rechteck, Betrag, 10 | | | | | | | |
+| R `20261123_ref3x3_01.svd` | Rechteck, komplex, 7 | | | | | | | |
+| A `20261123_hann3x3_01.svd` | Hanning, komplex, 7 | | | | | | | |
+| B `20261123_betrag10_3x3_01.svd` | Rechteck, Betrag, 10 | | | | | | | |
 
 - Fenster nach A zurück auf Rechteck (Foto): ☐ · Mittelung nach B zurück auf komplex 7 (Foto): ☐
 - COM-Rücklesewerte `WindowFunction`, `WindowFunctionRMSCorrection` (A): ____ · `Type`, `Count` (B): ____

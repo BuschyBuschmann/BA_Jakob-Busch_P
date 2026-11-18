@@ -1,14 +1,16 @@
 # Ablaufplan: nächster Termin am Messrechner (Entwurf zur Freigabe)
 
-**Status:** ENTWURF (überarbeitet nach Fachprüfung FD-P3), nicht freigegeben · **Datum:** 2026-11-09 (Mo, F3) · **Rechner:** BEOWOLF
+**Status:** ENTWURF (überarbeitet nach Fachprüfung FD-P3), nicht freigegeben · **Datum:** 2026-11-23 (Mo, F3, verschoben) · **Rechner:** BEOWOLF
 **Bearbeiter am Rechner:** Jakob (mit dem Orchestrator direkt, KONVENTIONEN „Arbeitsweise bei Terminen vor Ort“)
 Paket P3 (Planung). Dazu gehören [protokoll.md](protokoll.md) (zum Ausfüllen) und [pruefzettel.md](pruefzettel.md) (Kurzliste zum Abhaken).
+
+> **Verschoben auf Montag 2026-11-23, ganzer Tag. Der Termin am 2026-11-09 ist ausgefallen (Messrechner nicht verfügbar); keiner seiner Punkte wurde durchgeführt** (Laborbuch `2026-11-09_betreuertermin-daniel`). Aktualisiert am 2026-11-18 (Paket P-TERMIN-23, Nutzerentscheidung 2026-11-18: Unterlagen vom 09.11. für den 23.11. aktualisieren und um die neuen Prüfungen ergänzen). Neu: Abgleich lesen (`pruefanleitung_abgleich.md`), Auswerten-Prüfungen (`pruefanleitung_auswerten.md`, `pruefanleitung_auswerten_vergleich.md`), bedingte Animation (Abschnitt 4.4); Version 0.2.0 bleibt, Build-Hash und SHA-256 sind Platzhalter bis zum Build; zusätzlich zu notieren: Arbeitsspeicher und `git -C PyCharmProject status` (A0). Inhaltlich sonst unverändert; alle Dauern bleiben Annahmen.
 
 **Wunsch des Nutzers:** am Termin variabler reagieren können, wenn etwas wie die COM-Schnittstelle nicht
 funktioniert. Deshalb ist der Plan **kein linearer Ablauf**, sondern ein Satz von Blöcken mit
 Entscheidungsbaum. Jeder Abschnitt nennt **Weiter**, **Abbruch** und **Ersatz**.
 
-**Termin (Nutzer, 2026-11-05, F3):** Montag 2026-11-09, **ganzer Tag**. Es wird nicht mehr mit 240 oder 150 min geplant. Die Tagesreihenfolge steht in Abschnitt 4.1, die Reihenfolge bei Zeitverlust in 4.2. Die Software-Version des neuen Wheels ist **0.2.0** (Entscheidung des Nutzers).
+**Termin (Nutzer, 2026-11-18, F3):** Montag **2026-11-23**, **ganzer Tag** (verschoben, der Termin am 2026-11-09 ist ausgefallen; am 2026-11-05 war ebenfalls ein ganzer Tag genannt). Es wird nicht mehr mit 240 oder 150 min geplant. Die Tagesreihenfolge steht in Abschnitt 4.1, die Reihenfolge bei Zeitverlust in 4.2. Die Software-Version des neuen Wheels ist **0.2.0** (Entscheidung des Nutzers).
 
 Kennzeichnung: **[Annahme]** = nicht belegt, **[offen]** = muss geklärt werden, **[Wissen]** = allgemeines
 Wissen, am Gerät nicht geprüft, **[N]** = Nachrechnung der Fachprüfung (FD-P3) bzw. des Experten, nicht am Gerät geprüft. Alle **Dauern sind grobe Annahmen** (nicht gemessen) und dienen nur der Priorisierung.
@@ -53,7 +55,7 @@ Arbeitsvariablen für alle PowerShell-Befehle unten (Pfade aus dem letzten Termi
 ```powershell
 $PY  = "D:\Messdaten\DAL\BA Jakob Busch\PyCharmProject\.venv\Scripts\python.exe"
 $ARB = "D:\Messdaten\DAL\BA Jakob Busch"          # Skripte, erkundung\, daten\  [Annahme]
-$T   = "$ARB\termin_JJJJ-MM-TT"                    # Ausgaben dieses Termins  [Annahme, Datum einsetzen]
+$T   = "$ARB\termin_2026-11-23"                    # Ausgaben dieses Termins  [Annahme]
 mkdir "$T\erkundung","$T\daten","$T\export","$T\fotos" -ErrorAction SilentlyContinue
 ```
 
@@ -134,19 +136,33 @@ PFAD B (COM aus, nur Rückfall): A0, A1 (nur Skripte/Datei), Zweig C (File Acces
 |---|---|---|
 | F1 | **Ist die COM-Registrierung erfolgt** (wer, wann, Befehl)? Ist 10.4 die registrierte Version, und ist 10.2/10.3 noch im Einsatz (A1/A2 vom letzten Mal)? | **Beantwortet (Nutzer, 2026-11-05):** COM-Schnittstelle für PSV 10.4 von Daniel registriert; Datum und Befehl unbekannt (vor Ort nachtragen). Pfad A ist Hauptweg. **Offen:** 10.2/10.3 noch im Einsatz? |
 | F2 | **Ist die Anregung (Shaker/Verstärker) freigegeben?** Wofür genau (Mini-Scan, Zwei-Amplituden-Test, Wiederholungsmessung T8)? Bis zu welcher Generator-Amplitude? | **Beantwortet (Nutzer, 2026-11-05):** Anregung von Daniel freigegeben (F2 ja). **Offen:** maximale Generator-Amplitude (0,04 V für D3, F2a); Umfang der Freigabe (Mini-Scan, A-B-A, T8) mit Daniel bestätigen. | Zweig D |
-| F3 | Termin: Datum, Beginn, Ende; **ist ein längerer Termin (z. B. 4 h) möglich?** Ist Daniel erreichbar (Registrierung, Rückfragen)? | **Beantwortet (Nutzer, 2026-11-05):** Mo 2026-11-09, ganzer Tag. **Offen:** Beginn, Ende, Erreichbarkeit von Daniel. | Zeitplan 4.1, Streichliste 4 |
+| F3 | Termin: Datum, Beginn, Ende; **ist ein längerer Termin (z. B. 4 h) möglich?** Ist Daniel erreichbar (Registrierung, Rückfragen)? | **Beantwortet (Nutzer):** Mo 2026-11-09, ganzer Tag (05.11.), **ausgefallen** (Messrechner nicht verfügbar); neu Mo **2026-11-23, ganzer Tag** (Nutzer, 2026-11-18). **Offen:** Beginn, Ende, Erreichbarkeit von Daniel. | Zeitplan 4.1, Streichliste 4 |
 | F4 | Darf beim Mini-Scan `SaveTimeDataForScan` an sein (setzt Signal Enhancement auf „Fast“, nur Testscan)? Wo dürfen die Zeitdaten-Dateien liegen (Größe unbekannt)? | D1 |
 | F5 | Gibt es eine Waage (Genauigkeit, Messbereich) und darf der Impedanzkopf bzw. die Platte dafür aus dem Aufbau genommen werden? | E1 |
 | F6 | Darf der Laser auf den Impedanzkopf gerichtet werden? **Darf eine kleine Reflexfolie (flach, einige mm²) auf die Stirnfläche des Impedanzkopfs geklebt werden** (Zustimmung Daniel; Spray statt Folie als Alternative)? Wenn nein oder Kopf nicht einsehbar: Ersatzpunkt auf der Plattenvorderseite gegenüber der Kopfmontage. | D2 |
 | F7 | Darf der Rechner ins Internet bzw. auf GitHub (A4 vom letzten Mal); darf ein Stick benutzt werden? | Installationsweg A1 |
 | F8 | Dürfen die Handbücher aus dem Programmordner kopiert werden (Lizenz/Ablage in `Input/literatur/polytec/`)? | E2 |
 
+**Weitere offene Punkte und Fragen an Daniel bzw. den Betreuer** (am 2026-11-09 nicht besprochen oder offen; Quellen: Laborbuch `2026-11-09_betreuertermin-daniel`, Lastenheft O9 bis O12, Analyse `2026-11-09_A1-B13_alignment-benachrichtigung.md` Abschnitt 4, `in_progress/planung/gliederung.md`, TODO). Die Antworten gehören ins Protokoll (Abschnitt 1, Zeile „Weitere Fragen“).
+
+| Nr | Frage | Auswirkung |
+|---|---|---|
+| A1 bis A6 | Abgleich (O9): Umfang (nur lesen / Datei laden und prüfen / selbst auslösen), Abgleichmethode am Aufbau, Ergebnis- und Grenzwerte, Bewegung von Laser und Spiegel ohne Aufsicht, Verhalten bei ungültigem Abgleich (verweigern oder warnen), Protokollierung je Messung oder je Durchgang | R-003a/b/c. **Stand (Nutzerentscheidung 2026-11-18):** Modus `warnen`, nur lesen, Prüfgrenzen nur in der Konfiguration ohne Standardwerte; nie Messung verweigern |
+| W1 bis W8 | Benachrichtigung (O10): Kanal (Webex/E-Mail), Webex-Bot oder Webhook und Konto, E-Mail-Server, Datenschutz, Netzfreigabe, Menge, Zustellfehler, Empfänger/Quittierung | R-025; kein Test am 23.11. (Hardware nicht betroffen, Nachrichten blockieren nie) |
+| O11 | Formen für die Koordinatentransformation (Kugel, Zylinder, Freiform), Herkunft der Normalen, Toleranz | R-070 |
+| O12 | Welche PSV-Visualisierungen genau übernommen werden sollen | R-072 |
+| F2a | Maximale Generator-Amplitude (0,04 V für D3) | D3 |
+| F4, F6, F5, F8 | Zeitdaten speichern; Reflexfolie auf dem Impedanzkopf; Waage; Handbücher kopieren (siehe Tabelle oben) | D1, D2, E1, E2 |
+| – | Datenblatt PCB 288D01 (Volltext von Jakob nach `Input/literatur/pcb/`, M8 bis dahin offen) | D2 |
+| – | Datum und Befehl der COM-Registrierung (F1), Ort der Einstellungsdatei vom 12.10. | A0, Versuchsplan 4 |
+| G1 bis G4 | Gliederung: Kapitelzuschnitt (Methodik/Konzept), Ort des LDV-Messprinzips, Abschnitt für Fehlschläge, Umfang und Abgabetermin | Thesis, kein Messrechner |
+| – | Umfang und Abgabetermin (F1 des Erwartungsmanagements); keine Fristen vereinbart | Zeitplan |
+| V6, V7 | Auswertung über PSV hinaus: FE-Modell vorhanden? Fremdbibliothek als Gegenprobe? (TODO, Analyse FA-B10) | R-B10 |
+
 ### 3.2 Auf dem Entwicklungsrechner (Orchestrator/Jakob, **[offen]**, nicht Teil dieses Plans)
 
-- Wheel **0.2.0** (Version entschieden) nach dem letzten Commit neu bauen (`version` in `software/pyproject.toml` auf 0.2.0), **gepusht**, Build-Info mit `git_dirty: false`; Git-Hash und SHA-256 der Wheel-Datei notieren. Dateiname `ldv_automation-0.2.0-py3-none-any.whl`; Ablage `stick/wheelhouse/` (erledigt, aktueller Build a0ee2fc, siehe Nachtrag 2026-11-05).
-  **Nachtrag 2026-11-03 (erledigt):** gebaut aus 6d84318 (`git_dirty: false`; ersetzt die nicht ausgelieferten Builds f66af80 und b5300e1), abgelegt unter `in_progress/versuche/naechster-termin_messrechner/stick/wheelhouse/`, SHA-256 `e6c3940830e81eb75fa5bd156b9d4563e1e838a5168c10be89f93e432f9bc96f`; Skripte und Hashes in `stick/LIESMICH.txt`. Seit 530af41 geändert: K-ACHSE (Auswertung) und K-2D (COM-Adapter: Hinweise bei fehlender Registrierung/Desktop-Modus, SignalDelay lesen) – die Aussage „Adapter unverändert“ unten gilt damit nicht mehr.
-  **Nachtrag 2026-11-05:** Der Build 6d84318 wird durch einen neuen Build mit gleicher Versionsnummer 0.2.0 ersetzt (Reiter „Auswerten“ mit neuen Laufzeitpaketen matplotlib 3.11.2 mit Abhängigkeiten, olefile 0.47, tzdata 2026.6; Pins laut `software/tools/wheelhouse/erzeuge_wheelhouse.py`). Die SHA-256 `e6c39…` gilt danach nur noch für 6d84318. Neuer Build: `ldv_automation-0.2.0-py3-none-any.whl`, Git `a0ee2fc6c870383b898611b7f4299ee15fb94416` (git_dirty false), SHA-256 `68221a3c96f2e42ddc3c72b5f9e83a0b5846a1dc6876a2376f0d5a2dbf1e6bd7`, Ablage `stick/wheelhouse/` zusammen mit den 12 neuen Abhängigkeits-Wheels (SHA-256 in `stick/LIESMICH.txt`).
-  Stand 2026-11-05 (`stick/LIESMICH.txt`): Build a0ee2fc (`git_dirty` false) liegt als Wheel mit 12 Abhängigkeits-Wheels unter `stick/wheelhouse/`, SHA-256 in `stick/LIESMICH.txt`. Commits a0ee2fc (Build-Stand) und ec31e8e (Wheel und Wheelhouse) liegen auf `origin/claude/wizardly-carson-mii3uf` (geprüft 2026-11-06). Die Aussage „COM-Adapter unverändert“ gilt nicht mehr (K-2D, siehe oben).
+- Wheel **0.2.0** (Version bleibt 0.2.0, Nutzerentscheidung 2026-11-18; 0.2.0 wurde nie am Messrechner ausgeliefert) nach dem letzten Commit **neu bauen**, gepusht, Build-Info mit `git_dirty: false`. Git-Hash und SHA-256 der Wheel-Datei werden an den Platzhaltern **‹BUILD-HASH›** und **‹SHA-256›** eingesetzt (Ablaufplan, `installation_0.2.0.md`, `protokoll.md`, Warteschlangen-Protokoll, Prüfzettel, `stick/LIESMICH.txt`). Dateiname `ldv_automation-0.2.0-py3-none-any.whl`; Ablage `stick/wheelhouse/` (ersetzt das dortige Wheel). **Offen:** Der Build ist noch nicht erstellt; das derzeit in `stick/wheelhouse/` liegende Wheel ist ein früherer, **ersetzter** Stand (Build a0ee2fc) und wird nicht installiert. Der neue Build soll nach Stand der Planung zusätzlich enthalten: Abgleich lesen und prüfen (R-003a/b), Auswerten Etappen A bis C (Achsenleiste, Mehrfachmessungen, Ansicht 5) und, falls fertig, die Animation in Ansicht 4 (AN7 ff.).
+  **Historie (alle ersetzt, nie am Messrechner installiert):** Builds f66af80, b5300e1, 6d84318 und a0ee2fc (jeweils Version 0.2.0). Deren Hashes und SHA-256 gelten nicht mehr.
 - Skripte `erkundung.py`, `einstellungen_lesen.py`, `daten_lesen.py` im aktuellen Stand (nach Review: Exit-Codes, Spaltenlängen) bereitstellen.
 - Für Golden File v2 (C3): `daten_lesen.py` hat eine feste Signalliste (`AUSWAHL`, 8 Signale). Die Namen für Kohärenz, H2, PSD/ESD, Terzen stehen in der Erkundung 1b **nicht**
   (die Erkundung listet nur bis zu 8 Kanäle und 6 Signale je Kanal, `MAX_CHANNELS = 8`, `MAX_SIGNALS = 6`; die Domäne „Terzen“ wird nicht aufgelistet). Entweder die Liste vorher erweitern (Paket SKRIPTE) oder am Termin
@@ -154,11 +170,11 @@ PFAD B (COM aus, nur Rückfall): A0, A1 (nur Skripte/Datei), Zweig C (File Acces
 - Für M11 (C2) **vorab prüfen** (Fachprüfung): Die Kennzeichenfreiheit der Kandidaten (617,9; 631,7; 644,8; 693,5; 757,3; 867,9 Hz) gilt in FG-02 Abschnitt 8 am **Punktmittel**, nicht am Einzelpunkt. Am Entwicklungsrechner mit der Stufe-1-Spitzenerkennung am gewählten Punkt (Label 132 oder anderer) bestimmen, welche Kandidaten dort ohne Kennzeichen sind. **Erledigt (V2):** an Label 132 gewählt 921,5 / 632,5 / 483,8 Hz, Reserve 949,3 / 644,8 Hz (siehe C2).
 - Für D1/D2 offline vorbereiten: Auswerteweg für die Phasen-/Betragsauswertung von D2 (Fit φ(f), |H1|·ω) und die eigene FFT je Block (D1); Testdaten für B5 (siehe B5).
 - SHA-256 der vorhandenen Handbücher unter `Input/literatur/polytec/Handbücher/` notieren, um am Termin zu erkennen, ob die 10.4-Fassung abweicht (E2). Die Version der vorhandenen Handbücher ist **[offen]**.
-- Am Messrechner genügt das normale `pip install --upgrade --no-deps`, wenn dort 530af41 (0.1.0) steht. War 6d84318 (gleiche Version 0.2.0) installiert, ist `--force-reinstall` nötig (A1, Schritt 3).
+- Am Messrechner genügt das normale `pip install --upgrade --no-deps`, wenn dort 530af41 (0.1.0) steht. War ein früherer Build mit gleicher Version 0.2.0 installiert (nicht belegt), ist `--force-reinstall` nötig (A1, Schritt 3).
 
 ### 3.3 Mitnehmen / bereitlegen
 
-- [ ] Stick mit: aktuellem Wheel, Skripten, Konfigvorlage `beispiel_messrechner.json`, diesen drei Dateien (ausgedruckt: Prüfzettel), Python-Installer 3.11.9 (Rückfall)
+- [ ] Stick mit: aktuellem Wheel (neuer Build 0.2.0, ‹BUILD-HASH›, ‹SHA-256›), Skripten (inkl. `tools/auswertung/`), Konfigvorlage `beispiel_messrechner.json` (Modus `warnen`, keine Grenzwerte), diesen Dateien und den Prüfanleitungen (`pruefanleitung_abgleich.md`, `pruefanleitung_auswerten.md`, `pruefanleitung_auswerten_vergleich.md`; ausgedruckt: Prüfzettel), Python-Installer 3.11.9 (Rückfall)
 - [ ] Handy/Kamera für Fotos; Maßband oder Messschieber (Maße der Platte, Position des Impedanzkopfs) **[Annahme: nützlich]**
 - [ ] Notizzettel für PID und Uhrzeiten (falls Protokoll nicht offen ist)
 
@@ -166,9 +182,9 @@ PFAD B (COM aus, nur Rückfall): A0, A1 (nur Skripte/Datei), Zweig C (File Acces
 
 ## 4 Zeit, Priorität, Streichreihenfolge
 
-### 4.1 Planung: ganzer Tag (Mo 2026-11-09)
+### 4.1 Planung: ganzer Tag (Mo 2026-11-23)
 
-Termin: **ganzer Tag** (F3, Nutzer 2026-11-05). Die Tagesreihenfolge übernimmt die Blöcke 1 bis 7 aus `../2026-11-09_pruefdateien-warteschlange/versuchsplan.md`, Abschnitt 5.3 (Dauern dort [A]). Die Tabelle unten gibt Priorität und Dauer je Abschnitt an.
+Termin: **ganzer Tag** (F3; Nutzer 2026-11-05, verschoben auf 2026-11-23 durch Nutzer 2026-11-18). Die Tagesreihenfolge übernimmt die Blöcke 1 bis 7 aus `../2026-11-09_pruefdateien-warteschlange/versuchsplan.md`, Abschnitt 5.3 (Dauern dort [A]). Die Tabelle unten gibt Priorität und Dauer je Abschnitt an.
 
 | Block (Versuchsplan 5.3) | Inhalt | Dauer [A] | Abschnitte hier |
 |---|---|---|---|
@@ -177,10 +193,12 @@ Termin: **ganzer Tag** (F3, Nutzer 2026-11-05). Die Tagesreihenfolge übernimmt 
 | 3 | D2, D3 (Amplitude danach zurück auf 0,02 V) | ca. 70 min | D2, D3 |
 | 4 | Trockenlauf, T4, T5, T6 | ca. 95 min | B4, D5 |
 | 5 | D1 (Zeitdaten-Scan, R als Referenz) | 15 bis 20 min | D1 |
+| 4a | **Abgleich lesen** (AB1 bis AB6, optional AB9, AB10; Trockenlauf, nur lesen), nach Block 4 | offen ([A] ca. 30 min) | 4.4 |
 | 6 | D4 oder Teilraster-Vergleich; nebenher C, E2 | 40 bis 85 min | D4, E2 |
+| 6a | Auswerten-Prüfungen W1 bis W10 und AV (Etappen B/C), bedingt Animation; ohne PSV, in Wartezeiten oder nach Block 6 | offen | 4.3, 4.4 |
 | 7 | E1, X1, A2 | 60 min | E1, X1, A2 |
 
-**Summe der Blockangaben: 430 bis 510 min** [A]. Die Obergrenze liegt über einem Arbeitstag von ca. 8 h [Annahme]; deshalb gilt die Streichreihenfolge unten. **Hinweis:** Die Blockangabe 100 bis 130 min für Block 1 liegt unter der Summe der Einzeldauern hier (A0 15 + A1 20 + B1 25 + B2 20 + B3 30 + T1 20 + T2 30 = 160 min). Sie setzt voraus, dass C-Punkte in Wartezeiten laufen. [offen: Dauern am Tag prüfen]
+**Summe der Blockangaben: 430 bis 510 min** [A]. Die Obergrenze liegt über einem Arbeitstag von ca. 8 h [Annahme]; deshalb gilt die Streichreihenfolge unten. **Hinweis:** Die Blockangabe 100 bis 130 min für Block 1 liegt unter der Summe der Einzeldauern hier (A0 15 + A1 20 + B1 25 + B2 20 + B3 30 + T1 20 + T2 30 = 160 min). Sie setzt voraus, dass C-Punkte in Wartezeiten laufen. [offen: Dauern am Tag prüfen] Die Blöcke 4a und 6a sind in dieser Summe **nicht** enthalten (Dauer offen; Abgleich [A] ca. 30 min); sie laufen, soweit möglich, in Wartezeiten.
 
 Der **Muss-Block** summiert sich nach den Dauer-Annahmen auf 180 min (A0 15 + A1 20 + B1 15 + B2 20 + B3 30 + B4 50 + A2 30) und passt damit mit T0 bis T2 hinein. Die Soll-Punkte summieren sich auf ca. 185 bis 190 min (D2 40, C2 30, E1 15, C3 20, D3 30, E2 10, D1 15 bis 20, C4 10, X1 15). Sie passen am ganzen Tag, aber nicht bei Zeitverlust; es gilt die Rangfolge unten.
 Wartezeiten (Registrierung mit Daniel, Scandauer, Download) werden mit Zweig C und E gefüllt, weil diese weder COM noch Anregung brauchen; dadurch rückt mehr hinein, als die Summe vermuten lässt (nicht belegt).
@@ -211,17 +229,24 @@ Wartezeiten (Registrierung mit Daniel, Scandauer, Download) werden mit Zweig C u
 | C8 | Restpunkte M13, M14, M15 | 20 min | Kann | nein | nein | ja |
 | D4 | Wiederholungsmessung T8 (nur mit Freigabe, Frage an Daniel) | 45 min + **Scandauer ca. 40 min** (Beispieldatei) | **Kann**, nur nach Entscheidung | nein oder ja | **ja** | nein |
 | D5 | T3 bis T7 (Meldungsprobe, echte Messung über Programm, Abbruch, Warteschlange) | 10 bis 45 min je Schritt | Kann, nur nach Entscheidung | ja | **ja** (T4 ff.) | nein |
+| AB1–AB6 | **Abgleich lesen** (`pruefanleitung_abgleich.md`, R-003a): Konfig, Trockenlauf, Feld `abgleich`, Einheit, Hinweise, Indexbasis | [A] ca. 30 min | **Muss** | ja (Trockenlauf) | nein | nein |
+| AB9 | Modus `warnen` mit strenger Prüfgrenze aus dem gelesenen Messwert | [A] 10 min | Soll (Rang offen) | ja | nein | nein |
+| AB10 | ungültige Konfig (Grenze 0) | [A] 5 min | Kann | nein | nein | nein |
+| AB7, AB8, AB11 | Modus `verweigern` im Trockenlauf | – | Kann, nur im Trockenlauf auf einer Konfig-Kopie (Nutzerentscheidung 2026-11-18); Betrieb bleibt `warnen` | ja | nein | nein |
+| W1–W10 | Auswerten-Prüfung (`pruefanleitung_auswerten.md`) | offen | Kann | nein | nein | Kopie |
+| AV | Auswerten Etappen B/C (`pruefanleitung_auswerten_vergleich.md`: V1–V4, B1–B9, C1–C9, D1–D6, E1–E4; UI-38 bleibt offen) | offen | Soll (Rang offen) | nein | nein | Kopien |
+| AN | Animation, **bedingt**, nur wenn der Build AN7 enthält | offen | Kann, bedingt | nein | nein | Kopie |
 
 Die Rangfolge der Soll-Punkte (D2 > C2 > E1 > C3 > D3 > E2 > D1 > C4 > X1) stammt aus der Fachprüfung FD-P3. **D2 und E2 werden nie zusammen gestrichen**: D2 ist der wichtigste offene Befund (M8) und wird vor E2 geschützt.
 
-### Streichreihenfolge bei Zeitmangel (zuerst gestrichen wird oben) [Vorschlag, bitte bestätigen]
+### Streichreihenfolge bei Zeitmangel (zuerst gestrichen wird oben)
 
-Nie gestrichen: A0, A1 (mindestens I1 bis I4), B1 (bei COM), A2. Nicht pauschal: R, A, B (Block 2, bei Anregung-Freigabe), T4, T5 (Entscheidung vor Ort).
+Nie gestrichen: A0, A1 (mindestens I1 bis I4), B1 (bei COM), A2. Neu Muss: AB1 bis AB6 (spät streichen, wie B4). Nicht pauschal: R, A, B (Block 2, bei Anregung-Freigabe), T4, T5 (Entscheidung vor Ort).
 
 0. **Vorrang laut Versuchsplan 5.3:** zuerst **D4**, dann **D1**, dann **T6** (Teil von D5).
-1. **Kann:** D5 Rest (T3, T7; T4 und T5 nur nach Entscheidung vor Ort, T6 siehe 0), C7, C6, B5, C8 (M14, M15 zuerst, M13 zuletzt), C5
+1. **Kann:** D5 Rest (T3, T7; T4 und T5 nur nach Entscheidung vor Ort, T6 siehe 0), C7, C6, B5, C8 (M14, M15 zuerst, M13 zuletzt), C5; neu: Animation (bedingt), AB10, W1 bis W10
 2. **Soll (niedrig):** X1 (bei COM-Fehler stattdessen vorziehen), C4 (nicht mit D1 streichen, sondern vor `mess_3x3.set` sichern; ohne C4 hat D1 keine Leckage-Aussage)
-3. **Soll (mittel):** E2, D3, C3
+3. **Soll (mittel):** E2, D3, C3; neu (Rang untereinander offen): AV, AB9
 4. **Soll (hoch):** E1, C2, **D2 zuletzt**
 5. **Muss (zuletzt):** B4 T2 und B3 Test-.set, danach B2
 
@@ -238,6 +263,29 @@ Ohne Freigabe der Anregung (F2 nein): normaler Muss-Block, danach C2, E1, C3, E2
 
 Die Installation N1 bis N7 (`installation_0.2.0.md`) folgt direkt auf A1 und steuert EP-3. Die Prüfungen W1 bis W10 (`pruefanleitung_auswerten.md`) und `tools/auswertung/zeiten_messen.py` laufen in Wartezeiten, etwa während Scans (D1, D4, T4 bis T6); in der Checkliste stehen sie als Wartezeit-Punkte (Block 6). **[offen: Dauer am Messrechner]**
 **Regeln:** nur Kopien der Beispieldatei `20261012_ref_Mitte.svd` oder neue Dateien, nie das Original und nie im Ordner von PSV; keine Messdaten unter PyCharmProject. W-Tests sind Handtests und gelten erst nach deiner Bestätigung. Schlägt N1 bis N3 fehl, wird nichts weiter installiert (EP-3). Befunde und Zahlen in `protokoll.md`. Gleichzeitige Last mit laufender PSV-Messung ist nicht geprüft **[offen]**; [Vorschlag]: während einer laufenden Messung keine Lesezugriffe auf den PSV-Datenordner.
+Zusätzlich gilt in Wartezeiten oder nach Block 6 (Block 6a): `pruefanleitung_auswerten_vergleich.md` (**AV**, Etappen B/C, UI-38) und, bedingt, die Animation (4.4).
+
+### 4.4 Neue Prüfungen dieses Termins: Abgleich lesen, Auswerten (AV), Animation
+
+Eingehängt am 2026-11-18 (Paket P-TERMIN-23). Die Zuordnung zu Muss/Soll/Kann hat Jakob am 2026-11-18 bestätigt (AB1–AB6 Muss; AV, AB9 Soll; W1–W10, AB10, AB7/AB8/AB11, Animation Kann); die Dauern sind Annahmen. Alle Punkte sind Handtests und gelten erst nach Bestätigung durch Jakob (danach `/laborbuch`).
+
+| Prüfung | Anleitung | Ort im Tag | Priorität | Voraussetzung |
+|---|---|---|---|---|
+| **Abgleich lesen AB1 bis AB6** | `pruefanleitung_abgleich.md` | Block 4a, nach Block 4 (T2 ohne Befund) | **Muss** | COM (Trockenlauf), `P1-6-abgleich` aus B1 notiert, I5 grün, neuer Build mit dieser Funktion, keine Datei mit `"schema_version": 2` unter `$ARB\daten` |
+| AB9 (`warnen` mit strenger Prüfgrenze) | dto. | Block 4a | Soll | AB3 liefert `qualitaet_ist_m` > 0, sonst entfällt AB9 mit Vermerk |
+| AB10 (ungültige Konfig) | dto. | Block 4a | Kann | – |
+| AB7, AB8, AB11 (`verweigern`) | dto. | Kann | – | siehe unten |
+| W1 bis W10 | `pruefanleitung_auswerten.md` | Block 6a / Wartezeiten | Kann | N1 bis N7 |
+| **AV** V1 bis V4, B1 bis B9, C1 bis C9, D1 bis D6, E1 bis E4 | `pruefanleitung_auswerten_vergleich.md` | Block 6a / Wartezeiten | Soll (Rang offen) | N1 bis N7, Kopien, `tools\auswertung\speicher_messen.py` auf dem Stick (**[offen]**), Arbeitsspeicher aus A0 notiert |
+| **Animation (AN7), bedingt** | Platzhalter `‹PRÜFANLEITUNG-ANIMATION›` (entsteht in AN9) | Block 6a | Kann, bedingt | nur wenn der Build AN7 enthält |
+
+**Abgleich lesen (AB1 bis AB6).** Nur lesen: Es wird nichts am Abgleich ausgelöst, berechnet oder ungültig gemacht; Laser und Spiegel bewegen sich nicht; kein Scan; Generator aus. Jede Bewegung oder PSV-Dialogmeldung: abbrechen und notieren (EP-5). **Modus (Nutzerentscheidung 2026-11-18):** Auf dem Stick steht `abgleich_pruefung` = `warnen`; es gibt keine Standardgrenzen, Prüfgrenzen stehen nur in der Konfigurationsdatei, Jakob trägt sie ggf. vor Ort ein, und es wird **nie eine Messung verweigert**. Die Anleitung geht für AB1 bis AB3 von einer Konfig-Kopie mit Modus `aus` aus (Vergleichsfall, `konfig_abgleich_aus.json`); die Stick-Vorlage steht dagegen auf `warnen`: in der Kopie den Modus auf `aus` setzen und die Abweichung ins Protokoll schreiben. **Achtung Trockenlauf:** Die Lademaske enthält `Alignment`, `2DAlignment`, `3DAlignment`; der Trockenlauf (T2, AB2) ersetzt den in PSV geladenen Abgleich durch den der Test-.set. Vorher den Abgleichstatus in PSV notieren (Foto) und keinen Abgleich ersetzen, der für eine echte Messung gebraucht wird (Prüfanleitung Abgleich, Sicherheitsrahmen).
+*Weiter:* AB1 bis AB6 durchlaufen, Zahlen und `abgleich`-Blöcke gesichert. *Abbruch:* Bewegung, Dialog oder Hänger (EP-5). *Ersatz:* kein 3D-Abgleich vorhanden (`anzahl_3d` = 0) oder COM aus: AB3 bis AB6 als Befund bzw. „entfällt“ eintragen, nichts herstellen; Pfad B (Simulator, **kein** Hardwaretest als bestanden melden).
+**AB7, AB8, AB11 (`verweigern`):** Diese Zeilen prüfen nur das Gate: nur im Trockenlauf auf einer Konfig-Kopie (Nutzerentscheidung 2026-11-18); Betrieb bleibt `warnen`. Keine echte Messung wird verweigert.
+
+**Auswerten (W, AV).** Kein PSV, keine Messung, keine COM-Verbindung; nur Kopien (nie das Original `20261012_ref_Mitte.svd`, nie im PSV-Ordner), Ausgabe nur nach `$ARB`. Für den Vergleich ist eine zweite Datei nötig; **[Vorschlag]** eine Kopie einer am Tag entstandenen echten Messung (z. B. `20261123_ref3x3_01.svd` nach Sicherung in Block 2), sonst dieselbe Kopie unter anderem Namen (Anleitung AV). Fenstergröße und Windows-Skalierung vorher notieren. V1 und V2 brauchen die Arbeitsspeicher-Notiz aus A0. UI-38 bleibt auch nach AV offen (Phasenregler und Animation fehlen dort).
+
+**Animation (bedingt).** Nur wenn der Build AN7 (Animation in Ansicht 4) enthält, erkennbar am Modusschalter „Standbild/Animation“; sonst entfällt der Block. Bis die Prüfanleitung aus AN9 vorliegt, nur **Sichtprüfung** nach dem Plan `in_progress/planung/plaene/2026-11-11_P-AUSW3_animation-plan.md` (Standbild nach Öffnen, Wiedergabe, Drehen und Zoom, Phase per ←/→, Pflichttexte im Bild, Kennzeichen M8, Modus gesperrt ohne Phase). Die Messungen M1 bis M6 (Bildzeit, Bildrate, Maus-Ziehen, Phasenregler, `animation_daten`, Standbild speichern) laufen erst mit dem Messskript aus AN9 (`animation_messen.py`) und **entfallen, falls AN9 fehlt**; M7 (Nutzerurteil über Remotedesktop) gehört dazu. Platzhalter für die Anleitung: `‹PRÜFANLEITUNG-ANIMATION›`.
 
 ## 5 Abschnitte (Weiter / Abbruch / Ersatz)
 
@@ -246,7 +294,11 @@ Die Installation N1 bis N7 (`installation_0.2.0.md`) folgt direkt auf A1 und ste
 **Zweck:** Vor allem anderen klären, ob COM überhaupt möglich ist, und eine saubere PSV-Ausgangslage herstellen.
 **Voraussetzung:** keine. PSV darf zu sein (Stufe 0 braucht PSV nicht).
 
-1. Aufbau-Foto, Uhrzeit, Kopf des Protokolls ausfüllen (F1 bis F8 notieren).
+1. Aufbau-Foto, Uhrzeit, Kopf des Protokolls ausfüllen (F1 bis F8 notieren). **Zusätzlich notieren** (aus TODO und Plänen): Arbeitsspeicher des Messrechners (gesamt und frei, Task-Manager, Leistung; Grundlage für AV V1/V2 und die Messungsgrenze, Plan P-AUSW2 F6) und die Ausgabe von
+   ```powershell
+   git -C "D:\Messdaten\DAL\BA Jakob Busch\PyCharmProject" status
+   ```
+   (nur lesen; Hash-Quelle der Build-Info, falls die venv in einem Git-Repository liegt, Laborbuch 2026-11-06; ist `git` nicht installiert oder kein Repository: „kein git“ bzw. die Meldung notieren; zugleich Antwort auf die offene Frage, ob `PyCharmProject` ein Git-Repository ist).
 2. **Prozesse zählen und PID notieren** (nur eine Instanz):
    ```powershell
    Get-Process PSV -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, StartTime, Path
@@ -284,7 +336,7 @@ Die Installation N1 bis N7 (`installation_0.2.0.md`) folgt direkt auf A1 und ste
 Das Update bringt die Frequenzachsen-Korrektur der Auswertung (K-ACHSE) und die überarbeiteten Skripte. Ist das Update nicht erreichbar, entfällt nur die Auswertung, nicht der Termin (EP-3).
 
 **Weg G (Git, bevorzugt, Internet nötig; F7):**
-1. Wheel aus dem Repository holen. Neues Wheel **0.2.0** (`ldv_automation-0.2.0-py3-none-any.whl`; Build a0ee2fc liegt auf dem Stick unter `in_progress/versuche/naechster-termin_messrechner/stick/wheelhouse/`, SHA-256 in `stick/LIESMICH.txt`; Git-Ablage **[offen]**, siehe 3.2). Download im Browser über die GitHub-Seite des Repositorys
+1. Wheel aus dem Repository holen. Neues Wheel **0.2.0** (`ldv_automation-0.2.0-py3-none-any.whl`; der neue Build ‹BUILD-HASH› mit SHA-256 ‹SHA-256› liegt nach dem Bau auf dem Stick unter `in_progress/versuche/naechster-termin_messrechner/stick/wheelhouse/`, Werte in `stick/LIESMICH.txt`; Git-Ablage **[offen]**, siehe 3.2). Download im Browser über die GitHub-Seite des Repositorys
    (`https://github.com/BuschyBuschmann/BA_Jakob-Busch_P`, Arbeitsbranch `claude/wizardly-carson-mii3uf` bzw. der dann aktuelle Branch) → Datei → „Download raw file“.
    Ob das Repository ohne Anmeldung erreichbar ist, ist **[offen]**; am gemeinsam genutzten Messrechner nicht mit dem persönlichen GitHub-Konto anmelden **[Vorschlag]**. Dann Weg S.
 2. SHA-256 prüfen und mit dem vorab notierten Wert (3.2) vergleichen:
@@ -298,7 +350,7 @@ Das Update bringt die Frequenzachsen-Korrektur der Auswertung (K-ACHSE) und die 
    **Vorher, neu mit diesem Build:** Die neuen Laufzeitpakete müssen vor dem Wheel in der venv sein: matplotlib 3.11.2 mit Abhängigkeiten, olefile 0.47, tzdata 2026.6 (Pins und Befehle in `installation_0.2.0.md`, Abschnitte 1 und 3; Weg S aus dem Wheelhouse `stick/wheelhouse/`). Ohne sie ist die Auswertung nicht lauffähig.
    **Rückfall** nur, falls pip trotzdem „already satisfied“ meldet oder I6 den alten Hash zeigt (z. B. falsche Datei, Cache; war 6d84318 installiert, ist er nötig): `--upgrade --force-reinstall --no-deps` mit demselben Pfad. In I3 muss `ldv-automation 0.2.0` stehen, dazu die neuen Pakete aus dem Vorher-Schritt.
 4. Skripte aus Git holen (sind **nicht** im Wheel): `software/tools/erkundung/erkundung.py`, `einstellungen_lesen.py`, `daten_lesen.py` und `software/konfig/beispiel_messrechner.json`
-   nach `$ARB` (die alten Fassungen vom letzten Termin vorher als `*_alt.py` beiseite legen, nicht überschreiben). `skript_sha256` des neuen `erkundung.py` im Protokoll festhalten.
+   sowie `software/tools/auswertung/` (`zeiten_messen.py`, `speicher_messen.py`, `darstellung_beispiel.py`; Ziel `$ARB\tools\auswertung\`) nach `$ARB` (die alten Fassungen vom letzten Termin vorher als `*_alt.py` beiseite legen, nicht überschreiben). `skript_sha256` des neuen `erkundung.py` im Protokoll festhalten.
 
 **Weg S (Stick):** dieselben Dateien vom Stick; Installationsbefehl wie in Schritt 3 mit dem Pfad vom Stick. **Ohne Internet (`pip` aus dem Wheelhouse):** nur nötig, falls sich die Pins geändert haben:
 `& $PY -m pip install --no-index --find-links "<Stick>\wheelhouse" --no-deps ...`.
@@ -316,7 +368,7 @@ mkdir "$T\daten\selbsttest" -ErrorAction SilentlyContinue
 & $PY -m ldv_automation gui --simulator                             # I7  Titel „… SIMULATOR“, Symbole sichtbar
 ```
 
-**Ergänzung (Reiter „Auswerten“):** Der neue Build 0.2.0 enthält den Reiter „Auswerten“ und braucht neue Laufzeitpakete (Schritt 3, I3). Dafür gilt zusätzlich `installation_0.2.0.md` (Pins, Wheelhouse, Prüfschritte N1 bis N7), danach die Checkliste `pruefanleitung_auswerten.md`. Wheel `stick/wheelhouse/ldv_automation-0.2.0-py3-none-any.whl`, SHA-256 `68221a3c96f2e42d…` (vollständig in `stick/LIESMICH.txt`).
+**Ergänzung (Reiter „Auswerten“):** Der neue Build 0.2.0 enthält den Reiter „Auswerten“ und braucht neue Laufzeitpakete (Schritt 3, I3). Dafür gilt zusätzlich `installation_0.2.0.md` (Pins, Wheelhouse, Prüfschritte N1 bis N7), danach die Checkliste `pruefanleitung_auswerten.md`. Wheel `stick/wheelhouse/ldv_automation-0.2.0-py3-none-any.whl`, SHA-256 ‹SHA-256› (wird beim Build in `stick/LIESMICH.txt` eingesetzt). Danach gelten zusätzlich `pruefanleitung_abgleich.md` und `pruefanleitung_auswerten_vergleich.md` (4.4).
 
 **Weiter:** I1 bis I4 ok **und** I6 zeigt den erwarteten Git-Hash mit `git_dirty: False`. **Abbruch:** I1 bis I4 schlagen fehl: Meldung wörtlich sichern, nichts weiter installieren.
 **Ersatz:** EP-3. **Ablage:** Protokoll Abschnitt 4 (Hash, SHA-256, `pip list`).
@@ -360,7 +412,7 @@ Bei COM-Fehler in K5 **früh** (Diagnose-Gegenprobe). Kann mit C1 bis C8 kombini
 
 Wie [alter Plan, Abschnitt 4](../2026-11-02_prototyp/ablaufplan_vor_ort.md): Erkundungsordner sichern und **Durchsicht vor Upload** (`kommandozeile`, `parameter.datei`, `dateien.*.pfad`, `Acquisition.ScanFileName`, Netzlaufwerkspfade, Fehlermeldungen),
 Schalterwerte nach [U3, „Schalter aus der Erkundung übernehmen“](../2026-11-02_prototyp/pruefanleitung_U3_com-adapter.md) bestimmen, **Kopie** von `beispiel_messrechner.json` nach `$T\konfig_termin.json`, Werte eintragen
-(`validator_rueckfall_direkt`, `lademaske`, `aufruf_grenze_s`, `aufruf_warnung_s`, `stop_frist_s`, `standard_zeitlimit_s`; Vorgaben false / Acquisition-Alignment-APS-2DAlignment-3DAlignment / 60 / 5 / 10 / 600), **Pfad und SHA-256 der Kopie** ins Protokoll:
+(`validator_rueckfall_direkt`, `lademaske`, `aufruf_grenze_s`, `aufruf_warnung_s`, `stop_frist_s`, `standard_zeitlimit_s`; Vorgaben false / Acquisition-Alignment-APS-2DAlignment-3DAlignment / 60 / 5 / 10 / 600; dazu `abgleich_pruefung` = `warnen` aus der Vorlage (Nutzerentscheidung 2026-11-18), die Grenzschlüssel `abgleich_qualitaet_max_m`, `abgleich_position_max_m`, `abgleich_winkel_max_rad` bleiben **weggelassen**, es gibt keine Standardwerte und es werden keine erfunden; trägt Jakob vor Ort eine Grenze ein, steht sie nur hier und wird im Protokoll vermerkt), **Pfad und SHA-256 der Kopie** ins Protokoll:
 `Get-FileHash "$T\konfig_termin.json"`. Kein Eingriff in installierten Code. Ungültige Konfiguration: Start bricht mit Rückgabewert 2 ab, Meldung notieren, korrigieren.
 **Weiter:** Schalter bestimmt. **Abbruch:** Konstanten abweichend, Prozessname ohne „psv“ oder Fehltreffer: **stoppen**. **Ersatz:** ohne Konfigurationsdatei mit den Vorgaben zu arbeiten ist nicht vorgesehen; dann entfällt B4, weiter mit Pfad B.
 
@@ -386,7 +438,7 @@ Prüfen: 1-0 (nur PSV im Prozesstreffer) bis 1-6 und U5-Ergänzung (Dialog „Ge
 ```powershell
 & $PY -m ldv_automation gui --psv --betriebsart trockenlauf --messdaten "$ARB\daten" --konfig "$T\konfig_termin.json"
 ```
-Prüfen 2-1 bis 2-7 (U3), insbesondere **Einrasten bei 5600 Hz** (Wert notieren) und Übereinstimmung mit der PSV-Anzeige. Danach den PSV-Zustand wieder auf den gewünschten Stand bringen (Einstellungen wurden verändert), Foto.
+**Hinweis Abgleich:** Die Lademaske enthält `Alignment`, `2DAlignment`, `3DAlignment`; der Trockenlauf ersetzt den in PSV geladenen Abgleich durch den der Test-.set (Prüfanleitung Abgleich, Sicherheitsrahmen). Vorher Abgleichstatus in PSV notieren (Foto). Prüfen 2-1 bis 2-7 (U3), insbesondere **Einrasten bei 5600 Hz** (Wert notieren) und Übereinstimmung mit der PSV-Anzeige. Danach den PSV-Zustand wieder auf den gewünschten Stand bringen (Einstellungen wurden verändert), Foto.
 **Ersatz:** T1/T2 scheitern wegen COM: nur Simulator-Vorführung (EP-1); Hardwaretest **nicht** als bestanden melden.
 
 **Entscheidung echte Messung (T4 ff.):** Erst danach, nur wenn **du** es entscheidest, T1 und T2 ohne Befund, Freigabe der Anregung (K6) vorliegt (falls der Aufbau mit Shaker gemessen wird); Zeit, Entscheidung, Grund ins Protokoll. T4 wie im alten Plan (Trockenlauf mit derselben .set in derselben Sitzung ohne PSV-Neustart, Startdialog prüfen, `MESSEN` eintippen). D5 enthält die Reihenfolge T4 vor T5 vor T6.
@@ -564,6 +616,7 @@ Dateigröße und SHA-256 notieren: `Get-FileHash "<Datei>"` und mit dem Hash der
 | Fotos (Aufbau vorher/nachher, PSV-Info, Dialoge) | `…/fotos` | |
 | Handbücher | `Input/literatur/polytec/` | nach F8 |
 | Test-.set, Nachweis-.set | | |
+| `abgleich`-Blöcke der Protokolle (AB3, AB9), `speicher.json` (AV V1), `zeiten.json` (W1), Ausgaben von `git status` und Arbeitsspeicher | dieser Ordner bzw. `…/ergebnisse` | keine Anmeldenamen in Pfaden |
 | PSV in sauberem Zustand (keine Messung, kein Dialog; Shaker wieder getrennt bzw. aus) | | |
 
 Danach `/laborbuch` (Hardwaretest- und Versuchseintrag). Ein Befund gilt als „am Gerät bestätigt“ erst, wenn du ihn bestätigt hast.
@@ -639,10 +692,11 @@ Fehler beim Öffnen (Lizenz VBEng vorhanden, ReadOnly funktionierte am 02.11.): 
 
 ## 7 Offene Punkte und Annahmen dieses Plans
 
-- Datum und Tag bestätigt (Mo 2026-11-09, ganzer Tag, F3). **[offen]** Beginn, Ende, Verfügbarkeit von Daniel.
-- **[offen]** Datum und Befehl der COM-Registrierung (F1, Teilantwort); maximale Amplitude (F2a); Internet/GitHub/Stick (F7); Waage (F5); F4, F6, F8.
+- Datum und Tag: Mo 2026-11-23, ganzer Tag (Nutzer, 2026-11-18; der Termin am 2026-11-09 ist ausgefallen). **[offen]** Beginn, Ende, Verfügbarkeit von Daniel.
+- **[offen]** Datum und Befehl der COM-Registrierung (F1, Teilantwort); maximale Amplitude (0,04 V, F2a); Internet/GitHub/Stick (F7); Waage (F5); F4 (Zeitdaten), F6 (Reflexfolie), F8 (Handbücher); Fragen A1 bis A6, W1 bis W8, O11, O12, Datenblatt PCB 288D01, Gliederung G1 bis G4, Umfang und Abgabetermin (Tabelle in 3.1).
+- **[offen]** Abgleich: Modus `warnen`, nur lesen, Grenzen nur in der Konfiguration ohne Standardwerte (Nutzerentscheidung 2026-11-18); ob AB7, AB8, AB11 (`verweigern`) trotz „nie Messung verweigern“ als Gate-Test laufen sollen (4.4); `speicher_messen.py` fehlt noch auf dem Stick; Name und Inhalt der Prüfanleitung der Animation (AN9).
 - **[offen]** Ablageort der Skripte und Messdaten am Rechner, ob `PyCharmProject` ein Git-Repository ist (C1 alt).
-- **[offen]** Wheel **0.2.0** (Build a0ee2fc) liegt als Stick-Paket vor; im Repository abgelegt und gepusht (geprüft 2026-11-06); PeakFit-Signatur und -Modell (B5); Burstform/-länge des Generators (C4); ob SE „Fast“ die SignalDelay ändert; Ref2-SignalDelay; ob PSV die Referenzrichtung im Vorzeichen auswertet (unbelegt, im Handbuch nachsehen); Skripte im aktuellen Stand; Namen für Golden File v2; vorab-Kandidatenprüfung für M11.
+- **[offen]** Wheel **0.2.0** (neuer Build, ‹BUILD-HASH›, ‹SHA-256›; Version bleibt 0.2.0, Nutzerentscheidung 2026-11-18) ist noch zu bauen, auf den Stick zu legen und zu pushen; PeakFit-Signatur und -Modell (B5); Burstform/-länge des Generators (C4); ob SE „Fast“ die SignalDelay ändert; Ref2-SignalDelay; ob PSV die Referenzrichtung im Vorzeichen auswertet (unbelegt, im Handbuch nachsehen); Skripte im aktuellen Stand; Namen für Golden File v2; vorab-Kandidatenprüfung für M11.
 - **[offen]** In welchem PSV-Modus die Auswertung am 02.11. lief; Menübezeichnungen für SaveTimeDataForScan, Generator-Amplitude, Export, Test-.set.
 - **[Annahme]** alle Dauern; Pfade `$ARB`/`$T`; Dateinamensschema; „nach höchstens 30 min Entscheidung“ in EP-1; „5 Minuten“ in EP-5; PolyMath ohne PSV-Registrierung nutzbar; Update nicht nötig für T0 bis T2; Kopf bis 1 kHz starr, Folie masselos (D2); Arbeitstoleranzen in D2 (14 µs, ±5 %).
 - Zahlen mit **[N]** stammen aus Nachrechnungen der Fachprüfung (FD-P3) und sind nicht am Gerät geprüft; ζ ≈ 1,4·10⁻³ für die Kandidaten-Vorabrechnung stammt aus nur zwei Spitzen.

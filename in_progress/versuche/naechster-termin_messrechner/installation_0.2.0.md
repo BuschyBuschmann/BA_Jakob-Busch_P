@@ -1,6 +1,6 @@
 # Installation Version 0.2.0 (Auswertungsoberfläche) am PSV-Messrechner
 
-Stand: 2026-11-05, Paket U-AUSW-T5. Ergänzt `ablaufplan.md` Block A1 (dort Wheel 0.2.0) und
+Stand: 2026-11-05, Paket U-AUSW-T5; aktualisiert 2026-11-18 (P-TERMIN-23: Termin verschoben auf Montag 2026-11-23, Version bleibt 0.2.0, Build-Hash und SHA-256 als Platzhalter ‹BUILD-HASH› und ‹SHA-256›, werden beim Build eingesetzt). Ergänzt `ablaufplan.md` Block A1 (dort Wheel 0.2.0) und
 `../2026-11-02_prototyp/installation_messrechner.md` (Prüfschritte I1 bis I7, Python,
 Rückbau); Letzteres bleibt gültig, hier steht nur, was für den neuen Build 0.2.0 neu ist.
 
@@ -11,9 +11,10 @@ Abgeglichen gegen `software/pyproject.toml`, `software/uv.lock` und `PINS` in
 
 ## 1 Was sich gegenüber dem Stick-Build 0.2.0 ändert
 
-Der neue Build trägt dieselbe Versionsnummer 0.2.0 wie der Stick-Build 6d84318 vom 2026-11-03
-und ersetzt ihn; der Git-Hash ist ein anderer (N3 prüfen). Der neue Build enthält den Reiter
-„Auswerten“ (Darstellung der `.svd`-Datei mit matplotlib, Lesen über `olefile`), der Stick-Build
+Der neue Build trägt dieselbe Versionsnummer 0.2.0 wie die früheren Stick-Builds (zuletzt a0ee2fc,
+alle ersetzt und nie am Messrechner installiert; Nutzerentscheidung 2026-11-18: Version bleibt 0.2.0)
+und ersetzt sie; der Git-Hash ist ein anderer (N3 prüfen). Der neue Build enthält den Reiter
+„Auswerten“ (Darstellung der `.svd`-Datei mit matplotlib, Lesen über `olefile`), der frühe Stick-Build
 6d84318 nicht. Dafür kommen **neue Laufzeitabhängigkeiten** hinzu. Das Wheel selbst wird wie
 bisher mit `--no-deps` installiert (PySide6 6.12.0 darf nie hineinkommen, ADR-001); die neuen
 Pakete müssen daher **vorher** einzeln mit festen Pins in die venv.
@@ -40,8 +41,9 @@ $PY = "D:\Messdaten\DAL\BA Jakob Busch\PyCharmProject\.venv\Scripts\python.exe"
 & $PY --version        # erwartet Python 3.11.9
 ```
 
-Die venv wird nicht aktiviert, alle Befehle rufen `$PY` auf. Wheel-Name: `ldv_automation-0.2.0-py3-none-any.whl`; SHA-256: `68221a3c96f2e42ddc3c72b5f9e83a0b5846a1dc6876a2376f0d5a2dbf1e6bd7`;
-Ablageort: `stick/wheelhouse/` (Build a0ee2fc, git_dirty false).
+Die venv wird nicht aktiviert, alle Befehle rufen `$PY` auf. Wheel-Name: `ldv_automation-0.2.0-py3-none-any.whl`; SHA-256: ‹SHA-256› (Platzhalter, wird beim Build eingesetzt;
+der frühere Wert des ersetzten Builds a0ee2fc gilt nicht mehr);
+Ablageort: `stick/wheelhouse/` (Build ‹BUILD-HASH›, git_dirty false).
 
 ## 3 Neue Abhängigkeiten installieren
 
@@ -56,8 +58,8 @@ Ablageort: `stick/wheelhouse/` (Build a0ee2fc, git_dirty false).
 **Weg 2: offline aus dem Wheelhouse.** Auf dem Entwicklungsrechner erzeugt
 `python tools/wheelhouse/erzeuge_wheelhouse.py --ziel wheelhouse` (Windows x64, CPython 3.11,
 `--only-binary=:all:`, alle `PINS`) die Wheels; Ordner auf den Stick. Das bisherige Stick-Wheelhouse
-unter `stick/wheelhouse/` enthält nur das Wheel 0.2.0 (Stick-Build 6d84318, wird ersetzt), nicht die neuen Pakete. Ort des neuen
-Wheelhouse: `stick/wheelhouse/` (Stand 2026-11-05: neues Wheel 0.2.0 und die 12 neuen Pakete; SHA-256 in `stick/LIESMICH.txt`; numpy, PySide6, shiboken6 und pywin32 weiterhin aus dem Prototyp-Wheelhouse). Am Messrechner:
+unter `stick/wheelhouse/` enthielt nur das Wheel 0.2.0 eines früheren, ersetzten Builds, nicht die neuen Pakete. Ort des neuen
+Wheelhouse: `stick/wheelhouse/` (Stand 2026-11-05: 12 neue Pakete, das Wheel 0.2.0 wird durch den neuen Build ersetzt; SHA-256 in `stick/LIESMICH.txt`; numpy, PySide6, shiboken6 und pywin32 weiterhin aus dem Prototyp-Wheelhouse). Am Messrechner:
 
 ```powershell
 & $PY -m pip install --no-index --find-links "<Stick>\wheelhouse" `
@@ -79,9 +81,9 @@ Get-FileHash "<Ordner>\<Wheel-Name>" -Algorithm SHA256
 & $PY -m pip install --upgrade --no-deps "<Ordner>\<Wheel-Name>"
 ```
 
-Rückfall nur, falls pip „already satisfied“ meldet oder N3 den alten Git-Hash 6d84318 zeigt:
+Rückfall nur, falls pip „already satisfied“ meldet oder N3 den Git-Hash eines früheren Builds zeigt:
 `--upgrade --force-reinstall --no-deps` mit demselben Pfad. Das ist der Fall, wenn der
-Stick-Build 6d84318 (gleiche Versionsnummer) bereits installiert war. Skripte (`erkundung.py` usw.) und
+früherer Build mit gleicher Versionsnummer bereits installiert war (nicht belegt). Skripte (`erkundung.py` usw.) und
 `tools/auswertung/zeiten_messen.py` liegen **nicht** im Wheel und kommen separat auf den Rechner
 (Stick bzw. Git, wie A1 Schritt 4).
 
@@ -91,7 +93,7 @@ Stick-Build 6d84318 (gleiche Versionsnummer) bereits installiert war. Skripte (`
 |---|---|---|
 | N1 | `& $PY -m pip list` | `ldv-automation 0.2.0`, `matplotlib 3.11.2`, `olefile 0.47`, `tzdata 2026.6`, `numpy 2.4.6`, `PySide6_Essentials 6.11.3`, `shiboken6 6.11.3`, `pywin32 312`; **kein** PySide6 6.12.0 |
 | N2 | `& $PY -c "import ldv_automation; print(ldv_automation.__version__)"` | `0.2.0` |
-| N3 | `& $PY -c "import json,importlib.resources as r; print(json.loads(r.files('ldv_automation').joinpath('_build_info.json').read_text('utf-8')))"` | `git_hash` = Hash des Builds (`a0ee2fc6c870383b898611b7f4299ee15fb94416`), `git_dirty` = `False` |
+| N3 | `& $PY -c "import json,importlib.resources as r; print(json.loads(r.files('ldv_automation').joinpath('_build_info.json').read_text('utf-8')))"` | `git_hash` = Hash des Builds (‹BUILD-HASH›, voller Wert in `stick/LIESMICH.txt`), `git_dirty` = `False` |
 | N4 | `& $PY -c "import matplotlib.font_manager; print('Font-Cache ok')"` | `Font-Cache ok`. Der **erste** Import baut den Schriftcache und kann spürbar dauern (Dauer notieren, siehe Prüfanleitung); der zweite ist schnell |
 | N5 | I1 bis I4 und I5 wie im [alten Plan](../2026-11-02_prototyp/installation_messrechner.md) | wie dort |
 | N6 | `& $PY -m ldv_automation gui --simulator` | Oberfläche startet, Reiter „Messen“ und „Auswerten“ sichtbar |
@@ -100,12 +102,13 @@ Stick-Build 6d84318 (gleiche Versionsnummer) bereits installiert war. Skripte (`
 Schlägt N1 bis N3 fehl: nichts weiter installieren, Meldung sichern, alter Stand bleibt nutzbar
 (EP-3 im Ablaufplan). Schlägt N4, N6 oder N7 fehl: Meldung/Foto sichern; die COM-Arbeit
 (Reiter „Messen“, Erkundung) ist davon unabhängig. Ergebnisse in `protokoll.md` Abschnitt 4.
-Weiter mit `pruefanleitung_auswerten.md`.
+Weiter mit `pruefanleitung_auswerten.md` (W1 bis W10), `pruefanleitung_auswerten_vergleich.md` (AV) und, mit COM, `pruefanleitung_abgleich.md` (Abgleich lesen); Einordnung in den Tag: Ablaufplan 4.4.
 
 ## 6 Offene Punkte
 
-- **[offen]** Ablageort und SHA-256 des Wheels, Git-Hash des Builds, Ort des Wheelhouse für
-  die neuen Pakete: trägt der Orchestrator nach dem Bau ein.
+- **[offen]** SHA-256 des Wheels (‹SHA-256›) und Git-Hash des Builds (‹BUILD-HASH›): trägt der
+  Orchestrator nach dem Bau ein (Ablageort `stick/wheelhouse/`, Wheelhouse der neuen Pakete wie in Abschnitt 3).
+- **[offen]** `tools/auswertung/speicher_messen.py` (für AV V1) liegt noch nicht auf dem Stick.
 - **[offen]** Ob der Messrechner Internet hat (F7) und damit Weg 1 oder 2 gilt.
 - **[Annahme]** Python 3.11.9 und `pywin32 312` sind wie im Ablaufplan A1 beschrieben vorhanden.
 - **[Annahme]** `packaging`, `six` o. ä. können schon in der PyCharm-venv liegen; die Pins

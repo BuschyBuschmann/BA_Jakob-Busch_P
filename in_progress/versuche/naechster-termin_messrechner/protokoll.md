@@ -1,5 +1,7 @@
 # Protokoll: nächster Termin am Messrechner (zum Ausfüllen)
 
+> **Verschoben auf Montag 2026-11-23, ganzer Tag. Der Termin am 2026-11-09 ist ausgefallen (Messrechner nicht verfügbar); keiner seiner Punkte wurde durchgeführt.** Aktualisiert am 2026-11-18 (Paket P-TERMIN-23): neu die Abschnitte 10.15 (Abgleich lesen), 10.16 (Auswerten) und 10.17 (Animation, bedingt) sowie Zeilen für Arbeitsspeicher, `git status` und weitere Fragen im Kopf.
+
 Zum Ausfüllen am Messrechner (Ausdruck oder Datei). Ablauf und Ersatzpläne: [ablaufplan.md](ablaufplan.md); Kurzliste: [pruefzettel.md](pruefzettel.md).
 Struktur vom [alten Protokoll](../2026-11-02_prototyp/protokoll_vor_ort.md) übernommen und um Entscheidungsprotokoll, Ersatzpläne und die Prüfzettelpunkte erweitert.
 Ein Befund gilt erst als „am Gerät bestätigt“, wenn du ihn bestätigt hast. Vorgabewerte sind **Annahmen**, keine Messwerte. Nichts nachträglich schönen; Fehlschläge eintragen.
@@ -14,20 +16,23 @@ Uhrzeiten immer mit eintragen. Nicht Zutreffendes mit „entfällt“ und Grund 
 | Daniel anwesend / erreichbar (Telefon)? | |
 | **Antwort F1:** COM-Registrierung erfolgt (wer, wann, Befehl)? 10.2/10.3 noch in Gebrauch? | |
 | **Antwort F2: Freigabe der Anregung** (ja/nein, durch wen, Uhrzeit, Bedingungen: Amplitude, Dauer, Aufsicht) | |
-| Antwort F3: Mo 2026-11-09, ganzer Tag (Nutzer, 2026-11-05); tatsächlich: ____ min, Ende | |
+| Antwort F3: Mo 2026-11-23, ganzer Tag (Nutzer, 2026-11-18; Termin 2026-11-09 ausgefallen); tatsächlich: ____ min, Ende | |
 | Zeitverlust am Tag? (Streichreihenfolge Ablaufplan 4, Fall 4.2) | ☐ ja ☐ nein |
 | Antwort F4: `SaveTimeDataForScan` beim Mini-Scan erlaubt? Ablage der Zeitdaten | |
 | Antwort F5: Waage vorhanden (Typ, Auflösung)? Abbau des Aufbaus für Wiegen erlaubt? | |
 | Antwort F6: Laser auf Impedanzkopf erlaubt? **Reflexfolie auf der Stirnfläche erlaubt (Zustimmung Daniel)** / Spray / keine; Ersatzpunkt Plattenvorderseite nötig? | |
 | Antwort F7: Internet/GitHub erlaubt? Stick erlaubt? | |
 | Antwort F8: Handbücher kopieren erlaubt? | |
+| **Weitere Fragen und Antworten:** A1 bis A6 (Abgleich: Umfang, Methode, Ergebnis-/Grenzwerte, Bewegung ohne Aufsicht, Verhalten bei ungültigem Abgleich, Protokollierung) · W1 bis W8 (Benachrichtigung) · O11 (Koordinatentransformation) · O12 (PSV-Visualisierungen) · maximale Generator-Amplitude 0,04 V (F2a) · Zeitdaten (F4) · Reflexfolie (F6) · Waage (F5) · Handbücher (F8) · Datenblatt PCB 288D01 · Gliederung G1 bis G4 · Umfang und Abgabetermin (Ablaufplan 3.1) | |
 | Rechnername | BEOWOLF (bestätigen) |
+| **Arbeitsspeicher** des Messrechners (gesamt / frei, Task-Manager, Leistung) | |
+| `git -C "D:\Messdaten\DAL\BA Jakob Busch\PyCharmProject" status` (nur lesen; Ausgabe oder „kein git“; ist `PyCharmProject` ein Git-Repository?) | |
 | Windows-Version | |
 | PSV-Version und Optionen (*Hilfe > PSV Info*; Foto) | |
 | Python-Version (`& $PY --version`) / Bitness (soll 64) | |
 | Installationsweg (G Git / S Stick / R Bestand) | |
-| Wheel (erwartet `ldv_automation-0.2.0-py3-none-any.whl`): Dateiname / **SHA-256** (`Get-FileHash`) / erwarteter SHA-256 (vorab notiert) | |
-| **Git-Hash des Wheels** (`_build_info.json`, I6) / `git_dirty` (soll false) | |
+| Wheel (erwartet `ldv_automation-0.2.0-py3-none-any.whl`): Dateiname / **SHA-256** (`Get-FileHash`) / erwarteter SHA-256 ‹SHA-256› (beim Build in `stick/LIESMICH.txt` eingesetzt) | |
+| **Git-Hash des Wheels** (`_build_info.json`, I6; erwartet ‹BUILD-HASH›) / `git_dirty` (soll false) | |
 | Hash stimmt mit dem Stand auf dem Branch überein (ja/nein) | |
 | Skriptordner `$ARB` / Ausgabeordner `$T` | |
 | `erkundung.py` Version / `skript_sha256` (aus `bericht.json`); `einstellungen_lesen.py`, `daten_lesen.py`: Stand | |
@@ -134,6 +139,8 @@ Die Vorgaben sind Annahmen; „Ermittelt“ nach dem Test eintragen. Werte in ei
 | Prozessname (`PSV_PROZESS_KENNUNG`) | enthält „psv“ | Abbildname: | T1 1-0 | |
 | Codec der Prozessliste | `oem` | Umlaute korrekt (ja/nein): | T1 | |
 | `validator_rueckfall_direkt` | False | | Erkundung | |
+| `abgleich_pruefung` | `warnen` (Nutzerentscheidung 2026-11-18, Vorlage `stick/konfig/beispiel_messrechner.json`); keine Standardgrenzen | | Konfig-Kopie | |
+| Abgleich-Grenzen (`abgleich_qualitaet_max_m`, `abgleich_position_max_m`, `abgleich_winkel_max_rad`) | **nicht gesetzt**; nur Jakob trägt ggf. vor Ort einen Wert ein (nur in der Konfig, Herkunft vermerken), nie erfunden | | Konfig-Kopie | |
 | Blockiert `ScanEx` bis zum Scanende? | unbekannt | | T4 / U3 4-2 | |
 | **Erster `State` nach `ScanEx`** | erwartet ScanAll = 3 | | T4 / U3 4-1a | |
 | **Einrastwert bei 5600 Hz** | Erwartung z. B. 6250 Hz | | T2 / U3 2-2 | |
@@ -293,7 +300,7 @@ Klickpfad bestätigt (Alt+2, Analysator → Band-Cursor, Cursor-Eigenschaften �
 | Generator (Amplitude, Signalform, Burstlänge aus C4), Verstärkerstellung | |
 | Raster (3×3, Punkte, Abgleich) | |
 | Zieldatei (neuer Name, Ordner) / Dateigröße / Beginn–Ende (**Rechneruhr**) / Dauer je Punkt | |
-| **Referenzscan:** entfällt, R aus Block 2 (`20261109_ref3x3_01.svd`) ist Referenz, wenn SE und sonstige Einstellungen gleich blieben (Versuchsplan 5.3). Hier von R notieren: Dauer, SE-Einstellung, Zahl erfasster Blöcke je Punkt | |
+| **Referenzscan:** entfällt, R aus Block 2 (`20261123_ref3x3_01.svd`) ist Referenz, wenn SE und sonstige Einstellungen gleich blieben (Versuchsplan 5.3). Hier von R notieren: Dauer, SE-Einstellung, Zahl erfasster Blöcke je Punkt | |
 | Zeitdaten mit File Access auf der Kopie lesbar (ja/nein, Namen) | |
 | Auswertung später: (a) eigene FFT je Block gegen PSV-Spektren (rtol 1e-5); (b) n_d aus Mittelung über n Blöcke; (c) Streuung je Block gegen FG-02 3.4; (d) Zeitstempel gegen Uhr (M15) | |
 | Auffälligkeiten | |
@@ -370,6 +377,53 @@ Erwartung grob **4,5 bis 6,7 kg** für die Masse auf der Plattenseite des Krafts
 | Software Handbuch / Manual PSV Desktop | | | | |
 | Basic Engine Manual.chm | | | | |
 | Release Notes | | | | |
+
+### 10.15 Abgleich lesen (AB1 bis AB6; R-003a, `pruefanleitung_abgleich.md`)
+
+Nur lesen (kein Auslösen, kein Ungültigmachen, keine Bewegung), Modus `warnen`, keine Standardgrenzen, nie eine Messung verweigern. Voraussetzung: `P1-6-abgleich` aus Stufe 1 notiert; neuer Build mit dieser Funktion; vorher Abgleichstatus in PSV notiert (Foto), weil der Trockenlauf den geladenen Abgleich durch den der Test-.set ersetzt.
+
+| Feld | Eintrag |
+|---|---|
+| `P1-6-abgleich` (Stufe 1): `Alignments3D.Count`, `Valid`, `CurrentQuality`, Fehlerbild | |
+| Abgleichstatus in PSV vor dem Trockenlauf (Foto-Nr.) | |
+| Keine Datei mit `"schema_version": 2` unter `$ARB\daten` (`Get-ChildItem … *.protokoll.json`) | ☐ |
+| AB1 Start mit Konfig-Kopie `konfig_abgleich_aus.json` (Modus in der Kopie auf `aus` gesetzt; Stick-Vorlage steht auf `warnen`, Abweichung zur Anleitung vermerkt), SHA-256; Dialog „Gerät“ zeigt `abgleich_pruefung` und die Abgleichschlüssel | |
+| AB2 Trockenlauf (Test-.set, Generator aus): durchgelaufen / keine Bewegung / keine Dialogmeldung | |
+| AB3 Feld `abgleich`: `gelesen`, `grund`, `anzahl_3d`, `anzahl_2d`; je 3D-Eintrag `gueltig`, `qualitaet_ist_m`, `qualitaet_soll_m`, `positionsunsicherheit_m`, `winkelunsicherheit_rad`, `nicht_lesbar`; je 2D-Eintrag `gueltig`, `scankopfabstand_m`; `pruefung.modus`, `pruefung.ergebnis` | |
+| AB4 Einheit und Größenordnung gegen PSV-Anzeige (Faktor? Grad statt rad?) | |
+| AB5 Hinweis „Abgleich auffällig“ (Art `abgleich_hinweis`) nur bei auffälliger Lage | |
+| AB6 Indexbasis: `Item(1)` liefert den ersten Abgleich (`Item(0)` nicht probiert) | |
+| AB9 `warnen` mit strenger Prüfgrenze (halber gelesener `qualitaet_ist_m`, Prüfwert aus dem Messwert, keine fachliche Grenze): Trockenlauf läuft durch, Warnung „Abgleich nicht_bestanden“ (Art `abgleich_warnung`) | |
+| AB10 ungültige Konfig (`abgleich_qualitaet_max_m` = 0): Rückgabewert 2, Meldung nennt `$.abgleich_qualitaet_max_m` | |
+| AB7, AB8, AB11 (`verweigern`, nur Trockenlauf mit Konfig-Kopie, Entscheidung 2026-11-18): Ergebnis | |
+| Dauer des Abgleich-Lesens je Messung (Zugriffsprotokoll, Dialog „Gerät“) | |
+| Befunde (Nummer, Zahl, Foto); `abgleich`-Blöcke (AB3, AB9) auf den Stick gesichert | |
+
+### 10.16 Auswerten-Prüfungen (W1 bis W10, AV V1 bis E4)
+
+Nur Kopien, Ausgabe nur nach `$ARB`; nichts bestanden vor Bestätigung durch Jakob. Fenstergröße und Windows-Skalierung vorher: ____
+
+| Feld | Eintrag |
+|---|---|
+| N1 bis N7 (`installation_0.2.0.md`) bestanden (Protokollabschnitt 4) | |
+| W1 bis W10 (`pruefanleitung_auswerten.md`): Ergebnisse und Zahlen (`zeiten.json` gesichert) | |
+| AV V1: freier Arbeitsspeicher / `speicher.json` (Zuwachs je Messung, Summe vier Messungen) | |
+| AV V2: Summe gegen freien Speicher (Abstand, Urteil Jakob) / V3: Speicher nach vier Messungen, Bedienbarkeit / V4: fünfte Messung gesperrt, Tooltip | |
+| AV-B B1 bis B9 (Achsenleiste, Remotedesktop) | |
+| AV-C C1 bis C9 (mehrere Messungen, Ansicht 5) | |
+| AV-D D1 bis D6 (Bild speichern) | |
+| AV-E E1 bis E4 (Tastatur, Lesbarkeit, Graustufen) | |
+| Zweite Datei für den Vergleich (Name, Herkunft) | |
+| Nicht prüfbar / „entfällt“ mit Grund | |
+
+### 10.17 Animation (nur wenn der Build AN7 enthält)
+
+| Feld | Eintrag |
+|---|---|
+| Modusschalter „Standbild/Animation“ in Ansicht 4 vorhanden? (nein: Block entfällt) | |
+| Sichtprüfung nach `in_progress/planung/plaene/2026-11-11_P-AUSW3_animation-plan.md` (Standbild nach Öffnen, Wiedergabe, Drehen, Zoom, ←/→, Pflichttexte, Kennzeichen M8, Modus ohne Phase gesperrt) | |
+| Prüfanleitung `‹PRÜFANLEITUNG-ANIMATION›` (AN9) vorhanden? Messungen M1 bis M6 mit `animation_messen.py`: durchgeführt / entfallen (AN9 fehlt) | |
+| UI-38: bleibt offen bis zur Bestätigung durch Jakob | |
 
 ## 11 Ersatzpläne, Abbruch und Auffälligkeiten
 

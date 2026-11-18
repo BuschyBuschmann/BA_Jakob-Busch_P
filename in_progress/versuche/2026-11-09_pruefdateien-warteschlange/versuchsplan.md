@@ -1,6 +1,8 @@
-# Versuchsplan 2026-11-09: Prüfdateien Fenster/Mittelung und erste Messung über die Warteschlange
+# Versuchsplan (Termin Mo 2026-11-23): Prüfdateien Fenster/Mittelung und erste Messung über die Warteschlange
 
-**Stand:** 2026-11-06, Entwurf · **Fachgrundlage:** [FG-V1](../../fachgrundlagen/FG-V1_pruefdateien-fenster-mittelung.md) (Fachanalyse FA-V1, strukturdynamik-experte, vom Nutzer am 2026-11-05 freigegeben) · **Ablauf des Tages:** [Ablaufplan nächster Termin](../naechster-termin_messrechner/ablaufplan.md) (D2, D3, D1, D4, E1 sind dort beschrieben und hier nur eingeordnet)
+> **Verschoben auf 2026-11-23 (Montag, ganzer Tag). Der Termin am 2026-11-09 ist ausgefallen (Messrechner nicht verfügbar); keiner seiner Punkte wurde durchgeführt.** Der Ordnername bleibt unverändert. Aktualisiert am 2026-11-18 (Paket P-TERMIN-23): Termin, Dateinamen der Messdateien (`20261123_…`) und Build-Platzhalter; Parameter, Raster und Kriterien unverändert.
+
+**Stand:** 2026-11-06, Entwurf; Termin aktualisiert 2026-11-18 · **Fachgrundlage:** [FG-V1](../../fachgrundlagen/FG-V1_pruefdateien-fenster-mittelung.md) (Fachanalyse FA-V1, strukturdynamik-experte, vom Nutzer am 2026-11-05 freigegeben) · **Ablauf des Tages:** [Ablaufplan nächster Termin](../naechster-termin_messrechner/ablaufplan.md) (D2, D3, D1, D4, E1 sind dort beschrieben und hier nur eingeordnet)
 **Kennzeichen:** [N] nachgerechnet · [D] aus der Beispieldatei `20261012_ref_Mitte.svd` · [A] Annahme · [H] am Gerät zu prüfen · [offen] zu klären
 
 ## 1 Ziel und Bezug
@@ -52,9 +54,9 @@ Die Einstellungsdatei der Beispielmessung vom 12.10. liegt am Messrechner (Nutze
 ## 5 Ablauf
 
 ### 5.1 Prüfdateien R, A, B (direkt in PSV)
-1. `mess_3x3.set` laden, Dialoge fotografieren, Messung **R** → `20261109_ref3x3_01.svd`.
-2. Nur Fenster auf Hanning (alle aktiven Kanäle), Foto, Messung **A** → `20261109_hann3x3_01.svd`. Fenster zurück auf Rechteck, Foto.
-3. Nur Mittelung auf Betrag, Anzahl 10, Foto, Messung **B** → `20261109_betrag10_3x3_01.svd`. Mittelung zurück auf komplex 7, Foto.
+1. `mess_3x3.set` laden, Dialoge fotografieren, Messung **R** → `20261123_ref3x3_01.svd`.
+2. Nur Fenster auf Hanning (alle aktiven Kanäle), Foto, Messung **A** → `20261123_hann3x3_01.svd`. Fenster zurück auf Rechteck, Foto.
+3. Nur Mittelung auf Betrag, Anzahl 10, Foto, Messung **B** → `20261123_betrag10_3x3_01.svd`. Mittelung zurück auf komplex 7, Foto.
 4. Nach jeder Datei: Kopie anlegen, `einstellungen_lesen.py` auf der Kopie, SHA-256 der Rohdatei ins Protokoll.
 R → A → B kurz hintereinander, Aufbau und Verstärker unverändert. Rohdaten nie überschreiben, Ablage außerhalb von PyCharmProject.
 
@@ -112,7 +114,7 @@ Warteschlangendateien im Format des Pakets (`ldv_automation.persistenz.warteschl
 - `konfig/T4_eine_messung.warteschlange.json`
 - `konfig/T6_drei_messungen.warteschlange.json`
 
-Der Pfad der Einstellungsdatei `D:\Messdaten\DAL\BA Jakob Busch\vorlagen\mess_3x3.set` ist eine Annahme und wird nach dem Laden in der Oberfläche geprüft bzw. angepasst (R-014). Die Dateien R, A, B entstehen direkt in PSV und brauchen keine Konfigurationsdatei.
+Die Warteschlangendateien enthalten keine Zieldateinamen und keine Terminangabe (nur beim Eintrag T4 nennt der Hinweistext `notiz` den verschobenen Termin; Parameter und Zeitlimits unverändert, Stand 2026-11-18). Der Pfad der Einstellungsdatei `D:\Messdaten\DAL\BA Jakob Busch\vorlagen\mess_3x3.set` ist eine Annahme und wird nach dem Laden in der Oberfläche geprüft bzw. angepasst (R-014). Die Dateien R, A, B entstehen direkt in PSV und brauchen keine Konfigurationsdatei.
 
 ## 8 Risiken
 

@@ -4,7 +4,7 @@ Zentrale Übersicht über offene Aufgaben der Bachelorarbeit. Wird nach jedem Ar
 und jedem Betreuertermin aktualisiert. Details stehen in den verlinkten Dateien.
 
 **Stand:** 2026-11-06
-**Nächster fester Termin:** 12. oder 13.11.2026 am PSV-Messrechner (Termin 09.11. ausgefallen, Rechner nicht verfügbar)
+**Nächster fester Termin:** Mo 23.11.2026, ganzer Tag am PSV-Messrechner (Termin 09.11. ausgefallen; Unterlagen in `in_progress/versuche/naechster-termin_messrechner/` aktualisiert; Wheel 0.2.0 wird neu gebaut, mit AN7 nur wenn bis Fr 20.11. fertig und geprüft)
 
 Legende: ☐ offen · ◐ in Arbeit · ☑ erledigt · ⏳ wartet auf andere
 
@@ -68,12 +68,12 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☑ | Abbildungsskript für Thesis-Abbildungen (alle 4 Ansichten, Manifest, Git-Regel; ADR-027) | software-engineer | – | Laborbuch 2026-11-06_abbildungsskript |
 | ☐ | Nach 09.11.: .svd-Dateien R/A/B und T4–T6 ins Repo, Abbildungen in der Cloud erzeugen (`darstellung_beispiel.py`), Sichtprüfung durch Jakob | Jakob, Orchestrator | nach 09.11. | ADR-027 |
 | ☐ | Möglicher Auftrag: Hash-Quelle in `protokoll/version.py` robust machen (venv in fremdem Git-Repo) | software-engineer | nach Prüfung am 09.11. | Laborbuch 2026-11-06 |
-| ☐ | Versuch Prüfdateien/Warteschlange durchführen (09.11. ausgefallen; Ordner beim Termin umbenennen) | Jakob | 12./13.11. | `in_progress/versuche/2026-11-09_pruefdateien-warteschlange/`, `checkliste_montag.md` |
+| ☐ | Versuch Prüfdateien/Warteschlange durchführen (09.11. ausgefallen, verschoben; Ordnername bleibt) | Jakob | 23.11. | `in_progress/versuche/2026-11-09_pruefdateien-warteschlange/`, `checkliste_montag.md` |
 | ☐ | Vorgaben B1–B10 aus dem Betreuertermin 09.11. ins Lastenheft (`/anforderungs-analyst`), dann planen | Orchestrator, Jakob | – | Laborbuch 2026-11-09_betreuertermin-daniel |
-| ◐ | B10 Recherche erledigt (FA-B10: Empfehlung V1–V7; R-B10: 24 Quellen, Prüfstand metadaten); mit Daniel klären: FE-Modell vorhanden (V6)? Fremdbibliothek als Gegenprobe (V7)? Danach Lastenheft | Jakob, Orchestrator | 12./13.11. | `in_progress/analysen/2026-11-09_FA-B10_auswertung-ueber-psv-hinaus.md` |
+| ◐ | B10 Recherche erledigt (FA-B10: Empfehlung V1–V7; R-B10: 24 Quellen, Prüfstand metadaten); mit Daniel klären: FE-Modell vorhanden (V6)? Fremdbibliothek als Gegenprobe (V7)? Danach Lastenheft | Jakob, Orchestrator | 23.11. | `in_progress/analysen/2026-11-09_FA-B10_auswertung-ueber-psv-hinaus.md` |
 | ☐ | Volltexte nach `Input/literatur/` (mind. Priorität A: peeters2004polymax, rohe2020alignment; Liste in leseliste.md) | Jakob | – | Leseliste R-B10 |
-| ☐ | Fragen an Daniel: A1–A6 (Abgleich), W1–W8 (Benachrichtigung), O11 (KOS-Transformation), O12 (PSV-Ansichten) | Jakob | 12./13.11. | Analyse A1-B13, Lastenheft |
-| ☐ | Am Messrechner: Abgleich einmal lesen (`P1-6-abgleich`), Typbibliothek der PolyAlignment-Typen auslesen | Jakob | 12./13.11. | Analyse A1-B13 |
+| ☐ | Fragen an Daniel: A1–A6 (Abgleich), W1–W8 (Benachrichtigung), O11 (KOS-Transformation), O12 (PSV-Ansichten) | Jakob | 23.11. | Analyse A1-B13, Lastenheft |
+| ☐ | Am Messrechner: Abgleich einmal lesen (`P1-6-abgleich`), Typbibliothek der PolyAlignment-Typen auslesen | Jakob | 23.11. | Analyse A1-B13 |
 | ◐ | Auswerten-Erweiterung: Etappen A–C (R-073, R-058, R-059), Abgleich (R-003a/b) und Animation AN1–AN6 fertig; Animation AN7–AN9 (Einbau Ansicht 4 inkl. M12-Kopplung, Standbild, Querschnitt) folgt | Orchestrator | – | Pläne P-AUSW2, P-AUSW3, P-R003 |
 
 ## 4 Thesis

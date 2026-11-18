@@ -1,22 +1,27 @@
 # Prüfzettel: nächster Termin am Messrechner (Kurzliste zum Abhaken)
 
-Datum: 2026-11-09 · Start ____ · Ende ____ · Termin: ganzer Tag (Nutzer 2026-11-05), Tagesreihenfolge: [checkliste_montag.md](checkliste_montag.md); Zeitverlust: Ablaufplan 4.2 · Daniel erreichbar: ja / nein · Anregung freigegeben: ja / nein (Name, Uhrzeit: ________)
+> **Verschoben auf Montag 2026-11-23, ganzer Tag; der Termin am 2026-11-09 ist ausgefallen (Messrechner nicht verfügbar), keiner seiner Punkte wurde durchgeführt.** Aktualisiert 2026-11-18 (P-TERMIN-23).
+
+Datum: 2026-11-23 · Start ____ · Ende ____ · Termin: ganzer Tag (Nutzer 2026-11-18), Tagesreihenfolge: [checkliste_montag.md](checkliste_montag.md); Zeitverlust: Ablaufplan 4.2 · Daniel erreichbar: ja / nein · Anregung freigegeben: ja / nein (Name, Uhrzeit: ________)
 Details und Ersatzpläne: [ablaufplan.md](ablaufplan.md) · Ausfüllen: [protokoll.md](protokoll.md)
+Neue Anleitungen: **AB** = `pruefanleitung_abgleich.md`, **W** = `pruefanleitung_auswerten.md`, **AV** = `pruefanleitung_auswerten_vergleich.md` (Zeilen V1 bis E4, mit Präfix AV, damit sie nicht mit B1/C1/D1/E1 des Ablaufplans verwechselt werden).
 Priorität: **M** Muss · **S** Soll (Rang nach Fachprüfung: D2 > C2 > E1 > C3 > D3 > E2 > D1 > C4 > X1) · **K** Kann · Voraussetzung: **COM** = PSV-COM nötig, **ANR** = Anregung (Freigabe) nötig, **–** keine
 Dauern sind Annahmen. Bei Zeitmangel gilt die Streichreihenfolge aus Ablaufplan 4 (zuerst D4, D1, T6); **D2 und E2 nie zusammen** (Ablaufplan, Abschnitt 4).
 
 ## Vorher (zu Hause / Entwicklungsrechner)
 
-- [ ] Fragen F1 bis F8 an Daniel gestellt, Antworten notiert (Registrierung, **Anregung**, Termin (F3: ganzer Tag, Nutzer 2026-11-05), Waage, **Laser auf Kopf und Reflexfolie auf der Stirnfläche**, Internet/Stick, Handbücher, Zeitdaten)
-- [x] Wheel **0.2.0** gebaut (Build a0ee2fc, SHA-256 in `stick/LIESMICH.txt`), gepusht; Abhängigkeits-Wheels auf dem Stick · [x] Skripte im aktuellen Stand im Repo (`stick/`, Stand 2026-11-08) · [ ] Stick gepackt (Jakob)
+- [ ] Fragen F1 bis F8 an Daniel gestellt, Antworten notiert (Registrierung, **Anregung**, Termin (F3: Montag 2026-11-23, ganzer Tag, Nutzer 2026-11-18), Waage, **Laser auf Kopf und Reflexfolie auf der Stirnfläche**, Internet/Stick, Handbücher, Zeitdaten)
+- [ ] Wheel **0.2.0** (Version bleibt, nie ausgeliefert) **neu gebaut**: Build ‹BUILD-HASH›, SHA-256 ‹SHA-256› (beide werden beim Build in `stick/LIESMICH.txt` eingesetzt), gepusht; Abhängigkeits-Wheels auf dem Stick · [ ] Skripte im aktuellen Stand im Repo (`stick/`; `tools/auswertung/speicher_messen.py` für AV V1 fehlt noch auf dem Stick, **[offen]**) · [ ] Stick gepackt (Jakob)
 - [ ] Kandidaten für M11 **am Einzelpunkt** vorab geprüft ✔ erledigt: 921,5 / 632,5 / 483,8 Hz (Reserve 949,3 / 644,8)? · Namen für Golden File v2 geklärt oder Skript erweitert?
 - [ ] SHA-256 der vorhandenen Handbücher notiert
+- [ ] Offene Fragen an Daniel/Betreuer bereit (Stand in Ablaufplan 3.1 und 7): A1 bis A6 (Abgleich), W1 bis W8 (Benachrichtigung), O11 (Transformation), O12 (PSV-Ansichten), Amplitude 0,04 V, Zeitdaten, Reflexfolie, Waage, Handbücher, Datenblatt PCB 288D01, Gliederung G1 bis G4, Umfang und Abgabetermin
 - [ ] Prüfzettel ausgedruckt, Handy/Kamera, Maßband
 
 ## Beim Termin: immer
 
+- [ ] **M** (–) **Notieren:** Arbeitsspeicher (gesamt/frei, Task-Manager) ______ · `git -C "D:\Messdaten\DAL\BA Jakob Busch\PyCharmProject" status` (nur lesen, Hash-Quelle; ohne `git`: „kein git“): ______
 - [ ] **M** (–) **A0 Schritt 0:** `Get-Process PSV` (höchstens 1), **Erkundung Stufe 0 zuerst**, `PSV.AcquisitionInstance` registriert? → ja: Start über **„PSV 10.4 Deutsch“** (`/Acquisition`), **PID notieren**: ______
-- [ ] **M** (–) **A1 Update:** neues Wheel 0.2.0 (`pip install --upgrade --no-deps`; `--force-reinstall` nur als Rückfall), Skripte neu, I1 bis I7 (I3: `ldv-automation 0.2.0`), Git-Hash passt (`git_dirty` false). Bei Zeitverlust: nur I1 bis I4 + Skripte (ca. 10 min)
+- [ ] **M** (–) **A1 Update:** neues Wheel 0.2.0 (Build ‹BUILD-HASH›, SHA-256 ‹SHA-256›; `pip install --upgrade --no-deps`; `--force-reinstall` nur als Rückfall), Skripte neu, I1 bis I7 (I3: `ldv-automation 0.2.0`), Git-Hash passt (`git_dirty` false). Bei Zeitverlust: nur I1 bis I4 + Skripte (ca. 10 min)
 - [ ] N1 bis N7 Installationsprüfung Auswerten direkt nach A1 (N1 bis N3 fehlgeschlagen: nichts weiter installieren, EP-3) [4.3]
 - [ ] **M** (–) **A2 Sicherung** (spätestens 30 min vor Ende): Ordner, Protokoll, Fotos, Dateien; PSV sauber; Shaker aus
 
@@ -26,6 +31,8 @@ Dauern sind Annahmen. Bei Zeitmangel gilt die Streichreihenfolge aus Ablaufplan 
 - [ ] **M** (COM) B2 Ordner sichern (Durchsicht), Schalter, Konfig-Kopie + SHA-256
 - [ ] **M** (–) B3 Test-.set anlegen (Generator aus, Bandbreite ≠ 5600 Hz, Mittelung 3)
 - [ ] **M** (COM) B4 T0 · T1 `NUR_LESEN` · T2 `TROCKENLAUF` (Einrastwert bei 5600 Hz notieren)
+- [ ] **M** (COM) **AB1 bis AB6 Abgleich lesen** (`pruefanleitung_abgleich.md`, nach B4/T2; nur lesen, Modus `warnen`, keine Grenzwerte erfunden): Start mit Konfig-Kopie `aus` (AB1), Trockenlauf (AB2), Feld `abgleich` lesen (AB3), Einheit gegen PSV-Anzeige (AB4), Hinweise (AB5), `Item(1)` (AB6). Voraussetzung: `P1-6-abgleich` notiert
+- [ ] **S** (COM) AB9 `warnen` mit strenger Prüfgrenze aus dem gelesenen Messwert (nur wenn `qualitaet_ist_m` > 0) · **K** AB10 ungültige Konfig · **K** AB7, AB8, AB11 (`verweigern`, nur Trockenlauf mit Konfig-Kopie)
 - [ ] **S** (siehe unten) X1 Desktop-Modus bewusst testen (Rang 9; bei COM-Fehler früh als Diagnose)
 
 ## Pfad B (COM aus): zusätzlich oder statt
@@ -49,6 +56,8 @@ Ohne Anregung und ohne COM möglich (an **Kopien**, nie am Original):
 - [ ] **K** (–) C7 **File Access bei in PSV geöffneter Datei** (Kopie): Ergebnis/Fehler notieren
 - [ ] **K** (–) C8 **Restpunkte:** M13 3D-Abgleich-Achsen + Kopfpositionen, offline |n_z| ≈ 1 · M14 Elementindizes (nur wenn Elemente) · M15 Messzeit gegen Rechneruhr (aus D1)
 - [ ] **K** (–) W1 bis W10 Auswerten-Prüfung als Handtest in Wartezeiten (erst nach Bestätigung, Ablaufplan 4.3)
+- [ ] **S** (–) AV V1 bis V4 Speicher und Messungsgrenze (RAM notiert, `speicher_messen.py`, vier Messungen, fünfte gesperrt); AV-B B1 bis B9 Achsenleiste; AV-C C1 bis C9 mehrere Messungen und Ansicht 5; AV-D D1 bis D6 Bild speichern; AV-E E1 bis E4 Tastatur und Lesbarkeit (Etappen B/C, UI-38; Soll mittel)
+- [ ] **K, bedingt** (–) **Animation, nur wenn der Build AN7 enthält** (Modusschalter „Standbild/Animation“ in Ansicht 4 vorhanden): Sichtprüfung laut Animationsplan `in_progress/planung/plaene/2026-11-11_P-AUSW3_animation-plan.md`; Prüfanleitung `‹PRÜFANLEITUNG-ANIMATION›` (entsteht in AN9); Messungen M1 bis M6 **entfallen, falls AN9 (`animation_messen.py`) fehlt**; UI-38 bleibt offen
 
 Mit Anregung (nur nach Freigabe **und** eigener Entscheidung je Messung; Shaker sonst aus):
 
@@ -64,6 +73,7 @@ Mit Anregung (nur nach Freigabe **und** eigener Entscheidung je Messung; Shaker 
 - [ ] Echte Messung nur nach **eigener** Entscheidung (Zeit/Grund ins Protokoll)
 - [ ] **Shaker/Verstärker aus bzw. Signal getrennt**, bis die Freigabe vorliegt
 - [ ] **Rohdaten nie überschreiben**; neue Dateinamen; File Access nur auf **Kopien**
+- [ ] Abgleich nur **lesen** (nichts auslösen, nie `Item(0)`); Modus `warnen`, nie eine Messung verweigern; Grenzwerte nur in der Konfig, nichts erfinden; Trockenlauf ersetzt den in PSV geladenen Abgleich (Lademaske), vorher notieren
 - [ ] Nur **eine** PSV-Instanz; PSV nie per Skript starten; PSV nicht beenden, solange eine Messung läuft
 - [ ] Hängt PSV oder steht ein Dialog: **nichts hektisch klicken** (Foto, Skript Strg+C, Daniel), Ersatzplan EP-5
 - [ ] Nach jedem Abbruchkriterium keine weiteren Messtests
