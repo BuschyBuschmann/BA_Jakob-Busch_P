@@ -15,16 +15,14 @@ Befund, kein Fehler der Anleitung: Zahl notieren, weitermachen, nichts vor Ort �
 
 ## Voraussetzungen
 
-- Installation nach `installation_0.2.0.md` mit dem **Build, der AN8 und AN9 enthält** (Version bleibt
+- Installation nach `installation_0.2.0.md` mit dem Build 1208ea2 (enthält AN8 und AN9; Version bleibt
   0.2.0). Erkennbar: In der Animationsleiste unter dem Bild steht der Knopf „Werte als Tabelle“
-  (unter 1200 px Fensterbreite „Tabelle“). **Fehlt er, ist es der ältere Build (nur AN7)**: Block B
-  und AN-10, AN-11 entfallen mit Vermerk im Protokoll, die übrigen Punkte laufen.
+  (unter 1200 px Fensterbreite „Tabelle“).
 - Eine **Kopie** von `20261012_ref_Mitte.svd` (3D-Messung mit Referenz, 135 Punkte); es wird nur gelesen.
   Nie das Original, nie im PSV-Ordner.
 - Für Block B: `animation_messen.py` **und** `speicher_messen.py` (es importiert daraus die
   Speicherabfrage) im selben Ordner `$ARB\tools\auswertung\` (Kopie vom Stick,
-  `stick/tools/auswertung/`; **[offen]** beide Skripte müssen beim Packen des Sticks im Stand dieses
-  Builds liegen, SHA-256 in `stick/LIESMICH.txt`). Das Messskript gehört **nicht** ins Wheel.
+  `stick/tools/auswertung/`; beide Skripte liegen im Stand dieses Builds auf dem Stick, SHA-256 in `stick/LIESMICH.txt`). Das Messskript gehört **nicht** ins Wheel.
 - Alles in `$PY`-Syntax wie im Ablaufplan. Fenstergröße und Windows-Skalierung vorher notieren.
 
 ## Sicherheitsrahmen

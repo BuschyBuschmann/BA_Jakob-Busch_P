@@ -13,7 +13,7 @@ Beispieldatei aus dem Repository verwenden; keine PSV-Daten vom Messrechner her�
   python.org (Windows installer 64-bit) oder der Installer vom Stick (Rückfall 3.11.9).
 - Der Stick bzw. eine Kopie von `stick/wheelhouse/` und `in_progress/versuche/2026-11-02_prototyp/stick/wheelhouse/`
   (dort numpy, PySide6-Essentials, shiboken6). Wheel: `ldv_automation-0.2.0-py3-none-any.whl`,
-  SHA-256 `a483b2c624683ef38fa364a3e86857289074b54c3c563a95117727e3869d8b3d` (Git `3fd4e79df8e9bbde2d4557940efd1730db842164`).
+  SHA-256 `1947897ee964cf10f2754a7b3e9db817487dc2018c446c3131adf5619f189552` (Git `1208ea2be20a5a45a9475f5acb7c6cb9151bbfad`).
 - Kein Internet nötig, kein Administrator nötig **[Annahme]**.
 
 ## Installation (PowerShell, offline)
@@ -34,7 +34,7 @@ $PY = "C:\ldv_privat\venv\Scripts\python.exe"
 
 `pywin32` entfällt, denn der Simulator braucht es nicht **[Annahme: der COM-Import ist verzögert, auf Windows
 nicht geprüft]**. Das Wheel immer mit `--no-deps` installieren (PySide6 6.12.0 darf nie hinein, ADR-001).
-Prüfen wie N1 bis N4 aus `installation_0.2.0.md` (Version 0.2.0, `git_hash` 3fd4e79…, `git_dirty` False).
+Prüfen wie N1 bis N4 aus `installation_0.2.0.md` (Version 0.2.0, `git_hash` 1208ea2…, `git_dirty` False).
 
 ## Start und Daten
 
@@ -53,7 +53,7 @@ Prüfen wie N1 bis N4 aus `installation_0.2.0.md` (Version 0.2.0, `git_hash` 3fd
 |---|---|
 | `pruefanleitung_auswerten.md` W1 bis W10 (Zeiten nur als Hausrechner-Werte notieren, nicht als Messrechner-Befund; W1 braucht `tools\auswertung\` vom Stick) | COM-Verbindung, PSV |
 | `pruefanleitung_auswerten_vergleich.md` AV: Achsenleiste, mehrere Messungen, Ansicht 5, Bild speichern, Tastatur (V1 bis V4, B, C, D, E mit mehreren Kopien der Beispieldatei) | Abgleich lesen (`pruefanleitung_abgleich.md`), Messen, Warteschlangen mit echter `.set` |
-| Animation in Ansicht 4: nur Sichtprüfung (Modus „Standbild/Animation“, Wiedergabe, Drehen, Zoom, Phase, Pflichttexte); Prüfanleitung `pruefanleitung_animation.md` (Block A, AN-1 bis AN-13, mit dem Build mit AN8/AN9) | UI-38 (Bedienung über Remotedesktop) und alle Messrechner-Zeiten und -Speicherwerte |
+| Animation in Ansicht 4: nur Sichtprüfung (Modus „Standbild/Animation“, Wiedergabe, Drehen, Zoom, Phase, Pflichttexte); Prüfanleitung `pruefanleitung_animation.md` (Block A, AN-1 bis AN-13) | UI-38 (Bedienung über Remotedesktop) und alle Messrechner-Zeiten und -Speicherwerte |
 
 Ergebnisse von zu Hause gelten als Vorprüfung; bestätigt wird weiterhin erst am Messrechner bzw. durch Jakob
 im Protokoll. Rückbau: Ordner `C:\ldv_privat\venv` löschen.

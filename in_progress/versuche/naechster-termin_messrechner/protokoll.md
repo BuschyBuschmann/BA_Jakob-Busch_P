@@ -31,8 +31,8 @@ Uhrzeiten immer mit eintragen. Nicht Zutreffendes mit „entfällt“ und Grund 
 | PSV-Version und Optionen (*Hilfe > PSV Info*; Foto) | |
 | Python-Version (`& $PY --version`) / Bitness (soll 64) | |
 | Installationsweg (G Git / S Stick / R Bestand) | |
-| Wheel (erwartet `ldv_automation-0.2.0-py3-none-any.whl`): Dateiname / **SHA-256** (`Get-FileHash`) / erwarteter SHA-256 a483b2c624683ef38fa364a3e86857289074b54c3c563a95117727e3869d8b3d (auch in `stick/LIESMICH.txt`) | |
-| **Git-Hash des Wheels** (`_build_info.json`, I6; erwartet 3fd4e79df8e9bbde2d4557940efd1730db842164) / `git_dirty` (soll false) | |
+| Wheel (erwartet `ldv_automation-0.2.0-py3-none-any.whl`): Dateiname / **SHA-256** (`Get-FileHash`) / erwarteter SHA-256 1947897ee964cf10f2754a7b3e9db817487dc2018c446c3131adf5619f189552 (auch in `stick/LIESMICH.txt`) | |
+| **Git-Hash des Wheels** (`_build_info.json`, I6; erwartet 1208ea2be20a5a45a9475f5acb7c6cb9151bbfad) / `git_dirty` (soll false) | |
 | Hash stimmt mit dem Stand auf dem Branch überein (ja/nein) | |
 | Skriptordner `$ARB` / Ausgabeordner `$T` | |
 | `erkundung.py` Version / `skript_sha256` (aus `bericht.json`); `einstellungen_lesen.py`, `daten_lesen.py`: Stand | |
@@ -416,13 +416,13 @@ Nur Kopien, Ausgabe nur nach `$ARB`; nichts bestanden vor Bestätigung durch Jak
 | Zweite Datei für den Vergleich (Name, Herkunft) | |
 | Nicht prüfbar / „entfällt“ mit Grund | |
 
-### 10.17 Animation (nur wenn der Build AN7 enthält)
+### 10.17 Animation (Build mit AN7 bis AN9)
 
 | Feld | Eintrag |
 |---|---|
 | Modusschalter „Standbild/Animation“ in Ansicht 4 vorhanden? (nein: Block entfällt) | |
 | Sichtprüfung nach `in_progress/planung/plaene/2026-11-11_P-AUSW3_animation-plan.md` (Standbild nach Öffnen, Wiedergabe, Drehen, Zoom, ←/→, Pflichttexte, Kennzeichen M8, Modus ohne Phase gesperrt) | |
-| Prüfanleitung `pruefanleitung_animation.md` (AN9) vorhanden; Build mit AN8/AN9 (Knopf „Werte als Tabelle“ sichtbar)? Messungen M1 bis M6 mit `animation_messen.py` (lokal und Remotedesktop; Tabellen `animation_*.md` sichern): durchführbar nur mit diesem Build | |
+| Prüfanleitung `pruefanleitung_animation.md` (AN9) vorhanden; Knopf „Werte als Tabelle“ sichtbar (Build mit AN8/AN9)? Messungen M1 bis M6 mit `animation_messen.py` (lokal und Remotedesktop; Tabellen `animation_*.md` sichern): durchführbar | |
 | UI-38: bleibt offen bis zur Bestätigung durch Jakob | |
 
 ## 11 Ersatzpläne, Abbruch und Auffälligkeiten

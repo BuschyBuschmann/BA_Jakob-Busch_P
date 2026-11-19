@@ -4,7 +4,7 @@ Zentrale Übersicht über offene Aufgaben der Bachelorarbeit. Wird nach jedem Ar
 und jedem Betreuertermin aktualisiert. Details stehen in den verlinkten Dateien.
 
 **Stand:** 2026-11-06
-**Nächster fester Termin:** Mo 23.11.2026, ganzer Tag am PSV-Messrechner (Termin 09.11. ausgefallen; Unterlagen in `in_progress/versuche/naechster-termin_messrechner/` aktualisiert; Wheel 0.2.0 gebaut am 2026-11-19, Build 3fd4e79, mit AN7; Anleitung privater Rechner `installation_privat.md`)
+**Nächster fester Termin:** Mo 23.11.2026, ganzer Tag am PSV-Messrechner (Termin 09.11. ausgefallen; Unterlagen in `in_progress/versuche/naechster-termin_messrechner/` aktualisiert; Wheel 0.2.0 gebaut am 2026-11-19, Build 1208ea2, mit AN7–AN9; Anleitung privater Rechner `installation_privat.md`)
 
 Legende: ☐ offen · ◐ in Arbeit · ☑ erledigt · ⏳ wartet auf andere
 
