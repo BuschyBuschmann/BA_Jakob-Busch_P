@@ -132,6 +132,9 @@ uv run pytest --cov --cov-fail-under=90
   erhoben und im Feld `abgleich` protokolliert; Prüfgrenzen stehen nur in der
   Konfigurationsdatei, ohne Standardwerte, mit Einheit im Schlüsselnamen (ADR-030,
   Nutzerentscheidung 2026-11-14).
+- Eine Annahme (z. B. M8, M12) gilt nur als bestätigt, wenn ihr Status mit „bestätigt“
+  beginnt (Groß-/Kleinschreibung egal, Leerraum davor ignoriert); jeder andere Text lässt das
+  Kennzeichen stehen (fail-closed, Nutzerentscheidung 2026-11-19).
 - Erfundene Gerätewerte in Simulatoren und Testständen nur als ausdrücklich gekennzeichnete
   Platzhalter (Nutzerentscheidung 2026-11-14).
 
