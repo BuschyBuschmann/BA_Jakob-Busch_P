@@ -1,13 +1,12 @@
 LIESMICH – Stick/Download-Paket nächster Termin am Messrechner
 =============================================================
 Software: ldv-automation 0.2.0 (Version bleibt 0.2.0, Nutzerentscheidung 2026-11-18; 0.2.0 wurde nie am
-Messrechner ausgeliefert), Git ‹BUILD-HASH› (Platzhalter: der neue Build ist noch zu erstellen, Hash und
-SHA-256 werden beim Build eingesetzt; erwartet git_dirty: false).
+Messrechner ausgeliefert), Git 3fd4e79df8e9bbde2d4557940efd1730db842164 (Build 2026-11-19; Build-Info git_dirty: false; Wheel-SHA-256 unten).
 Termin: Montag 2026-11-23, ganzer Tag (der Termin am 2026-11-09 ist ausgefallen). Stand dieses Textes: 2026-11-18.
-ACHTUNG: Das derzeit unter wheelhouse/ liegende ldv_automation-0.2.0-Wheel stammt von einem früheren, ERSETZTEN
-Build (a0ee2fc) und darf nicht mehr installiert werden; es wird beim Build durch den neuen ersetzt. Ersetzt sind
-auch die früheren Builds 6d84318, f66af80 und b5300e1. Der neue Build soll zusätzlich enthalten: Abgleich
-lesen/prüfen (R-003a/b), Auswerten Etappen A bis C und, falls fertig, die Animation (AN7 ff.). Der Konfig-Schlüssel
+ACHTUNG: Das unter wheelhouse/ liegende ldv_automation-0.2.0-Wheel ist der neue Build 3fd4e79 (ersetzt den früheren
+Build a0ee2fc, der nicht mehr installiert werden darf). Ersetzt sind
+auch die früheren Builds 6d84318, f66af80 und b5300e1. Der neue Build enthält zusätzlich: Abgleich
+lesen/prüfen (R-003a/b), Auswerten Etappen A bis C und die Animation in Ansicht 4 (AN7; AN9 fehlt). Der Konfig-Schlüssel
 abgleich_pruefung in konfig/beispiel_messrechner.json wird nur von diesem neuen Build gelesen (ein früherer Build
 lehnt unbekannte Schlüssel ab). Nicht am Messrechner geprüft.
 
@@ -25,7 +24,7 @@ dann pip install --upgrade --no-deps <Wheel>).
 Skripte aus erkundung/ nach $ARB kopieren, alte Fassungen vorher als *_alt.py beiseitelegen (A1, Schritt 4).
 
 SHA-256 (prüfen mit Get-FileHash, ins Protokoll übernehmen):
-‹SHA-256›  wheelhouse/ldv_automation-0.2.0-py3-none-any.whl  (neuer Build 0.2.0, Wert wird beim Build eingesetzt; die SHA-256 der früheren Builds gelten nicht mehr)
+a483b2c624683ef38fa364a3e86857289074b54c3c563a95117727e3869d8b3d  wheelhouse/ldv_automation-0.2.0-py3-none-any.whl  (neuer Build 0.2.0, Git 3fd4e79; die SHA-256 der früheren Builds gelten nicht mehr)
 3519428f6be58431c56581f1694ba8e50626f2dd550af225f82fb5f5814d2a42  wheelhouse/contourpy-1.3.3-cp311-cp311-win_amd64.whl
 85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30  wheelhouse/cycler-0.12.1-py3-none-any.whl
 35425bba603cf9d72c9f3c173ea6c98632164f3bdfb1ce1a3dcc928979c6ec6d  wheelhouse/fonttools-4.68.0-cp311-cp311-win_amd64.whl
@@ -68,4 +67,10 @@ Ergänzung 2026-11-18 (Paket P-TERMIN-23):
   (W1 bis W10), pruefanleitung_auswerten_vergleich.md (AV: V1 bis E4). Einordnung in den Tag: ablaufplan.md, 4.4.
 - tools/auswertung/speicher_messen.py (Voraussetzung für AV V1), SHA-256:
   c2017ec85335253ab6d8f3351c2396c3028335a9fdda30d3c589b5fe1ce47422
-  Ebenso die Prüfanleitung der Animation (entsteht in AN9): ‹PRÜFANLEITUNG-ANIMATION›.
+  Ebenso die Prüfanleitung der Animation (entsteht in AN9, fehlt noch): ‹PRÜFANLEITUNG-ANIMATION›.
+
+Ergänzung 2026-11-19 (Paket B-020-23):
+- Neuer Build gebaut (Git 3fd4e79, Version 0.2.0); Abhängigkeits-Wheels unverändert (byte-identisch zu einem frischen
+  pip download mit den PINS). konfig/beispiel_messrechner.json und die Skripte sind unverändert (SHA-256 oben gültig).
+- Animation: der Build enthält AN7 (Modusschalter „Standbild/Animation“ in Ansicht 4); Messungen M1 bis M6 entfallen (AN9 fehlt).
+- Anleitung für Jakobs privaten Windows-Rechner (nur Auswerten und Simulator): installation_privat.md (Ordner darüber).

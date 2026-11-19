@@ -11,7 +11,7 @@ Dauern sind Annahmen. Bei Zeitmangel gilt die Streichreihenfolge aus Ablaufplan 
 ## Vorher (zu Hause / Entwicklungsrechner)
 
 - [ ] Fragen F1 bis F8 an Daniel gestellt, Antworten notiert (Registrierung, **Anregung**, Termin (F3: Montag 2026-11-23, ganzer Tag, Nutzer 2026-11-18), Waage, **Laser auf Kopf und Reflexfolie auf der Stirnfläche**, Internet/Stick, Handbücher, Zeitdaten)
-- [ ] Wheel **0.2.0** (Version bleibt, nie ausgeliefert) **neu gebaut**: Build ‹BUILD-HASH›, SHA-256 ‹SHA-256› (beide werden beim Build in `stick/LIESMICH.txt` eingesetzt), gepusht; Abhängigkeits-Wheels auf dem Stick · [ ] Skripte im aktuellen Stand im Repo (`stick/`; `tools/auswertung/speicher_messen.py` für AV V1 fehlt noch auf dem Stick, **[offen]**) · [ ] Stick gepackt (Jakob)
+- [ ] Wheel **0.2.0** (Version bleibt, nie ausgeliefert) **neu gebaut**: Build 3fd4e79df8e9bbde2d4557940efd1730db842164, SHA-256 a483b2c624683ef38fa364a3e86857289074b54c3c563a95117727e3869d8b3d (beide auch in `stick/LIESMICH.txt`), gepusht; Abhängigkeits-Wheels auf dem Stick · [ ] Skripte im aktuellen Stand im Repo (`stick/`; `tools/auswertung/speicher_messen.py` für AV V1 fehlt noch auf dem Stick, **[offen]**) · [ ] Stick gepackt (Jakob)
 - [ ] Kandidaten für M11 **am Einzelpunkt** vorab geprüft ✔ erledigt: 921,5 / 632,5 / 483,8 Hz (Reserve 949,3 / 644,8)? · Namen für Golden File v2 geklärt oder Skript erweitert?
 - [ ] SHA-256 der vorhandenen Handbücher notiert
 - [ ] Offene Fragen an Daniel/Betreuer bereit (Stand in Ablaufplan 3.1 und 7): A1 bis A6 (Abgleich), W1 bis W8 (Benachrichtigung), O11 (Transformation), O12 (PSV-Ansichten), Amplitude 0,04 V, Zeitdaten, Reflexfolie, Waage, Handbücher, Datenblatt PCB 288D01, Gliederung G1 bis G4, Umfang und Abgabetermin
@@ -21,7 +21,7 @@ Dauern sind Annahmen. Bei Zeitmangel gilt die Streichreihenfolge aus Ablaufplan 
 
 - [ ] **M** (–) **Notieren:** Arbeitsspeicher (gesamt/frei, Task-Manager) ______ · `git -C "D:\Messdaten\DAL\BA Jakob Busch\PyCharmProject" status` (nur lesen, Hash-Quelle; ohne `git`: „kein git“): ______
 - [ ] **M** (–) **A0 Schritt 0:** `Get-Process PSV` (höchstens 1), **Erkundung Stufe 0 zuerst**, `PSV.AcquisitionInstance` registriert? → ja: Start über **„PSV 10.4 Deutsch“** (`/Acquisition`), **PID notieren**: ______
-- [ ] **M** (–) **A1 Update:** neues Wheel 0.2.0 (Build ‹BUILD-HASH›, SHA-256 ‹SHA-256›; `pip install --upgrade --no-deps`; `--force-reinstall` nur als Rückfall), Skripte neu, I1 bis I7 (I3: `ldv-automation 0.2.0`), Git-Hash passt (`git_dirty` false). Bei Zeitverlust: nur I1 bis I4 + Skripte (ca. 10 min)
+- [ ] **M** (–) **A1 Update:** neues Wheel 0.2.0 (Build 3fd4e79df8e9bbde2d4557940efd1730db842164, SHA-256 a483b2c624683ef38fa364a3e86857289074b54c3c563a95117727e3869d8b3d; `pip install --upgrade --no-deps`; `--force-reinstall` nur als Rückfall), Skripte neu, I1 bis I7 (I3: `ldv-automation 0.2.0`), Git-Hash passt (`git_dirty` false). Bei Zeitverlust: nur I1 bis I4 + Skripte (ca. 10 min)
 - [ ] N1 bis N7 Installationsprüfung Auswerten direkt nach A1 (N1 bis N3 fehlgeschlagen: nichts weiter installieren, EP-3) [4.3]
 - [ ] **M** (–) **A2 Sicherung** (spätestens 30 min vor Ende): Ordner, Protokoll, Fotos, Dateien; PSV sauber; Shaker aus
 
@@ -57,7 +57,7 @@ Ohne Anregung und ohne COM möglich (an **Kopien**, nie am Original):
 - [ ] **K** (–) C8 **Restpunkte:** M13 3D-Abgleich-Achsen + Kopfpositionen, offline |n_z| ≈ 1 · M14 Elementindizes (nur wenn Elemente) · M15 Messzeit gegen Rechneruhr (aus D1)
 - [ ] **K** (–) W1 bis W10 Auswerten-Prüfung als Handtest in Wartezeiten (erst nach Bestätigung, Ablaufplan 4.3)
 - [ ] **S** (–) AV V1 bis V4 Speicher und Messungsgrenze (RAM notiert, `speicher_messen.py`, vier Messungen, fünfte gesperrt); AV-B B1 bis B9 Achsenleiste; AV-C C1 bis C9 mehrere Messungen und Ansicht 5; AV-D D1 bis D6 Bild speichern; AV-E E1 bis E4 Tastatur und Lesbarkeit (Etappen B/C, UI-38; Soll mittel)
-- [ ] **K, bedingt** (–) **Animation, nur wenn der Build AN7 enthält** (Modusschalter „Standbild/Animation“ in Ansicht 4 vorhanden): Sichtprüfung laut Animationsplan `in_progress/planung/plaene/2026-11-11_P-AUSW3_animation-plan.md`; Prüfanleitung `‹PRÜFANLEITUNG-ANIMATION›` (entsteht in AN9); Messungen M1 bis M6 **entfallen, falls AN9 (`animation_messen.py`) fehlt**; UI-38 bleibt offen
+- [ ] **K, bedingt** (–) **Animation (der Build enthält AN7, bestätigt: Wheel enthält `gui/animationsflaeche.py`, `gui/animation_anzeige.py`, `gui/animation_tasten.py`)** (Modusschalter „Standbild/Animation“ in Ansicht 4 vorhanden): Sichtprüfung laut Animationsplan `in_progress/planung/plaene/2026-11-11_P-AUSW3_animation-plan.md`; Prüfanleitung `‹PRÜFANLEITUNG-ANIMATION›` (entsteht in AN9, fehlt noch); Messungen M1 bis M6 **entfallen, falls AN9 (`animation_messen.py`) fehlt**; UI-38 bleibt offen
 
 Mit Anregung (nur nach Freigabe **und** eigener Entscheidung je Messung; Shaker sonst aus):
 

@@ -31,8 +31,8 @@ Uhrzeiten immer mit eintragen. Nicht Zutreffendes mit „entfällt“ und Grund 
 | PSV-Version und Optionen (*Hilfe > PSV Info*; Foto) | |
 | Python-Version (`& $PY --version`) / Bitness (soll 64) | |
 | Installationsweg (G Git / S Stick / R Bestand) | |
-| Wheel (erwartet `ldv_automation-0.2.0-py3-none-any.whl`): Dateiname / **SHA-256** (`Get-FileHash`) / erwarteter SHA-256 ‹SHA-256› (beim Build in `stick/LIESMICH.txt` eingesetzt) | |
-| **Git-Hash des Wheels** (`_build_info.json`, I6; erwartet ‹BUILD-HASH›) / `git_dirty` (soll false) | |
+| Wheel (erwartet `ldv_automation-0.2.0-py3-none-any.whl`): Dateiname / **SHA-256** (`Get-FileHash`) / erwarteter SHA-256 a483b2c624683ef38fa364a3e86857289074b54c3c563a95117727e3869d8b3d (auch in `stick/LIESMICH.txt`) | |
+| **Git-Hash des Wheels** (`_build_info.json`, I6; erwartet 3fd4e79df8e9bbde2d4557940efd1730db842164) / `git_dirty` (soll false) | |
 | Hash stimmt mit dem Stand auf dem Branch überein (ja/nein) | |
 | Skriptordner `$ARB` / Ausgabeordner `$T` | |
 | `erkundung.py` Version / `skript_sha256` (aus `bericht.json`); `einstellungen_lesen.py`, `daten_lesen.py`: Stand | |
@@ -422,7 +422,7 @@ Nur Kopien, Ausgabe nur nach `$ARB`; nichts bestanden vor Bestätigung durch Jak
 |---|---|
 | Modusschalter „Standbild/Animation“ in Ansicht 4 vorhanden? (nein: Block entfällt) | |
 | Sichtprüfung nach `in_progress/planung/plaene/2026-11-11_P-AUSW3_animation-plan.md` (Standbild nach Öffnen, Wiedergabe, Drehen, Zoom, ←/→, Pflichttexte, Kennzeichen M8, Modus ohne Phase gesperrt) | |
-| Prüfanleitung `‹PRÜFANLEITUNG-ANIMATION›` (AN9) vorhanden? Messungen M1 bis M6 mit `animation_messen.py`: durchgeführt / entfallen (AN9 fehlt) | |
+| Prüfanleitung `‹PRÜFANLEITUNG-ANIMATION›` (AN9) vorhanden (Stand Build: nein)? Messungen M1 bis M6 mit `animation_messen.py`: entfallen (AN9 fehlt); Build enthält AN7 | |
 | UI-38: bleibt offen bis zur Bestätigung durch Jakob | |
 
 ## 11 Ersatzpläne, Abbruch und Auffälligkeiten
