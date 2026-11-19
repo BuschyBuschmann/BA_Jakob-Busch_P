@@ -231,9 +231,12 @@ def export_meldung(npz: str, json_pfad: str, notiz: str = "") -> str:
     return f"{text} · {notiz}" if notiz else text
 
 
-def bild_vorschlag(messdatei: str, ansicht: int, ordner: str = "") -> str:
-    """Vorschlag für ``Bild speichern …``: ``<Basisname>_ansicht<n>.png`` im Ordner."""
-    return f"{export_vorschlag(messdatei, ordner)}_ansicht{ansicht}.png"
+def bild_vorschlag(messdatei: str, ansicht: int, ordner: str = "", zusatz: str = "") -> str:
+    """Vorschlag für ``Bild speichern …``: ``<Basisname>_ansicht<n><zusatz>.png`` im Ordner.
+
+    ``zusatz`` ergänzt den Namen (Animation: ``_animation_theta090``).
+    """
+    return f"{export_vorschlag(messdatei, ordner)}_ansicht{ansicht}{zusatz}.png"
 
 
 def bild_endung(pfad: str, filter_text: str) -> str:

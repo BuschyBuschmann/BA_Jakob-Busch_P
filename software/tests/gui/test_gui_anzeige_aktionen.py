@@ -68,6 +68,10 @@ def test_export_vorschlag_und_basis() -> None:
 
 def test_bild_vorschlag_endung_meldung_stempel() -> None:
     assert ak.bild_vorschlag("/d/probe.svd", 3) == "/d/probe_ansicht3.png"
+    assert (
+        ak.bild_vorschlag("/d/probe.svd", 4, zusatz="_animation_theta090")
+        == "/d/probe_ansicht4_animation_theta090.png"
+    )
     assert ak.bild_endung("x.PNG", "PDF (*.pdf)") == "x.PNG"
     assert ak.bild_endung("x.pdf", "PNG (*.png)") == "x.pdf"
     assert ak.bild_endung("x", "PDF (*.pdf)") == "x.pdf"

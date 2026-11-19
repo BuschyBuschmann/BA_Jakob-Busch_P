@@ -306,6 +306,17 @@ class AnimationsFlaeche(QFrame):
         """Textalternative des Canvas (``accessibleDescription``)."""
         return self._beschreibung
 
+    @property
+    def standbild_optionen(self) -> AnimationsOptionen | None:
+        """Optionen des Standbilds bei Winkel und Blick der Fläche; ohne Bild ``None``.
+
+        Dieselben Optionen, mit denen :meth:`speichere` zeichnet; der Reiter leitet daraus die
+        Stempelzeilen (Winkel, Frequenz, Überhöhung, Blick) und die offenen Annahmen ab.
+        """
+        if self._daten is None:
+            return None
+        return self._optionen(self._basis, Ereignis.STAND)
+
     def tab_kette(self) -> list[QWidget]:
         """Fokussierbare Teile der Fläche in Tab-Reihenfolge (nur der Canvas)."""
         return [self._canvas]
@@ -638,7 +649,7 @@ class AnimationsFlaeche(QFrame):
         if self._daten is None:
             raise RuntimeError("Es ist keine Animation zum Speichern vorhanden.")
         daten = self._daten
-        opt = self._optionen(self._basis, Ereignis.STAND)
+        opt = self._optionen(self._basis, Ereignis.STAND)  # = standbild_optionen
         return speichere_arbeitsbild(
             lambda fig: zeichne_animation(fig, daten, opt, self._stil), pfad, stempel, self._stil
         )

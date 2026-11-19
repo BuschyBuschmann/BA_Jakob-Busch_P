@@ -42,6 +42,24 @@ def test_stempel_text_und_hinweis_unbestaetigt() -> None:
     assert m2.zeilen[1] == "! enthält unbestätigte Größen (M8, M5)"
 
 
+def test_stempel_zusatzzeilen_stehen_nach_der_kopfzeile_und_vor_der_warnzeile() -> None:
+    s = baue_stempel(
+        dateiname="a.svd",
+        ansicht="Ansicht 4 Schwingform",
+        git_hash="abc",
+        unbestaetigt=("M12",),
+        zusatz=("Animation · θ = 90,0°", "Blickrichtung: Azimut 10,0°"),
+    )
+    assert s.zeilen[0].startswith(ARBEITSANSICHT)
+    assert s.zeilen[1:] == (
+        "Animation · θ = 90,0°",
+        "Blickrichtung: Azimut 10,0°",
+        "⚠ enthält unbestätigte Größen (M12)",
+    )
+    ohne = baue_stempel(dateiname="a.svd", ansicht="x", git_hash="abc")
+    assert len(ohne.zeilen) == 1  # ohne Zusatz unverändert
+
+
 def test_arbeitsbild_png_mit_stempel_thesis_variante_ohne(
     sd: SpektrumDaten, tmp_path: Path
 ) -> None:

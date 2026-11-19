@@ -137,6 +137,10 @@ omit = [
     # Rückfallstufen und Texte liegen Qt-frei in `gui/animation_steuerung.py` (voll gemessen), die
     # Zeichnung in `darstellung/animation3d.py`.
     "src/ldv_automation/gui/animationsflaeche.py",
+    # R-071 (P-AUSW3 AN9): Der Dialog „Werte als Tabelle“ ist ein reines Widget (QTableWidget);
+    # sein Inhalt entsteht Qt-frei in `tabelle_auslenkungen` (`gui/animation_steuerung.py`, voll
+    # gemessen).
+    "src/ldv_automation/gui/animation_tabelle.py",
 ]
 
 [tool.coverage.report]

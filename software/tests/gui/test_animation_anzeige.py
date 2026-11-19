@@ -13,6 +13,7 @@ from __future__ import annotations
 import math
 from dataclasses import replace
 
+import numpy as np
 import pytest
 from gui_ausw_hilfen import synth_geladen
 
@@ -32,10 +33,19 @@ from ldv_automation.darstellung.animation3d import (
 from ldv_automation.darstellung.animation_daten import (
     TEXT_KEINE_PHASE as DAR_TEXT_KEINE_PHASE,
 )
-from ldv_automation.darstellung.animation_daten import AnimationsDaten, animation_daten
+from ldv_automation.darstellung.animation_daten import (
+    UNGUELTIG,
+    UNSICHER,
+    AnimationsDaten,
+    animation_daten,
+)
 from ldv_automation.darstellung.auswahl import PaarCache
 from ldv_automation.gui import animation_anzeige as an
-from ldv_automation.gui.animation_steuerung import ANIMATIONS_TASTEN, Aktion
+from ldv_automation.gui.animation_steuerung import (
+    ANIMATIONS_TASTEN,
+    Aktion,
+    tabelle_auslenkungen,
+)
 from ldv_automation.gui.anzeige_aktionen import (
     AKTIONS_TASTEN,
     TASTEN_KONTEXT,
@@ -330,3 +340,149 @@ def test_konflikte_werden_erkannt(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(AKTIONS_TASTEN, "fenster_y", ("Left", "←"))
     monkeypatch.setitem(TASTEN_KONTEXT, "fenster_y", "fenster")
     assert ("animation_phase_zurueck", "fenster_y") in tasten_konflikte()
+
+
+# --- Standbild speichern: Stempelzeilen und offene Annahmen (AN8, UI-31) --------------------------
+
+
+def test_stempel_zusatz_nennt_winkel_frequenz_ueberhoehung_und_blick() -> None:
+    daten = _daten()
+    opt = AnimationsOptionen(
+        theta_rad=math.pi / 2.0, ueberhoehung=12.0, blick=Blick(azim_grad=-60.0, elev_grad=30.0)
+    )
+    zeilen = an.animations_stempel_zusatz(daten, opt, STIL)
+    assert (
+        zeilen[0]
+        == "Animation · θ = 90,0° · f = 16,000 Hz · Überhöhung \N{MULTIPLICATION SIGN}12,00"
+    )
+    assert zeilen[1] == "Blickrichtung: Azimut \N{MINUS SIGN}60,0°, Elevation 30,0°, Zoom 1,00"
+
+
+def test_stempel_zusatz_schnelle_nennt_skalierung_in_sekunden() -> None:
+    daten = _daten(groesse="schnelle")
+    zeilen = an.animations_stempel_zusatz(daten, AnimationsOptionen(ueberhoehung=0.001), STIL)
+    assert " · Skalierung 0,001000 s (entspricht Überhöhung " in zeilen[0]
+    assert "Überhöhung Skalierung" not in zeilen[0]
+
+
+def test_unbestaetigt_nennt_m12_bei_3d_und_m8_nur_bei_absolutem_bezug() -> None:
+    opt = AnimationsOptionen()
+    assert an.animations_unbestaetigt(_daten(), opt) == ("M12",)
+    assert an.animations_unbestaetigt(_daten(bezug_modus="absolut"), opt) == ("M8", "M12")
+    assert an.animations_unbestaetigt(_daten("Z"), opt) == ()  # relativ, eine Komponente
+
+
+def test_unbestaetigt_folgt_dem_bestaetigungsvermerk_fail_closed() -> None:
+    opt = AnimationsOptionen()
+    daten = _daten(
+        bezug_modus="absolut",
+        annahmen2=AnnahmenStufe2(status={"M12": "bestätigt am 2026-12-01"}),
+    )
+    assert an.animations_unbestaetigt(daten, opt) == ("M8",)
+    # Status ohne Bestätigungsvermerk („Annahme“) lässt das Kennzeichen stehen
+    offen = _daten(annahmen2=AnnahmenStufe2(status={"M12": "Annahme, bestätigt nicht"}))
+    assert an.animations_unbestaetigt(offen, opt) == ("M12",)
+
+
+@pytest.mark.parametrize(
+    ("theta", "zusatz"),
+    [
+        (0.0, "_animation_theta000"),
+        (math.pi / 2.0, "_animation_theta090"),
+        (math.radians(359.6), "_animation_theta000"),  # rundet auf 360° = 0°
+        (-math.pi / 2.0, "_animation_theta270"),
+    ],
+)
+def test_namenszusatz_des_dateivorschlags(theta: float, zusatz: str) -> None:
+    assert an.bild_vorschlag_zusatz(theta) == zusatz
+
+
+# --- „Werte als Tabelle“ (AN9, UI-26) ------------------------------------------------------------
+
+
+def _zahl(text: str) -> float:
+    return float(text.replace(",", "."))
+
+
+def test_tabelle_zeigt_reale_auslenkung_je_punkt_gegen_unabhaengige_rechnung() -> None:
+    daten = _daten()
+    theta = math.pi / 3.0
+    t = tabelle_auslenkungen(daten, theta, 2.5, STIL)
+    assert t.spalten[:5] == ("Punkt", "Status", "x [mm]", "y [mm]", "z [mm]")
+    assert t.spalten[5:] == (
+        "Auslenkung x [mm]",
+        "Auslenkung y [mm]",
+        "Auslenkung z [mm]",
+        "Betrag [mm]",
+    )
+    assert len(t.zeilen) == daten.anzahl_punkte == 4
+    # Orakel: Re{d e^{iθ}} aus der animierten Amplitude, Einheit mm (Faktor 1e3, 4 Stellen)
+    soll = np.real(daten.amplitude_anim * np.exp(1j * theta)) * 1e3
+    for p, zeile in enumerate(t.zeilen):
+        assert zeile[0] == str(int(daten.label[p])) and zeile[1] == "bewegt"
+        ist = [_zahl(x) for x in zeile[5:8]]
+        assert ist == pytest.approx(soll[p], rel=1e-3)  # 4 signifikante Stellen
+        assert _zahl(zeile[8]) == pytest.approx(float(np.linalg.norm(soll[p])), rel=1e-3)
+        ort = [_zahl(x) for x in zeile[2:5]]
+        assert ort == pytest.approx(daten.koordinaten_m[p] * 1e3, rel=1e-3, abs=1e-9)
+    assert "θ = 60,0°" in t.titel and "f = 16,000 Hz" in t.titel
+    assert "ohne Überhöhung (im Bild: Überhöhung \N{MULTIPLICATION SIGN}2,500)" in t.titel
+
+
+def test_tabelle_einzelkomponente_zeigt_nicht_gewaehlte_achsen_als_strich() -> None:
+    t = tabelle_auslenkungen(_daten("Z"), 0.0, 1.0, STIL)
+    for zeile in t.zeilen:
+        assert zeile[5:7] == ("–", "–") and zeile[7] != "–"
+        assert _zahl(zeile[8]) == pytest.approx(abs(_zahl(zeile[7])), rel=1e-12)
+
+
+def test_tabelle_gekennzeichnete_punkte_stehen_ohne_werte_mit_status_in_worten() -> None:
+    daten = _daten()
+    status = daten.status.copy()
+    status[1], status[2] = UNSICHER, UNGUELTIG
+    bewegt = daten.bewegt.copy()
+    bewegt[1] = bewegt[2] = False
+    daten = replace(daten, status=status, bewegt=bewegt)
+    t = tabelle_auslenkungen(daten, 1.0, 1.0, STIL)
+    assert t.zeilen[1][1] == "steht, unsicher (γ² unter der Schwelle)"
+    assert t.zeilen[2][1] == "steht, ungültig (M6)"
+    assert all(x == "–" for x in t.zeilen[1][5:]) and all(x == "–" for x in t.zeilen[2][5:])
+    assert t.zeilen[0][1] == "bewegt" and t.zeilen[0][5] != "–"
+
+
+def test_tabelle_3d_unvollstaendig_und_ruhende_punkte() -> None:
+    daten = _daten()
+    status = daten.status.copy()
+    status[0] = UNSICHER
+    grund = daten.grund_3d_unvollstaendig.copy()
+    grund[0] = True
+    bewegt = daten.bewegt.copy()
+    bewegt[0] = False
+    daten = replace(daten, status=status, grund_3d_unvollstaendig=grund, bewegt=bewegt)
+    assert tabelle_auslenkungen(daten, 0.0, 1.0, STIL).zeilen[0][1] == "steht, 3D unvollständig"
+
+
+def test_tabelle_schnelle_nennt_skalierung_und_einheit() -> None:
+    t = tabelle_auslenkungen(_daten(groesse="schnelle"), 0.0, 0.001, STIL)
+    assert t.titel.startswith("Schnelle je Messpunkt bei θ = 0,0°")
+    assert "im Bild: 0,001000 s (entspricht Überhöhung" in t.titel
+    assert t.spalten[5].startswith("Schnelle x [") and "/s]" in t.spalten[5]
+
+
+def test_tabelle_zahlen_ausserhalb_von_1e_minus_3_bis_1e6_in_potenzschreibweise() -> None:
+    """Review MINOR 1: Rundungsreste wie 6e-17 stehen als „m·10ⁿ“ (KONVENTIONEN)."""
+    daten = _daten()
+    amplitude = daten.amplitude_anim.copy()
+    amplitude[0] = [1e-9 + 0j, 6e-17 + 0j, 2.5e-3 + 0j]  # reale Auslenkung bei θ = 0 in m
+    t = tabelle_auslenkungen(replace(daten, amplitude_anim=amplitude), 0.0, 1.0, STIL)
+    assert t.spalten[5].endswith("[mm]")  # Anzeigeeinheit der Beispieldaten: Faktor 10³
+    assert t.zeilen[0][5:8] == (
+        "1,000·10\N{SUPERSCRIPT MINUS}\N{SUPERSCRIPT SIX}",  # 1e-9 m = 1e-6 mm
+        "6,000·10\N{SUPERSCRIPT MINUS}\N{SUPERSCRIPT ONE}\N{SUPERSCRIPT FOUR}",  # 6e-17 m
+        "2,500",
+    )
+
+
+def test_tempo_text_kompakt_ohne_wort_perioden() -> None:
+    assert an.tempo_text(0.25, kompakt=True) == "0,25/s"
+    assert an.tempo_text(2.0, kompakt=True) == "2,0/s"

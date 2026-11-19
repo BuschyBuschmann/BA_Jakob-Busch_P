@@ -33,6 +33,7 @@ from ldv_automation.darstellung.achsen import (
 from ldv_automation.darstellung.animation3d import (
     AnimationsOptionen,
     Blick,
+    effektive_ueberhoehung,
     farbskala,
     ist_bestaetigt,
     kennzeichen_texte,
@@ -41,7 +42,11 @@ from ldv_automation.darstellung.animation3d import (
 from ldv_automation.darstellung.animation_daten import TEXT_KEINE_PHASE, AnimationsDaten
 from ldv_automation.darstellung.formate import frequenz_text, zahl_text
 from ldv_automation.darstellung.stil import Plotstil
-from ldv_automation.gui.animation_steuerung import beschreibung_animation
+from ldv_automation.gui.animation_steuerung import (
+    beschreibung_animation,
+    phase_text,
+    skalierung_text,
+)
 from ldv_automation.gui.anzeige_auswerten import ABHAENGIG_VON
 from ldv_automation.gui.tokens import symbol
 
@@ -57,14 +62,16 @@ __all__ = [
     "TEMPO_MIN_HZ",
     "TEMPO_REGLER_MAX",
     "TEMPO_REGLER_MIN",
-    "TEXT_BILD_ANIMATION",
     "TEXT_KEINE_PHASE",
     "TEXT_LANGSAM",
     "TEXT_SKALIERUNG_POSITIV",
     "absolut_text",
     "animations_beschreibung",
     "animations_kopf_text",
+    "animations_stempel_zusatz",
+    "animations_unbestaetigt",
     "bezug_automatisch_text",
+    "bild_vorschlag_zusatz",
     "faktor_aus_regler",
     "farb_anzeige",
     "farb_feldtexte",
@@ -85,11 +92,6 @@ __all__ = [
 
 TEXT_LANGSAM = "Wiedergabe langsamer als eingestellt"
 """Meldung in AF, wenn die Soll-Bildrate nicht erreicht wird (Brief K1-AUSW2 Abschnitt 4)."""
-TEXT_BILD_ANIMATION = (
-    "Bild speichern: Im Modus „Animation“ noch nicht verfügbar; zum Speichern „Standbild“ wählen."
-)
-"""Grund, warum ``Bild speichern …`` im Modus Animation (bis AN8) gesperrt ist: Der verdeckte
-Standbild-Plot darf nicht unter dem Namen der Animation gespeichert werden."""
 TEXT_SKALIERUNG_POSITIV = "Bitte eine Zahl größer null eingeben (leer = Auto)."
 """Meldung bei einer Skalierung ≤ 0 oder einer Nicht-Zahl (analog UI-5)."""
 
@@ -145,10 +147,14 @@ def regler_aus_tempo(tempo_hz: float) -> int:
     return _regler(tempo_hz, TEMPO_REGLER_MIN, TEMPO_REGLER_MAX, TEMPO_REGLER_MIN)
 
 
-def tempo_text(tempo_hz: float) -> str:
-    """Anzeige des Tempos mit Dezimalkomma, z. B. „0,25 Perioden/s“ (zwei signifikante Stellen)."""
+def tempo_text(tempo_hz: float, *, kompakt: bool = False) -> str:
+    """Anzeige des Tempos mit Dezimalkomma, z. B. „0,25 Perioden/s“ (zwei signifikante Stellen).
+
+    Kompakt (Fenster unter 1200 px, UI-D3): „0,25/s“; die Einheit „Perioden“ steht im Tooltip.
+    """
     stellen = 1 if tempo_hz >= 1.0 else 2
-    return f"{zahl_text(tempo_hz, stellen, dezimalkomma=True)} Perioden/s"
+    einheit = "/s" if kompakt else " Perioden/s"
+    return f"{zahl_text(tempo_hz, stellen, dezimalkomma=True)}{einheit}"
 
 
 def faktor_aus_regler(wert: int) -> float:
@@ -381,6 +387,45 @@ def animations_beschreibung(
         kennzeichen_koordinaten=opt.kennzeichen_koordinaten,
     )
     return f"Datei {dateiname}. {text} {_blick_text(opt.blick, stil)}."
+
+
+# --- Standbild speichern (AN8, UI-31) ------------------------------------------------------------
+
+
+def animations_stempel_zusatz(
+    daten: AnimationsDaten, opt: AnimationsOptionen, stil: Plotstil
+) -> tuple[str, ...]:
+    """Zusatzzeilen des Bildstempels: Winkel, Frequenz, Überhöhung/Skalierung, Blick (UI-31).
+
+    ``opt`` trägt den Winkel und den Blick des gespeicherten Standbilds
+    (:attr:`.AnimationsFlaeche.standbild_optionen`). Die Zeilen ergänzen die Kopfzeile des
+    Stempels (Datei, Ansicht, Git-Hash) in :func:`~ldv_automation.darstellung.bild.baue_stempel`.
+    """
+    komma = stil.dezimalkomma
+    skalierung = skalierung_text(daten, effektive_ueberhoehung(daten, opt), stil)
+    name = "Skalierung" if daten.groesse == "schnelle" else "Überhöhung"
+    return (
+        f"Animation · {phase_text(opt.theta_rad, stil)} · "
+        f"f = {frequenz_text(daten.f_hz, 3, dezimalkomma=komma)} · {name} {skalierung}",
+        _blick_text(opt.blick, stil),
+    )
+
+
+def animations_unbestaetigt(daten: AnimationsDaten, opt: AnimationsOptionen) -> tuple[str, ...]:
+    """Nummern der offenen Annahmen, deren Kennzeichen im Bild stehen (M8, M12; UI-28).
+
+    Dieselbe Quelle wie das Bild und der Kopf
+    (:func:`~ldv_automation.darstellung.animation3d.kennzeichen_texte`): fail-closed, ein Status
+    gilt nur mit Bestätigungsvermerk als bestätigt.
+    """
+    phase, koordinaten = kennzeichen_texte(daten, opt)
+    return tuple(nr for nr, text in (("M8", phase), ("M12", koordinaten)) if text)
+
+
+def bild_vorschlag_zusatz(theta_rad: float) -> str:
+    """Namenszusatz des Dateivorschlags im Modus Animation, z. B. ``_animation_theta090``."""
+    grad = round(math.degrees(theta_rad % (2.0 * math.pi))) % 360
+    return f"_animation_theta{grad:03d}"
 
 
 def regler_namen(art: Literal["abspielen", "pause"]) -> tuple[str, str]:

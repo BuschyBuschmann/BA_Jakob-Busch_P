@@ -36,9 +36,20 @@ from ldv_automation.darstellung.animation3d import (
     kennzeichen_texte,
     ohne_nachbarabstand,
     pflichttexte,
+    skaliere_einheit,
 )
-from ldv_automation.darstellung.animation_daten import AnimationsDaten
-from ldv_automation.darstellung.formate import zahl_kurz_text, zahl_text
+from ldv_automation.darstellung.animation_daten import (
+    KEIN_WERT,
+    NULL,
+    UNGUELTIG,
+    UNSICHER,
+    AnimationsDaten,
+)
+from ldv_automation.darstellung.formate import (
+    frequenz_text,
+    zahl_kurz_text,
+    zahl_text,
+)
 from ldv_automation.darstellung.stil import Plotstil
 
 __all__ = [
@@ -57,12 +68,14 @@ __all__ = [
     "Phasenuhr",
     "Stufe",
     "StufenVerhalten",
+    "WerteTabelle",
     "beschreibung_animation",
     "frequenzwechsel",
     "optionen_stufe",
     "phase_text",
     "skalierung_nach_groessenwechsel",
     "skalierung_text",
+    "tabelle_auslenkungen",
     "taste_zu_aktion",
     "ueberhoehung_text",
     "verhalten",
@@ -660,3 +673,105 @@ def beschreibung_animation(
     teile.extend(f"Kennzeichen: {t}" for t in kennzeichen_texte(daten, opt) if t)
     teile.append(zustand)
     return ". ".join(teile) + "."
+
+
+# --- „Werte als Tabelle“ (Ersatz für das Bild, UI-26) ---------------------------------------------
+
+_TABELLE_SIGNIFIKANT = 4
+"""Signifikante Stellen der Zahlen in der Tabelle (KONVENTIONEN)."""
+_KEIN_WERT_ZEICHEN = "–"
+_STATUS_TEXT = {
+    UNSICHER: "steht, unsicher (γ² unter der Schwelle)",
+    UNGUELTIG: "steht, ungültig (M6)",
+    KEIN_WERT: "steht, kein Messwert",
+}
+
+
+@dataclass(frozen=True)
+class WerteTabelle:
+    """Zahlenwerte der Animation bei einem Winkel als Text (Tabelle statt Bild, UI-26).
+
+    Attributes
+    ----------
+    titel : str
+        Überschrift mit Größe, Winkel, Frequenz und Überhöhung.
+    spalten : tuple of str
+        Spaltenköpfe mit Einheit.
+    zeilen : tuple of tuple of str
+        Eine Zeile je Messpunkt, Zahlen in Anzeigeformat (Dezimalkomma, 4 signifikante Stellen).
+    """
+
+    titel: str
+    spalten: tuple[str, ...]
+    zeilen: tuple[tuple[str, ...], ...]
+
+
+def _status_text(daten: AnimationsDaten, punkt: int) -> str:
+    status = int(daten.status[punkt])
+    if status == NULL:
+        return "in Ruhe (Amplitude 0)"
+    if status == UNSICHER and bool(daten.grund_3d_unvollstaendig[punkt]):
+        return "steht, 3D unvollständig"
+    return _STATUS_TEXT.get(status, "bewegt")
+
+
+def tabelle_auslenkungen(
+    daten: AnimationsDaten, theta_rad: float, ueberhoehung: float, stil: Plotstil
+) -> WerteTabelle:
+    r"""Die momentane Auslenkung (bzw. Schnelle) je Messpunkt bei :math:`\theta` als Tabelle.
+
+    Gezeigt werden die **realen** Werte :math:`\mathrm{Re}\{\hat d_p e^{i\theta}\}`
+    (:meth:`AnimationsDaten.auslenkung`, ohne Überhöhung) und die Ruhelage in mm; die Überhöhung
+    steht nur im Titel (im Bild ist sie ein Darstellungsfaktor). Nicht bewegte Punkte (unsicher,
+    ungültig, kein Wert) tragen „–“, ebenso die nicht gewählten Komponenten einer
+    Einzelkomponente; der Status steht in Worten in einer eigenen Spalte.
+
+    Parameters
+    ----------
+    daten : AnimationsDaten
+        Daten der Animation.
+    theta_rad : float
+        Winkel in rad.
+    ueberhoehung : float
+        Wirksame Skalierung des Bildes (:func:`.effektive_ueberhoehung`), nur für den Titel.
+    stil : Plotstil
+        Für das Dezimalkomma.
+    """
+    komma = stil.dezimalkomma
+    faktor, einheit = skaliere_einheit(daten.d_ref, daten.einheit_anim)
+    name = "Schnelle" if daten.groesse == "schnelle" else "Auslenkung"
+    skalierung = skalierung_text(daten, ueberhoehung, stil)
+    bild = skalierung if daten.groesse == "schnelle" else f"Überhöhung {skalierung}"
+    titel = (
+        f"{name} je Messpunkt bei {phase_text(theta_rad, stil)} · "
+        f"f = {frequenz_text(daten.f_hz, 3, dezimalkomma=komma)} · "
+        f"reale Werte, ohne Überhöhung (im Bild: {bild})"
+    )
+    spalten = (
+        "Punkt",
+        "Status",
+        "x [mm]",
+        "y [mm]",
+        "z [mm]",
+        *(f"{name} {achse} [{einheit}]" for achse in "xyz"),
+        f"Betrag [{einheit}]",
+    )
+
+    def zahl(wert: float) -> str:
+        return zahl_kurz_text(wert, _TABELLE_SIGNIFIKANT, dezimalkomma=komma)
+
+    verschiebung = daten.auslenkung(theta_rad)
+    zeilen: list[tuple[str, ...]] = []
+    for p in range(daten.anzahl_punkte):
+        ort = tuple(zahl(float(x) * 1000.0) for x in daten.koordinaten_m[p])
+        if bool(daten.bewegt[p]):
+            komp = tuple(
+                zahl(float(v) * faktor) if bool(aktiv) else _KEIN_WERT_ZEICHEN
+                for v, aktiv in zip(verschiebung[p], daten.achsen_aktiv, strict=True)
+            )
+            betrag = zahl(float(math.hypot(*verschiebung[p])) * faktor)
+        else:
+            komp = (_KEIN_WERT_ZEICHEN,) * 3
+            betrag = _KEIN_WERT_ZEICHEN
+        zeilen.append((str(int(daten.label[p])), _status_text(daten, p), *ort, *komp, betrag))
+    return WerteTabelle(titel=titel, spalten=spalten, zeilen=tuple(zeilen))

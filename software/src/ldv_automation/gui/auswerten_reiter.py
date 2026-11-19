@@ -116,13 +116,15 @@ from ldv_automation.gui.achsen_zustand import (
 from ldv_automation.gui.achsenleiste import Achsenleiste
 from ldv_automation.gui.animation_anzeige import (
     FARBE_SENKRECHT,
-    TEXT_BILD_ANIMATION,
     TEXT_LANGSAM,
     absolut_text,
     animations_beschreibung,
     animations_kopf_text,
     animations_kopf_tooltip,
+    animations_stempel_zusatz,
+    animations_unbestaetigt,
     bezug_automatisch_text,
+    bild_vorschlag_zusatz,
     farb_anzeige,
     farb_feldtexte,
     hinweise_text,
@@ -135,7 +137,9 @@ from ldv_automation.gui.animation_anzeige import (
 from ldv_automation.gui.animation_steuerung import (
     skalierung_nach_groessenwechsel,
     skalierung_text,
+    tabelle_auslenkungen,
 )
+from ldv_automation.gui.animation_tabelle import WerteTabelleDialog
 from ldv_automation.gui.animationsflaeche import AnimationsFlaeche
 from ldv_automation.gui.anzeige import Knopf
 from ldv_automation.gui.anzeige_aktionen import (
@@ -1245,12 +1249,12 @@ class AuswertenReiter(QWidget):
 
     def _bild_grund(self) -> str | None:
         """Grund, warum die gezeigte Ansicht kein Bild liefert (Platzhaltertext statt Plot)."""
+        if self._zustand is AuswertenZustand.GELADEN and self._animation_sichtbar():
+            return None  # Standbild der Animation (AN8): die Animationsfläche liefert das Bild
         if self._zustand is AuswertenZustand.GELADEN and (
             self._ansichtstext is not None or self.plot.letzter_aufruf is None
         ):
             return TEXT_BILD_KEINE_DARSTELLUNG
-        if self._zustand is AuswertenZustand.GELADEN and self._animation_sichtbar():
-            return TEXT_BILD_ANIMATION  # bis AN8: kein Speichern des verdeckten Standbild-Plots
         aufruf = self.plot.letzter_aufruf
         if (
             self._zustand is AuswertenZustand.GELADEN
@@ -2327,6 +2331,9 @@ class AuswertenReiter(QWidget):
             return
         if self._bild_grund() is not None:
             return
+        if self._animation_sichtbar():
+            self._bild_animation_geklickt()
+            return
         aufruf = self.plot.letzter_aufruf
         assert aufruf is not None  # _bild_grund() hat die leere Fläche ausgeschlossen
         ansicht, daten, optionen = aufruf
@@ -2352,6 +2359,42 @@ class AuswertenReiter(QWidget):
         )
         try:
             self.plot.speichere(Path(gewaehlt), stempel)
+        except Exception as fehler:  # Zeichnen oder Schreiben: nichts verschlucken
+            self._zeige_warnung("Bild nicht gespeichert", str(fehler))
+            self._setze_meldung(f"{t.symbol('fehler')} Bild nicht gespeichert: {fehler}")
+            return
+        self._setze_meldung(bild_meldung(gewaehlt), (gewaehlt,))
+
+    def _bild_animation_geklickt(self) -> None:
+        """``Bild speichern …`` im Modus Animation (AN8, UI-31): Standbild bei Winkel und Blick.
+
+        Die Wiedergabe wird angehalten, damit der Winkel beim Öffnen des Dialogs derjenige des
+        gespeicherten Bildes ist. Gespeichert wird nur PNG oder PDF (kein Video, kein GIF); der
+        Stempel nennt Winkel, Frequenz, Überhöhung, Blick, Datei und Git-Hash sowie die offenen
+        Annahmen M8 und M12 aus derselben Quelle wie das Bild.
+        """
+        daten = self._an_daten
+        if daten is None or self._datei_pfad is None:
+            return
+        self.animation.pausiere()
+        opt = self.animation.standbild_optionen
+        if opt is None:
+            return
+        vorschlag = bild_vorschlag(self._datei_pfad, 4, zusatz=bild_vorschlag_zusatz(opt.theta_rad))
+        gewaehlt = self._waehle_bild_ziel(vorschlag)
+        if not gewaehlt:
+            return
+        git_hash, geaendert = self._git_hash()
+        stempel = baue_stempel(
+            dateiname=dateiname_von(self._datei_pfad),
+            ansicht=stempel_ansicht(self._ansicht),
+            git_hash=git_hash_text(git_hash, geaendert),
+            unbestaetigt=animations_unbestaetigt(daten, opt),
+            warn_symbol=t.symbol("warnung"),
+            zusatz=animations_stempel_zusatz(daten, opt, self._an_stil),
+        )
+        try:
+            self.animation.speichere(Path(gewaehlt), stempel)
         except Exception as fehler:  # Zeichnen oder Schreiben: nichts verschlucken
             self._zeige_warnung("Bild nicht gespeichert", str(fehler))
             self._setze_meldung(f"{t.symbol('fehler')} Bild nicht gespeichert: {fehler}")
@@ -3067,6 +3110,7 @@ class AuswertenReiter(QWidget):
         ah.ueberhoehung_losgelassen.connect(self._an_aktualisiere)
         ah.skalierung_eingegeben.connect(self._an_skalierung_eingegeben)
         ah.ansicht_zurueck.connect(a.ansicht_zuruecksetzen)
+        ah.werte_tabelle_geklickt.connect(self._an_werte_tabelle)
         ah.blick_gewaehlt.connect(self._an_blick_gewaehlt)
         ah.aktion_gewaehlt.connect(a.fuehre_aus)
         ah.setze_schrittweite(a.uhr.schritt_grad)
@@ -3295,6 +3339,22 @@ class AuswertenReiter(QWidget):
         self.animation.setze_beschreibung(
             animations_beschreibung(self._dateiname(), daten, opt, self._an_stil)
         )
+
+    def _an_werte_tabelle(self) -> None:
+        """„Werte als Tabelle“ (UI-26): Auslenkung je Messpunkt bei dem aktuellen Winkel.
+
+        Die Wiedergabe wird angehalten, damit die Tabelle zu dem Winkel gehört, bei dem sie
+        geöffnet wurde.
+        """
+        daten, opt = self._an_daten, self.animation.standbild_optionen
+        if daten is None or opt is None or not self._an_gezeichnet:
+            return
+        self.animation.pausiere()
+        opt = self.animation.standbild_optionen or opt
+        tabelle = tabelle_auslenkungen(
+            daten, opt.theta_rad, effektive_ueberhoehung(daten, opt), self._an_stil
+        )
+        self._fuehre_aus(WerteTabelleDialog(tabelle, self))
 
     def _an_phase_geaendert(self, theta_rad: float) -> None:
         """Winkel geändert; der Slot bleibt kurz (seine Zeit geht ins Restintervall)."""

@@ -11,6 +11,7 @@ from __future__ import annotations
 import itertools
 import math
 from dataclasses import replace
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -24,6 +25,7 @@ from pytestqt.qtbot import QtBot
 from test_gui_ansicht_5 import aufbau
 from test_gui_auswerten import lade
 from test_gui_auswerten_ansichten import geladen_mit
+from test_gui_auswerten_t4 import Meldungen
 
 from ldv_automation.auswertung.annahmen import Annahmen, AnnahmenStufe2
 from ldv_automation.auswertung.daten import Punkte
@@ -35,11 +37,13 @@ from ldv_automation.darstellung.animation3d import (
     KENNZEICHEN_M12,
     AnimationsOptionen,
     effektive_ueberhoehung,
+    scatter_positionen,
     skaliere_einheit,
 )
 from ldv_automation.darstellung.animation_daten import AnimationsDaten
 from ldv_automation.darstellung.auswahl import PaarCache
 from ldv_automation.gui import animation_anzeige as an
+from ldv_automation.gui import anzeige_aktionen as ak
 from ldv_automation.gui import stil, tokens
 from ldv_automation.gui.animation_steuerung import (
     ANIMATIONS_TASTEN,
@@ -47,6 +51,7 @@ from ldv_automation.gui.animation_steuerung import (
     Aktion,
     skalierung_nach_groessenwechsel,
 )
+from ldv_automation.gui.animation_tabelle import WerteTabelleDialog
 from ldv_automation.gui.anzeige_auswerten import AuswertenZustand
 from ldv_automation.gui.auswerten_reiter import AuswertenReiter
 from ldv_automation.gui.plotflaeche import NEUZEICHNEN_MS
@@ -496,7 +501,8 @@ def test_ueberlagerungshinweis_steht_in_ad_und_af(baue: Bauer, qtbot: QtBot) -> 
     hinweis = daten(a).hinweis_ueberhoehung(1e9)
     assert hinweis is not None and "überlagern" in hinweis
     assert hinweis in a.auswahl_sf.lbl_hinweise.text()
-    assert a.lbl_cursor.volltext() == f"{tokens.symbol('warnung')} {hinweis}"
+    # AF nennt auch den Hinweis zur Dichte der Punktlabels, wenn er gilt (UI-D2)
+    assert a.lbl_cursor.volltext().startswith(f"{tokens.symbol('warnung')} {hinweis}")
 
 
 def test_hinweis_zu_doppelten_punkten_steht_in_der_oberflaeche(baue: Bauer, qtbot: QtBot) -> None:
@@ -825,13 +831,216 @@ def test_paarcache_hat_nach_abstecher_in_ansicht_5_wieder_drei_paare(
     assert a.auswahl_sf.modus_animation() and a._cache.groesse == 3
 
 
-def test_bild_speichern_im_modus_animation_ist_bis_an8_gesperrt(baue: Bauer, qtbot: QtBot) -> None:
+def test_bild_speichern_ist_im_modus_animation_frei(baue: Bauer, qtbot: QtBot) -> None:
     a, _uhr = oeffne(baue, qtbot)
     assert a.btn_bild.isEnabled()
     animation(a)
-    assert not a.btn_bild.isEnabled() and a.btn_bild.toolTip() == an.TEXT_BILD_ANIMATION
+    assert a.btn_bild.isEnabled()  # AN8: das Standbild der Animation lässt sich speichern
     a.auswahl_sf.rb_modus_standbild.click()
     assert a.btn_bild.isEnabled()
+
+
+# --- AN8: Standbild speichern (UI-31) ---------------------------------------------------------
+
+
+def _speichere_animation(
+    a: AuswertenReiter, m: Meldungen, monkeypatch: pytest.MonkeyPatch, pfad: Path
+) -> tuple[Any, list[str]]:
+    """Klickt ``Bild speichern …`` im Modus Animation; liefert die gespeicherte Zeichnung."""
+    gespeichert: list[Any] = []
+    vorschlaege: list[str] = []
+    original = a.animation.speichere
+
+    def erfasse(ziel: Path, stempel: Any) -> Any:
+        z = original(ziel, stempel)
+        gespeichert.append(z)
+        return z
+
+    monkeypatch.setattr(a.animation, "speichere", erfasse)
+
+    def waehle(vorschlag: str) -> str | None:
+        vorschlaege.append(vorschlag)
+        return m.bild_ziel
+
+    monkeypatch.setattr(a, "_waehle_bild_ziel", waehle)
+    m.bild_ziel = str(pfad)
+    a.btn_bild.click()
+    return (gespeichert[0] if gespeichert else None), vorschlaege
+
+
+def test_ui31_png_mit_stempel_winkel_blick_ueberhoehung_frequenz(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    a, _uhr = oeffne(baue, qtbot)
+    m = Meldungen(a, monkeypatch)
+    animation(a)
+    a.animation.setze_theta_grad(90.0)
+    a.animation.setze_blick_vorgabe("iso")
+    z, vorschlaege = _speichere_animation(a, m, monkeypatch, tmp_path / "an.png")
+    assert (tmp_path / "an.png").read_bytes()[:4] == b"\x89PNG"
+    assert vorschlaege[0].endswith("_ansicht4_animation_theta090.png")
+    texte = z.alle_texte()
+    stempel = next(t for t in texte if t.startswith("Arbeitsansicht"))
+    assert "probe.svd" in stempel and "Ansicht 4" in stempel and "c" * 12 in stempel
+    zusatz = next(t for t in texte if t.startswith("Animation · θ"))
+    assert "θ = 90,0°" in zusatz and f"f = {16:d},000 Hz" in zusatz
+    assert "Überhöhung \N{MULTIPLICATION SIGN}" in zusatz
+    blick = next(t for t in texte if t.startswith("Blickrichtung:"))
+    assert "Elevation 35,3°" in blick and "Azimut \N{MINUS SIGN}45,0°" in blick
+    assert any("enthält unbestätigte Größen (M12)" in t for t in texte)  # 3D, M12 offen
+    assert not any("M8" in t for t in texte)  # relativer Bezug: kein M8
+    assert a.lbl_cursor.text() == ak.bild_meldung(str(tmp_path / "an.png"))
+    # das Bild enthält zusätzlich die Pflichttexte der Zeichenfunktion (Überhöhung, D_ref, f, θ)
+    assert any("größte reale Spitzenauslenkung" in t for t in texte)
+
+
+def test_ui31_standbild_bei_theta_hat_die_positionen_der_animation_bei_theta(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    a, _uhr = oeffne(baue, qtbot)
+    m = Meldungen(a, monkeypatch)
+    animation(a)
+    for grad in (0.0, 90.0, 217.0):
+        a.animation.setze_theta_grad(grad)
+        live = scatter_positionen(a.animation.zeichnung)  # type: ignore[arg-type]
+        z, _v = _speichere_animation(a, m, monkeypatch, tmp_path / f"p{int(grad)}.png")
+        d = daten(a)
+        s = effektive_ueberhoehung(d, a.animation.standbild_optionen)  # type: ignore[arg-type]
+        theta = a.animation.uhr.theta_rad
+        assert np.array_equal(scatter_positionen(z), live)  # Bildschirm = Datei
+        assert np.array_equal(scatter_positionen(z), d.positionen(theta, s)[d.bewegt])
+        assert not np.allclose(live, d.koordinaten_m[d.bewegt]) or grad == 0.0
+
+
+def test_ui31_pdf_ist_ein_pdf(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    a, _uhr = oeffne(baue, qtbot)
+    m = Meldungen(a, monkeypatch)
+    animation(a)
+    _speichere_animation(a, m, monkeypatch, tmp_path / "an.pdf")
+    assert (tmp_path / "an.pdf").read_bytes()[:4] == b"%PDF"
+
+
+def test_ui31_nur_png_und_pdf_kein_video_oder_gif() -> None:
+    filter_text = ak.DATEIFILTER_BILD.lower()
+    assert "png" in filter_text and "pdf" in filter_text
+    assert not any(x in filter_text for x in ("gif", "mp4", "avi", "webm", "mov"))
+
+
+def test_ui28_stempel_nennt_m8_und_m12_aus_derselben_quelle_wie_das_bild(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    a, _uhr = oeffne(baue, qtbot)
+    m = Meldungen(a, monkeypatch)
+    animation(a)
+    a.auswahl_sf.rb_bezug_absolut.click()
+    z, _v = _speichere_animation(a, m, monkeypatch, tmp_path / "m8.png")
+    texte = z.alle_texte()
+    assert any("enthält unbestätigte Größen (M8, M12)" in t for t in texte)
+    assert any(KENNZEICHEN_M8 in t for t in texte)  # Kennzeichen im Bild selbst
+    # M8 bestätigt: weder Stempel noch Bild nennen es
+    setze_annahmen(a, Annahmen(status={"M8": "bestätigt am 2026-12-01"}))
+    a.auswahl_sf.chk_punktlabels.click()
+    z, _v = _speichere_animation(a, m, monkeypatch, tmp_path / "m8b.png")
+    texte = z.alle_texte()
+    assert any("enthält unbestätigte Größen (M12)" in t for t in texte)
+    assert not any("M8" in t for t in texte)
+
+
+def test_ui31_einzelkomponente_relativ_hat_keinen_unbestaetigt_vermerk(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    a, _uhr = oeffne(baue, qtbot)
+    m = Meldungen(a, monkeypatch)
+    a.auswahl_sf.rb_komp["Z"].click()
+    animation(a)
+    z, _v = _speichere_animation(a, m, monkeypatch, tmp_path / "z.png")
+    assert not any("unbestätigte" in t for t in z.alle_texte())
+
+
+def test_ui31_speichern_haelt_die_wiedergabe_an(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    a, _uhr = oeffne(baue, qtbot)
+    m = Meldungen(a, monkeypatch)
+    animation(a)
+    a.animationsleiste.btn_abspielen.click()
+    assert a.animation.laeuft
+    _speichere_animation(a, m, monkeypatch, tmp_path / "w.png")
+    assert not a.animation.laeuft and (tmp_path / "w.png").exists()
+
+
+def test_ui31_abbruch_des_dialogs_schreibt_nichts(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    a, _uhr = oeffne(baue, qtbot)
+    m = Meldungen(a, monkeypatch)
+    animation(a)
+    m.bild_ziel = None
+    a.btn_bild.click()
+    assert not [*tmp_path.glob("*.png"), *tmp_path.glob("*.pdf")] and not m.warnungen
+
+
+def test_ui31_schreibfehler_wird_gemeldet_nicht_verschluckt(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    a, _uhr = oeffne(baue, qtbot)
+    m = Meldungen(a, monkeypatch)
+    animation(a)
+    m.bild_ziel = str(tmp_path / "gibtsnicht" / "x.png")
+    a.btn_bild.click()
+    assert m.warnungen and m.warnungen[0][0] == "Bild nicht gespeichert"
+
+
+def test_standbildmodus_speichert_weiter_den_2d_plot(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Regression: im Modus Standbild bleibt ``Bild speichern …`` bei der 2D-Fläche."""
+    a, _uhr = oeffne(baue, qtbot)
+    m = Meldungen(a, monkeypatch)
+    animation(a)
+    a.auswahl_sf.rb_modus_standbild.click()
+    QApplication.processEvents()
+    m.bild_ziel = str(tmp_path / "s.png")
+    a.btn_bild.click()
+    assert (tmp_path / "s.png").read_bytes()[:4] == b"\x89PNG"
+
+
+# --- AN9: „Werte als Tabelle“ (UI-26) -----------------------------------------------------------
+
+
+def test_ui26_werte_als_tabelle_nennt_alle_punkte_beim_aktuellen_winkel(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    a, _uhr = oeffne(baue, qtbot)
+    m = Meldungen(a, monkeypatch)
+    animation(a)
+    a.animation.setze_theta_grad(90.0)
+    knopf = a.animationsleiste.btn_werte_tabelle
+    assert knopf.isEnabled() and knopf.focusPolicy() != Qt.FocusPolicy.NoFocus
+    assert knopf in a.animationsleiste.tab_kette()
+    knopf.click()
+    dialog = m.dialoge[0]
+    assert isinstance(dialog, WerteTabelleDialog)
+    d = daten(a)
+    assert dialog.tabelle.rowCount() == d.anzahl_punkte
+    assert dialog.tabelle.columnCount() == 9
+    assert "θ = 90,0°" in dialog.lbl_titel.text()
+    erstes = dialog.tabelle.item(0, 0)
+    assert erstes is not None and erstes.text() == str(int(d.label[0]))
+    dialog.close()
+
+
+def test_ui26_werte_als_tabelle_haelt_die_wiedergabe_an(
+    baue: Bauer, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    a, _uhr = oeffne(baue, qtbot)
+    m = Meldungen(a, monkeypatch)
+    animation(a)
+    a.animationsleiste.btn_abspielen.click()
+    a.animationsleiste.btn_werte_tabelle.click()
+    assert not a.animation.laeuft and len(m.dialoge) == 1
 
 
 def test_beende_stoppt_timer_und_wiedergabe(baue: Bauer, qtbot: QtBot) -> None:
@@ -982,7 +1191,7 @@ def test_ui35_kontrastpaare_der_animation_stehen_in_den_tokens_und_im_stylesheet
 def rechtecke_der_leiste(a: AuswertenReiter) -> list[Any]:
     ah = a.animationsleiste
     gruppen = [g for g in ah.children() if isinstance(g, QWidget) and not g.isHidden()]
-    return [g.geometry() for g in gruppen] + [ah.btn_ansicht_zurueck.geometry()]
+    return [g.geometry() for g in gruppen]
 
 
 @pytest.mark.parametrize("groesse", [(1100, 680), (1366, 768)])
@@ -998,9 +1207,7 @@ def test_ui36_layout_ohne_ueberlappung_und_ae_mit_ah_mindestens_600_x_320(
     assert a.animation.isVisible() and ah.isVisible() and a._an_gezeichnet
     # AH: nichts abgeschnitten, nichts übereinander, Höhe folgt der Breite (Umbruch)
     gruppen = [g for g in ah.children() if isinstance(g, QWidget) and g.isVisibleTo(ah)]
-    assert (
-        len(gruppen) == 7
-    )  # Wiedergabe, Schrittweite, Phase, Tempo, Überhöhung, Blick, Zurücksetzen
+    assert len(gruppen) == 7  # Wiedergabe, Schrittweite, Phase, Tabelle, Tempo, Überhöhung, Blick
     for i, g1 in enumerate(gruppen):
         assert ah.rect().contains(g1.geometry()), (groesse, g1.objectName())
         for g2 in gruppen[i + 1 :]:
@@ -1028,7 +1235,8 @@ def test_ui36_ah_bricht_bei_schmalem_fenster_um_und_kuerzt_die_beschriftung(
     a.window().resize(1100, 680)  # unter 1200 px: kompakte Darstellung
     qtbot.wait(100)
     assert ah.btn_schritt_vor.text() == "Vor" and ah.btn_schritt_zurueck.text() == "Zurück"
-    assert ah.btn_ansicht_zurueck.text() == "Ansicht zurück"
+    assert ah.btn_ansicht_zurueck.text() == "Zurücksetzen"
+    assert ah.lbl_tempo.text() == "0,25/s" and ah.lbl_tempo.toolTip() == "Perioden je Sekunde"
     assert ah.height() >= breit  # schmaler: mindestens so viele Zeilen wie zuvor
     assert ah.btn_ansicht_zurueck.toolTip()  # volle Bedeutung bleibt im Tooltip
     assert a.animation.canvas.height() > 0 and a._an_gezeichnet
@@ -1250,3 +1458,47 @@ def test_ueberhoehungsregler_misst_den_zoom_nur_beim_loslassen(
     assert len(aufrufe) == 1
     regler.setValue(-20)  # Tasten oder Rad: kein Ziehen, volle Messung je Schritt
     assert len(aufrufe) == 2
+
+
+def test_ui_d3_ah_bleibt_bei_1100_x_680_zweizeilig(baue: Bauer, qtbot: QtBot) -> None:
+    """UI-D3: im kompakten Modus brechen die Gruppen von AH in höchstens zwei Zeilen um."""
+    a, _uhr = oeffne(baue, qtbot)
+    a.window().resize(1100, 680)
+    animation(a)
+    qtbot.wait(100)
+    ah = a.animationsleiste
+    gruppen = [g for g in ah.children() if isinstance(g, QWidget) and g.isVisibleTo(ah)]
+    zeilen = {g.geometry().y() for g in gruppen}
+    assert len(zeilen) == 2, sorted(zeilen)
+    assert ah.btn_werte_tabelle.isVisible() and ah.btn_ansicht_zurueck.isVisible()
+    assert ah.height() <= 2 * 36 + 8
+    ae = a.findChild(QWidget, "darstellung")
+    assert ae is not None and ae.width() >= 600 and ae.height() >= 320
+    assert a.animation.canvas.height() >= 300  # die eingesparte Zeile kommt dem Bild zugute
+    # ausgeschrieben, wenn Platz ist
+    a.window().resize(1366, 768)
+    qtbot.wait(100)
+    assert ah.btn_ansicht_zurueck.text() == "Ansicht zurücksetzen"
+    assert ah.lbl_tempo.text() == "0,25 Perioden/s"
+
+
+def test_k2_nach_mausziehen_und_loslassen_gilt_der_grundzoom_des_neuen_blicks(
+    baue: Bauer, qtbot: QtBot
+) -> None:
+    """K2 MAJOR: Die Box wird nach dem Loslassen neu eingepasst (wie ein frisches Zeichnen)."""
+    a, _uhr = oeffne(baue, qtbot)
+    animation(a)
+    canvas = a.animation.canvas
+    start = QPoint(canvas.width() // 2, canvas.height() // 2)
+    QTest.mousePress(canvas, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, start)
+    for dx, dy in ((30, -20), (60, -50), (90, -90)):
+        QTest.mouseMove(canvas, start + QPoint(dx, dy))
+    QTest.mouseRelease(
+        canvas, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, start + QPoint(90, -90)
+    )
+    QApplication.processEvents()
+    z = a.animation.zeichnung
+    assert z is not None and a.animation.blick != BLICK_VORGABEN["xy"]
+    nachher = z.hilfsobjekte["grund_zoom"]
+    frisch = a.animation.zeichne(daten(a), a.animation._basis)
+    assert nachher == pytest.approx(frisch.hilfsobjekte["grund_zoom"])

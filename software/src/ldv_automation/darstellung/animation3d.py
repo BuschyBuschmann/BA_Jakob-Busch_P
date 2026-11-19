@@ -32,6 +32,7 @@ import numpy as np
 from matplotlib.colors import Normalize, TwoSlopeNorm
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
+from matplotlib.patheffects import withStroke
 from matplotlib.ticker import FuncFormatter, MaxNLocator, NullFormatter
 from mpl_toolkits.mplot3d import proj3d
 
@@ -80,6 +81,7 @@ unscharf). Die Grenzen liegen symmetrisch um den Mittelwert der Daten."""
 
 _ELEV_AUFSICHT_GRAD = 89.0  # ab dieser Elevation entfallen die z-Beschriftungen
 _RAND = 0.05  # Rand je Seite als Anteil der Spannweite
+_MARKER_RAND = 0.02  # zusätzlich, damit Marker am Achsenrand nicht angeschnitten werden
 _SPALTE_B_STUFEN = (0.31, 0.35, 0.40, 0.45)
 """Breite der rechten Spalte (Pflichtangaben, Zeichenerklärung) als Anteil der nutzbaren Breite;
 bei kleiner Höhe wird die nächstbreitere Stufe gewählt, bis beide Blöcke untereinander passen."""
@@ -99,6 +101,13 @@ bei 1100 x 680 px; schmale, aber hohe Figures wie A5 bleiben normal): Schrift h�
 Spalte (die 3D-Achse behält die volle Höhe); die Spalte reicht neben dem Kopf bis zum oberen
 Rand, solange der Kopf nicht in sie ragt."""
 _KOMPAKT_SCHRIFT_PT = 9.0
+_FARBLEISTE_LUECKE_SCHRIFT = 0.4  # Abstand zwischen Beschriftung der 3D-Achse und Farbleiste
+_LABEL_RAND_SCHRIFT = 0.15
+"""Rand um jedes Punktlabel bei der Überlappungsprüfung (UI-D2), in Schriftgrößen des Labels."""
+_LABEL_JEDE_MAX = 8
+"""Größtes n von „nur jedes n-te Label“; wäre mehr nötig, werden alle Labels ausgeblendet."""
+_LABEL_MAX = 1500
+"""Mehr Labels werden nicht gemessen (die Paarprüfung ist quadratisch), sondern ausgeblendet."""
 _ZOOM_GRUND_MAX = 1.5
 _ZOOM_GRUND_MIN = 0.5  # passt die Beschriftung auch bei 1 nicht ins Rechteck, wird die Box kleiner
 """Obergrenze der Grundvergrößerung der 3D-Box (``set_box_aspect(..., zoom=)``), die
@@ -323,8 +332,9 @@ def achsengrenzen_3d(
     r"""Feste Achsengrenzen ``(x, y, z)``, unabhängig vom Winkel :math:`\theta` (Plan 3.3).
 
     Je Achse die Spanne über die Ruhelage aller Punkte und :math:`X_p \pm s|\hat d_{pc}|` der
-    bewegten Punkte (die Bahn eines Punkts überschreitet diese Werte nie), plus 5 % Rand je
-    Seite. Jede Achse ist mindestens :data:`MINDESTHOEHE_ANTEIL` der größten lang; z liegt
+    bewegten Punkte (die Bahn eines Punkts überschreitet diese Werte nie), plus 7 % Rand je
+    Seite (5 % Rand und 2 % für die Marker am Rand, :data:`_MARKER_RAND`). Jede Achse ist
+    mindestens :data:`MINDESTHOEHE_ANTEIL` der größten lang; z liegt
     symmetrisch um die Datenmitte und enthält immer :math:`\pm s D_\mathrm{ref}`.
     """
     if not (math.isfinite(ueberhoehung) and ueberhoehung >= 0.0):
@@ -341,8 +351,12 @@ def achsengrenzen_3d(
     groesste = float(np.max(spanne))
     if groesste <= 0.0:
         groesste = max(ueberhoehung * daten.d_ref, 1e-12)
-    halb = 0.5 * np.maximum(spanne, MINDESTHOEHE_ANTEIL * groesste) * (1.0 + 2.0 * _RAND)
-    halb[2] = max(halb[2], ueberhoehung * daten.d_ref * (1.0 + 2.0 * _RAND))
+    halb = (
+        0.5
+        * np.maximum(spanne, MINDESTHOEHE_ANTEIL * groesste)
+        * (1.0 + 2.0 * (_RAND + _MARKER_RAND))
+    )
+    halb[2] = max(halb[2], ueberhoehung * daten.d_ref * (1.0 + 2.0 * (_RAND + _MARKER_RAND)))
     grenzen = [(float(m - h), float(m + h)) for m, h in zip(mitte, halb, strict=True)]
     return grenzen[0], grenzen[1], grenzen[2]
 
@@ -620,6 +634,92 @@ def _z_achse(ax: Any, sichtbar: bool, stil: Plotstil) -> None:
         ax.set_zlabel("")
 
 
+def _label_rechtecke_px(ax: Any, koordinaten_m: Any, labels: Sequence[Any], renderer: Any) -> Any:
+    """Fensterrechtecke ``(n, 4)`` der Labels bei der aktuellen Projektion in Pixeln.
+
+    ``Text3D.get_window_extent`` taugt dafür nicht (die Projektion gilt nur während des Zeichnens),
+    deshalb wird der Ankerpunkt hier projiziert und die Textgröße beim Renderer erfragt.
+    """
+    x = np.asarray(koordinaten_m, dtype=np.float64)
+    px, py, _pz = proj3d.proj_transform(x[:, 0], x[:, 1], x[:, 2], ax.get_proj())
+    anker = ax.transData.transform(np.column_stack([px, py]))
+    boxen = np.empty((len(labels), 4))
+    for i, t in enumerate(labels):
+        breite, hoehe, abstieg = renderer.get_text_width_height_descent(
+            t.get_text(), t.get_fontproperties(), False
+        )
+        boxen[i] = (
+            anker[i, 0],
+            anker[i, 1] - abstieg,
+            anker[i, 0] + breite,
+            anker[i, 1] + hoehe - abstieg,
+        )
+    return boxen
+
+
+def label_schritt(ax: Any, koordinaten_m: Any, labels: Sequence[Any], renderer: Any) -> int:
+    """Wie viele Punktlabels bei der aktuellen Ansicht gezeigt werden (UI-D2).
+
+    Gemessen werden die Fensterrechtecke der Labels (samt Rand :data:`_LABEL_RAND_SCHRIFT`): das
+    kleinste ``n`` mit ``2 <= n <= _LABEL_JEDE_MAX``, bei dem die Rechtecke jedes n-ten Labels
+    einander nicht überlappen, gilt als Schritt.
+
+    Returns
+    -------
+    int
+        1 = alle; n = nur jedes n-te; 0 = alle ausgeblendet (auch mehr als :data:`_LABEL_MAX`
+        Labels, die Messung wäre zu teuer).
+    """
+    if len(labels) > _LABEL_MAX:
+        return 0
+    boxen = _label_rechtecke_px(ax, koordinaten_m, labels, renderer)
+    if not np.all(np.isfinite(boxen)):
+        return 0
+    rand = (
+        _LABEL_RAND_SCHRIFT * float(labels[0].get_fontsize()) * float(labels[0].figure.dpi) / 72.0
+    )
+    boxen = boxen + np.array([-rand, -rand, rand, rand])
+    for n in range(1, _LABEL_JEDE_MAX + 1):
+        b = boxen[::n]
+        ueberlappt = (
+            (b[:, None, 0] < b[None, :, 2])
+            & (b[None, :, 0] < b[:, None, 2])
+            & (b[:, None, 1] < b[None, :, 3])
+            & (b[None, :, 1] < b[:, None, 3])
+        )
+        np.fill_diagonal(ueberlappt, False)
+        if not ueberlappt.any():
+            return n
+    return 0
+
+
+def label_text(schritt: int) -> str:
+    """Hinweistext zur Dichte der Punktlabels (Zeichenerklärung und Meldezeile)."""
+    if schritt == 1:
+        return "Punktlabels: alle gezeigt"
+    if schritt == 0:
+        return "Punktlabels wegen Dichte ausgeblendet"
+    return f"Punktlabels: nur jedes {schritt}. gezeigt (Dichte)"
+
+
+def _punktlabels_anwenden(z: Zeichnung, daten: AnimationsDaten, stil: Plotstil) -> None:
+    """Blendet Punktlabels nach der Dichte aus, meldet es in ``z.hinweise`` und der Legende."""
+    labels = z.hilfsobjekte.get("punktlabels")
+    if not labels:
+        return
+    z.figure.draw_without_rendering()
+    renderer = z.figure._get_renderer()  # type: ignore[attr-defined]
+    schritt = label_schritt(z.achsen[0], daten.koordinaten_m, labels, renderer)
+    for i, t in enumerate(labels):
+        t.set_visible(schritt != 0 and i % max(schritt, 1) == 0)
+    z.hilfsobjekte["punktlabels_schritt"] = schritt
+    basis = tuple(h for h in z.hinweise if not h.startswith("Punktlabels"))
+    z.hinweise = basis if schritt == 1 else (*basis, label_text(schritt))
+    eintrag = z.hilfsobjekte.get("punktlabels_legende")
+    if eintrag is not None:
+        eintrag.set_text(textwrap.fill(label_text(schritt), z.hilfsobjekte["legende_zeichen"]))
+
+
 def _dynamisch(
     z: Zeichnung,
     daten: AnimationsDaten,
@@ -687,10 +787,19 @@ def _dynamisch(
         )
     if vorher is None or opt.blick != vorher.blick:
         ax.view_init(elev=opt.blick.elev_grad, azim=opt.blick.azim_grad)
+    # Achsen vor der Messung wieder einschalten: die Messung braucht Ticks und Titel (nach dem
+    # Drehen im vereinfachten Modus steht das erste volle Bild an)
+    if vorher is None or opt.vereinfacht != vorher.vereinfacht:
+        if opt.vereinfacht:
+            ax.set_axis_off()
+        else:
+            ax.set_axis_on()
+    # Der Grundzoom gilt für den Blick, bei dem zuletzt gemessen wurde (nicht für den des
+    # vorigen Bildes: im vereinfachten Modus ändert sich der Blick ohne Messung, K2-AUSW3-89)
+    blick_jetzt = (float(ax.azim), float(ax.elev))
     zoom_noetig = (
         vorher is None
-        or (opt.blick.azim_grad, opt.blick.elev_grad)
-        != (vorher.blick.azim_grad, vorher.blick.elev_grad)
+        or blick_jetzt != z.hilfsobjekte.get("gemessen_blick")
         or grenzen is not None
         or bool(z.hilfsobjekte.get("zoom_veraltet", False))
     )
@@ -699,22 +808,33 @@ def _dynamisch(
     elif zoom_noetig and zoom_messen and not opt.vereinfacht and "zoom_grenzen" in z.hilfsobjekte:
         z.hilfsobjekte["zoom_veraltet"] = False
         _passe_zoom_an(z.figure, ax, z, stil, z.hilfsobjekte["zoom_grenzen"])
+        z.hilfsobjekte["gemessen_blick"] = blick_jetzt
         ax.set_box_aspect(
             z.hilfsobjekte["box_aspekt"], zoom=opt.blick.zoom * z.hilfsobjekte["grund_zoom"]
         )
+    else:
+        zoom_noetig = False  # nichts gemessen: die Label-Dichte bleibt, bis gemessen wird
     if vorher is None or opt.blick != vorher.blick or grenzen is not None:
         _z_achse(ax, abs(opt.blick.elev_grad) < _ELEV_AUFSICHT_GRAD, stil)
-    if vorher is None or opt.vereinfacht != vorher.vereinfacht:
-        if opt.vereinfacht:
-            ax.set_axis_off()
-        else:
-            ax.set_axis_on()
     z.hilfsobjekte["pflichttext"].set_text(spaltentext)
     z.hilfsobjekte["pflichtangaben"] = texte
     z.hinweise = (hinweis,) if hinweis else ()
     z.hilfsobjekte["optionen"] = opt
     z.hilfsobjekte["skalierung"] = s
     z.hilfsobjekte["ueberhoehung"] = daten.ueberhoehung_aequivalent(s)
+    label_schluessel = (*blick_jetzt, float(opt.blick.zoom))
+    if (
+        "punktlabels" in z.hilfsobjekte
+        and not opt.vereinfacht
+        and not zoom_fest
+        and zoom_messen
+        and (zoom_noetig or label_schluessel != z.hilfsobjekte.get("label_schluessel"))
+    ):
+        _punktlabels_anwenden(z, daten, stil)  # Dichte hängt von Blick und Zoom ab
+        z.hilfsobjekte["label_schluessel"] = label_schluessel
+    elif "punktlabels_schritt" in z.hilfsobjekte and z.hilfsobjekte["punktlabels_schritt"] != 1:
+        schritt = z.hilfsobjekte["punktlabels_schritt"]
+        z.hinweise = (*z.hinweise, label_text(schritt))  # unverändert gültiger Stand
 
 
 def _g2_text(wert: float | None, stil: Plotstil) -> str:
@@ -962,6 +1082,7 @@ def zeichne_animation(
     _komp, vmin, vmax = farbskala(
         daten, opt
     )  # prüft den Farbbereich, bevor die Figure geleert wird
+    rect = layout_rect(fig)  # vor dem Abschalten der Engine: der Stempel braucht seinen Rand
     fig.clear()
     fig.set_layout_engine("none")
     stil_eingabe = stil
@@ -969,7 +1090,6 @@ def zeichne_animation(
     if kompakt and stil.schrift_pt > _KOMPAKT_SCHRIFT_PT:
         stil = replace(stil, schrift_pt=_KOMPAKT_SCHRIFT_PT)
     fig.set_facecolor(stil.flaeche)
-    rect = layout_rect(fig)
     kennzeichen = [t for t in kennzeichen_texte(daten, opt) if t]
     kaesten, (x0, y0, breite, hoehe) = kennzeichen_kopf(
         fig, stil, kennzeichen, rect, gemeinsamer_rahmen=True
@@ -1066,6 +1186,7 @@ def zeichne_animation(
                 fontsize=0.8 * stil.schrift_pt,
                 color=stil.text_gedaempft,
                 zorder=2,
+                path_effects=[withStroke(linewidth=2.0, foreground=stil.flaeche)],  # Halo
             )
             for i in range(daten.anzahl_punkte)
         ]
@@ -1108,17 +1229,38 @@ def zeichne_animation(
     cb.outline.set_edgecolor(stil.achse)
     _dynamisch(z, daten, opt, None, zoom_messen=False)  # gemessen wird unten, einmal
 
-    z.hilfsobjekte["zoom_grenzen"] = _zoom_grenzen_px(fig, ax, rechts, y0, stil, kaesten)
+    # Unterkante der Box samt Beschriftung: bei der Farbleiste unter der Achse deren Oberkante
+    # (UI-D1: die Zahlen und der Titel der x-Achse dürfen die Leiste nicht überdecken), sonst
+    # der Rand des nutzbaren Rechtecks
+    unten_zoom = y0
+    if not kompakt:
+        unten_zoom += (
+            balken_unten + balken_hoehe + _FARBLEISTE_LUECKE_SCHRIFT * stil.schrift_pt / hoehe_pt
+        )
+    z.hilfsobjekte["zoom_grenzen"] = _zoom_grenzen_px(fig, ax, rechts, unten_zoom, stil, kaesten)
     ax.set_axis_on()  # gemessen wird mit Beschriftung; die Achse hat ihre Endgröße
     _passe_zoom_an(fig, ax, z, stil, z.hilfsobjekte["zoom_grenzen"])
+    z.hilfsobjekte["gemessen_blick"] = (float(ax.azim), float(ax.elev))
     if opt.vereinfacht:
         ax.set_axis_off()
     ax.set_box_aspect(
         z.hilfsobjekte["box_aspekt"], zoom=opt.blick.zoom * z.hilfsobjekte["grund_zoom"]
     )
     _z_achse(ax, abs(opt.blick.elev_grad) < _ELEV_AUFSICHT_GRAD, stil)
+    z.hilfsobjekte["legende_zeichen"] = _legende_zeichen(spalte_pt, stil)
+    _punktlabels_anwenden(z, daten, stil)
+    z.hilfsobjekte["label_schluessel"] = (
+        float(ax.azim), float(ax.elev), float(opt.blick.zoom)
+    )  # fmt: skip
     eintraege, anzahl = _zeichenerklaerung(daten, opt, stil)
     z.hilfsobjekte["anzahl"] = anzahl
+    if opt.punktlabels:
+        eintraege.append(
+            (
+                Line2D([], [], linestyle="none", marker=""),
+                label_text(z.hilfsobjekte["punktlabels_schritt"]),
+            )
+        )
     if eintraege:
         # Die Zeichenerklärung steht unter der für den längsten Winkeltext reservierten Texthöhe
         y_oben = 1.0 - (text_hoehe_pt + _SPALTE_LUECKE_SCHRIFT * stil.schrift_pt) / (
@@ -1133,6 +1275,8 @@ def zeichne_animation(
             fontsize=stil.schrift_pt,
         )
         z.hilfsobjekte["zeichenerklaerung"] = legende
+        if opt.punktlabels:
+            z.hilfsobjekte["punktlabels_legende"] = legende.get_texts()[-1]
     return z
 
 

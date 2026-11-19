@@ -59,11 +59,13 @@ def baue_stempel(
     unbestaetigt: Sequence[str] = (),
     warn_symbol: str = "⚠",
     dateien: Sequence[tuple[str, str]] = (),
+    zusatz: Sequence[str] = (),
 ) -> Stempel:
     """Stempel „Arbeitsansicht – nicht für die Thesis · Datei · Ansicht · Git-Hash“.
 
     Mit ``dateien`` (Ansicht 5: mehrere Messungen) steht in der Kopfzeile statt der Datei nur
-    „Ansicht · Git-Hash“, danach je Datei eine Zeile ``<Kurzname>: <Dateiname>``.
+    „Ansicht · Git-Hash“, danach je Datei eine Zeile ``<Kurzname>: <Dateiname>``. Mit ``zusatz``
+    (Animation: Winkel, Frequenz, Überhöhung, Blick) folgen die Zeilen danach, vor der Warnzeile.
 
     Parameters
     ----------
@@ -81,6 +83,9 @@ def baue_stempel(
     dateien : sequence of tuple of str
         ``(Kurzname, Dateiname)`` jeder beteiligten Messung (Ansicht 5); leer = eine Datei über
         ``dateiname``.
+    zusatz : sequence of str
+        Weitere Stempelzeilen mit dem Zustand des Bildes (Animation: Winkel θ, Frequenz,
+        Überhöhung, Blickrichtung); leer = keine.
 
     Raises
     ------
@@ -95,6 +100,7 @@ def baue_stempel(
         zeilen = [f"{ARBEITSANSICHT} · {dateiname} · {ansicht} · {hash_text}"]
     else:
         raise ValueError("Der Stempel braucht einen Dateinamen oder eine Liste von Dateien.")
+    zeilen.extend(zusatz)
     if unbestaetigt:
         zeilen.append(f"{warn_symbol} enthält unbestätigte Größen ({', '.join(unbestaetigt)})")
     return Stempel(zeilen=tuple(zeilen))

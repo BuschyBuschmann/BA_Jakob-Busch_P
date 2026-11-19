@@ -896,6 +896,10 @@ class AuswahlSchwingform(QWidget):
         return kette
 
 
+_REGLER_KOMPAKT_PHASE_PX = 110
+"""Breite des Phasenreglers im kompakten Modus (normal 150 px)."""
+_REGLER_KOMPAKT_PX = 56
+"""Breite von Tempo- und Überhöhungsregler im kompakten Modus (normal 100 px)."""
 _GRUPPENABSTAND_PX = 24
 """Abstand zwischen den Gruppen der Bedienleiste AH (Etikett und Regler bleiben beisammen)."""
 
@@ -940,6 +944,7 @@ class AnimationsLeiste(QWidget):
     skalierung_eingegeben = Signal(str)
     ansicht_zurueck = Signal()
     blick_gewaehlt = Signal(str)
+    werte_tabelle_geklickt = Signal()
     aktion_gewaehlt = Signal(object)
     """Tastenaktion (:class:`Aktion`) mit Fokus in einem Regler (außer Abspielen/Pause)."""
 
@@ -1001,6 +1006,13 @@ class AnimationsLeiste(QWidget):
         phase.zeile.addWidget(self.lbl_phase_grad)
         phase.zeile.addWidget(self.regler_phase)
         fluss.addWidget(phase)
+
+        self.btn_werte_tabelle = self._knopf(
+            "btn_werte_tabelle",
+            "Werte als Tabelle",
+            "Auslenkung je Messpunkt bei dem aktuellen Winkel als Tabelle (Ersatz für das Bild)",
+        )
+        fluss.addWidget(self.btn_werte_tabelle)
 
         tempo = _Gruppe("gruppe_tempo")
         self.lbl_tempo_titel = QLabel("Tempo")
@@ -1070,7 +1082,6 @@ class AnimationsLeiste(QWidget):
             knopf.clicked.connect(lambda _c=False, n=name: self.blick_gewaehlt.emit(n))
             self.btn_blick[name] = knopf
             blick.zeile.addWidget(knopf)
-        fluss.addWidget(blick)
 
         self.btn_ansicht_zurueck = self._knopf(
             "btn_ansicht_zurueck",
@@ -1080,7 +1091,9 @@ class AnimationsLeiste(QWidget):
                 "animation_ansicht_zurueck",
             ),
         )
-        fluss.addWidget(self.btn_ansicht_zurueck)
+        blick.zeile.addSpacing(6)
+        blick.zeile.addWidget(self.btn_ansicht_zurueck)
+        fluss.addWidget(blick)
 
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         self.setze_wiedergabe(False)
@@ -1121,7 +1134,8 @@ class AnimationsLeiste(QWidget):
         metrik = self.lbl_phase_grad.fontMetrics()
         self.lbl_phase_grad.setFixedWidth(metrik.horizontalAdvance("θ = 359,9°") + 6)
         self.lbl_phase_grad.setMinimumHeight(self.lbl_phase_grad.sizeHint().height())
-        self.lbl_tempo.setFixedWidth(metrik.horizontalAdvance("0,00 Perioden/s") + 6)
+        muster = "0,00/s" if self._kompakt else "0,00 Perioden/s"
+        self.lbl_tempo.setFixedWidth(metrik.horizontalAdvance(muster) + 6)
         breite = 0
         for art in ("abspielen", "pause"):
             self.btn_abspielen.setText(regler_namen(art)[0])
@@ -1129,6 +1143,15 @@ class AnimationsLeiste(QWidget):
         self.btn_abspielen.setFixedWidth(breite + _FOKUS_RAND_PX)
         self.setze_wiedergabe(False)
         self._breite_ueberhoehung()
+
+    def _breiten_regler(self) -> None:
+        """Feste Breiten der Regler (im kompakten Modus schmaler, UI-D3)."""
+        for regler, normal, kompakt in (
+            (self.regler_phase, 150, _REGLER_KOMPAKT_PHASE_PX),
+            (self.regler_tempo, 100, _REGLER_KOMPAKT_PX),
+            (self.regler_ueberhoehung, 100, _REGLER_KOMPAKT_PX),
+        ):
+            regler.setFixedWidth(kompakt if self._kompakt else normal)
 
     def _texte_knoepfe(self) -> None:
         """Beschriftung der Knöpfe (kurz bei schmalem Fenster) mit fester Breite je Text.
@@ -1139,7 +1162,8 @@ class AnimationsLeiste(QWidget):
         texte = (
             (self.btn_schritt_zurueck, "Zurück", "Schritt zurück"),
             (self.btn_schritt_vor, "Vor", "Schritt vor"),
-            (self.btn_ansicht_zurueck, "Ansicht zurück", "Ansicht zurücksetzen"),
+            (self.btn_ansicht_zurueck, "Zurücksetzen", "Ansicht zurücksetzen"),
+            (self.btn_werte_tabelle, "Tabelle", "Werte als Tabelle"),
         )
         for knopf, kurz, lang in texte:
             knopf.setText(kurz if self._kompakt else lang)
@@ -1163,6 +1187,7 @@ class AnimationsLeiste(QWidget):
         self.btn_schritt_zurueck.clicked.connect(lambda _c=False: self.schritt_geklickt.emit(-1))
         self.btn_schritt_vor.clicked.connect(lambda _c=False: self.schritt_geklickt.emit(1))
         self.btn_ansicht_zurueck.clicked.connect(lambda _c=False: self.ansicht_zurueck.emit())
+        self.btn_werte_tabelle.clicked.connect(lambda _c=False: self.werte_tabelle_geklickt.emit())
         self.feld_schrittweite.valueChanged.connect(self._schrittweite_gewaehlt)
         self.regler_phase.valueChanged.connect(self._phase_gewaehlt)
         self.regler_phase.sliderReleased.connect(self.phase_losgelassen.emit)
@@ -1211,7 +1236,7 @@ class AnimationsLeiste(QWidget):
 
     def _tempo_gewaehlt(self, wert: int) -> None:
         hz = tempo_aus_regler(wert)
-        self.lbl_tempo.setText(tempo_text(hz))
+        self.lbl_tempo.setText(tempo_text(hz, kompakt=self._kompakt))
         self.tempo_geaendert.emit(hz)
 
     def _skalierung_fertig(self) -> None:
@@ -1263,7 +1288,7 @@ class AnimationsLeiste(QWidget):
             self.regler_tempo.setValue(regler_aus_tempo(tempo_hz))
         finally:
             self.regler_tempo.blockSignals(sperre)
-        self.lbl_tempo.setText(tempo_text(tempo_hz))
+        self.lbl_tempo.setText(tempo_text(tempo_hz, kompakt=self._kompakt))
 
     def setze_skalierung(
         self,
@@ -1319,6 +1344,12 @@ class AnimationsLeiste(QWidget):
         if kompakt == self._kompakt:
             return
         self._kompakt = kompakt
+        self._breiten_regler()
+        self._feste_breiten()
+        self.lbl_tempo.setText(
+            tempo_text(tempo_aus_regler(self.regler_tempo.value()), kompakt=kompakt)
+        )
+        self.lbl_tempo.setToolTip("Perioden je Sekunde" if kompakt else "")
         self._texte_knoepfe()
         self._fluss.setze_abstand(_GRUPPENABSTAND_PX // 2 if kompakt else _GRUPPENABSTAND_PX)
         self.updateGeometry()
@@ -1331,6 +1362,7 @@ class AnimationsLeiste(QWidget):
             self.btn_schritt_vor,
             self.feld_schrittweite,
             self.regler_phase,
+            self.btn_werte_tabelle,
             self.regler_tempo,
             self.regler_ueberhoehung,
             self.feld_skalierung,

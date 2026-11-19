@@ -422,7 +422,7 @@ Nur Kopien, Ausgabe nur nach `$ARB`; nichts bestanden vor Bestätigung durch Jak
 |---|---|
 | Modusschalter „Standbild/Animation“ in Ansicht 4 vorhanden? (nein: Block entfällt) | |
 | Sichtprüfung nach `in_progress/planung/plaene/2026-11-11_P-AUSW3_animation-plan.md` (Standbild nach Öffnen, Wiedergabe, Drehen, Zoom, ←/→, Pflichttexte, Kennzeichen M8, Modus ohne Phase gesperrt) | |
-| Prüfanleitung `‹PRÜFANLEITUNG-ANIMATION›` (AN9) vorhanden (Stand Build: nein)? Messungen M1 bis M6 mit `animation_messen.py`: entfallen (AN9 fehlt); Build enthält AN7 | |
+| Prüfanleitung `pruefanleitung_animation.md` (AN9) vorhanden; Build mit AN8/AN9 (Knopf „Werte als Tabelle“ sichtbar)? Messungen M1 bis M6 mit `animation_messen.py` (lokal und Remotedesktop; Tabellen `animation_*.md` sichern): durchführbar nur mit diesem Build | |
 | UI-38: bleibt offen bis zur Bestätigung durch Jakob | |
 
 ## 11 Ersatzpläne, Abbruch und Auffälligkeiten

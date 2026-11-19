@@ -8,15 +8,18 @@ den dortigen Toleranzen (``rtol = 1e-12``, Nullwerte ``atol = 1e-12·a``).
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+import dar_animation_hilfen as dar_hilfen
 import dar_daten as dd
 import numpy as np
 import pytest
 from dar_animation_hilfen import KohaerenzCache, messdaten_mit_amplitude
 from matplotlib.colors import Normalize, TwoSlopeNorm
 from matplotlib.figure import Figure
+from matplotlib.text import Text
 
 from ldv_automation.darstellung.achsen import Bereich
 from ldv_automation.darstellung.animation3d import (
@@ -24,11 +27,13 @@ from ldv_automation.darstellung.animation3d import (
     MINDESTHOEHE_ANTEIL,
     AnimationsOptionen,
     Blick,
+    _label_rechtecke_px,
     achsengrenzen_3d,
     aktualisiere_animation,
     effektive_ueberhoehung,
     farb_norm,
     farbskala,
+    label_text,
     pflichttexte,
     scatter_positionen,
     skaliere_einheit,
@@ -575,6 +580,238 @@ def test_standbild_als_png_und_pdf_mit_stempel(tmp_path: Path) -> None:
         texte = z.alle_texte()
         assert any("Arbeitsansicht" in t for t in texte)  # nur durch den Stempel
         assert ["θ = 90,0°", "Bezug: relativ zu Punkt 100, Komponente Z"][0] in "\n".join(texte)
+
+
+def test_stempelrand_bleibt_frei_farbleiste_und_texte_liegen_ueber_dem_stempel(
+    tmp_path: Path,
+) -> None:
+    """AN8: ``speichere_arbeitsbild`` reserviert unten Platz; die Zeichnung nutzt ihn nicht."""
+    daten = _platte()
+    opt = AnimationsOptionen(theta_rad=math.pi / 2.0, blick=BLICK_VORGABEN["iso"])
+    stempel = baue_stempel(
+        dateiname="probe.svd",
+        ansicht="Ansicht 4 Schwingform",
+        git_hash="abc1234",
+        zusatz=("Animation · θ = 90,0°", "Blickrichtung: Azimut \N{MINUS SIGN}45,0°"),
+        unbestaetigt=("M12",),
+    )
+    z = speichere_arbeitsbild(
+        lambda fig: zeichne_animation(fig, daten, opt, THESIS_STIL),
+        tmp_path / "rand.png",
+        stempel,
+        THESIS_STIL,
+    )
+    fig = z.figure
+    fig.draw_without_rendering()
+    stempel_oben_px = (0.028 * len(stempel.zeilen) + 0.012) * float(fig.bbox.height)
+    farbleiste = z.hilfsobjekte["farbleiste"]
+    texte = [t for t in farbleiste.ax.findobj(Text) if t.get_text() and t.get_visible()]
+    assert any("Auslenkung" in t.get_text() for t in texte)  # Titel der Farbleiste
+    for t in texte:
+        y0 = float(t.get_window_extent().y0)
+        assert math.isnan(y0) or y0 >= stempel_oben_px - 1.0, (t.get_text(), y0, stempel_oben_px)
+    assert float(farbleiste.ax.get_window_extent().y0) >= stempel_oben_px
+    assert float(z.achsen[0].get_window_extent().y0) >= stempel_oben_px
+
+
+def _lange_platte(seiten: float, spalten: int = 27, zeilen: int = 5) -> AnimationsDaten:
+    """Raster aus ``spalten`` mal ``zeilen`` Punkten, x : y = ``seiten`` : 1, Amplitude in z."""
+    x, y = np.meshgrid(np.linspace(0.0, 0.45, spalten), np.linspace(0.0, 0.45 / seiten, zeilen))
+    koord = np.column_stack([x.ravel(), y.ravel(), np.zeros(x.size)])
+    # |v| ≥ 0,97: die Kohärenz γ² = |v|² liegt über der Schwelle 0,9, alle Punkte bewegen sich
+    betrag = 0.97 + 0.03 * np.sin(np.pi * koord[:, 0] / 0.45)
+    phase = np.outer(koord[:, 0] / 0.45, [1.0, 2.0, 3.0])
+    v = betrag[:, None] * np.exp(1j * phase)
+    md = dar_hilfen.messdaten_mit_amplitude(v, koordinaten_m=koord)
+    return animation_daten(md, PaarCache(md), 100.0, komponente="3D")
+
+
+@pytest.mark.parametrize("seiten", [2.0, 3.0])
+@pytest.mark.parametrize(
+    "groesse", [(8.06, 3.26), (10.7, 4.14), (9.0, 5.6), (7.0, 4.2), (6.5, 3.9)]
+)
+@pytest.mark.parametrize("blick", ["xy", "xz", "yz", "iso"])
+def test_farbleiste_ueberdeckt_keine_achsenbeschriftung_bei_laenglicher_platte(
+    seiten: float, groesse: tuple[float, float], blick: str
+) -> None:
+    """UI-D1: Zahlen, Titel der 3D-Achse und die Farbleiste samt Zahlen überschneiden sich nicht."""
+    fig = Figure(figsize=groesse)
+    z = zeichne_animation(
+        fig,
+        _lange_platte(seiten),
+        AnimationsOptionen(blick=BLICK_VORGABEN[blick], theta_rad=1.0),
+        THESIS_STIL,
+    )
+    fig.draw_without_rendering()
+    renderer = fig._get_renderer()  # type: ignore[attr-defined]
+    achse = z.achsen[0].get_tightbbox(renderer)
+    leiste = z.hilfsobjekte["farbleiste"].ax.get_tightbbox(renderer)
+    assert achse is not None and leiste is not None
+    assert not achse.overlaps(leiste), (achse.bounds, leiste.bounds)
+    assert achse.width > 0.2 * fig.bbox.width  # die Box ist nicht auf nichts geschrumpft
+
+
+# --- UI-D2: Punktlabels bei dichten Rastern --------------------------------------------------
+
+
+def _label_zeichnung(
+    daten: AnimationsDaten, groesse: tuple[float, float], blick: str = "iso"
+) -> Zeichnung:
+    fig = Figure(figsize=groesse)
+    return zeichne_animation(
+        fig,
+        daten,
+        AnimationsOptionen(punktlabels=True, blick=BLICK_VORGABEN[blick]),
+        THESIS_STIL,
+    )
+
+
+def _sichtbare_labels(z: Zeichnung) -> int:
+    return sum(1 for t in z.hilfsobjekte["punktlabels"] if t.get_visible())
+
+
+def test_punktlabels_bleiben_bei_lockerem_raster_alle_sichtbar() -> None:
+    z = _label_zeichnung(_platte(), (9.0, 5.6), "xy")
+    assert z.hilfsobjekte["punktlabels_schritt"] == 1
+    assert _sichtbare_labels(z) == len(z.hilfsobjekte["punktlabels"])
+    assert not any(h.startswith("Punktlabels") for h in z.hinweise)  # nur bei Verdichtung
+    assert any(
+        "Punktlabels: alle gezeigt" in t.get_text()
+        for t in z.hilfsobjekte["zeichenerklaerung"].get_texts()
+    )
+
+
+def _label_rechtecke(z: Zeichnung) -> Any:
+    """Fensterrechtecke ``(n, 4)`` der **sichtbaren** Punktlabels (unabhängig gerechnet)."""
+    z.figure.draw_without_rendering()
+    renderer = z.figure._get_renderer()  # type: ignore[attr-defined]
+    koordinaten = z.hilfsobjekte["daten"].koordinaten_m
+    labels = z.hilfsobjekte["punktlabels"]
+    alle = _label_rechtecke_px(z.achsen[0], koordinaten, labels, renderer)
+    return alle[np.array([t.get_visible() for t in labels], dtype=bool)]
+
+
+def _ueberlappungen(boxen: Any) -> int:
+    ueber = (
+        (boxen[:, None, 0] < boxen[None, :, 2])
+        & (boxen[None, :, 0] < boxen[:, None, 2])
+        & (boxen[:, None, 1] < boxen[None, :, 3])
+        & (boxen[None, :, 1] < boxen[:, None, 3])
+    )
+    np.fill_diagonal(ueber, False)
+    return int(ueber.sum())
+
+
+@pytest.mark.parametrize("groesse", [(9.0, 5.6), (5.0, 3.2)])
+@pytest.mark.parametrize("blick", ["xy", "xz", "iso"])
+def test_sichtbare_punktlabels_ueberlappen_sich_nie(
+    groesse: tuple[float, float], blick: str
+) -> None:
+    """UI-D2 (K2): auch im Standbild überdeckt kein sichtbares Label ein anderes."""
+    z = _label_zeichnung(_lange_platte(2.25, 45, 9), groesse, blick)
+    boxen = _label_rechtecke(z)
+    assert _ueberlappungen(boxen) == 0
+    assert z.hilfsobjekte["punktlabels_schritt"] == 0 or boxen.shape[0] > 0
+
+
+def test_punktlabels_dichtes_raster_zeigt_jedes_nte_und_meldet_es() -> None:
+    z = _label_zeichnung(_lange_platte(2.25, 45, 9), (7.0, 4.2))
+    schritt = z.hilfsobjekte["punktlabels_schritt"]
+    assert 2 <= schritt <= 8, schritt
+    sichtbar = [i for i, t in enumerate(z.hilfsobjekte["punktlabels"]) if t.get_visible()]
+    assert sichtbar == list(range(0, 405, schritt))
+    text = f"Punktlabels: nur jedes {schritt}. gezeigt (Dichte)"
+    assert text in z.hinweise  # Meldezeile AF
+    legende = [
+        t.get_text().replace("\n", " ") for t in z.hilfsobjekte["zeichenerklaerung"].get_texts()
+    ]
+    assert text in legende  # Zeichenerklärung
+
+
+def test_punktlabels_sehr_viele_punkte_werden_ausgeblendet() -> None:
+    z = _label_zeichnung(_lange_platte(2.25, 60, 30), (9.0, 5.6))  # 1800 > _LABEL_MAX
+    assert z.hilfsobjekte["punktlabels_schritt"] == 0
+    assert _sichtbare_labels(z) == 0
+    assert "Punktlabels wegen Dichte ausgeblendet" in z.hinweise
+
+
+def test_punktlabels_dichte_folgt_dem_blick_bei_aktualisiere() -> None:
+    daten = _lange_platte(2.25, 45, 9)
+    fig = Figure(figsize=(7.0, 4.2))
+    opt = AnimationsOptionen(punktlabels=True, blick=BLICK_VORGABEN["xy"])
+    z = zeichne_animation(fig, daten, opt, THESIS_STIL)
+    aktualisiere_animation(z, daten, replace(opt, blick=BLICK_VORGABEN["xz"]), THESIS_STIL)
+    schritt = z.hilfsobjekte["punktlabels_schritt"]
+    assert _ueberlappungen(_label_rechtecke(z)) == 0
+    assert (label_text(schritt) in z.hinweise) == (schritt != 1)
+    legende = z.hilfsobjekte["punktlabels_legende"].get_text().replace("\n", " ")
+    assert legende == label_text(schritt)
+
+
+_BLICKPAARE = [
+    ((0.0, 0.0), (-30.0, 60.0)),
+    ((0.0, 0.0), (-45.0, 35.3)),
+    ((-90.0, 90.0), (-45.0, 35.3)),
+]
+
+
+@pytest.mark.parametrize(("von", "nach"), _BLICKPAARE)
+def test_nach_dem_ziehen_und_loslassen_gilt_der_grundzoom_des_neuen_blicks(
+    von: tuple[float, float], nach: tuple[float, float]
+) -> None:
+    """K2 MAJOR: Drehen im vereinfachten Modus, Loslassen im Stand misst den Zoom neu."""
+    daten = _lange_platte(2.25)
+    groesse = (8.0, 5.0)
+    alt = Blick(azim_grad=von[0], elev_grad=von[1])
+    neu = Blick(azim_grad=nach[0], elev_grad=nach[1])
+    opt = AnimationsOptionen(theta_rad=1.0, blick=alt, punktlabels=True)
+    z = zeichne_animation(Figure(figsize=groesse), daten, opt, THESIS_STIL)
+    zwischen = [
+        Blick(azim_grad=von[0] + f * (nach[0] - von[0]), elev_grad=von[1] + f * (nach[1] - von[1]))
+        for f in (0.25, 0.5, 0.75, 1.0)
+    ]
+    for blick in zwischen:  # Ziehen: vereinfachte Bilder, keine Messung
+        aktualisiere_animation(z, daten, replace(opt, blick=blick, vereinfacht=True), THESIS_STIL)
+    aktualisiere_animation(z, daten, replace(opt, blick=neu), THESIS_STIL)  # Loslassen: Stand
+    frisch = zeichne_animation(Figure(figsize=groesse), daten, replace(opt, blick=neu), THESIS_STIL)
+    assert z.hilfsobjekte["grund_zoom"] == pytest.approx(frisch.hilfsobjekte["grund_zoom"])
+    assert z.hilfsobjekte["punktlabels_schritt"] == frisch.hilfsobjekte["punktlabels_schritt"]
+    z.figure.draw_without_rendering()
+    box = z.achsen[0].get_tightbbox(z.figure._get_renderer())  # type: ignore[attr-defined]
+    assert box is not None
+    links, unten, rechts, oben = z.hilfsobjekte["zoom_grenzen"]
+    assert box.x0 >= links - 1.0 and box.y0 >= unten - 1.0
+    assert box.x1 <= rechts + 1.0 and box.y1 <= oben + 1.0
+
+
+def test_reiner_zoom_bewertet_die_labeldichte_neu() -> None:
+    """K2 MINOR: Mausrad oder Plus/Minus ändern ``blick.zoom``; die Label-Dichte folgt."""
+    daten = _lange_platte(2.25, 45, 9)
+    opt = AnimationsOptionen(punktlabels=True, blick=BLICK_VORGABEN["iso"])
+    z = zeichne_animation(Figure(figsize=(7.0, 4.2)), daten, opt, THESIS_STIL)
+    for zoom in (0.5, 3.0, 1.0):
+        blick = replace(BLICK_VORGABEN["iso"], zoom=zoom)
+        aktualisiere_animation(z, daten, replace(opt, blick=blick), THESIS_STIL)
+        frisch = zeichne_animation(
+            Figure(figsize=(7.0, 4.2)), daten, replace(opt, blick=blick), THESIS_STIL
+        )
+        assert z.hilfsobjekte["punktlabels_schritt"] == frisch.hilfsobjekte["punktlabels_schritt"]
+        assert _ueberlappungen(_label_rechtecke(z)) == 0
+
+
+def test_achsengrenzen_lassen_den_markern_am_rand_platz() -> None:
+    """K2 NITPICK: 5 % Rand plus 2 % für die Marker je Seite."""
+    daten = _lange_platte(2.25)
+    gx, _gy, _gz = achsengrenzen_3d(daten, 0.0)  # ohne Auslenkung: nur Ruhelage und Rand
+    spanne = 0.45
+    assert gx[0] == pytest.approx(-0.07 * spanne, rel=1e-9)
+    assert gx[1] == pytest.approx(spanne * 1.07, rel=1e-9)
+
+
+def test_label_text_und_hinweis_nur_bei_verdichtung() -> None:
+    assert label_text(1) == "Punktlabels: alle gezeigt"
+    assert label_text(3) == "Punktlabels: nur jedes 3. gezeigt (Dichte)"
+    assert label_text(0) == "Punktlabels wegen Dichte ausgeblendet"
 
 
 def test_zeichnung_ist_deterministisch_in_der_figure_struktur() -> None:

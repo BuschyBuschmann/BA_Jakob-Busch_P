@@ -67,7 +67,8 @@ Ergänzung 2026-11-18 (Paket P-TERMIN-23):
   (W1 bis W10), pruefanleitung_auswerten_vergleich.md (AV: V1 bis E4). Einordnung in den Tag: ablaufplan.md, 4.4.
 - tools/auswertung/speicher_messen.py (Voraussetzung für AV V1), SHA-256:
   c2017ec85335253ab6d8f3351c2396c3028335a9fdda30d3c589b5fe1ce47422
-  Ebenso die Prüfanleitung der Animation (entsteht in AN9, fehlt noch): ‹PRÜFANLEITUNG-ANIMATION›.
+  Prüfanleitung der Animation (Paket U-AUSW3-89): pruefanleitung_animation.md (Ordner darüber). Sie braucht den neuen Build mit AN8/AN9 und
+  tools/auswertung/animation_messen.py samt speicher_messen.py auf dem Stick (SHA-256 beim Packen eintragen, [offen]).
 
 Ergänzung 2026-11-19 (Paket B-020-23):
 - Neuer Build gebaut (Git 3fd4e79, Version 0.2.0); Abhängigkeits-Wheels unverändert (byte-identisch zu einem frischen

@@ -53,7 +53,7 @@ Prüfen wie N1 bis N4 aus `installation_0.2.0.md` (Version 0.2.0, `git_hash` 3fd
 |---|---|
 | `pruefanleitung_auswerten.md` W1 bis W10 (Zeiten nur als Hausrechner-Werte notieren, nicht als Messrechner-Befund; W1 braucht `tools\auswertung\` vom Stick) | COM-Verbindung, PSV |
 | `pruefanleitung_auswerten_vergleich.md` AV: Achsenleiste, mehrere Messungen, Ansicht 5, Bild speichern, Tastatur (V1 bis V4, B, C, D, E mit mehreren Kopien der Beispieldatei) | Abgleich lesen (`pruefanleitung_abgleich.md`), Messen, Warteschlangen mit echter `.set` |
-| Animation in Ansicht 4: nur Sichtprüfung (Modus „Standbild/Animation“, Wiedergabe, Drehen, Zoom, Phase, Pflichttexte); Prüfanleitung `‹PRÜFANLEITUNG-ANIMATION›` fehlt noch | UI-38 (Bedienung über Remotedesktop) und alle Messrechner-Zeiten und -Speicherwerte |
+| Animation in Ansicht 4: nur Sichtprüfung (Modus „Standbild/Animation“, Wiedergabe, Drehen, Zoom, Phase, Pflichttexte); Prüfanleitung `pruefanleitung_animation.md` (Block A, AN-1 bis AN-13, mit dem Build mit AN8/AN9) | UI-38 (Bedienung über Remotedesktop) und alle Messrechner-Zeiten und -Speicherwerte |
 
 Ergebnisse von zu Hause gelten als Vorprüfung; bestätigt wird weiterhin erst am Messrechner bzw. durch Jakob
 im Protokoll. Rückbau: Ordner `C:\ldv_privat\venv` löschen.
