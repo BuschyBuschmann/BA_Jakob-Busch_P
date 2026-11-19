@@ -17,6 +17,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from matplotlib.transforms import ScaledTranslation
 
@@ -193,17 +194,47 @@ def _umbrechen(fig: Figure, kasten: Text, verfuegbar_pt: float) -> float:
     return float(ext.height) * k
 
 
+def _gemeinsamer_rahmen(
+    fig: Figure, stil: Plotstil, kaesten: Sequence[Text], pad_pt: float
+) -> None:
+    """Zeichnet einen Rahmen (Füllung und Rand der Kennzeichen) um alle ``kaesten`` hinter sie."""
+    fig.draw_without_rendering()
+    boxen = [k.get_window_extent() for k in kaesten]
+    f = float(fig.dpi) / 72.0
+    breite_px, hoehe_px = float(fig.bbox.width), float(fig.bbox.height)
+    links = min(float(b.x0) for b in boxen) - pad_pt * f
+    unten = min(float(b.y0) for b in boxen) - pad_pt * f
+    rechts = max(float(b.x1) for b in boxen) + pad_pt * f
+    oben = max(float(b.y1) for b in boxen) + pad_pt * f
+    rahmen = Rectangle(
+        (links / breite_px, unten / hoehe_px),
+        (rechts - links) / breite_px,
+        (oben - unten) / hoehe_px,
+        transform=fig.transFigure,
+        facecolor=stil.warn_bg,
+        edgecolor=stil.warn_rand,
+        linewidth=1.0,
+        zorder=1,
+    )
+    fig.add_artist(rahmen)
+    for kasten in kaesten:
+        kasten.set_zorder(rahmen.get_zorder() + 1)
+
+
 def kennzeichen_kopf(
     fig: Figure,
     stil: Plotstil,
     texte: Sequence[str],
     rect: tuple[float, float, float, float],
+    *,
+    gemeinsamer_rahmen: bool = False,
 ) -> tuple[list[Text], tuple[float, float, float, float]]:
     """Kennzeichen als Kopfzeile oberhalb der Achsen (Figure-Ebene, nie über Daten oder Rand).
 
     Jeder Text steht als Kasten „⚠ <Text>“ links oben im Rechteck ``rect``, untereinander; zu
     lange Texte werden umbrochen, so dass der Kasten in die Figure passt. Das übrige Layout
-    bekommt das um die Kopfzeile verkleinerte Rechteck.
+    bekommt das um die Kopfzeile verkleinerte Rechteck. Mit ``gemeinsamer_rahmen`` stehen
+    alle Texte ohne eigenen Kasten in einem gemeinsamen Rahmen (ein Kasten, gleiche Breite).
 
     Parameters
     ----------
@@ -215,6 +246,8 @@ def kennzeichen_kopf(
         Kennzeichentexte ohne Symbol; leer = keine Kopfzeile.
     rect : tuple of float
         Nutzbares Rechteck ``(x0, y0, Breite, Höhe)`` in Figure-Anteilen (:func:`layout_rect`).
+    gemeinsamer_rahmen : bool, optional
+        Ein gemeinsamer Rahmen um alle Texte statt je eines Kastens je Text.
 
     Returns
     -------
@@ -240,7 +273,9 @@ def kennzeichen_kopf(
             va="top",
             fontsize=stil.schrift_pt,
             color=stil.achse,
-            bbox={
+            bbox=None
+            if gemeinsamer_rahmen
+            else {
                 "boxstyle": "square,pad=0.25",
                 "facecolor": stil.warn_bg,
                 "edgecolor": stil.warn_rand,
@@ -249,6 +284,8 @@ def kennzeichen_kopf(
         )
         y_pt -= _umbrechen(fig, kasten, verfuegbar) + luft
         kaesten.append(kasten)
+    if gemeinsamer_rahmen:
+        _gemeinsamer_rahmen(fig, stil, kaesten, 0.25 * stil.schrift_pt)
     verbraucht = ((y0 + h) * hoehe_pt - y_pt) / hoehe_pt
     return kaesten, (x0, y0, w, max(h - verbraucht, 0.1))
 

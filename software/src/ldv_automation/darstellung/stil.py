@@ -38,11 +38,11 @@ stetige Helligkeit auf dem Kreis nimmt jeden Wert mindestens zweimal an, FA-AUSW
 Phase steht deshalb zusätzlich im Pfeilwinkel."""
 
 DIVERGIEREND_FARBEN_BUNT: tuple[str, str, str] = ("#A9D0EC", "#8C8C8C", "#5A2D0C")
-"""Vorschlag für die divergierende Skala der Oberfläche: hellblau, neutralgrau, dunkelbraun.
+"""Standard der divergierenden Skala (Nutzerentscheidung 2026-11-18): hellblau, grau, dunkelbraun.
 
 Die Helligkeit fällt von „negativ“ nach „positiv“ streng monoton (Luma 202, 140, 52), das
 Vorzeichen bleibt in Graustufen lesbar; Blau und Braun sind bei Rot-Grün-Schwäche unterscheidbar,
-es kommt kein Gelb vor. Der endgültige Farbvorschlag ist Sache des ``ui-designer`` (Abnahme)."""
+es kommt kein Gelb vor."""
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -70,7 +70,8 @@ class Plotstil:
         Hellstes Ende des Einfarbverlaufs der Betragsfüllung (Ansicht 4).
     div_negativ, div_mitte, div_positiv : str
         Farben der divergierenden Skala (Auslenkung mit Vorzeichen, Animation): hell für
-        negativ, neutral in der Mitte, dunkel für positiv (Voreinstellung Graustufen).
+        negativ, neutral in der Mitte, dunkel für positiv (Voreinstellung: Hellblau, Grau,
+        Dunkelbraun :data:`DIVERGIEREND_FARBEN_BUNT`, Nutzerentscheidung 2026-11-18).
     schrift_pt : float
         Schriftgröße in pt (Achsen, Ticks, Legende).
     schriftfamilie : tuple of str
@@ -94,9 +95,9 @@ class Plotstil:
     serienfarben: tuple[str, ...] = ("#000000", "#333333", "#666666", "#808080")
     linienarten: tuple[str, ...] = LINIENARTEN
     verlauf_hell: str = "#F2F2F2"
-    div_negativ: str = "#E6E6E6"
-    div_mitte: str = "#9A9A9A"
-    div_positiv: str = "#1A1A1A"
+    div_negativ: str = DIVERGIEREND_FARBEN_BUNT[0]
+    div_mitte: str = DIVERGIEREND_FARBEN_BUNT[1]
+    div_positiv: str = DIVERGIEREND_FARBEN_BUNT[2]
     schrift_pt: float = 9.0
     schriftfamilie: tuple[str, ...] = ("DejaVu Sans",)
     linienbreite_pt: float = 1.0
@@ -165,4 +166,5 @@ class Plotstil:
 
 
 THESIS_STIL = Plotstil()
-"""Stil der Thesis-Abbildungen: schwarz/grau, 9 pt, kein Gelb, ohne Farbe als Information."""
+"""Stil der Thesis-Abbildungen: schwarz/grau, 9 pt, kein Gelb; die divergierende Skala ist
+hellblau/grau/dunkelbraun und trägt das Vorzeichen auch in der Helligkeit."""

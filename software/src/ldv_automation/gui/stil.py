@@ -123,6 +123,16 @@ QListWidget {{
 QListWidget::item:disabled {{ color: {t.C_NICHT_GEFUNDEN}; }}
 QListWidget:disabled {{ background: {t.C_DEAKTIVIERT_BG}; color: {t.C_DEAKTIVIERT_TEXT}; }}
 QCheckBox:disabled, QRadioButton:disabled {{ color: {t.C_DEAKTIVIERT_TEXT}; }}
+QSlider::groove:horizontal {{ height: 4px; background: {t.C_TEXT_GEDAEMPFT}; }}
+QSlider::sub-page:horizontal {{ background: {t.C_AKZENT}; }}
+QSlider::handle:horizontal {{
+    width: 12px; margin: -6px 0; background: {t.C_FLAECHE}; border: 2px solid {t.C_AKZENT};
+}}
+QSlider::groove:horizontal:disabled {{ background: {t.C_DEAKTIVIERT_TEXT}; }}
+QSlider::sub-page:horizontal:disabled {{ background: {t.C_DEAKTIVIERT_TEXT}; }}
+QSlider::handle:horizontal:disabled {{ border-color: {t.C_DEAKTIVIERT_TEXT}; }}
+QSlider:focus {{ border: 2px solid {t.C_AKZENT}; }}
+QPushButton#btn_abspielen[laeuft="true"] {{ background: {t.C_AKTIV_BG}; }}
 QFrame#dateileiste, QFrame#parameterzeile, QFrame#ansichtswahl, QFrame#fusszeile {{
     background: {t.C_LEISTE};
 }}

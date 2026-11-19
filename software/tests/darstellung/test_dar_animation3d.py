@@ -283,7 +283,7 @@ def _signatur(z: Zeichnung) -> dict[str, Any]:
         "blick": (ax.elev, ax.azim),
         "achse_an": _achse_an(z),
         "clim": z.marker["punkte"].get_clim(),
-        "cb_label": cb.ax.get_ylabel(),
+        "cb_label": cb.ax.get_xlabel(),
         "hinweise": z.hinweise,
     }
 
@@ -448,7 +448,7 @@ def test_ui_27_farbleiste_bereich_und_einheit() -> None:
     assert z.hilfsobjekte["farbtitel"] == "Auslenkung Z [µm]"
     cb = z.hilfsobjekte["farbleiste"]
     cb.ax.figure.canvas.draw()
-    ticks = [t.get_text() for t in cb.ax.get_yticklabels() if t.get_text()]
+    ticks = [t.get_text() for t in cb.ax.get_xticklabels() if t.get_text()]
     assert "0" in ticks and any(t.endswith("2") or t.endswith("3") for t in ticks)
     _, betrag = _zeichne(daten, farbe="betrag")
     assert betrag.hilfsobjekte["farbtitel"].startswith("Betrag der Auslenkung [")

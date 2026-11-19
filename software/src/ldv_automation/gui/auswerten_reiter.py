@@ -12,6 +12,13 @@ berechnet …“. Ein ``QTimer`` fragt alle :data:`~ldv_automation.gui.tokens.AB
 ms ab (kein Qt-Thread). Eine Job-ID verwirft veraltete Ergebnisse; ein neuer Dateiaufruf
 bricht laufende Aufträge ab.
 
+Animation (R-071, Plan P-AUSW3 AN7): Ansicht 4 hat den Modus „Standbild | Animation“. Im Modus
+Animation zeigt AE die :class:`~ldv_automation.gui.animationsflaeche.AnimationsFlaeche` und
+darunter die Bedienleiste AH (:class:`~ldv_automation.gui.auswahl_auswerten.AnimationsLeiste`)
+statt der Plotfläche; Daten, Kopf mit den Kennzeichen M8 und M12, Meldungen in AF und die Zustände
+(Standbild nach Öffnen, Frequenz- und Messungswechsel) verwaltet dieser Reiter (``_an_*``), die
+Qt-freie Logik steht in :mod:`.animation_anzeige`.
+
 Dieses Modul ist ein dünnes Widget (Abdeckung nur mit ``pytest -m gui``); die Logik liegt in
 :mod:`.anzeige_auswerten` und den Zeichenfunktionen.
 """
@@ -23,7 +30,7 @@ import itertools
 import logging
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -55,7 +62,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ldv_automation.auswertung.annahmen import AnnahmeEintrag, Annahmen
+from ldv_automation.auswertung.annahmen import AnnahmeEintrag, Annahmen, AnnahmenStufe2
 from ldv_automation.auswertung.export import (
     entferne_verwaiste_tmp,
     pruefe_ziel,
@@ -64,7 +71,13 @@ from ldv_automation.auswertung.export import (
 from ldv_automation.auswertung.jobs import PruefErgebnis, export_job, lese_job, pruef_job
 from ldv_automation.auswertung.laden import Geladen
 from ldv_automation.darstellung import Ansicht, Zeichnung
-from ldv_automation.darstellung.achsen import AchsenFehler
+from ldv_automation.darstellung.achsen import AchsenFehler, Bereich, feld_text
+from ldv_automation.darstellung.animation3d import (
+    AnimationsOptionen,
+    effektive_ueberhoehung,
+    nullpunkt_satz,
+)
+from ldv_automation.darstellung.animation_daten import AnimationsDaten, animation_daten
 from ldv_automation.darstellung.auswahl import (
     KOMPONENTEN,
     DarstellungsFehler,
@@ -101,6 +114,29 @@ from ldv_automation.gui.achsen_zustand import (
     einheit_aus_achsentitel,
 )
 from ldv_automation.gui.achsenleiste import Achsenleiste
+from ldv_automation.gui.animation_anzeige import (
+    FARBE_SENKRECHT,
+    TEXT_BILD_ANIMATION,
+    TEXT_LANGSAM,
+    absolut_text,
+    animations_beschreibung,
+    animations_kopf_text,
+    animations_kopf_tooltip,
+    bezug_automatisch_text,
+    farb_anzeige,
+    farb_feldtexte,
+    hinweise_text,
+    lese_farbfeld,
+    lese_skalierung,
+    pruefe_farbbereich,
+    regler_aus_skalierung,
+    skalierung_aus_regler,
+)
+from ldv_automation.gui.animation_steuerung import (
+    skalierung_nach_groessenwechsel,
+    skalierung_text,
+)
+from ldv_automation.gui.animationsflaeche import AnimationsFlaeche
 from ldv_automation.gui.anzeige import Knopf
 from ldv_automation.gui.anzeige_aktionen import (
     AKTIONS_TASTEN,
@@ -162,6 +198,7 @@ from ldv_automation.gui.anzeige_auswerten import (
     zellen_sichtbar,
 )
 from ldv_automation.gui.auswahl_auswerten import (
+    AnimationsLeiste,
     AuswahlFrf,
     AuswahlSchwingform,
     AuswahlSpitzen,
@@ -331,6 +368,14 @@ _MELDE_MIN_PX = 160
 (UI-25); der Prüftext gibt sie notfalls ab, auch die Auffälligkeitszahlen werden dann gekürzt."""
 
 
+class _KopfLabel(QLabel):
+    """Kopfzeile über dem Plot: ein neuer Text verwirft den Tooltip des vorigen (Animation)."""
+
+    def setText(self, text: str) -> None:  # noqa: N802  # Qt-Name
+        super().setText(text)
+        self.setToolTip("")
+
+
 class ParameterZelleWidget(QWidget):
     """Eine Zelle der Parameterzeile: kleine Beschriftung über dem Wert (Consolas)."""
 
@@ -485,6 +530,17 @@ class AuswertenReiter(QWidget):
         self._cursor_aktiv = False
         self._a4_wunsch_hz: float | None = None
         self._kanal_a3 = ""
+        # Animation (R-071, P-AUSW3 AN7): Daten und Eingaben der aktiven Messung
+        self._an_stil = baue_plotstil()
+        self._an_daten: AnimationsDaten | None = None
+        self._an_schluessel: tuple[object, ...] | None = None
+        self._an_skalierung: float | None = None  # None = automatisch
+        self._an_farbbereich = Bereich()  # SI-Einheit der animierten Größe; leer = Auto
+        self._an_gezeichnet = False
+        self._an_f_hz: float | None = None  # Frequenz, mit der der Modus Animation begann
+        self._an_blick_ebene: str | None = None
+        self._an_hinweis_af = ""
+        self._an_beschreibung_von: tuple[object, ...] | None = None  # Stand der Textalternative
 
         self._baue()
         self._timer = QTimer(self)
@@ -704,6 +760,10 @@ class AuswertenReiter(QWidget):
         self.auswahl_frf.geaendert.connect(self._ansicht_geaendert)
         self.auswahl_sf.geaendert.connect(self._ansicht_geaendert)
         self.auswahl_sf.spitze_gewaehlt.connect(self._spitze_fuer_schwingform)
+        self.auswahl_sf.frequenz_geaendert.connect(self._an_frequenz_gewechselt)
+        self.auswahl_sf.modus_geaendert.connect(self._an_modus_geaendert)
+        self.auswahl_sf.farbfeld_eingegeben.connect(self._an_farbfeld_eingegeben)
+        self.auswahl_sf.bildrate_geaendert.connect(self._an_bildrate_geaendert)
         self.auswahl_diagramm.groesse_geaendert.connect(self._groesse_5_geaendert)
         self.auswahl_diagramm.geaendert.connect(self._optionen_5_geaendert)
         self.auswahl_diagramm.serie_neu.connect(self._serie_neu)
@@ -834,7 +894,7 @@ class AuswertenReiter(QWidget):
         self.laden_leiste.setVisible(False)
         v.addWidget(self.laden_leiste)
 
-        self.lbl_plotkopf = QLabel()
+        self.lbl_plotkopf = _KopfLabel()
         self.lbl_plotkopf.setObjectName("lbl_plotkopf")
         self.lbl_plotkopf.setProperty("art", "gedaempft")
         self.lbl_plotkopf.setVisible(False)
@@ -927,6 +987,16 @@ class AuswertenReiter(QWidget):
         spalte.setSpacing(0)
         spalte.addWidget(self.achsenleiste)
         spalte.addWidget(self.plot, 1)
+        # Animation (R-071): eigene Fläche und Bedienleiste AH als Geschwister der Plotfläche; im
+        # Modus „Animation“ ist nur die Animationsfläche sichtbar (_zeige_darstellungsseite)
+        self.animation = AnimationsFlaeche(self._an_stil)
+        self.animation.setMinimumHeight(PLOT_MIN_HOEHE_SPLITTER_PX)
+        self.animation.setVisible(False)
+        self.animationsleiste = AnimationsLeiste()
+        self.animationsleiste.setVisible(False)
+        spalte.addWidget(self.animation, 1)
+        spalte.addWidget(self.animationsleiste)
+        self._verbinde_animation()
         self._plot_seite.addWidget(self._plot_spalte)
         self.tabellen = QTabWidget()
         self.tabellen.setObjectName("tabellen")
@@ -1021,7 +1091,7 @@ class AuswertenReiter(QWidget):
         self.lbl_cursor.setze_platz(frei - prueft)
 
     def _tab_reihenfolge(self) -> None:
-        """AA → AC → AD → AE (Plot, Werkzeugleiste) → AF (Prüftext); AB ohne Fokus (Abschnitt 8)."""
+        """AA → AC → AD → AE (Plot, Werkzeugleiste) → AH → AF (Prüftext); AB ohne Fokus."""
         kette: list[QWidget] = [self.btn_oeffnen, self.btn_messung_hinzu]
         kette += self.messungsleiste.tab_kette()
         kette += [self.btn_export, self.btn_bild]
@@ -1038,6 +1108,8 @@ class AuswertenReiter(QWidget):
         kette += [self.btn_fehler_schliessen, self.btn_oeffnen_leer, self.liste_zuletzt]
         kette += self.achsenleiste.tab_kette()  # AD → AG → AE (Brief Abschnitt 6)
         kette += self.plot.tab_kette()
+        kette += self.animation.tab_kette()  # AE (Animation) → AH → AF
+        kette += self.animationsleiste.tab_kette()
         kette.append(self.lbl_pruefung)
         for vorher, nachher in itertools.pairwise(kette):
             QWidget.setTabOrder(vorher, nachher)
@@ -1177,6 +1249,8 @@ class AuswertenReiter(QWidget):
             self._ansichtstext is not None or self.plot.letzter_aufruf is None
         ):
             return TEXT_BILD_KEINE_DARSTELLUNG
+        if self._zustand is AuswertenZustand.GELADEN and self._animation_sichtbar():
+            return TEXT_BILD_ANIMATION  # bis AN8: kein Speichern des verdeckten Standbild-Plots
         aufruf = self.plot.letzter_aufruf
         if (
             self._zustand is AuswertenZustand.GELADEN
@@ -1256,6 +1330,8 @@ class AuswertenReiter(QWidget):
         hat_daten = self._geladen is not None
         self.laden_leiste.setVisible(laedt)
         self.plot.setEnabled(not laedt)
+        self.animation.setEnabled(not laedt)
+        self.animationsleiste.setEnabled(not laedt)
         self.tabellen.setEnabled(not laedt)
         self._ausgrauen(laedt and hat_daten)
         if self._zustand is AuswertenZustand.GELADEN or (laedt and hat_daten):
@@ -1463,6 +1539,7 @@ class AuswertenReiter(QWidget):
             self._auftrag_c[0].abbrechen()
             self._auftrag_c = None
         self._timer.stop()
+        self.animation.beende()  # kein hängender Timer der Wiedergabe beim Schließen
 
     def _abfrage(self) -> None:
         """Fragt laufende Aufträge ab; nur Ergebnisse der aktuellen Job-ID werden übernommen."""
@@ -1540,9 +1617,14 @@ class AuswertenReiter(QWidget):
         """Übernimmt die Annahmen aus Stufe B in Beschriftung und Darstellung (M8)."""
         if self._geladen is None:
             return
+        self._an_schluessel = None  # die Annahmen (M8, M12) gehen in die Daten der Animation ein
         if self._a4_geladen:
             self.auswahl_sf.setze_referenz_text(
                 phase_ref_text(self._phase_referenz(), self._annahmen()),
+                kennzeichen_beschreibung("phase", self._annahmen()),
+            )
+            self.auswahl_sf.setze_absolut_text(
+                absolut_text(self._phase_referenz(), self._annahmen()),
                 kennzeichen_beschreibung("phase", self._annahmen()),
             )
         self.auswahl_frf.setze_phase_erklaerung(kennzeichen_beschreibung("phase", self._annahmen()))
@@ -1573,6 +1655,7 @@ class AuswertenReiter(QWidget):
                 (
                     ("Punktliste", self.liste_punkte.clear),
                     ("Darstellung", lambda: self._leere_plot(zoom_vergessen=True)),
+                    ("Animation", self._an_zuruecksetzen),
                     ("Dateiname", lambda: self.lbl_datei.setText("–")),
                     ("Pfad", lambda: self.lbl_pfad.setText("")),
                     ("Plotkopf", lambda: self.lbl_plotkopf.setText("")),
@@ -1690,6 +1773,7 @@ class AuswertenReiter(QWidget):
         eintraege = punkt_eintraege(daten.punkte.label, daten.punkte.koordinaten_m)
         zellen = parameter_zellen(messung.geladen.einstellungen)
         self._a4_wunsch_hz = None
+        self._an_zuruecksetzen()  # Standbild nach Öffnen und Messungswechsel (UI-22)
         if neue_datei:
             self.plot.neue_datei()  # Bereiche zurück, Skalen bleiben (UI-6, R-073)
         self.plot.fadenkreuz.vergiss()
@@ -2081,6 +2165,10 @@ class AuswertenReiter(QWidget):
 
     def _zeige_cursor(self, zusatz: str = "") -> None:
         """Cursorzeile (Ansichten 1 bis 3, Werte aus den Daten); Ansicht 4 zeigt die Meldung."""
+        if self._animation_sichtbar():  # die Animation hat keinen Cursor: die Meldung bleibt
+            if self._cursor_aktiv:
+                self._setze_meldung(self._meldung, self._meldung_pfade)
+            return
         aufruf = self.plot.letzter_aufruf
         k = self.plot.fadenkreuz.index
         if aufruf is None or k is None:  # z. B. Ansicht 4: kein Cursor, die Meldung kehrt zurück
@@ -2106,6 +2194,8 @@ class AuswertenReiter(QWidget):
             return
         if self._a4_geladen:
             self.auswahl_sf.setze_frequenz(f_hz, melden=self._ansicht == 4)
+            if self._ansicht != 4:
+                self._an_frequenz_gewechselt()  # ohne Signal gesetzt: Standbild (F-A4)
         else:
             self._a4_wunsch_hz = f_hz
         self._zeige_cursor(f" · {t.symbol('fertig')} Frequenz der Schwingform gesetzt")
@@ -2334,6 +2424,11 @@ class AuswertenReiter(QWidget):
         self.punkt_gruppe.setVisible(nr in (1, 2))
         self.tabellen.setVisible(nr == 3)
         self._plot_seite.refresh()  # Plot hat vor dem Zeichnen seine endgültige Größe (pt-Maße)
+        self._zeige_darstellungsseite()
+        if nr == 4:
+            # Ansicht 5 hat die Cachegröße auf den Serienbedarf gesetzt: im Modus Animation
+            # gelten beim Zurückkehren wieder drei Kanalpaare (Plan P-AUSW3 2.3)
+            self._cache_groessen_anpassen()
         if nr == 3:
             self._splitter_anwenden()
             # Qt verteilt die Höhen nach dem Einblenden der Tabelle noch einmal: danach erneut.
@@ -2352,21 +2447,29 @@ class AuswertenReiter(QWidget):
         self._namen_box.setVisible(not kompakt)
         self.achsenleiste.setze_kompakt(kompakt)
         self.auswahl_diagramm.setze_kompakt(kompakt)
+        self.animationsleiste.setze_kompakt(kompakt)
         self._plot_spalte.setMinimumHeight(self._plot_min_hoehe())
+        if self._an_daten is not None and self._animation_sichtbar():
+            self._an_kopf_setzen(self._an_daten, self._an_optionen(self._an_daten))
 
     def _plot_min_hoehe(self) -> int:
         """Mindesthöhe des Plotbereichs: Plot (:data:`PLOT_MIN_HOEHE_SPLITTER_PX`) plus Leiste.
 
-        Die Achsenleiste liegt über der Plotfläche und bricht bei Platzmangel um; sie braucht
-        ihre Höhe vollständig (Brief K1-AUSW2: zuerst schrumpft der Plot, nie die Leiste).
+        Die Achsenleiste liegt über der Plotfläche, die Bedienleiste der Animation (AH) darunter;
+        beide brechen bei Platzmangel um und brauchen ihre Höhe vollständig (Brief K1-AUSW2:
+        zuerst schrumpft der Plot, nie die Leiste).
         """
-        leiste = self.achsenleiste
+        return PLOT_MIN_HOEHE_SPLITTER_PX + sum(
+            self._leisten_hoehe(leiste) for leiste in (self.achsenleiste, self.animationsleiste)
+        )
+
+    def _leisten_hoehe(self, leiste: QWidget) -> int:
+        """Höhe einer umbrechenden Leiste (AG, AH) bei der Breite der Plotspalte; 0 ausgeblendet."""
         if not leiste.isVisibleTo(self):
-            return PLOT_MIN_HOEHE_SPLITTER_PX
+            return 0
         layout = leiste.layout()
         breite = self._plot_spalte.width() or leiste.width() or leiste.sizeHint().width()
-        hoehe = layout.heightForWidth(breite) if layout is not None else leiste.sizeHint().height()
-        return PLOT_MIN_HOEHE_SPLITTER_PX + hoehe
+        return layout.heightForWidth(breite) if layout is not None else leiste.sizeHint().height()
 
     def _achsen_geaendert(self) -> None:
         """Eingabe in der Achsenleiste (gültig): genau einmal neu zeichnen (UI-37)."""
@@ -2827,6 +2930,11 @@ class AuswertenReiter(QWidget):
                 referenz_text=phase_ref_text(self._phase_referenz(), self._annahmen()),
                 referenz_erklaerung=kennzeichen_beschreibung("phase", self._annahmen()),
             )
+            self.auswahl_sf.setze_absolut_text(
+                absolut_text(self._phase_referenz(), self._annahmen()),
+                kennzeichen_beschreibung("phase", self._annahmen()),
+            )
+            self.auswahl_sf.setze_bildrate(self.animation.bildrate)
             self._a4_geladen = True
         else:
             self.auswahl_sf.setze_spitzen(eintraege)
@@ -2853,6 +2961,14 @@ class AuswertenReiter(QWidget):
             # schon Ansicht 4 zeigt; sonst letzter gültiger Stand oder Platzhalter.
             self._fremden_inhalt_ersetzen(pruefung.fehler)
             return
+        if sel.modus_animation() and (
+            self._an_f_hz is not None and sel.frequenz_hz() != self._an_f_hz
+        ):
+            self._an_frequenz_gewechselt()  # Frequenz ohne Signal geändert: Standbild (F-A4)
+        if sel.modus_animation():
+            self._zeichne_animation(sel, daten)
+            return
+        self._zeige_darstellungsseite()
         sd = schwingform_daten(
             daten,
             self._cache,
@@ -2901,6 +3017,351 @@ class AuswertenReiter(QWidget):
         sel.setze_hinweise(hinweise)
         self._a4_letzt = (sd, opt, beschreibung, kopf, hinweise)
 
+    # --- Ansicht 4: Animation (R-071, Plan P-AUSW3 AN7) ----------------------------------------
+
+    def _animation_aktiv(self) -> bool:
+        """Ansicht 4 im Modus „Animation“ (unabhängig davon, ob schon gezeichnet wurde)."""
+        return self._ansicht == 4 and self.auswahl_sf.modus_animation()
+
+    def _animation_sichtbar(self) -> bool:
+        """Die Animationsfläche ersetzt die Plotfläche (Modus Animation, Bild gezeichnet)."""
+        return self._animation_aktiv() and self._an_gezeichnet
+
+    def _zeige_darstellungsseite(self, animation: bool | None = None) -> None:
+        """Zeigt in AE die Animationsfläche samt AH oder die Plotfläche.
+
+        Ohne Angabe gilt der Zustand (Ansicht 4, Modus Animation, Bild gezeichnet). Nach dem
+        Umbau folgt ``updateGeometry`` (KONVENTIONEN); die Leiste hat ihre Größe vor dem Zeichnen,
+        damit die Fläche ihre endgültige Größe kennt (Texte werden in pt umbrochen).
+        """
+        zeige = self._animation_sichtbar() if animation is None else animation
+        # Der Kopf der Animation trägt die Pflichtkennzeichen M8 und M12 dauerhaft: er bricht um,
+        # statt am rechten Rand abgeschnitten zu werden (die Kopfzeilen der Ansichten 1 bis 5 nicht)
+        self.lbl_plotkopf.setWordWrap(zeige)
+        self.lbl_plotkopf.updateGeometry()
+        self.plot.setVisible(not zeige)
+        self.animation.setVisible(zeige)
+        self.animationsleiste.setVisible(zeige)
+        self.animationsleiste.updateGeometry()
+        self._plot_spalte.updateGeometry()
+        self._plot_spalte.setMinimumHeight(self._plot_min_hoehe())
+        layout = self._plot_spalte.layout()
+        if layout is not None:
+            layout.activate()  # endgültige Geometrie vor dem Zeichnen (Standbild wie Animation)
+
+    def _verbinde_animation(self) -> None:
+        """Verbindet Animationsfläche und Bedienleiste AH mit dem Reiter."""
+        a, ah = self.animation, self.animationsleiste
+        a.phase_geaendert.connect(self._an_phase_geaendert)
+        a.wiedergabe_geaendert.connect(self._an_wiedergabe_geaendert)
+        a.blick_geaendert.connect(self._an_beschreibung_aktualisieren)
+        a.langsam_geaendert.connect(self._an_langsam_geaendert)
+        a.fehler.connect(self._an_zeichenfehler)
+        ah.abspielen_geklickt.connect(a.umschalten)
+        ah.schritt_geklickt.connect(lambda vorzeichen: a.schritt(vorzeichen))
+        ah.phase_gewaehlt.connect(lambda grad, ziehend: a.setze_theta_grad(grad, ziehend=ziehend))
+        ah.phase_losgelassen.connect(a.phase_losgelassen)
+        ah.schrittweite_geaendert.connect(a.setze_schritt_grad)
+        ah.tempo_geaendert.connect(a.setze_tempo_hz)
+        ah.ueberhoehung_regler.connect(self._an_ueberhoehung_regler)
+        ah.ueberhoehung_losgelassen.connect(self._an_aktualisiere)
+        ah.skalierung_eingegeben.connect(self._an_skalierung_eingegeben)
+        ah.ansicht_zurueck.connect(a.ansicht_zuruecksetzen)
+        ah.blick_gewaehlt.connect(self._an_blick_gewaehlt)
+        ah.aktion_gewaehlt.connect(a.fuehre_aus)
+        ah.setze_schrittweite(a.uhr.schritt_grad)
+        ah.setze_tempo(a.uhr.tempo_hz)
+
+    def _annahmen_stufe2(self) -> AnnahmenStufe2:
+        """Annahmen der Stufe 2 (M12 …); bis zur Bestätigung die Voreinstellungen."""
+        return AnnahmenStufe2()
+
+    def _an_zuruecksetzen(self) -> None:
+        """Setzt die Animation zurück (neue Datei, andere Messung, Fehler): Standbild, leer."""
+        self.animation.leere()
+        self.auswahl_sf.setze_modus_standbild()
+        self._an_daten = None
+        self._an_schluessel = None
+        self._an_skalierung = None
+        self._an_farbbereich = Bereich()
+        self._an_gezeichnet = False
+        self._an_f_hz = None
+        self._an_blick_ebene = None
+        self._an_hinweis_af = ""
+        self._an_beschreibung_von = None
+        self._zeige_darstellungsseite(False)
+
+    def _an_modus_geaendert(self, animation: bool) -> None:
+        """Wechsel des Modus: pausiert, θ = 0 beim Eintritt; Standbild beim Austritt."""
+        sel = self.auswahl_sf
+        if animation:
+            self.animation.frequenz_gewechselt()  # Wiedergabe aus, θ = 0 (Brief 3.3)
+            self._an_f_hz = sel.frequenz_hz()
+            if self._cache is not None and self._cache.groesse < 3:
+                self._cache.setze_groesse(3)  # drei Kanalpaare (Plan 2.3)
+        else:
+            self.animation.leere()
+            self._an_gezeichnet = False
+            self._an_f_hz = None
+            self._zeige_darstellungsseite(False)
+            self._cache_groessen_anpassen()
+        self._sync_knoepfe()
+
+    def _an_frequenz_gewechselt(self) -> None:
+        """Frequenzwechsel: zurück ins Standbild, Wiedergabe aus, θ = 0 (F-A4, UI-22)."""
+        sel = self.auswahl_sf
+        if not sel.modus_animation():
+            return
+        self.animation.frequenz_gewechselt()
+        sel.setze_modus_standbild()
+        self._an_skalierung = None  # die automatische Überhöhung gilt je Linie
+        self._an_gezeichnet = False
+        self._an_f_hz = None
+        self.animation.leere()
+        self._zeige_darstellungsseite(False)
+        self._cache_groessen_anpassen()
+        self._sync_knoepfe()
+
+    def _an_optionen(self, daten: AnimationsDaten) -> AnimationsOptionen:
+        """Optionen der Animation aus AD und AH (Winkel und Blick ergänzt die Fläche)."""
+        sel = self.auswahl_sf
+        return AnimationsOptionen(
+            ueberhoehung=self._an_skalierung,
+            farbe="betrag" if sel.farbe() == "betrag" else "auslenkung",
+            farb_komponente=FARBE_SENKRECHT[sel.ebene()] if daten.komponente == "3D" else None,
+            farbbereich=self._an_farbbereich,
+            punktlabels=sel.punktlabels(),
+        )
+
+    def _an_fehler(self, text: str) -> None:
+        """Meldet einen erwarteten Fehler der Animation (AF); ohne Bild steht der Text in AE."""
+        self._setze_meldung(f"{t.symbol('fehler')} {text}")
+        if not self._an_gezeichnet:
+            self._leere_plot()
+            self.lbl_plotkopf.setText("")
+            self._ansichtstext = text
+
+    def _zeichne_animation(self, sel: AuswahlSchwingform, md: Any) -> None:
+        """Zeichnet die Animation: Daten (bei Bedarf neu), Seite, Kopf, Bedienleiste, Hinweise.
+
+        Wechsel von Komponente, Bezug, Größe oder Farbe berechnen die Daten neu und behalten Blick
+        und Winkel (Plan 4.1). Erwartete Fehler (kein Punkt mit gültiger Phase, ungültiger
+        Bezugspunkt) stehen in AF; ein früheres Bild bleibt dann stehen.
+        """
+        assert self._cache is not None
+        bezug_modus = sel.bezug_modus()
+        bezug = sel.bezug() if bezug_modus == "relativ" else None
+        groesse = sel.groesse_animation()
+        referenz = self._phase_referenz()
+        schluessel = (
+            self._cache,
+            sel.frequenz_hz(),
+            sel.komponente(),
+            groesse,
+            bezug_modus,
+            bezug,
+            referenz,
+        )
+        if self._an_daten is None or self._an_schluessel != schluessel:
+            try:
+                neu = animation_daten(
+                    md,
+                    self._cache,
+                    sel.frequenz_hz(),
+                    komponente=sel.komponente(),
+                    groesse=groesse,  # type: ignore[arg-type]
+                    bezug_modus=bezug_modus,  # type: ignore[arg-type]
+                    bezug=bezug,
+                    referenz=referenz,
+                    annahmen2=self._annahmen_stufe2(),
+                )
+            except DarstellungsFehler as fehler:
+                self._an_fehler(str(fehler))
+                return
+            alt = self._an_daten
+            if alt is not None and alt.groesse != neu.groesse:
+                # Größenwechsel Auslenkung ↔ Schnelle: die Bildgröße bleibt erhalten (F-S1)
+                self._an_skalierung = skalierung_nach_groessenwechsel(alt, neu, self._an_skalierung)
+            self._an_daten = neu
+            self._an_schluessel = schluessel
+        daten = self._an_daten
+        opt = self._an_optionen(daten)
+        try:
+            pruefe_farbbereich(daten, opt, self._an_farbbereich)
+        except AchsenFehler:  # gespeicherter Bereich passt nicht zu den neuen Daten: Auto
+            self._an_farbbereich = Bereich()
+            opt = self._an_optionen(daten)
+            self._setze_meldung(f"{t.symbol('warnung')} Farbbereich passte nicht mehr: Auto")
+        ebene = sel.ebene()
+        self._zeige_darstellungsseite(True)  # endgültige Größe vor dem Zeichnen
+        if self._an_blick_ebene != ebene:  # Blickvorgabe folgt der Projektionsebene (Brief 3.3)
+            self.animation.setze_blick_vorgabe(ebene)
+            self._an_blick_ebene = ebene
+        zeit = self.animation.uhr.theta_rad
+        beschreibung = animations_beschreibung(
+            self._dateiname(),
+            daten,
+            replace(opt, theta_rad=zeit, blick=self.animation.blick),
+            self._an_stil,
+        )
+        try:
+            zeichnung = self.animation.zeichne(daten, opt, beschreibung)
+        except ValueError as fehler:  # ungültige Optionen: Bild bleibt unverändert
+            self._an_fehler(str(fehler))
+            return
+        self._an_gezeichnet = True
+        self._an_beschreibung_von = (
+            daten,
+            replace(opt, theta_rad=zeit, blick=self.animation.blick),
+        )
+        self._an_synchronisiere(daten, opt, zeichnung.hinweise)
+        if bezug is None and bezug_modus == "relativ":
+            sel.setze_bezug_automatisch(bezug_automatisch_text(daten))
+        self._an_kopf_setzen(daten, opt)
+        self._zeige_darstellungsseite(True)
+
+    def _an_kopf_setzen(self, daten: AnimationsDaten, opt: AnimationsOptionen) -> None:
+        """Kopfzeile der Animation; unter 1200 px kurz („⚠ M8“, „⚠ M12“), Langtext im Tooltip."""
+        self.lbl_plotkopf.setText(
+            animations_kopf_text(
+                self._dateiname(), daten, opt, self._an_stil, kompakt=self._kompakt
+            )
+        )
+        self.lbl_plotkopf.setToolTip(animations_kopf_tooltip(daten, opt))
+        self.lbl_plotkopf.updateGeometry()
+
+    def _an_synchronisiere(
+        self, daten: AnimationsDaten, opt: AnimationsOptionen, hinweise: Sequence[str]
+    ) -> None:
+        """Zeigt Farbfelder, Überhöhung, Winkel und Hinweise nach den Daten und Optionen."""
+        sel = self.auswahl_sf
+        faktor, einheit = farb_anzeige(daten, opt)
+        von, bis = farb_feldtexte(self._an_farbbereich, faktor)
+        sel.setze_farbfelder(von, bis, einheit)
+        skalierung = effektive_ueberhoehung(daten, opt)
+        text = skalierung_text(daten, skalierung, self._an_stil)
+        self.animationsleiste.setze_skalierung(
+            text if daten.groesse == "schnelle" else f"Überhöhung {text}",
+            regler_aus_skalierung(self._an_skalierung, daten.s_auto),
+            feld_text(self._an_skalierung),
+            auto_moeglich=daten.s_auto is not None,
+            schnelle=daten.groesse == "schnelle",
+        )
+        self.animationsleiste.setze_nullpunkt(nullpunkt_satz(daten))
+        self.animationsleiste.setze_phase(self.animation.uhr.theta_rad)
+        sel.setze_hinweise(hinweise_text(daten, hinweise))
+        ueberlagerung = "\n".join(hinweise)
+        if ueberlagerung != self._an_hinweis_af:  # nur bei Änderung (kein Flackern in AF)
+            self._an_hinweis_af = ueberlagerung
+            if ueberlagerung:
+                self._setze_meldung(f"{t.symbol('warnung')} {ueberlagerung}")
+
+    def _an_aktualisiere(self, *, zoom_fest: bool = False) -> None:
+        """Teilaktualisierung nach Skalierung oder Farbbereich (ohne Neuaufbau der Figure).
+
+        ``zoom_fest``: der Überhöhungsregler wird gezogen, der Zoom der Box wird nicht neu gemessen.
+        """
+        daten = self._an_daten
+        if daten is None or not self._an_gezeichnet:
+            return
+        opt = self._an_optionen(daten)
+        try:
+            self.animation.aktualisiere(opt, zoom_fest=zoom_fest)
+        except ValueError as fehler:
+            self._an_fehler(str(fehler))
+            return
+        zeichnung = self.animation.zeichnung
+        self._an_synchronisiere(daten, opt, zeichnung.hinweise if zeichnung is not None else ())
+        self._an_beschreibung_aktualisieren()
+
+    def _an_beschreibung_aktualisieren(self) -> None:
+        """Textalternative nach Winkel-, Blick- oder Zustandswechsel (nicht je Wiedergabebild).
+
+        Ein unveränderter Stand (Winkel, Blick, Skalierung, Farbbereich, Daten) rechnet nichts
+        neu: Anhalten meldet Winkel und Wiedergabe getrennt.
+        """
+        daten = self._an_daten
+        if daten is None or not self._an_gezeichnet or self.animation.laeuft:
+            return
+        opt = replace(
+            self._an_optionen(daten),
+            theta_rad=self.animation.uhr.theta_rad,
+            blick=self.animation.blick,
+        )
+        stand = (daten, opt)
+        if self._an_beschreibung_von == stand:
+            return
+        self._an_beschreibung_von = stand
+        self.animation.setze_beschreibung(
+            animations_beschreibung(self._dateiname(), daten, opt, self._an_stil)
+        )
+
+    def _an_phase_geaendert(self, theta_rad: float) -> None:
+        """Winkel geändert; der Slot bleibt kurz (seine Zeit geht ins Restintervall)."""
+        self.animationsleiste.setze_phase(theta_rad)
+        if not self.animation.laeuft:
+            self._an_beschreibung_aktualisieren()
+
+    def _an_wiedergabe_geaendert(self, laeuft: bool) -> None:
+        """Abspielen/Pause: Beschriftung des Knopfs; nach dem Anhalten die Textalternative."""
+        self.animationsleiste.setze_wiedergabe(laeuft)
+        if not laeuft:
+            self._an_beschreibung_aktualisieren()
+
+    def _an_langsam_geaendert(self, langsam: bool) -> None:
+        """Meldung in AF „Wiedergabe langsamer als eingestellt“ (ändert die Canvasgröße nicht)."""
+        text = f"{t.symbol('warnung')} {TEXT_LANGSAM}"
+        if langsam:
+            self._setze_meldung(text)
+        elif self._meldung == text:
+            self._setze_meldung("")
+
+    def _an_zeichenfehler(self, text: str) -> None:
+        """Fehler beim Zeichnen der Animation (unerwartet): Fehlerband, Wiedergabe ist aus."""
+        self._zeichenfehler(text)
+
+    def _an_ueberhoehung_regler(self, wert: int) -> None:
+        """Überhöhungsregler: Faktor der automatischen Skalierung (Teilaktualisierung)."""
+        if self._an_daten is None:
+            return
+        self._an_skalierung = skalierung_aus_regler(wert, self._an_daten.s_auto)
+        # Beim Ziehen bleibt der Zoom der Box fest; die Messung folgt beim Loslassen.
+        self._an_aktualisiere(zoom_fest=self.animationsleiste.regler_ueberhoehung.isSliderDown())
+
+    def _an_skalierung_eingegeben(self, text: str) -> None:
+        """Feld „Skalierung“: Enter oder Fokuswechsel; leer = automatisch, sonst eine Zahl > 0."""
+        try:
+            wert = lese_skalierung(text)
+        except AchsenFehler as fehler:
+            self.animationsleiste.zeige_skalierungsfehler(str(fehler))
+            self._setze_meldung(f"{t.symbol('fehler')} {fehler}")
+            return
+        self._an_skalierung = wert
+        self._an_aktualisiere()
+
+    def _an_farbfeld_eingegeben(self, seite: str, text: str) -> None:
+        """Farbbereich (von/bis in Anzeigeeinheit): zeichnet erst bei Enter oder Fokuswechsel."""
+        daten = self._an_daten
+        if daten is None or not self._an_gezeichnet:
+            return
+        opt = self._an_optionen(daten)
+        faktor, _einheit = farb_anzeige(daten, opt)
+        try:
+            neu = lese_farbfeld(text, seite, self._an_farbbereich, faktor)
+            pruefe_farbbereich(daten, opt, neu)
+        except AchsenFehler as fehler:
+            self.auswahl_sf.zeige_farbfehler(seite, str(fehler))
+            return
+        self._an_farbbereich = neu
+        self._an_aktualisiere()
+
+    def _an_blick_gewaehlt(self, name: str) -> None:
+        """Knöpfe „Aufsicht xy“, „xz“, „yz“, „Isometrisch“ (UI-23)."""
+        self.animation.setze_blick_vorgabe(name)
+
+    def _an_bildrate_geaendert(self, bildrate: float) -> None:
+        self.animation.setze_bildrate(bildrate)
+
     # --- Ansicht 5: eigenes Diagramm aus Serien (R-058, R-059; P-AUSW2 S7) ---------------------
 
     def _kurzname(self, messung_id: int) -> str:
@@ -2935,7 +3396,9 @@ class AuswertenReiter(QWidget):
         for messung in self._messungen.bereite():
             if messung.cache is None:
                 continue
-            ziel = max(2, min(4, bedarf.get(messung.id, 0)))
+            # Die Animation (3D) braucht drei Paare der aktiven Messung (Plan P-AUSW3 2.3)
+            untergrenze = 3 if messung is self._messungen.aktive and self._animation_aktiv() else 2
+            ziel = max(untergrenze, min(4, bedarf.get(messung.id, 0)))
             if messung.cache.groesse != ziel:
                 messung.cache.setze_groesse(ziel)
 

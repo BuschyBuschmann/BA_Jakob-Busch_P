@@ -20,7 +20,7 @@ bewegter Punkt sein (A-2); Voreinstellung in 3D ist der bewegte Punkt mit der gr
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 import numpy as np
@@ -39,7 +39,7 @@ from ldv_automation.auswertung.animation import (
     verschiebung,
     waehle_bezugspunkt_3d,
 )
-from ldv_automation.auswertung.annahmen import AnnahmeEintrag
+from ldv_automation.auswertung.annahmen import ANNAHME, AnnahmeEintrag, AnnahmenStufe2
 from ldv_automation.auswertung.daten import (
     BoolArray,
     ComplexArray,
@@ -465,6 +465,28 @@ def _einheit_anim(einheit_v: str, groesse: Groesse) -> str:
     return "m/N" if "N" in einheit_v else "m"
 
 
+def _m12_eintrag(annahmen2: AnnahmenStufe2 | None) -> tuple[AnnahmeEintrag, ...]:
+    """Eintrag M12 aus den Annahmen der Stufe 2 (leer ohne Angabe: M12 bleibt Pflicht).
+
+    Die Animation wendet die Drehung D (``v_geo = D·v``) nicht an. Ist D nicht exakt die
+    Einheitsmatrix, wird der Status deshalb als offen geführt und der Wert nennt, dass D nicht
+    dargestellt wird (fail-closed: das Kennzeichen M12 bleibt, auch bei bestätigtem Status).
+    """
+    if annahmen2 is None:
+        return ()
+    eintraege = tuple(e for e in annahmen2.eintraege() if e.nr == "M12")
+    if np.array_equal(annahmen2.drehung, np.eye(3)):
+        return eintraege
+    return tuple(
+        replace(
+            e,
+            wert="D ≠ Einheitsmatrix, in der Animation nicht angewendet",
+            status=ANNAHME,
+        )
+        for e in eintraege
+    )
+
+
 def animation_daten(
     daten: Messdaten,
     cache: PaarCache,
@@ -478,6 +500,7 @@ def animation_daten(
     referenz: str | None = None,
     quelle: Quelle = "cph",
     alpha: float = ALPHA_VORGABE,
+    annahmen2: AnnahmenStufe2 | None = None,
 ) -> AnimationsDaten:
     r"""Daten der Animation bei ``f_wahl_hz``.
 
@@ -513,6 +536,11 @@ def animation_daten(
         Größte angezeigte Strecke in Einheiten von :math:`d_\mathrm{NN}` (FG-04 3.5);
         :math:`d_\mathrm{NN}` ist räumlich (FG-04 Nachtrag 2, Abschnitt 4) und läuft nur über
         Nicht-Duplikate (FG-04 Nachtrag 3).
+    annahmen2 : AnnahmenStufe2, optional
+        Annahmen der Stufe 2: Der Status von M12 (Komponenten im Geometrie-KS) kommt als Eintrag
+        in :attr:`AnimationsDaten.annahmen`, damit das Kennzeichen M12 genau bei bestätigtem
+        Status entfällt (analog M8; Nutzerentscheidung 2026-11-18). Ohne Angabe bleibt es
+        Pflicht.
 
     Raises
     ------
@@ -665,5 +693,5 @@ def animation_daten(
         kohaerenz_min=g2_min,
         phase_gueltig=True,
         hinweise=sf.hinweise,
-        annahmen=sf.annahmen,
+        annahmen=sf.annahmen + _m12_eintrag(annahmen2),
     )

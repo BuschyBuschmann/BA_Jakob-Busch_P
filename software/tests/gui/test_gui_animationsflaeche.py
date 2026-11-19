@@ -467,9 +467,28 @@ def test_messung_der_bildzeit_und_hinweis_langsam(qtbot: QtBot) -> None:
     assert f.bildzeit_median_s == pytest.approx(0.25)
     assert f.bildrate == 10  # nie still herabgesetzt
     assert f._timer.interval() == 0  # kein Restintervall: Zeichnen dauert länger als der Takt
-    f.pausiere()
+    f.pausiere()  # der Hinweis gilt nur für die laufende Wiedergabe: beim Pausieren zurück
+    assert not f.langsam and meldungen == [True, False]
     f.abspielen()  # neuer Lauf: Messung beginnt neu
     assert not f.langsam and meldungen == [True, False] and f.bildzeit_median_s is None
+
+
+def test_hinweis_langsam_endet_auch_beim_einzelschritt_aus_der_wiedergabe(qtbot: QtBot) -> None:
+    f = AnimationsFlaeche(
+        THESIS_STIL, zeit=Uhr(), messzeit=Uhr(schritt=0.25), bildrate=10, blick_vorgabe="iso"
+    )
+    qtbot.addWidget(f)
+    f.resize(640, 480)
+    f.show()
+    f.zeichne(_daten(), AnimationsOptionen())
+    meldungen: list[bool] = []
+    f.langsam_geaendert.connect(meldungen.append)
+    f.abspielen()
+    for _ in range(BILDZEIT_MINDEST):
+        f.takt()
+    assert f.langsam and meldungen == [True]
+    f.schritt(1)  # hält die Wiedergabe an
+    assert not f.laeuft and not f.langsam and meldungen == [True, False]
 
 
 def test_rechtzeitige_wiedergabe_meldet_nicht(qtbot: QtBot) -> None:

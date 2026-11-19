@@ -81,10 +81,10 @@ from ldv_automation.gui.animation_steuerung import (
     Stufe,
     frequenzwechsel,
     optionen_stufe,
-    taste_zu_aktion,
     verhalten,
     wende_an,
 )
+from ldv_automation.gui.animation_tasten import aktion_aus_tastenereignis
 from ldv_automation.gui.plotflaeche import NEUZEICHNEN_MS
 from ldv_automation.gui.stil import setze_eigenschaft
 
@@ -110,35 +110,6 @@ LANGSAM_PERIODENFAKTOR = 1.25
 erreicht: „langsam“ (vorläufiger Wert, bis zur Messung M2 am Messrechner)."""
 RASTE_WINKEL_EINHEIT = 120.0
 """``angleDelta`` einer Raste des Mausrads (Qt: 1/8 Grad, 15° je Raste = 120)."""
-
-_ZEICHEN_NAMEN: dict[int, str] = {
-    int(Qt.Key.Key_Space): "Space",
-    int(Qt.Key.Key_Left): "Left",
-    int(Qt.Key.Key_Right): "Right",
-    int(Qt.Key.Key_Up): "Up",
-    int(Qt.Key.Key_Down): "Down",
-    int(Qt.Key.Key_Plus): "+",
-    int(Qt.Key.Key_Minus): "-",
-    int(Qt.Key.Key_Home): "Home",
-}
-_PLUS_MINUS = frozenset({int(Qt.Key.Key_Plus), int(Qt.Key.Key_Minus)})
-
-
-def _modifikatoren(ereignis: QKeyEvent) -> frozenset[str]:
-    """Gedrückte Modifikatoren als Namen für ``taste_zu_aktion`` (Ziffernblock-Flag entfällt)."""
-    mods = ereignis.modifiers()
-    namen: set[str] = set()
-    if mods & Qt.KeyboardModifier.ShiftModifier:
-        namen.add("shift")
-    if mods & Qt.KeyboardModifier.ControlModifier:
-        namen.add("ctrl")
-    if mods & Qt.KeyboardModifier.AltModifier:
-        namen.add("alt")
-    if mods & Qt.KeyboardModifier.MetaModifier:
-        namen.add("meta")
-    if ereignis.key() in _PLUS_MINUS:
-        namen.discard("shift")  # „+“ liegt je nach Tastaturbelegung auf Umschalt
-    return frozenset(namen)
 
 
 class AnimationsFlaeche(QFrame):
@@ -380,11 +351,14 @@ class AnimationsFlaeche(QFrame):
         self._canvas.draw()  # type: ignore[no-untyped-call]
         return zeichnung
 
-    def aktualisiere(self, optionen: AnimationsOptionen | None = None) -> None:
+    def aktualisiere(
+        self, optionen: AnimationsOptionen | None = None, *, zoom_fest: bool = False
+    ) -> None:
         """Setzt Winkel, Blick und die übergebenen dynamischen Optionen (Teilaktualisierung).
 
         Ändert sich ein Teil, der den Aufbau betrifft (Farbe, Ruhelage, Kennzeichen), zeichnet
-        die Fläche vollständig neu.
+        die Fläche vollständig neu. Mit ``zoom_fest=True`` (Überhöhungsregler wird gezogen) bleibt
+        der Zoom der Box stehen, die Messung holt das nächste Aktualisieren nach.
 
         Raises
         ------
@@ -402,6 +376,7 @@ class AnimationsFlaeche(QFrame):
                 self._daten,
                 self._optionen(basis, Ereignis.STAND),
                 self._stil,
+                zoom_fest=zoom_fest,
             )
         except ValueError:
             # Aufbau geändert (Farbe, Kennzeichen …) oder Option ungültig: ein frisches Zeichnen
@@ -410,6 +385,11 @@ class AnimationsFlaeche(QFrame):
             return
         self._basis = basis
         self._canvas.draw()  # type: ignore[no-untyped-call]
+
+    def setze_beschreibung(self, beschreibung: str) -> None:
+        """Setzt die Textalternative (z. B. nach neuem Winkel oder Blick), ohne neu zu zeichnen."""
+        self._beschreibung = beschreibung
+        self._canvas.setAccessibleDescription(beschreibung)
 
     def leere(self) -> None:
         """Hält die Wiedergabe an und löscht die Darstellung (Figure leer)."""
@@ -497,6 +477,7 @@ class AnimationsFlaeche(QFrame):
             self._uhr.pause()
             if neu_zeichnen:
                 self._zeige(Ereignis.STAND, sofort=True)
+            self._setze_langsam(False)  # Hinweis „langsam“ gilt nur für die laufende Wiedergabe
             self.phase_geaendert.emit(self._uhr.theta_rad)
             self.wiedergabe_geaendert.emit(False)
 
@@ -817,16 +798,14 @@ class AnimationsFlaeche(QFrame):
 
     def _taste(self, ereignis: QKeyEvent) -> bool:
         """Tastenbelegung der Animation (UI-32); ``True`` = verbraucht."""
-        name = _ZEICHEN_NAMEN.get(ereignis.key())
-        if name is None:
-            return False
-        aktion = taste_zu_aktion(name, _modifikatoren(ereignis), fokus=True, modus_animation=True)
+        aktion = aktion_aus_tastenereignis(ereignis)
         if aktion is None:
             return False
-        self._fuehre_aus(aktion)
+        self.fuehre_aus(aktion)
         return True
 
-    def _fuehre_aus(self, aktion: Aktion) -> None:
+    def fuehre_aus(self, aktion: Aktion) -> None:
+        """Führt eine Tastenaktion aus (Fokus in der Fläche oder in einem Regler von AH)."""
         if aktion is Aktion.ABSPIELEN:
             self.umschalten()
             return
@@ -840,6 +819,7 @@ class AnimationsFlaeche(QFrame):
         """Timer anhalten, wenn die Uhr stand, voll zeichnen und Änderungen melden."""
         if lief and not self._uhr.laeuft:
             self._stoppe_timer()
+            self._setze_langsam(False)
             self.wiedergabe_geaendert.emit(False)
         self._zeige(Ereignis.STAND, sofort=True)
         if self._uhr.theta_rad != phase_vorher:

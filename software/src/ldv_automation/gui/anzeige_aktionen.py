@@ -32,6 +32,7 @@ __all__ = [
     "AKTIONS_TASTEN",
     "DATEIFILTER_BILD",
     "DATEIFILTER_EXPORT",
+    "TASTEN_KONTEXT",
     "TEXT_BILD_KEINE_DARSTELLUNG",
     "TEXT_EXPORT_LAEUFT",
     "TEXT_KEINE_ZULETZT",
@@ -56,6 +57,7 @@ __all__ = [
     "pruefdialog_zeilen",
     "stempel_ansicht",
     "svd_aus_pfaden",
+    "tasten_konflikte",
     "tooltip_mit_taste",
     "zuletzt_aktualisieren",
     "zuletzt_eintrag",
@@ -75,8 +77,63 @@ AKTIONS_TASTEN: Mapping[str, tuple[str, str]] = {
     "reiter_messen": ("Alt+1", "Alt+1"),
     "reiter_auswerten": ("Alt+2", "Alt+2"),
     "zoom": ("Home", "Pos1"),
+    # Animation (R-071, P-AUSW3 AN5/AN7): nur mit Fokus in der Animationsfläche bzw. der
+    # Bedienleiste AH und im Modus „Animation“ (Kontext „animation“ in :data:`TASTEN_KONTEXT`).
+    "animation_abspielen": ("Space", "Leertaste"),
+    "animation_phase_zurueck": ("Left", "←"),
+    "animation_phase_vor": ("Right", "→"),
+    "animation_phase_zurueck_grob": ("Ctrl+Left", "Strg+←"),
+    "animation_phase_vor_grob": ("Ctrl+Right", "Strg+→"),
+    "animation_elevation_plus": ("Up", "↑"),
+    "animation_elevation_minus": ("Down", "↓"),
+    "animation_azimut_minus": ("Shift+Left", "Umschalt+←"),
+    "animation_azimut_plus": ("Shift+Right", "Umschalt+→"),
+    "animation_zoom_plus": ("+", "+"),
+    "animation_zoom_minus": ("-", "\N{MINUS SIGN}"),
+    "animation_ansicht_zurueck": ("Home", "Pos1"),
 }
-"""Name → ``(Qt-Tastenfolge, Anzeige im Tooltip)``; einzige Quelle für Taste und Tooltip."""
+"""Name → ``(Qt-Tastenfolge, Anzeige im Tooltip)``; einzige Quelle für Taste und Tooltip.
+
+Die Einträge ``animation_*`` entsprechen
+:data:`~ldv_automation.gui.animation_steuerung.ANIMATIONS_TASTEN` (ein Test erzwingt die
+Gleichheit; dieses Modul bleibt ohne NumPy- und matplotlib-Import)."""
+
+TASTEN_KONTEXT: Mapping[str, str] = {
+    name: (
+        "animation" if name.startswith("animation_") else "plot" if name == "zoom" else "fenster"
+    )
+    for name in AKTIONS_TASTEN
+}
+"""Wirkungsbereich je Taste: ``"fenster"`` (überall im Reiter), ``"plot"`` (Fokus in der
+Plotfläche, Zoom zurücksetzen) und ``"animation"`` (Fokus in der Animationsfläche bzw. AH, Modus
+Animation; in AH leitet der Phasenregler alle, Tempo- und Überhöhungsregler nur Pos1 und
+Leertaste um). Dieselbe Tastenfolge darf nur in verschiedenen Bereichen doppelt stehen (Pos1 in
+``plot`` und ``animation``: getrennte Teilbäume, ``WidgetWithChildrenShortcut``);
+:func:`tasten_konflikte` prüft das."""
+
+
+def tasten_konflikte() -> tuple[tuple[str, str], ...]:
+    """Paare von Aktionen mit gleicher Tastenfolge, die einander im Weg stehen.
+
+    Zwei Aktionen konkurrieren, wenn ihre Tastenfolge gleich ist und ihre Bereiche
+    (:data:`TASTEN_KONTEXT`) sich überschneiden: gleicher Bereich, oder einer der beiden gilt im
+    ganzen Fenster. ``plot`` und ``animation`` liegen in getrennten Teilbäumen.
+
+    Returns
+    -------
+    tuple of tuple of str
+        Namenspaare (``name_a < name_b``); leer, wenn die Belegung konfliktfrei ist.
+    """
+    namen = sorted(AKTIONS_TASTEN)
+    konflikte: list[tuple[str, str]] = []
+    for i, a in enumerate(namen):
+        for b in namen[i + 1 :]:
+            if AKTIONS_TASTEN[a][0] != AKTIONS_TASTEN[b][0]:
+                continue
+            ka, kb = TASTEN_KONTEXT[a], TASTEN_KONTEXT[b]
+            if ka == kb or "fenster" in (ka, kb):
+                konflikte.append((a, b))
+    return tuple(konflikte)
 
 
 def tooltip_mit_taste(text: str, name: str) -> str:

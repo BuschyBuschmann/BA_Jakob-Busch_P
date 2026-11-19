@@ -24,16 +24,18 @@ from __future__ import annotations
 
 import math
 import textwrap
-from collections.abc import Mapping
-from dataclasses import dataclass, field
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field, replace
 from typing import Any, Literal
 
 import numpy as np
 from matplotlib.colors import Normalize, TwoSlopeNorm
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
-from matplotlib.ticker import FuncFormatter, NullFormatter
+from matplotlib.ticker import FuncFormatter, MaxNLocator, NullFormatter
+from mpl_toolkits.mplot3d import proj3d
 
+from ldv_automation.auswertung.annahmen import AnnahmeEintrag
 from ldv_automation.auswertung.daten import FloatArray
 
 from .achsen import Bereich
@@ -60,6 +62,7 @@ __all__ = [
     "effektive_ueberhoehung",
     "farb_norm",
     "farbskala",
+    "ist_bestaetigt",
     "kennzeichen_texte",
     "nullpunkt_satz",
     "ohne_nachbarabstand",
@@ -77,9 +80,33 @@ unscharf). Die Grenzen liegen symmetrisch um den Mittelwert der Daten."""
 
 _ELEV_AUFSICHT_GRAD = 89.0  # ab dieser Elevation entfallen die z-Beschriftungen
 _RAND = 0.05  # Rand je Seite als Anteil der Spannweite
-_BREITE_3D = 0.70  # Anteil der 3D-Achse an der nutzbaren Breite
-_SPALTE_X = 0.72
-_SPALTE_B = 0.27
+_SPALTE_B_STUFEN = (0.31, 0.35, 0.40, 0.45)
+"""Breite der rechten Spalte (Pflichtangaben, Zeichenerklärung) als Anteil der nutzbaren Breite;
+bei kleiner Höhe wird die nächstbreitere Stufe gewählt, bis beide Blöcke untereinander passen."""
+_SPALTE_RAND = 0.01  # Anteil der nutzbaren Breite am rechten Rand der Spalte
+_Z_LUECKE_SCHRIFT = 1.0
+"""Lücke zwischen der Beschriftung der 3D-Achse (z-Ticks, z-Titel) und der Spalte, in
+Schriftgrößen (UI-A2)."""
+_FARBBAND_SCHRIFT = 6.2
+"""Höhe von Farbleiste, Ticks und Titel unter der 3D-Achse, in Schriftgrößen (UI-A1)."""
+_FARBBALKEN_SCHRIFT = 1.0  # Höhe des Farbbalkens in Schriftgrößen
+_FARBBALKEN_UNTEN_SCHRIFT = 4.4  # Platz unter dem Balken für Ticks und Titel in Schriftgrößen
+_Z_TICK_ABSTAND_SCHRIFT = 1.7  # kleinster Abstand zweier z-Tick-Beschriftungen in Schriftgrößen
+_KOMPAKT_HOEHE_ZOLL = 3.6
+"""Kompakte Stufe (Figure niedriger als :data:`_KOMPAKT_HOEHE_ZOLL`, z. B. die Animationsfläche
+bei 1100 x 680 px; schmale, aber hohe Figures wie A5 bleiben normal): Schrift höchstens
+9 pt, Pflichtangaben ohne Leerzeilen (hängender Einzug), schmale Farbleiste am Fuß der rechten
+Spalte (die 3D-Achse behält die volle Höhe); die Spalte reicht neben dem Kopf bis zum oberen
+Rand, solange der Kopf nicht in sie ragt."""
+_KOMPAKT_SCHRIFT_PT = 9.0
+_ZOOM_GRUND_MAX = 1.5
+_ZOOM_GRUND_MIN = 0.5  # passt die Beschriftung auch bei 1 nicht ins Rechteck, wird die Box kleiner
+"""Obergrenze der Grundvergrößerung der 3D-Box (``set_box_aspect(..., zoom=)``), die
+:func:`_passe_zoom_an` je Blick so wählt, dass die Box die Achse füllt (UI-B1); sie wird mit dem
+Zoom des Blicks multipliziert."""
+_FARBBALKEN_UNTEN_KOMPAKT_SCHRIFT = 3.9  # Platz für Zahlen und Titel unter dem schmalen Balken
+_FARBBALKEN_KOMPAKT_SCHRIFT = 0.55  # Balkenhöhe in Schriftgrößen (kompakt)
+_WORST_THETA_GRAD = 359.9  # längster Winkeltext: Grundlage der reservierten Texthöhe
 _PRAEFIXE = ((0, ""), (-3, "m"), (-6, "µ"), (-9, "n"), (-12, "p"))
 _BUCHSTABEN = ("X", "Y", "Z")
 _MAL = "\N{MULTIPLICATION SIGN}"
@@ -233,9 +260,11 @@ def kennzeichen_texte(
     Bei absolutem Bezug gilt M8, im 3D-Modus M12; ein Bild ohne diese Kennzeichen entsteht nicht.
     Ein vom Aufrufer gesetzter Text hat Vorrang; ein leerer oder nur aus Leerraum bestehender
     Text gilt als nicht gesetzt und unterdrückt kein Pflichtkennzeichen (FG-04 Nachtrag 2: ein
-    Bild ohne diese Kennzeichen entsteht nicht). M8 entfällt nur, wenn die Annahmenliste der
-    Daten M8 als bestätigt führt (die Oberfläche ändert dann nichts, UI-11); M12 steht nicht in
-    dieser Liste (nur in ``AnnahmenStufe2``, die die Daten nicht tragen) und gilt im 3D-Modus
+    Bild ohne diese Kennzeichen entsteht nicht). M8 und M12 entfallen nur, wenn die
+    Annahmenliste der Daten sie ausdrücklich als bestätigt führt (Status beginnt mit
+    „bestätigt“, :func:`ist_bestaetigt`; die Oberfläche ändert dann nichts, UI-11);
+    M12 kommt aus ``AnnahmenStufe2`` (``animation_daten(..., annahmen2=...)``,
+    Nutzerentscheidung 2026-11-18); ohne Eintrag oder bei offenem Status gilt M12 im 3D-Modus
     immer.
     """
     phase = opt.kennzeichen_phase
@@ -243,14 +272,25 @@ def kennzeichen_texte(
         phase = None
     if phase is None and daten.bezug_modus == "absolut":
         m8 = [a for a in daten.annahmen if a.nr == "M8"]
-        if not m8 or any(a.ist_annahme for a in m8):
+        if not m8 or not all(ist_bestaetigt(a) for a in m8):
             phase = KENNZEICHEN_M8
     koordinaten = opt.kennzeichen_koordinaten
     if koordinaten is not None and not koordinaten.strip():
         koordinaten = None
     if koordinaten is None and daten.komponente == "3D":
-        koordinaten = KENNZEICHEN_M12
+        m12 = [a for a in daten.annahmen if a.nr == "M12"]
+        if not m12 or not all(ist_bestaetigt(a) for a in m12):
+            koordinaten = KENNZEICHEN_M12
     return phase, koordinaten
+
+
+def ist_bestaetigt(eintrag: AnnahmeEintrag) -> bool:
+    """Ausdrücklicher Bestätigungsvermerk: Status beginnt mit „bestätigt“ (fail-closed).
+
+    Groß-/Kleinschreibung und führender Leerraum zählen nicht; jeder andere Text („Annahme“,
+    „offen“ …) lässt das Kennzeichen stehen. Gilt nur für die Animation.
+    """
+    return eintrag.status.strip().casefold().startswith("bestätigt")
 
 
 def skaliere_einheit(wert: float, einheit: str) -> tuple[float, str]:
@@ -483,10 +523,24 @@ def scatter_positionen(zeichnung: Zeichnung) -> FloatArray:
 # --- Zeichnen ---------------------------------------------------------------------------------
 
 
-def _text_spalte(texte: tuple[str, ...], stil: Plotstil, spalte_pt: float) -> str:
-    """Umbrochener Block der Pflichtangaben (jede Angabe und jede Zeile darin beginnt neu)."""
+def _text_spalte(
+    texte: tuple[str, ...], stil: Plotstil, spalte_pt: float, kompakt: bool = False
+) -> str:
+    """Umbrochener Block der Pflichtangaben.
+
+    Jede Angabe und jede Zeile darin beginnt neu; zwischen den Angaben steht eine Leerzeile
+    (klare Trennung, UI-A4).
+    """
     zeichen = max(int((spalte_pt - 4.0) / (0.55 * stil.schrift_pt)), 8)
-    return "\n".join(textwrap.fill(zeile, zeichen) for t in texte for zeile in t.split("\n"))
+    if kompakt:  # keine Leerzeilen: jede Angabe beginnt linksbündig, Folgezeilen sind eingerückt
+        return "\n".join(
+            textwrap.fill(zeile, zeichen, subsequent_indent="  ")
+            for t in texte
+            for zeile in t.split("\n")
+        )
+    return "\n\n".join(
+        "\n".join(textwrap.fill(zeile, zeichen) for zeile in t.split("\n")) for t in texte
+    )
 
 
 def _skala_anpassen(
@@ -507,12 +561,15 @@ def _skala_anpassen(
         groesse = "Auslenkung" if daten.groesse == "auslenkung" else "Schnelle"
         titel = achsentitel(f"{groesse} {_BUCHSTABEN[komp]}", einheit)
     else:
-        titel = achsentitel(
-            "Betrag der Auslenkung" if daten.groesse == "auslenkung" else "Betrag der Schnelle",
-            einheit,
-        )
+        if z.hilfsobjekte["kompakt"]:
+            lang = "Betrag"
+        else:
+            lang = (
+                "Betrag der Auslenkung" if daten.groesse == "auslenkung" else "Betrag der Schnelle"
+            )
+        titel = achsentitel(lang, einheit)
     cb.set_label(titel, fontsize=stil.schrift_pt)
-    cb.ax.yaxis.set_major_formatter(
+    cb.ax.xaxis.set_major_formatter(
         FuncFormatter(lambda w, _p: tick_text(w * faktor, dezimalkomma=stil.dezimalkomma))
     )
     z.hilfsobjekte["farbkomponente"] = komp
@@ -520,13 +577,42 @@ def _skala_anpassen(
     z.hilfsobjekte["farbtitel"] = titel
 
 
+def _z_laenge_pt(ax: Any) -> float:
+    """Kürzeste Bildschirmlänge einer senkrechten Kante der Achsenbox in pt (konservativ)."""
+    matrix = ax.get_proj()
+    (x0, x1), (y0, y1), (z0, z1) = ax.get_xlim3d(), ax.get_ylim3d(), ax.get_zlim3d()
+    k = 72.0 / float(ax.figure.dpi)
+    laengen: list[float] = []
+    for x_, y_ in ((x0, y0), (x0, y1), (x1, y0), (x1, y1)):
+        unten = proj3d.proj_transform(x_, y_, z0, matrix)
+        oben = proj3d.proj_transform(x_, y_, z1, matrix)
+        p = ax.transData.transform([unten[:2], oben[:2]])
+        laengen.append(float(np.hypot(*(p[1] - p[0]))) * k)
+    return min(laengen)
+
+
 def _z_achse(ax: Any, sichtbar: bool, stil: Plotstil) -> None:
-    """Beschriftung der z-Achse ein- oder ausblenden.
+    """Beschriftung der z-Achse ein- oder ausblenden und die Tick-Zahl begrenzen.
 
     In der Aufsicht (Elevation nahe ±90°) fällt die z-Achse in einen Punkt; ihre Ticks lägen
-    übereinander und wären unlesbar.
+    übereinander und wären unlesbar. Bei einer ebenen Platte ist die z-Achse im Bild kurz: die
+    Zahl der Ticks richtet sich nach der Bildschirmlänge der Achse (höchstens ein Tick je
+    :data:`_Z_TICK_ABSTAND_SCHRIFT` Schriftgrößen); reicht sie nicht für zwei Ticks, entfallen
+    Ticks und Titel (UI-A2).
     """
+    ticks = MaxNLocator(nbins=1)
     if sichtbar:
+        erlaubt = int(_z_laenge_pt(ax) // (_Z_TICK_ABSTAND_SCHRIFT * stil.schrift_pt)) + 1
+        unten, oben = sorted(float(g) for g in ax.get_zlim3d())
+        sichtbar = False
+        for nbins in range(min(erlaubt - 1, 6), 0, -1):  # möglichst viele Ticks, die passen
+            kandidat = MaxNLocator(nbins=nbins)
+            werte = np.asarray(kandidat.tick_values(unten, oben), dtype=np.float64)
+            if int(np.sum((werte >= unten) & (werte <= oben))) <= erlaubt:
+                ticks, sichtbar = kandidat, True
+                break
+    if sichtbar:
+        ax.zaxis.set_major_locator(ticks)
         ax.zaxis.set_major_formatter(dezimalkomma_formatter(dezimalkomma=stil.dezimalkomma))
         ax.set_zlabel(achsentitel("z", "m"), fontsize=stil.schrift_pt)
     else:
@@ -535,7 +621,13 @@ def _z_achse(ax: Any, sichtbar: bool, stil: Plotstil) -> None:
 
 
 def _dynamisch(
-    z: Zeichnung, daten: AnimationsDaten, opt: AnimationsOptionen, vorher: AnimationsOptionen | None
+    z: Zeichnung,
+    daten: AnimationsDaten,
+    opt: AnimationsOptionen,
+    vorher: AnimationsOptionen | None,
+    *,
+    zoom_messen: bool = True,
+    zoom_fest: bool = False,
 ) -> None:
     """Setzt alle vom Winkel, der Skalierung, dem Blick und dem Farbbereich abhängigen Größen.
 
@@ -546,6 +638,10 @@ def _dynamisch(
     Zuerst werden **alle** Größen berechnet und geprüft (Skalierung, Farbskala, Grenzen,
     Texte), erst danach wird ein Artist verändert. Ein Fehler (z. B. ein Farbbereich mit
     ``von >= bis``) lässt das Bild deshalb unverändert, nie halb aktualisiert.
+
+    ``zoom_messen=False`` überspringt die Zoom-Messung (:func:`_passe_zoom_an`; der Aufrufer misst
+    selbst). ``zoom_fest=True`` (Überhöhungsregler wird gezogen) lässt den Grundzoom stehen und
+    merkt vor, dass die Messung beim nächsten vollen Aktualisieren nachzuholen ist.
     """
     stil: Plotstil = z.hilfsobjekte["stil"]
     ax: Any = z.achsen[0]
@@ -568,7 +664,7 @@ def _dynamisch(
         kein_nachbarabstand=ohne_nachbarabstand(daten, opt.ueberhoehung),
     )  # fmt: skip
     spalte_pt: float = z.hilfsobjekte["spalte_pt"]
-    spaltentext = _text_spalte(texte, stil, spalte_pt)
+    spaltentext = _text_spalte(texte, stil, spalte_pt, z.hilfsobjekte["kompakt"])
     hinweis = daten.hinweis_ueberhoehung(s)
 
     punkte = z.marker["punkte"]
@@ -584,11 +680,29 @@ def _dynamisch(
         aspekt = (gx[1] - gx[0], gy[1] - gy[0], gz[1] - gz[0])
         z.hilfsobjekte["box_aspekt"] = aspekt
         z.hilfsobjekte["grenzen"] = (gx, gy, gz)
-        ax.set_box_aspect(aspekt, zoom=opt.blick.zoom)
+        ax.set_box_aspect(aspekt, zoom=opt.blick.zoom * z.hilfsobjekte["grund_zoom"])
     elif vorher is not None and opt.blick.zoom != vorher.blick.zoom:
-        ax.set_box_aspect(z.hilfsobjekte["box_aspekt"], zoom=opt.blick.zoom)
+        ax.set_box_aspect(
+            z.hilfsobjekte["box_aspekt"], zoom=opt.blick.zoom * z.hilfsobjekte["grund_zoom"]
+        )
     if vorher is None or opt.blick != vorher.blick:
         ax.view_init(elev=opt.blick.elev_grad, azim=opt.blick.azim_grad)
+    zoom_noetig = (
+        vorher is None
+        or (opt.blick.azim_grad, opt.blick.elev_grad)
+        != (vorher.blick.azim_grad, vorher.blick.elev_grad)
+        or grenzen is not None
+        or bool(z.hilfsobjekte.get("zoom_veraltet", False))
+    )
+    if zoom_noetig and zoom_fest and zoom_messen:
+        z.hilfsobjekte["zoom_veraltet"] = True  # beim Loslassen messen
+    elif zoom_noetig and zoom_messen and not opt.vereinfacht and "zoom_grenzen" in z.hilfsobjekte:
+        z.hilfsobjekte["zoom_veraltet"] = False
+        _passe_zoom_an(z.figure, ax, z, stil, z.hilfsobjekte["zoom_grenzen"])
+        ax.set_box_aspect(
+            z.hilfsobjekte["box_aspekt"], zoom=opt.blick.zoom * z.hilfsobjekte["grund_zoom"]
+        )
+    if vorher is None or opt.blick != vorher.blick or grenzen is not None:
         _z_achse(ax, abs(opt.blick.elev_grad) < _ELEV_AUFSICHT_GRAD, stil)
     if vorher is None or opt.vereinfacht != vorher.vereinfacht:
         if opt.vereinfacht:
@@ -661,6 +775,155 @@ def _zeichenerklaerung(
     return eintraege, anzahl
 
 
+_SPALTE_LUECKE_SCHRIFT = 1.0  # Abstand zwischen Pflichtangaben und Zeichenerklärung (Schriftgrößen)
+_LEGENDE_ARGUMENTE: dict[str, Any] = {
+    "borderaxespad": 0.0,
+    "frameon": False,
+    "handlelength": 1.2,
+    "handletextpad": 0.5,
+    "labelspacing": 0.6,
+    "numpoints": 1,
+}
+
+
+def _legende_zeichen(spalte_pt: float, stil: Plotstil) -> int:
+    """Zeichen je Zeile der Zeichenerklärung (Umbruch)."""
+    return max(int((spalte_pt - 26.0) / (0.55 * stil.schrift_pt)), 8)
+
+
+def _spaltenhoehe_pt(
+    fig: Figure,
+    daten: AnimationsDaten,
+    opt: AnimationsOptionen,
+    stil: Plotstil,
+    spalte_pt: float,
+    kompakt: bool = False,
+) -> tuple[float, float]:
+    """Gemessene Höhen ``(Pflichtangaben, Zeichenerklärung)`` in pt bei Spaltenbreite ``spalte_pt``.
+
+    Der Winkeltext ist der längste (θ = 359,9°), damit der Platz für jeden Winkel reicht. Die
+    Messung nutzt vorübergehende Artists der Figure; sie werden wieder entfernt.
+    """
+    k = 72.0 / float(fig.dpi)
+    s = effektive_ueberhoehung(daten, opt)
+    texte = pflichttexte(
+        daten, math.radians(_WORST_THETA_GRAD), s, stil,
+        kein_nachbarabstand=ohne_nachbarabstand(daten, opt.ueberhoehung),
+    )  # fmt: skip
+    probe = fig.text(
+        0.0, 1.0, _text_spalte(texte, stil, spalte_pt, kompakt), fontsize=stil.schrift_pt, va="top"
+    )
+    eintraege, _anzahl = _zeichenerklaerung(daten, opt, stil)
+    legende = None
+    if eintraege:
+        legende = fig.legend(
+            handles=[h for h, _ in eintraege],
+            labels=[textwrap.fill(t, _legende_zeichen(spalte_pt, stil)) for _, t in eintraege],
+            loc="upper left",
+            **_LEGENDE_ARGUMENTE,
+            fontsize=stil.schrift_pt,
+        )
+    fig.draw_without_rendering()
+    h_text = float(probe.get_window_extent().height) * k
+    h_legende = float(legende.get_window_extent().height) * k if legende is not None else 0.0
+    probe.remove()
+    if legende is not None:
+        legende.remove()
+    return h_text, h_legende
+
+
+def _zoom_grenzen_px(
+    fig: Figure, ax: Any, rechts: Any, y0: float, stil: Plotstil, kaesten: Sequence[Any]
+) -> tuple[float, float, float, float]:
+    """Erlaubtes Rechteck ``(links, unten, rechts, oben)`` der Box samt Beschriftung in Pixeln.
+
+    Links der Figurrand, unten der Rand des nutzbaren Rechtecks, oben die Achsenoberkante und
+    rechts die Spalte (abzüglich der Lücke).
+    """
+    fig.draw_without_rendering()
+    feld = ax.get_window_extent()
+    luecke = _Z_LUECKE_SCHRIFT * stil.schrift_pt * float(fig.dpi) / 72.0
+    spalte_links = float(rechts.get_window_extent().x0)
+    return (
+        2.0,
+        y0 * float(fig.bbox.height),
+        spalte_links - luecke,
+        float(feld.y1),
+    )
+
+
+def _passe_zoom_an(
+    fig: Figure,
+    ax: Any,
+    z: Zeichnung,
+    stil: Plotstil,
+    grenzen_px: tuple[float, float, float, float],
+) -> None:
+    """Wählt die Grundvergrößerung der Box so groß, dass Box und Beschriftung im Rechteck bleiben.
+
+    ``grenzen_px = (links, unten, rechts, oben)`` ist das erlaubte Rechteck in Pixeln. Beim
+    aktuellen Blick wird die Vergrößerung zwischen :data:`_ZOOM_GRUND_MIN` und
+    :data:`_ZOOM_GRUND_MAX` durch Intervallhalbierung (fünf Messungen) bestimmt: die größte,
+    bei der die Achse samt Tick- und Achsentiteln (``get_tightbbox``) das Rechteck nicht
+    verlässt. Das Ergebnis steht in
+    ``z.hilfsobjekte["grund_zoom"]``.
+    """
+    renderer = fig._get_renderer()  # type: ignore[attr-defined]
+    aspekt = z.hilfsobjekte["box_aspekt"]
+    links, unten, rechts, oben = grenzen_px
+
+    def passt(zoom: float) -> bool:
+        ax.set_box_aspect(aspekt, zoom=zoom)
+        _z_achse(ax, abs(ax.elev) < _ELEV_AUFSICHT_GRAD, stil)
+        fig.draw_without_rendering()
+        box = ax.get_tightbbox(renderer)
+        return bool(
+            box.x0 >= links - 0.5
+            and box.y0 >= unten - 0.5
+            and box.x1 <= rechts + 0.5
+            and box.y1 <= oben + 0.5
+        )
+
+    if passt(_ZOOM_GRUND_MAX):
+        z.hilfsobjekte["grund_zoom"] = _ZOOM_GRUND_MAX
+        return
+    klein, gross = _ZOOM_GRUND_MIN, _ZOOM_GRUND_MAX
+    for _ in range(4):
+        mitte = 0.5 * (klein + gross)
+        if passt(mitte):
+            klein = mitte
+        else:
+            gross = mitte
+    z.hilfsobjekte["grund_zoom"] = klein
+
+
+def _waehle_spalte(
+    fig: Figure,
+    daten: AnimationsDaten,
+    opt: AnimationsOptionen,
+    stil: Plotstil,
+    breite_pt: float,
+    hoehe_pt: Callable[[float], float],
+    kompakt: bool = False,
+) -> tuple[float, float]:
+    """Schmalste Spaltenbreite aus :data:`_SPALTE_B_STUFEN`, in der die Blöcke untereinander passen.
+
+    ``hoehe_pt(anteil)`` ist die für Pflichtangaben und Zeichenerklärung verfügbare Höhe in pt
+    bei der Spaltenbreite ``anteil``. Passt keine Stufe, gilt die breiteste.
+
+    Returns
+    -------
+    tuple of float
+        Spaltenanteil und gemessene Höhe der Pflichtangaben in pt.
+    """
+    for i, anteil in enumerate(_SPALTE_B_STUFEN):
+        h_text, h_legende = _spaltenhoehe_pt(fig, daten, opt, stil, anteil * breite_pt, kompakt)
+        luecke = _SPALTE_LUECKE_SCHRIFT * stil.schrift_pt if h_legende else 0.0
+        if h_text + luecke + h_legende <= hoehe_pt(anteil) or i == len(_SPALTE_B_STUFEN) - 1:
+            return anteil, h_text
+    raise AssertionError("unerreichbar")  # pragma: no cover  # Stufen sind nicht leer
+
+
 def zeichne_animation(
     fig: Figure, daten: AnimationsDaten, opt: AnimationsOptionen, stil: Plotstil
 ) -> Zeichnung:
@@ -701,13 +964,54 @@ def zeichne_animation(
     )  # prüft den Farbbereich, bevor die Figure geleert wird
     fig.clear()
     fig.set_layout_engine("none")
+    stil_eingabe = stil
+    kompakt = float(fig.get_figheight()) < _KOMPAKT_HOEHE_ZOLL
+    if kompakt and stil.schrift_pt > _KOMPAKT_SCHRIFT_PT:
+        stil = replace(stil, schrift_pt=_KOMPAKT_SCHRIFT_PT)
     fig.set_facecolor(stil.flaeche)
     rect = layout_rect(fig)
     kennzeichen = [t for t in kennzeichen_texte(daten, opt) if t]
-    kaesten, (x0, y0, breite, hoehe) = kennzeichen_kopf(fig, stil, kennzeichen, rect)
+    kaesten, (x0, y0, breite, hoehe) = kennzeichen_kopf(
+        fig, stil, kennzeichen, rect, gemeinsamer_rahmen=True
+    )
+    breite_pt = float(fig.get_figwidth()) * 72.0
+    hoehe_pt = float(fig.get_figheight()) * 72.0
+    voll_hoehe = rect[3]
+    kopf_rechts = 0.0  # rechter Rand des Kopfes in Figure-Anteilen
+    if kaesten:
+        fig.draw_without_rendering()
+        kopf_rechts = max(float(k.get_window_extent().x1) for k in kaesten) / float(fig.bbox.width)
+        kopf_rechts += 0.02
+    block_pt = (  # Farbleiste samt Zahlen und Titel am Fuß der Spalte (kompakt)
+        (_FARBBALKEN_UNTEN_KOMPAKT_SCHRIFT + _FARBBALKEN_KOMPAKT_SCHRIFT + _SPALTE_LUECKE_SCHRIFT)
+        * stil.schrift_pt
+        if kompakt
+        else 0.0
+    )
+
+    def spalte_hoehe(anteil: float) -> float:
+        """Höhe der Spalte in Figure-Anteilen: neben dem Kopf bis oben, wenn er nicht hineinragt."""
+        links = x0 + (1.0 - anteil - _SPALTE_RAND) * breite
+        return voll_hoehe if kompakt and kopf_rechts <= links else hoehe
+
+    spalte_b, text_hoehe_pt = _waehle_spalte(
+        fig,
+        daten,
+        opt,
+        stil,
+        breite * breite_pt,
+        lambda anteil: spalte_hoehe(anteil) * hoehe_pt - block_pt,
+        kompakt,
+    )
+    spalte_h = spalte_hoehe(spalte_b)
+    spalte_x = 1.0 - spalte_b - _SPALTE_RAND
+    breite_3d = spalte_x - 0.03
+    band = 0.0 if kompakt else _FARBBAND_SCHRIFT * stil.schrift_pt / hoehe_pt  # Farbleiste unten
 
     ax: Any = fig.add_axes(
-        (x0, y0, _BREITE_3D * breite, hoehe), projection="3d", computed_zorder=False
+        (x0, y0 + band, breite_3d * breite, max(hoehe - band, 0.05)),
+        projection="3d",
+        computed_zorder=False,
     )
     ax.disable_mouse_rotation()
     ax.set_facecolor(stil.flaeche)
@@ -721,6 +1025,9 @@ def zeichne_animation(
 
     z = Zeichnung(figure=fig, achsen=(ax,))
     z.hilfsobjekte["stil"] = stil
+    z.hilfsobjekte["stil_eingabe"] = stil_eingabe
+    z.hilfsobjekte["kompakt"] = kompakt
+    z.hilfsobjekte["grund_zoom"] = 1.0
     z.hilfsobjekte["daten"] = daten
     z.texte.extend(kaesten)
 
@@ -772,70 +1079,78 @@ def zeichne_animation(
         depthshade=False, zorder=3,
     )  # fmt: skip
 
-    # --- rechte Spalte: Pflichtangaben, Zeichenerklärung, Farbleiste -------------------------
-    rechts: Any = fig.add_axes((x0 + _SPALTE_X * breite, y0, _SPALTE_B * breite, hoehe))
+    # --- rechte Spalte: Pflichtangaben, Zeichenerklärung; Farbleiste unter der 3D-Achse ------
+    rechts: Any = fig.add_axes((x0 + spalte_x * breite, y0, spalte_b * breite, spalte_h))
     rechts.set_axis_off()
     z.hilfsobjekte["rechts"] = rechts
-    spalte_pt = _SPALTE_B * breite * float(fig.get_figwidth()) * 72.0
+    spalte_pt = spalte_b * breite * breite_pt
     z.hilfsobjekte["spalte_pt"] = spalte_pt
+    z.hilfsobjekte["spalte_anteil"] = spalte_b
     z.hilfsobjekte["pflichttext"] = rechts.text(
         0.0, 1.0, "", transform=rechts.transAxes, ha="left", va="top",
         fontsize=stil.schrift_pt, color=stil.achse,
     )  # fmt: skip
     z.texte.append(z.hilfsobjekte["pflichttext"])
-    cax = rechts.inset_axes((0.1, 0.04, 0.3, 0.3))
-    z.hilfsobjekte["farbleiste"] = fig.colorbar(z.marker["punkte"], cax=cax)
+    if kompakt:  # schmaler Balken am Fuß der Spalte, Zahlen und Titel darunter
+        balken_unten = _FARBBALKEN_UNTEN_KOMPAKT_SCHRIFT * stil.schrift_pt / hoehe_pt
+        balken_hoehe = _FARBBALKEN_KOMPAKT_SCHRIFT * stil.schrift_pt / hoehe_pt
+        balken_x, balken_b = x0 + (spalte_x + 0.1 * spalte_b) * breite, 0.8 * spalte_b * breite
+    else:
+        balken_unten = _FARBBALKEN_UNTEN_SCHRIFT * stil.schrift_pt / hoehe_pt
+        balken_hoehe = _FARBBALKEN_SCHRIFT * stil.schrift_pt / hoehe_pt
+        balken_x, balken_b = x0 + 0.2 * breite_3d * breite, 0.6 * breite_3d * breite
+    cax = fig.add_axes((balken_x, y0 + balken_unten, balken_b, balken_hoehe))
+    z.hilfsobjekte["farbleiste"] = fig.colorbar(
+        z.marker["punkte"], cax=cax, orientation="horizontal"
+    )
     cb = z.hilfsobjekte["farbleiste"]
     cb.ax.tick_params(labelsize=stil.schrift_pt, colors=stil.achse)
     cb.outline.set_edgecolor(stil.achse)
-    _dynamisch(z, daten, opt, None)
+    _dynamisch(z, daten, opt, None, zoom_messen=False)  # gemessen wird unten, einmal
 
-    # Zeichenerklärung unter den Pflichtangaben, Farbleiste darunter (gemessene Höhen)
-    fig.draw_without_rendering()
-    box = rechts.bbox
-    y_unten = (float(z.hilfsobjekte["pflichttext"].get_window_extent().y0) - float(box.y0)) / float(
-        box.height
-    ) - 0.03
+    z.hilfsobjekte["zoom_grenzen"] = _zoom_grenzen_px(fig, ax, rechts, y0, stil, kaesten)
+    ax.set_axis_on()  # gemessen wird mit Beschriftung; die Achse hat ihre Endgröße
+    _passe_zoom_an(fig, ax, z, stil, z.hilfsobjekte["zoom_grenzen"])
+    if opt.vereinfacht:
+        ax.set_axis_off()
+    ax.set_box_aspect(
+        z.hilfsobjekte["box_aspekt"], zoom=opt.blick.zoom * z.hilfsobjekte["grund_zoom"]
+    )
+    _z_achse(ax, abs(opt.blick.elev_grad) < _ELEV_AUFSICHT_GRAD, stil)
     eintraege, anzahl = _zeichenerklaerung(daten, opt, stil)
     z.hilfsobjekte["anzahl"] = anzahl
     if eintraege:
-        zeichen = max(int((spalte_pt - 26.0) / (0.55 * stil.schrift_pt)), 8)
+        # Die Zeichenerklärung steht unter der für den längsten Winkeltext reservierten Texthöhe
+        y_oben = 1.0 - (text_hoehe_pt + _SPALTE_LUECKE_SCHRIFT * stil.schrift_pt) / (
+            spalte_h * hoehe_pt
+        )
         legende = rechts.legend(
             handles=[h for h, _ in eintraege],
-            labels=[textwrap.fill(t, zeichen) for _, t in eintraege],
+            labels=[textwrap.fill(t, _legende_zeichen(spalte_pt, stil)) for _, t in eintraege],
             loc="upper left",
-            bbox_to_anchor=(0.0, y_unten),
-            borderaxespad=0.0,
-            frameon=False,
+            bbox_to_anchor=(0.0, y_oben),
+            **_LEGENDE_ARGUMENTE,
             fontsize=stil.schrift_pt,
-            handlelength=1.2,
-            handletextpad=0.5,
-            labelspacing=0.6,
-            numpoints=1,
         )
         z.hilfsobjekte["zeichenerklaerung"] = legende
-        fig.draw_without_rendering()
-        y_unten = (float(legende.get_window_extent().y0) - float(box.y0)) / float(box.height) - 0.04
-    hoehe_cb = max(min(y_unten - 0.06, 0.6), 0.15)
-    cax.set_position(
-        (
-            x0 + (_SPALTE_X + 0.1 * _SPALTE_B) * breite,
-            y0 + 0.04 * hoehe,
-            0.3 * _SPALTE_B * breite,
-            hoehe_cb * hoehe,
-        )
-    )
     return z
 
 
 def aktualisiere_animation(
-    zeichnung: Zeichnung, daten: AnimationsDaten, opt: AnimationsOptionen, stil: Plotstil
+    zeichnung: Zeichnung,
+    daten: AnimationsDaten,
+    opt: AnimationsOptionen,
+    stil: Plotstil,
+    *,
+    zoom_fest: bool = False,
 ) -> None:
     """Teilaktualisierung: setzt nur Artist-Daten, ruft nie ``fig.clear()`` und kein Layout.
 
     Geändert werden dürfen Winkel, Überhöhung, Blick (auch Zoom), ``vereinfacht`` und
     Farbbereich. Das Ergebnis ist gleich dem eines frischen :func:`zeichne_animation` mit
-    denselben Optionen (Positionen, Farben, Pflichttexte, Grenzen).
+    denselben Optionen (Positionen, Farben, Pflichttexte, Grenzen). Mit ``zoom_fest=True``
+    (Überhöhungsregler wird gezogen) bleibt der Grundzoom der Box stehen; die Messung holt das
+    nächste Aktualisieren ohne ``zoom_fest`` nach.
 
     Raises
     ------
@@ -847,11 +1162,14 @@ def aktualisiere_animation(
     vorher: AnimationsOptionen | None = zeichnung.hilfsobjekte.get("optionen")
     if vorher is None:
         raise ValueError("Zeichnung stammt nicht von zeichne_animation")
-    if zeichnung.hilfsobjekte["daten"] is not daten or zeichnung.hilfsobjekte["stil"] != stil:
+    if (
+        zeichnung.hilfsobjekte["daten"] is not daten
+        or zeichnung.hilfsobjekte["stil_eingabe"] != stil
+    ):
         raise ValueError("andere Daten oder anderer Stil: neu zeichnen")
     feste = ("farbe", "farb_komponente", "ruhelage", "punktlabels", "kennzeichen_phase")
     if any(getattr(opt, n) != getattr(vorher, n) for n in feste) or (
         opt.kennzeichen_koordinaten != vorher.kennzeichen_koordinaten
     ):
         raise ValueError("Aufbau des Bildes geändert (Farbe, Ruhelage, Kennzeichen): neu zeichnen")
-    _dynamisch(zeichnung, daten, opt, vorher)
+    _dynamisch(zeichnung, daten, opt, vorher, zoom_fest=zoom_fest)

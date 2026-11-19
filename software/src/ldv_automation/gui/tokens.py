@@ -129,6 +129,12 @@ KONTRAST_PAARE: tuple[tuple[str, str, str], ...] = (
     ("text/aktiv_bg", C_TEXT, C_AKTIV_BG),
     ("deaktiviert_text/flaeche", C_DEAKTIVIERT_TEXT, C_FLAECHE),
     ("deaktiviert_text/deaktiviert_bg", C_DEAKTIVIERT_TEXT, C_DEAKTIVIERT_BG),
+    # Animation (R-071, P-AUSW3 AN7, UI-35): Winkel-, Tempo- und Überhöhungsanzeige der Leiste AH
+    # und die Beschriftungen der Animationsgruppen in AD stehen auf der Fläche des Reiters; der
+    # laufende Abspielen-Knopf („Pause“) auf dem Aktivhintergrund; Meldung zum Farbbereich in AD.
+    ("text/bg", C_TEXT, C_BG),
+    ("text_gedaempft/aktiv_bg", C_TEXT_GEDAEMPFT, C_AKTIV_BG),
+    ("deaktiviert_text/bg", C_DEAKTIVIERT_TEXT, C_BG),
 )
 """Text/Hintergrund-Paare, deren Kontrast ≥ 4,5:1 sein muss (UI-23)."""
 
@@ -139,6 +145,11 @@ KONTRAST_PAARE_LINIE: tuple[tuple[str, str, str], ...] = (
     ("akzent/fokus_flaeche", C_AKZENT, C_PLOT_FLAECHE),
     ("feld_fest_rand/flaeche", C_FELD_FEST_RAND, C_FLAECHE),
     ("feld_fest_rand/bg", C_FELD_FEST_RAND, C_BG),
+    # Animation (UI-35): Rinne und Griff der Regler der Leiste AH auf der Fläche des Reiters,
+    # Fokusrahmen der Regler.
+    ("regler_rinne/bg", C_TEXT_GEDAEMPFT, C_BG),
+    ("regler_griff/bg", C_AKZENT, C_BG),
+    ("akzent/fokus_bg", C_AKZENT, C_BG),
 )
 """Linien-Paare mit Mindestkontrast ≥ 3:1 (WCAG 1.4.11, Nicht-Text-Kontrast; UI-22)."""
 
