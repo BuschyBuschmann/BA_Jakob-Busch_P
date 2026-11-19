@@ -141,6 +141,9 @@ uv run pytest --cov --cov-fail-under=90
 - Animation: Bei der Option Schnelle steht die Skalierung in s, daneben immer die reale
   Überhöhung; in der 3D-Animation gilt der räumliche Punktabstand; der Satz zur Bedeutung
   von θ = 0 gehört zu den Pflichtangaben (FG-04 Nachtrag 2, Nutzerentscheidung 2026-11-15).
+- Gespeicherte Standbilder der Animation: Der Stempel nennt θ, f, Überhöhung bzw. Skalierung,
+  Blickrichtung und die offenen Annahmen (M8, M12); Dateivorschlag
+  `…_ansicht4_animation_theta<Grad>` (Nutzerentscheidung 2026-11-19).
 - Doppelte Messpunkte in der 3D-Animation: Punkte mit Abstand ≤ ε = max(1e-8 m, 1e-6·S)
   gelten als doppelt; gezeichnet wird nur der Repräsentant nach FG-04 Nachtrag 3, der
   Hinweis nennt die Anzahl (Nutzerentscheidung 2026-11-18).
