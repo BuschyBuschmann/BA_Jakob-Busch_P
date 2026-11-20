@@ -49,6 +49,7 @@ from ldv_automation.gui.stil import setze_eigenschaft
 __all__ = ["NEUZEICHNEN_ANSICHTEN", "NEUZEICHNEN_MS", "PlotFlaeche", "PlotToolbar"]
 
 NEUZEICHNEN_MS = 150
+"""Entprellzeit: erst wenn die Größe so lange stillsteht, wird neu gezeichnet."""
 
 FIGURE_DPI = 100.0
 """Feste Auflösung der Oberflächen-Figures in dpi (logisch, vor dem Gerätepixelverhältnis).
@@ -57,9 +58,9 @@ Ohne diese Angabe gilt ``rcParams["figure.dpi"]``, und das kann eine fremde ``ma
 (Arbeitsverzeichnis, ``$MATPLOTLIBRC``, Benutzerverzeichnis, ``/etc``) verstellen: bei 200 dpi
 werden alle Plotschriften und Abstände in Pixeln doppelt so groß, ``constrained_layout`` scheitert.
 Das Qt-Backend multipliziert diesen Wert selbst mit ``devicePixelRatio`` (HiDPI-Bildschirme); die
-Figure bleibt in Zoll gleich groß, nur die Pixelzahl wächst. Thesis-Abbildungen sind nicht betroffen
-(``darstellung/bild.py`` legt eigene Figures an und speichert mit expliziter DPI)."""
-"""Entprellzeit: erst wenn die Größe so lange stillsteht, wird neu gezeichnet."""
+Figure bleibt in Zoll gleich groß, nur die Pixelzahl wächst. Export-Figures
+(``darstellung/bild.py``, ``EXPORT_FIGURE_DPI``) sind ebenfalls fest, ebenfalls 100 dpi."""
+
 NEUZEICHNEN_ANSICHTEN = frozenset({Ansicht.SPITZEN, Ansicht.SCHWINGFORM, Ansicht.DIAGRAMM})
 """Ansichten, die Größen in pt zum Zeichenzeitpunkt messen (Beschriftungsabstände, Pfeillängen)
 und deshalb bei Größenänderung der Figure neu gezeichnet werden. Ansicht 1 und 2 haben nur

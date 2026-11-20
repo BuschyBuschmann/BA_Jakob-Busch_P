@@ -7,16 +7,29 @@ ihre DPI selbst fest; die Layoutkriterien gelten mit verstellter ``figure.dpi`` 
 
 from __future__ import annotations
 
+import sys
 import warnings
+from collections.abc import Callable
+from pathlib import Path
 
 import matplotlib
 import pytest
 from gui_ausw_hilfen import Bauer
 from pytestqt.qtbot import QtBot
 from test_gui_animation import animation, oeffne
+from test_gui_animationsflaeche import Uhr
+from test_gui_ansicht_5 import aufbau as aufbau_5
 from test_gui_auswerten_ansichten import geladen_mit
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "darstellung"))  # Datenhilfe
+from dar_animation_hilfen import lange_platte
+
+from ldv_automation.darstellung.animation3d import AnimationsOptionen
+from ldv_automation.darstellung.bild import Stempel, baue_stempel
+from ldv_automation.darstellung.stil import THESIS_STIL
+from ldv_automation.gui.animationsflaeche import AnimationsFlaeche
 from ldv_automation.gui.plotflaeche import FIGURE_DPI
+from ldv_automation.gui.serien import baue_spec
 
 pytestmark = pytest.mark.gui
 
@@ -76,3 +89,91 @@ def test_animationsflaeche_hat_feste_figure_dpi(
     qtbot.wait(100)
     canvas = a.animation.canvas
     assert canvas.figure.dpi == FIGURE_DPI * canvas.device_pixel_ratio
+
+
+# --- Export (Paket K-HAERTUNG): Bilddatei unabhängig von rc-figure.dpi ---------------------------
+
+
+def _stempel() -> Stempel:
+    return baue_stempel(dateiname="a.svd", ansicht="Test", git_hash="abc")
+
+
+def _bytes_je_dpi(
+    monkeypatch: pytest.MonkeyPatch, erzeuge: Callable[[float], bytes]
+) -> dict[float, bytes]:
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1700000000")  # PDF: festes CreationDate
+    return {dpi: erzeuge(dpi) for dpi in (100.0, 200.0)}
+
+
+@pytest.mark.parametrize("endung", ["png", "pdf"])
+@pytest.mark.parametrize("ansicht", [1, 3, 4])
+def test_plotflaeche_export_ist_bei_rc_figure_dpi_100_und_200_gleich(
+    baue: Bauer,
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    ansicht: int,
+    endung: str,
+) -> None:
+    def erzeuge(dpi: float) -> bytes:
+        fremde_rc(monkeypatch, dpi)
+        a = geladen_mit(baue, qtbot)
+        a.window().resize(1366, 768)
+        a.btn_ansicht[ansicht].click()
+        qtbot.wait(60)
+        ziel = tmp_path / f"p{ansicht}_{int(dpi)}.{endung}"
+        a.plot.speichere(ziel, _stempel())
+        return ziel.read_bytes()
+
+    inhalte = _bytes_je_dpi(monkeypatch, erzeuge)
+    assert inhalte[100.0] == inhalte[200.0]
+
+
+@pytest.mark.parametrize("endung", ["png", "pdf"])
+def test_diagramm_export_ist_bei_rc_figure_dpi_100_und_200_gleich(
+    baue: Bauer,
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    endung: str,
+) -> None:
+    def erzeuge(dpi: float) -> bytes:
+        fremde_rc(monkeypatch, dpi)
+        a, _, _, _ = aufbau_5(baue)
+        a.btn_ansicht[5].click()
+        for spec in (
+            baue_spec(a.messungen.alle[0].id, None, "h1", kanalpaar=("Vib X", "Ref1")),
+            baue_spec(a.messungen.alle[1].id, None, "h1", kanalpaar=("Vib X", "Ref1")),
+        ):
+            assert a._serie_anlegen(spec)
+        a._zeichne()
+        ziel = tmp_path / f"d_{int(dpi)}.{endung}"
+        a.plot.speichere(ziel, _stempel())
+        return ziel.read_bytes()
+
+    inhalte = _bytes_je_dpi(monkeypatch, erzeuge)
+    assert inhalte[100.0] == inhalte[200.0]
+
+
+@pytest.mark.parametrize("endung", ["png", "pdf"])
+def test_animation_standbild_export_ist_bei_rc_figure_dpi_100_und_200_gleich(
+    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, endung: str
+) -> None:
+    schritte: dict[float, object] = {}
+
+    def erzeuge(dpi: float) -> bytes:
+        fremde_rc(monkeypatch, dpi)
+        f = AnimationsFlaeche(THESIS_STIL, zeit=Uhr(), tempo_hz=0.25, blick_vorgabe="iso")
+        qtbot.addWidget(f)
+        f.resize(640, 480)
+        f.show()
+        qtbot.waitExposed(f)
+        f.zeichne(lange_platte(2.25, 45, 9), AnimationsOptionen(punktlabels=True), "Beschreibung")
+        ziel = tmp_path / f"a_{int(dpi)}.{endung}"
+        z = f.speichere(ziel, _stempel())
+        schritte[dpi] = z.hilfsobjekte["punktlabels_schritt"]
+        return ziel.read_bytes()
+
+    inhalte = _bytes_je_dpi(monkeypatch, erzeuge)
+    assert schritte[100.0] == schritte[200.0] and schritte[100.0] != 0
+    assert inhalte[100.0] == inhalte[200.0]

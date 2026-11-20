@@ -64,6 +64,11 @@ _PRAEFIX = {"frequenz": "achse_f", "betrag": "achse_y", "phase": "achse_phase"}
 """Präfix der ``objectName`` je Rolle (Brief K1-AUSW2 Abschnitt 7)."""
 _EINHEIT_VORGABE = {"frequenz": "Hz", "phase": "°"}
 """Einheit je Rolle, solange die Zeichnung keine nennt (Frequenz, Phase in Grad)."""
+_EINHEITEN_BREIT = ("m/s²", "m/s", "m")
+"""Einheiten des Betrags einer Messgröße (Achsentitel der Zeichnungen); die breiteste bestimmt die
+reservierte Breite des Einheitenlabels, damit die Gruppe beim Laden nicht breiter wird. Die
+Einheiten von Übertragungsfunktionen („(m/s)/N“) sind breiter; sie zu reservieren sprengte die
+einzeilige kompakte Leiste bei 804 px (Test), sie erscheinen erst mit der FRF-Ansicht."""
 _FELD_BREITE_PX = 84
 """Breite eines Zahlenfelds: reicht für die längsten Texte von ``feld_text`` (negative Potenz
 mit zweistelligem Exponenten, negative Dezimalzahl mit sieben Stellen); ein Test misst es mit
@@ -203,6 +208,16 @@ class _Gruppe(QFrame):
         self.lbl_einheit = QLabel(_EINHEIT_VORGABE.get(rolle, ""))
         self.lbl_einheit.setObjectName(f"{praefix}_einheit")
         self.lbl_einheit.setProperty("art", "gedaempft")
+        if rolle == "betrag":
+            # Breite für die breiteste mögliche Einheit von Anfang an: sonst wird die Gruppe nach
+            # dem ersten Zeichnen breiter (Einheit erscheint) und die Leiste springt.
+            self.lbl_einheit.ensurePolished()
+            breiten = []
+            for einheit in _EINHEITEN_BREIT:  # sizeHint (nicht nur Textbreite): Rand und Rundung
+                self.lbl_einheit.setText(einheit)
+                breiten.append(self.lbl_einheit.sizeHint().width())
+            self.lbl_einheit.setText("")
+            self.lbl_einheit.setMinimumWidth(max(breiten))
         self.lbl_name.setBuddy(self.ed_von)
         # Ansicht 5, nebeneinander: Auswahl der Betragsgröße, auf die sich die Felder beziehen
         self.cb_groesse: QComboBox | None = None

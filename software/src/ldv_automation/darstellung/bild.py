@@ -19,6 +19,7 @@ from .zeichnung import Zeichnung
 
 __all__ = [
     "ARBEITSANSICHT",
+    "EXPORT_FIGURE_DPI",
     "Grenzen",
     "Stempel",
     "baue_stempel",
@@ -31,6 +32,14 @@ ARBEITSANSICHT = "Arbeitsansicht – nicht für die Thesis"
 
 STANDARD_DPI = 200
 """PNG-Auflösung (Brief: nur im Code einstellbar, kein Dialogfeld)."""
+
+EXPORT_FIGURE_DPI = 100.0
+"""Feste Figure-DPI aller Export-Figures (matplotlib-Standard).
+
+Zeichenfunktionen messen Beschriftungen und Abstände in Pixeln bei der Figure-DPI (Punktlabels,
+Zoom der Animation); ohne feste Angabe würde ``rcParams["figure.dpi"]`` einer fremden
+``matplotlibrc`` Layout und Bild verändern. Mit dem matplotlib-Standard 100 bleiben bisherige
+Abbildungen unverändert."""
 
 STANDARD_GROESSE_ZOLL = (9.0, 5.6)
 
@@ -109,8 +118,8 @@ def baue_stempel(
 def neue_figure(
     stil: Plotstil, groesse_zoll: tuple[float, float] = STANDARD_GROESSE_ZOLL
 ) -> Figure:
-    """Neue leere Figure (ohne ``pyplot``) mit der Flächenfarbe des Stils."""
-    return Figure(figsize=groesse_zoll, facecolor=stil.flaeche)
+    """Neue leere Figure (ohne ``pyplot``) mit der Flächenfarbe und fester DPI."""
+    return Figure(figsize=groesse_zoll, dpi=EXPORT_FIGURE_DPI, facecolor=stil.flaeche)
 
 
 def speichere_arbeitsbild(
@@ -177,6 +186,6 @@ def speichere_arbeitsbild(
             fontsize=stil.schrift_pt * 0.85,
             color=stil.text_gedaempft,
         )
-    with_dpi = dpi if pfad.suffix.lower() == ".png" else None
-    fig.savefig(pfad, dpi=with_dpi)
+    # PDF: explizit die Figure-DPI (Rasteranteile), nie ``savefig.dpi`` der rc-Datei
+    fig.savefig(pfad, dpi=dpi if pfad.suffix.lower() == ".png" else EXPORT_FIGURE_DPI)
     return zeichnung
