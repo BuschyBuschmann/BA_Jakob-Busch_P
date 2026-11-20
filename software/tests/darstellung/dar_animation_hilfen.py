@@ -15,6 +15,7 @@ import numpy as np
 import numpy.typing as npt
 
 from ldv_automation.auswertung.daten import Messdaten
+from ldv_automation.darstellung.animation_daten import AnimationsDaten, animation_daten
 from ldv_automation.darstellung.auswahl import PaarCache
 
 KANAELE = ("Vib X", "Vib Y", "Vib Z")
@@ -87,3 +88,14 @@ class KohaerenzCache(PaarCache):
     def gueltig(self) -> Any:
         """Gültigkeit je Punkt (M6, Attrappe)."""
         return self._gueltig
+
+
+def lange_platte(seiten: float, spalten: int = 27, zeilen: int = 5) -> AnimationsDaten:
+    """Raster ``spalten`` mal ``zeilen`` Punkte, x : y = ``seiten`` : 1, alle Punkte bewegt."""
+    x, y = np.meshgrid(np.linspace(0.0, 0.45, spalten), np.linspace(0.0, 0.45 / seiten, zeilen))
+    koord = np.column_stack([x.ravel(), y.ravel(), np.zeros(x.size)])
+    betrag = 0.97 + 0.03 * np.sin(np.pi * koord[:, 0] / 0.45)
+    phase = np.outer(koord[:, 0] / 0.45, [1.0, 2.0, 3.0])
+    v = betrag[:, None] * np.exp(1j * phase)
+    md = messdaten_mit_amplitude(v, koordinaten_m=koord)
+    return animation_daten(md, PaarCache(md), 100.0, komponente="3D")

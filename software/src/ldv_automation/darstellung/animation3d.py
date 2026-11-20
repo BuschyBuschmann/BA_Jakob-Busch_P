@@ -24,13 +24,15 @@ from __future__ import annotations
 
 import math
 import textwrap
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from typing import Any, Literal
 
 import numpy as np
 from matplotlib.colors import Normalize, TwoSlopeNorm
 from matplotlib.figure import Figure
+from matplotlib.font_manager import FontProperties
 from matplotlib.lines import Line2D
 from matplotlib.patheffects import withStroke
 from matplotlib.ticker import FuncFormatter, MaxNLocator, NullFormatter
@@ -634,20 +636,81 @@ def _z_achse(ax: Any, sichtbar: bool, stil: Plotstil) -> None:
         ax.set_zlabel("")
 
 
-def _label_rechtecke_px(ax: Any, koordinaten_m: Any, labels: Sequence[Any], renderer: Any) -> Any:
+class LabelMasse:
+    """Speicher der Textmaße ``(Breite, Höhe, Abstieg)`` in Pixeln je Label-Text und Schrift.
+
+    Die Maße eines Labels hängen nur von Text, Schrift und Renderer-DPI ab, nicht vom Blick; die
+    Abfrage beim Renderer ist der Hauptkostenanteil der Label-Dichte (bei 1500 Punkten etwa
+    250 ms). Der Speicher leert sich, wenn sich die DPI des Renderers ändert, und behält nach
+    jeder Abfrage nur Einträge, die der aktuelle Labelsatz braucht.
+
+    Der Schlüssel ist ein **Abbild** der Schrift (``FontProperties.copy``): ``Text.set_fontsize``
+    ändert das Schriftobjekt des Textes an Ort und Stelle, ein Schlüssel auf das Original würde
+    sich im Speicher mitändern.
+
+    Attributes
+    ----------
+    anzahl_messungen : int
+        Wie oft insgesamt beim Renderer gemessen wurde (für Tests und Messungen).
+    """
+
+    def __init__(self) -> None:
+        self._werte: dict[tuple[str, FontProperties], tuple[float, float, float]] = {}
+        self._dpi: float | None = None
+        self.anzahl_messungen = 0
+
+    def __len__(self) -> int:
+        return len(self._werte)
+
+    def abmessungen(self, renderer: Any, labels: Sequence[Any]) -> list[tuple[float, float, float]]:
+        """``(Breite, Höhe, Abstieg)`` in Pixeln je Label; Unbekanntes wird gemessen."""
+        dpi = float(renderer.dpi)
+        if dpi != self._dpi:
+            self._werte.clear()
+            self._dpi = dpi
+        schluessel = [(t.get_text(), t.get_fontproperties().copy()) for t in labels]
+        ergebnis: list[tuple[float, float, float]] = []
+        for (text, schrift), t in zip(schluessel, labels, strict=True):
+            wert = self._werte.get((text, schrift))
+            if wert is None:
+                breite, hoehe, abstieg = renderer.get_text_width_height_descent(
+                    text, t.get_fontproperties(), False
+                )
+                wert = (float(breite), float(hoehe), float(abstieg))
+                self._werte[(text, schrift)] = wert
+                self.anzahl_messungen += 1
+            ergebnis.append(wert)
+        gebraucht = set(schluessel)
+        for k in [k for k in self._werte if k not in gebraucht]:
+            del self._werte[k]
+        return ergebnis
+
+
+def _label_rechtecke_px(
+    ax: Any,
+    koordinaten_m: Any,
+    labels: Sequence[Any],
+    renderer: Any,
+    masse: LabelMasse | None = None,
+) -> Any:
     """Fensterrechtecke ``(n, 4)`` der Labels bei der aktuellen Projektion in Pixeln.
 
     ``Text3D.get_window_extent`` taugt dafür nicht (die Projektion gilt nur während des Zeichnens),
-    deshalb wird der Ankerpunkt hier projiziert und die Textgröße beim Renderer erfragt.
+    deshalb wird der Ankerpunkt hier projiziert und die Textgröße beim Renderer erfragt, mit
+    ``masse`` über den Speicher :class:`LabelMasse` (Ergebnis gleich).
     """
     x = np.asarray(koordinaten_m, dtype=np.float64)
     px, py, _pz = proj3d.proj_transform(x[:, 0], x[:, 1], x[:, 2], ax.get_proj())
     anker = ax.transData.transform(np.column_stack([px, py]))
+    if masse is None:
+        masse_px = [
+            renderer.get_text_width_height_descent(t.get_text(), t.get_fontproperties(), False)
+            for t in labels
+        ]
+    else:
+        masse_px = masse.abmessungen(renderer, labels)
     boxen = np.empty((len(labels), 4))
-    for i, t in enumerate(labels):
-        breite, hoehe, abstieg = renderer.get_text_width_height_descent(
-            t.get_text(), t.get_fontproperties(), False
-        )
+    for i, (breite, hoehe, abstieg) in enumerate(masse_px):
         boxen[i] = (
             anker[i, 0],
             anker[i, 1] - abstieg,
@@ -657,12 +720,19 @@ def _label_rechtecke_px(ax: Any, koordinaten_m: Any, labels: Sequence[Any], rend
     return boxen
 
 
-def label_schritt(ax: Any, koordinaten_m: Any, labels: Sequence[Any], renderer: Any) -> int:
+def label_schritt(
+    ax: Any,
+    koordinaten_m: Any,
+    labels: Sequence[Any],
+    renderer: Any,
+    masse: LabelMasse | None = None,
+) -> int:
     """Wie viele Punktlabels bei der aktuellen Ansicht gezeigt werden (UI-D2).
 
     Gemessen werden die Fensterrechtecke der Labels (samt Rand :data:`_LABEL_RAND_SCHRIFT`): das
     kleinste ``n`` mit ``2 <= n <= _LABEL_JEDE_MAX``, bei dem die Rechtecke jedes n-ten Labels
-    einander nicht überlappen, gilt als Schritt.
+    einander nicht überlappen, gilt als Schritt. ``masse`` (optional) speichert die Textmaße
+    zwischen; das Ergebnis ändert sich dadurch nicht.
 
     Returns
     -------
@@ -672,7 +742,7 @@ def label_schritt(ax: Any, koordinaten_m: Any, labels: Sequence[Any], renderer: 
     """
     if len(labels) > _LABEL_MAX:
         return 0
-    boxen = _label_rechtecke_px(ax, koordinaten_m, labels, renderer)
+    boxen = _label_rechtecke_px(ax, koordinaten_m, labels, renderer, masse)
     if not np.all(np.isfinite(boxen)):
         return 0
     rand = (
@@ -702,14 +772,54 @@ def label_text(schritt: int) -> str:
     return f"Punktlabels: nur jedes {schritt}. gezeigt (Dichte)"
 
 
+class _ZeichenStand:
+    """Figure-Größe und DPI, für die die Achsenlage der 3D-Achse zuletzt berechnet wurde.
+
+    Projektion und ``transData`` stimmen nach einem Blick- oder Zoomwechsel ohne Zeichnen; die
+    Achsenlage (Box-Seitenverhältnis, ``Axes3D.apply_aspect``) liegt nach einer Größen- oder
+    DPI-Änderung aber erst nach dem Zeichnen richtig. Der Stand wird bei **jedem** Zeichnen der
+    Figure (``draw_event``, auch ``draw_without_rendering`` anderer) festgehalten, nicht nur bei
+    eigenem. Wechselt das Canvas der Figure oder ist nichts bekannt, gilt der Stand als veraltet.
+    """
+
+    def __init__(self, figure: Figure) -> None:
+        self._figure = figure
+        self._canvas: Any = None
+        self._stand: tuple[tuple[float, float], float] | None = None
+
+    def _aktuell(self) -> tuple[tuple[float, float], float]:
+        breite, hoehe = self._figure.get_size_inches()
+        return (float(breite), float(hoehe)), float(self._figure.dpi)
+
+    def _gezeichnet(self, _ereignis: Any) -> None:
+        self._stand = self._aktuell()
+
+    def veraltet(self) -> bool:
+        """Prüft, ob die Figure vor dem Messen neu gezeichnet werden muss (``True``)."""
+        canvas = self._figure.canvas
+        if canvas is not self._canvas:  # ein Zeichnen auf dem alten Canvas ist unbekannt
+            self._canvas = canvas
+            self._stand = None
+            canvas.mpl_connect("draw_event", self._gezeichnet)
+        return self._stand != self._aktuell()
+
+
 def _punktlabels_anwenden(z: Zeichnung, daten: AnimationsDaten, stil: Plotstil) -> None:
-    """Blendet Punktlabels nach der Dichte aus, meldet es in ``z.hinweise`` und der Legende."""
+    """Blendet Punktlabels nach der Dichte aus, meldet es in ``z.hinweise`` und der Legende.
+
+    Gezeichnet wird nur, wenn sich Figure-Größe oder DPI seit dem letzten Zeichnen irgendeiner
+    Seite geändert haben (:class:`_ZeichenStand`); die Textmaße liegen in
+    ``z.hilfsobjekte["label_masse"]`` (:class:`LabelMasse`).
+    """
     labels = z.hilfsobjekte.get("punktlabels")
     if not labels:
         return
-    z.figure.draw_without_rendering()
+    stand: _ZeichenStand = z.hilfsobjekte.setdefault("zeichenstand", _ZeichenStand(z.figure))
+    if stand.veraltet():
+        z.figure.draw_without_rendering()
     renderer = z.figure._get_renderer()  # type: ignore[attr-defined]
-    schritt = label_schritt(z.achsen[0], daten.koordinaten_m, labels, renderer)
+    masse: LabelMasse = z.hilfsobjekte.setdefault("label_masse", LabelMasse())
+    schritt = label_schritt(z.achsen[0], daten.koordinaten_m, labels, renderer, masse)
     for i, t in enumerate(labels):
         t.set_visible(schritt != 0 and i % max(schritt, 1) == 0)
     z.hilfsobjekte["punktlabels_schritt"] = schritt
@@ -972,6 +1082,36 @@ def _zoom_grenzen_px(
     )
 
 
+@contextmanager
+def _ohne_punkte(z: Zeichnung) -> Iterator[None]:
+    """Nimmt alle Marker und Punktlabels während der Messung aus ``ax._children``.
+
+    ``set_visible(False)`` reicht nicht: ``Text3D.draw`` projiziert auch unsichtbare Texte. Die
+    Grenze der Box samt Beschriftung (``get_tightbbox``) hängt nicht von Punkten und Labels ab
+    (``Text3D.get_tightbbox`` ist ``None``, Scatter ist auf ``ax.patch`` geclippt). Im ``finally``
+    wird **dasselbe Listenobjekt** mit allen Artists in Ausgangsreihenfolge wiederhergestellt
+    (private Matplotlib-API; mpl 3.11.2, gepinnt in ``uv.lock``).
+
+    Im Kontext dürfen keine Artists angelegt oder entfernt werden: ein dort angelegter Artist ginge
+    nach dem ``finally`` verloren.
+    """
+    ax: Any = z.achsen[0]
+    kinder: list[Any] = ax._children
+    original = list(kinder)
+    weg = {id(a) for a in (*z.marker.values(), *z.hilfsobjekte.get("punktlabels", ()))}
+    kinder[:] = [a for a in original if id(a) not in weg]
+    try:
+        yield
+    finally:
+        kinder[:] = original
+
+
+def _zeichne_ohne_punkte(z: Zeichnung) -> None:
+    """Zeichnet die Figure ohne Marker und Punktlabels (nur für die Zoom-Messung)."""
+    with _ohne_punkte(z):
+        z.figure.draw_without_rendering()
+
+
 def _passe_zoom_an(
     fig: Figure,
     ax: Any,
@@ -986,7 +1126,8 @@ def _passe_zoom_an(
     :data:`_ZOOM_GRUND_MAX` durch Intervallhalbierung (fünf Messungen) bestimmt: die größte,
     bei der die Achse samt Tick- und Achsentiteln (``get_tightbbox``) das Rechteck nicht
     verlässt. Das Ergebnis steht in
-    ``z.hilfsobjekte["grund_zoom"]``.
+    ``z.hilfsobjekte["grund_zoom"]``. Gemessen wird ohne Marker und Punktlabels
+    (:func:`_zeichne_ohne_punkte`); sie ändern die Grenze nicht.
     """
     renderer = fig._get_renderer()  # type: ignore[attr-defined]
     aspekt = z.hilfsobjekte["box_aspekt"]
@@ -995,7 +1136,7 @@ def _passe_zoom_an(
     def passt(zoom: float) -> bool:
         ax.set_box_aspect(aspekt, zoom=zoom)
         _z_achse(ax, abs(ax.elev) < _ELEV_AUFSICHT_GRAD, stil)
-        fig.draw_without_rendering()
+        _zeichne_ohne_punkte(z)
         box = ax.get_tightbbox(renderer)
         return bool(
             box.x0 >= links - 0.5
