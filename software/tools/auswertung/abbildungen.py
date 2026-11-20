@@ -46,16 +46,18 @@ BREITE_IN = 5.8  # etwa 14,7 cm: Satzspiegel A4, auf A5 verkleinert noch lesbar
 SCHRIFT_PT = 9
 FORMATE = ("pdf", "png")
 
-plt.rcParams.update(
-    {
-        "font.size": SCHRIFT_PT,
-        "axes.labelsize": SCHRIFT_PT,
-        "legend.fontsize": SCHRIFT_PT - 1,
-        "xtick.labelsize": SCHRIFT_PT - 1,
-        "ytick.labelsize": SCHRIFT_PT - 1,
-        "axes.prop_cycle": cycler(color=["black", "0.45"]),
-    }
-)
+RC: dict[Any, Any] = {
+    # Schriftfamilie fest (wie ``THESIS_STIL.schriftfamilie``), nicht die der Rechner-matplotlibrc
+    "font.family": "sans-serif",
+    "font.sans-serif": ["DejaVu Sans"],
+    "font.size": SCHRIFT_PT,
+    "axes.labelsize": SCHRIFT_PT,
+    "legend.fontsize": SCHRIFT_PT - 1,
+    "xtick.labelsize": SCHRIFT_PT - 1,
+    "ytick.labelsize": SCHRIFT_PT - 1,
+    "axes.prop_cycle": cycler(color=["black", "0.45"]),
+}
+plt.rcParams.update(RC)
 
 
 class ExportFehler(ValueError):  # noqa: N818  (fachlicher Name)

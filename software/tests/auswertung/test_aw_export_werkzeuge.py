@@ -353,3 +353,14 @@ def test_herkunft_mit_programmversion_im_export() -> None:
 
     h = Herkunft(pfad="x", sha256="0", dateizeit="2026-10-12T09:32:52", programmversion="10.4.0.1")
     assert messdatei_angaben(h)["messdatei_programmversion"] == "10.4.0.1"
+
+
+def test_abbildungswerkzeug_setzt_die_schriftfamilie_selbst() -> None:
+    """Die Familie kommt aus ``abbildungen.RC``, nicht aus der ``matplotlibrc`` des Rechners."""
+    import matplotlib
+    from matplotlib.font_manager import FontProperties, findfont
+
+    with matplotlib.rc_context({"font.family": ["Inter", "sans-serif", "DejaVu Sans"]}):
+        matplotlib.rcParams.update(abbildungen.RC)
+        datei = findfont(FontProperties(family=matplotlib.rcParams["font.family"]))
+    assert Path(datei).name == "DejaVuSans.ttf"

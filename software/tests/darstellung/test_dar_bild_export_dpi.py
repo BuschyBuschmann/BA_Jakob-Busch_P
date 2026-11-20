@@ -95,3 +95,72 @@ def test_export_ist_bei_rc_figure_dpi_100_und_200_gleich(
     if name == "animation_standbild":
         assert schritte[100.0] not in (None, 0)  # Labels an und in Dichte-Rechnung beteiligt
     assert inhalte[100.0] == inhalte[200.0]
+
+
+# --- Schriftfamilie (Paket K2-HAERTUNG): Stilschrift statt Rechnerschrift ---------------------
+
+
+def _schriftdateien(z: Zeichnung) -> set[str]:
+    from matplotlib.font_manager import findfont
+    from matplotlib.text import Text
+
+    z.figure.canvas.draw()
+    return {
+        Path(findfont(t.get_fontproperties())).name for t in z.figure.findobj(Text) if t.get_text()
+    }
+
+
+def _fremde_schrift(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Wie die Container-``matplotlibrc``: ``font.family`` nennt eine andere Schrift zuerst."""
+    monkeypatch.setitem(matplotlib.rcParams, "font.family", ["Inter", "sans-serif", "DejaVu Sans"])
+
+
+@pytest.mark.parametrize("name", list(FAELLE))
+def test_texte_loesen_bei_fremder_font_family_zur_stilschrift_auf(
+    name: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from ldv_automation.darstellung.bild import neue_figure
+
+    assert STIL.schriftfamilie == ("DejaVu Sans",)
+    _fremde_schrift(monkeypatch)
+    z = FAELLE[name](neue_figure(STIL))
+    assert _schriftdateien(z) == {"DejaVuSans.ttf"}
+
+
+def test_animation_aktualisieren_bleibt_bei_fremder_font_family_in_der_stilschrift(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from dataclasses import replace
+
+    from ldv_automation.darstellung.animation3d import aktualisiere_animation
+    from ldv_automation.darstellung.bild import neue_figure
+
+    daten = lange_platte(2.25, 45, 9)
+    opt = AnimationsOptionen(punktlabels=True, blick=BLICK_VORGABEN["iso"])
+    _fremde_schrift(monkeypatch)
+    z = zeichne_animation(neue_figure(STIL), daten, opt, STIL)
+    aktualisiere_animation(z, daten, replace(opt, theta_rad=1.0), STIL)
+    assert _schriftdateien(z) == {"DejaVuSans.ttf"}
+
+
+@pytest.mark.parametrize("endung", ["png", "pdf"])
+@pytest.mark.parametrize("name", list(FAELLE))
+def test_export_ist_bei_fremder_font_family_gleich_dem_rc_standard(
+    name: str, endung: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1700000000")
+    inhalte: dict[str, bytes] = {}
+    for art in ("standard", "fremd"):
+        with matplotlib.rc_context():
+            matplotlib.rcdefaults()
+            if art == "fremd":
+                _fremde_schrift(monkeypatch)
+            ziel = tmp_path / f"{name}_{art}.{endung}"
+            speichere_arbeitsbild(
+                FAELLE[name],
+                ziel,
+                baue_stempel(dateiname="a.svd", ansicht=name, git_hash="a"),
+                STIL,
+            )
+        inhalte[art] = ziel.read_bytes()
+    assert inhalte["standard"] == inhalte["fremd"]

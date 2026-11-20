@@ -31,6 +31,7 @@ from typing import Any, Literal
 
 import matplotlib
 import numpy as np
+from matplotlib import rc_context
 from matplotlib.colors import Normalize, TwoSlopeNorm
 from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties, findfont
@@ -1244,6 +1245,14 @@ def zeichne_animation(
         ``"punktlabels"``; ``texte`` mit dem Pflichttext
         und den Kennzeichen; ``hinweise`` mit dem Überlagerungshinweis.
     """
+    with rc_context(stil.schrift_rc()):
+        return _zeichne_animation(fig, daten, opt, stil)
+
+
+def _zeichne_animation(
+    fig: Figure, daten: AnimationsDaten, opt: AnimationsOptionen, stil: Plotstil
+) -> Zeichnung:
+    """Rumpf von :func:`zeichne_animation` (im Stil-Kontext)."""
     _komp, vmin, vmax = farbskala(
         daten, opt
     )  # prüft den Farbbereich, bevor die Figure geleert wird
@@ -1468,6 +1477,19 @@ def aktualisiere_animation(
         des Bildes betrifft (``farbe``, ``farb_komponente``, ``ruhelage``, ``punktlabels``,
         Kennzeichen), unterscheidet sich: dann ist neu zu zeichnen.
     """
+    with rc_context(stil.schrift_rc()):
+        _aktualisiere_animation(zeichnung, daten, opt, stil, zoom_fest=zoom_fest)
+
+
+def _aktualisiere_animation(
+    zeichnung: Zeichnung,
+    daten: AnimationsDaten,
+    opt: AnimationsOptionen,
+    stil: Plotstil,
+    *,
+    zoom_fest: bool = False,
+) -> None:
+    """Rumpf von :func:`aktualisiere_animation` (im Stil-Kontext)."""
     vorher: AnimationsOptionen | None = zeichnung.hilfsobjekte.get("optionen")
     if vorher is None:
         raise ValueError("Zeichnung stammt nicht von zeichne_animation")

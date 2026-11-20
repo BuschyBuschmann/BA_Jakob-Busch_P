@@ -7,22 +7,19 @@ ihre DPI selbst fest; die Layoutkriterien gelten mit verstellter ``figure.dpi`` 
 
 from __future__ import annotations
 
-import sys
 import warnings
 from collections.abc import Callable
 from pathlib import Path
 
 import matplotlib
 import pytest
+from dar_animation_hilfen import lange_platte
 from gui_ausw_hilfen import Bauer
 from pytestqt.qtbot import QtBot
 from test_gui_animation import animation, oeffne
 from test_gui_animationsflaeche import Uhr
 from test_gui_ansicht_5 import aufbau as aufbau_5
 from test_gui_auswerten_ansichten import geladen_mit
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "darstellung"))  # Datenhilfe
-from dar_animation_hilfen import lange_platte
 
 from ldv_automation.darstellung.animation3d import AnimationsOptionen
 from ldv_automation.darstellung.bild import Stempel, baue_stempel

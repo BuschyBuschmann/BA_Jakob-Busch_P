@@ -29,6 +29,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QRect, QSize, Qt, Signal
+from PySide6.QtGui import QShowEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -41,6 +42,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QRadioButton,
     QSizePolicy,
+    QSpacerItem,
     QWidget,
 )
 
@@ -64,11 +66,30 @@ _PRAEFIX = {"frequenz": "achse_f", "betrag": "achse_y", "phase": "achse_phase"}
 """Präfix der ``objectName`` je Rolle (Brief K1-AUSW2 Abschnitt 7)."""
 _EINHEIT_VORGABE = {"frequenz": "Hz", "phase": "°"}
 """Einheit je Rolle, solange die Zeichnung keine nennt (Frequenz, Phase in Grad)."""
-_EINHEITEN_BREIT = ("m/s²", "m/s", "m")
-"""Einheiten des Betrags einer Messgröße (Achsentitel der Zeichnungen); die breiteste bestimmt die
-reservierte Breite des Einheitenlabels, damit die Gruppe beim Laden nicht breiter wird. Die
-Einheiten von Übertragungsfunktionen („(m/s)/N“) sind breiter; sie zu reservieren sprengte die
-einzeilige kompakte Leiste bei 804 px (Test), sie erscheinen erst mit der FRF-Ansicht."""
+_EINHEITEN_VOLL = (
+    "m",
+    "mm/s",
+    "µm/s",
+    "m/s²",
+    "m/N",
+    "m/s/N",
+    "(m/s)/N",
+    "(m/s²)/N",
+)
+"""Einheiten des Betrags aus Messgröße und Übertragungsfunktion (Achsentitel der Zeichnungen,
+auch mit Vorsatz); die breiteste bestimmt die reservierte Breite des Einheitenlabels, damit die
+Gruppe nach dem ersten Zeichnen und bei Einheitenwechsel nicht springt. Breiter reserviert
+brächte die Leiste bei 1366 px in zwei Zeilen (Tabellenhöhe, Test); längere Texte
+(„(m/s)/(m/s²)“, „(m/s)^2“) werden gekürzt und stehen im Tooltip."""
+_EINHEIT_KOMPAKT = "(m/s)/N"
+"""Breiteste Einheit, die bei kleinem Fenster (einzeilig bei 804 px) noch ganz erscheint; längere
+werden in der Mitte gekürzt und stehen vollständig im Tooltip."""
+_QWIDGETSIZE_MAX = 16777215
+"""Obergrenze der Widgetgröße in Qt (hebt eine feste Breite wieder auf)."""
+_LUECKE_SKALA_PX = 8
+"""Abstand zwischen Einheit und Skalaumschalter (Einheit und Umschalter nicht aneinander)."""
+_LUECKE_SKALA_KOMPAKT_PX = 4
+"""Dasselbe bei kleinem Fenster (gibt der Einheit „(m/s)/N“ Platz in der einzeiligen Leiste)."""
 _FELD_BREITE_PX = 84
 """Breite eines Zahlenfelds: reicht für die längsten Texte von ``feld_text`` (negative Potenz
 mit zweistelligem Exponenten, negative Dezimalzahl mit sieben Stellen); ein Test misst es mit
@@ -208,16 +229,13 @@ class _Gruppe(QFrame):
         self.lbl_einheit = QLabel(_EINHEIT_VORGABE.get(rolle, ""))
         self.lbl_einheit.setObjectName(f"{praefix}_einheit")
         self.lbl_einheit.setProperty("art", "gedaempft")
+        self._einheit_text = self.lbl_einheit.text()
+        self._kompakt = False
+        self._einheit_breite = 0
+        self._einheit_rand = 0
+        self._einheit_breiten = {False: 0, True: 0}
         if rolle == "betrag":
-            # Breite für die breiteste mögliche Einheit von Anfang an: sonst wird die Gruppe nach
-            # dem ersten Zeichnen breiter (Einheit erscheint) und die Leiste springt.
-            self.lbl_einheit.ensurePolished()
-            breiten = []
-            for einheit in _EINHEITEN_BREIT:  # sizeHint (nicht nur Textbreite): Rand und Rundung
-                self.lbl_einheit.setText(einheit)
-                breiten.append(self.lbl_einheit.sizeHint().width())
-            self.lbl_einheit.setText("")
-            self.lbl_einheit.setMinimumWidth(max(breiten))
+            self._messe_einheit()
         self.lbl_name.setBuddy(self.ed_von)
         # Ansicht 5, nebeneinander: Auswahl der Betragsgröße, auf die sich die Felder beziehen
         self.cb_groesse: QComboBox | None = None
@@ -260,7 +278,8 @@ class _Gruppe(QFrame):
                 box.addWidget(knopf)
             self.rb_linear.setObjectName(f"{praefix}_skala_linear")
             self.rb_log.setObjectName(f"{praefix}_skala_log")
-            zeile.addSpacing(8)  # Einheit und Umschalter nicht aneinander (Abstand 12 px)
+            self._luecke_skala = QSpacerItem(_LUECKE_SKALA_PX, 0)
+            zeile.addItem(self._luecke_skala)  # Einheit und Umschalter nicht aneinander
             zeile.addWidget(self.skala_box)
         gitter.addLayout(zeile, 0, 0)
         self.lbl_meldung = QLabel()
@@ -285,6 +304,72 @@ class _Gruppe(QFrame):
     def setze_kompakt(self, kompakt: bool) -> None:
         """Enger Abstand der Teile einer Gruppe (kleines Fenster)."""
         self._zeile.setSpacing(_ZEILE_ABSTAND_KOMPAKT_PX if kompakt else _ZEILE_ABSTAND_PX)
+        if self.skala_box is not None:
+            self._luecke_skala.changeSize(
+                _LUECKE_SKALA_KOMPAKT_PX if kompakt else _LUECKE_SKALA_PX, 0
+            )
+        self._kompakt = kompakt
+        if self.rolle == "betrag":
+            self._setze_einheit_breite()
+
+    def _messe_einheit(self) -> None:
+        """Misst Rand und reservierte Breiten mit der Schrift des Labels und setzt die Breite.
+
+        Wird bei jeder Einheit und beim Zeigen wiederholt, weil ein Stylesheet Schrift und Rand
+        des Labels erst nach dem Bau festlegen kann (veraltete Maße kürzten sonst zu früh).
+        """
+        label = self.lbl_einheit
+        label.ensurePolished()
+        label.setMinimumWidth(0)
+        label.setMaximumWidth(_QWIDGETSIZE_MAX)  # freigeben: ``sizeHint`` bliebe sonst geklemmt
+        metrik = label.fontMetrics()
+
+        def breite(einheiten: Sequence[str]) -> int:
+            maße = []
+            for einheit in einheiten:
+                label.setText(einheit)
+                maße.append(label.sizeHint().width())
+            return max(maße)
+
+        label.setText("m")
+        self._einheit_rand = label.sizeHint().width() - metrik.horizontalAdvance("m")
+        self._einheit_breiten = {False: breite(_EINHEITEN_VOLL), True: breite((_EINHEIT_KOMPAKT,))}
+        self._setze_einheit_breite()
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802  # Qt-Name
+        """Beim Zeigen die Maße mit der endgültigen Schrift neu messen."""
+        if self.rolle == "betrag":
+            self._messe_einheit()
+        super().showEvent(event)
+
+    def setze_einheit(self, text: str) -> None:
+        """Zeigt die Einheit; beim Betrag in fester Breite (längere Texte gekürzt, Tooltip)."""
+        self._einheit_text = text
+        if self.rolle != "betrag":
+            self.lbl_einheit.setText(text)
+            return
+        self._messe_einheit()
+
+    def _setze_einheit_breite(self) -> None:
+        self._einheit_breite = self._einheit_breiten[self._kompakt]
+        self.lbl_einheit.setFixedWidth(self._einheit_breite)
+        self._zeige_einheit()
+        self.lbl_einheit.updateGeometry()
+        self.updateGeometry()
+
+    def _zeige_einheit(self) -> None:
+        """Text in der reservierten Breite: passt er nicht, wird er in der Mitte gekürzt."""
+        text = self._einheit_text
+        self.lbl_einheit.setMinimumWidth(0)
+        self.lbl_einheit.setMaximumWidth(_QWIDGETSIZE_MAX)
+        self.lbl_einheit.setText(text)
+        passt = self.lbl_einheit.sizeHint().width() <= self._einheit_breite
+        self.lbl_einheit.setFixedWidth(self._einheit_breite)
+        metrik = self.lbl_einheit.fontMetrics()
+        platz = max(self._einheit_breite - self._einheit_rand, 0)
+        gekuerzt = text if passt else metrik.elidedText(text, Qt.TextElideMode.ElideMiddle, platz)
+        self.lbl_einheit.setText(gekuerzt)
+        self.lbl_einheit.setToolTip(text if gekuerzt != text else "")
 
     @staticmethod
     def _feld(objekt: str, accessible: str) -> QLineEdit:
@@ -487,7 +572,7 @@ class Achsenleiste(QWidget):
             gruppe.setVisible(rolle in rollen)
             if rolle not in rollen:
                 continue
-            gruppe.lbl_einheit.setText(einheiten.get(rolle, _EINHEIT_VORGABE.get(rolle, "")))
+            gruppe.setze_einheit(einheiten.get(rolle, _EINHEIT_VORGABE.get(rolle, "")))
             bereich = self._zustand.bereich(self._ansicht, rolle)
             auto = self._wirksam[rolle]
             for seite, fest, wirksam_wert in (

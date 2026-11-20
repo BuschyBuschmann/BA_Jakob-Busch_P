@@ -141,11 +141,14 @@ class Plotstil:
         """Zyklische Farbskala der Phase (:data:`ZYKLISCHE_SKALA`)."""
         return colormaps[ZYKLISCHE_SKALA]
 
+    def schrift_rc(self) -> dict[Any, Any]:
+        """Nur die Schriftfamilie für ``matplotlib.rc_context`` (nicht die der Rechner-rc-Datei)."""
+        return {"font.family": "sans-serif", "font.sans-serif": list(self.schriftfamilie)}
+
     def rc(self) -> dict[Any, Any]:
         """``rcParams``-Wörterbuch für ``matplotlib.rc_context`` (kein globaler Zustand)."""
         return {
-            "font.family": "sans-serif",
-            "font.sans-serif": list(self.schriftfamilie),
+            **self.schrift_rc(),
             "font.size": self.schrift_pt,
             "axes.labelsize": self.schrift_pt,
             "xtick.labelsize": self.schrift_pt,

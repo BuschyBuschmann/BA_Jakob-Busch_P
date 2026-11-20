@@ -12,6 +12,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from matplotlib import rc_context
 from matplotlib.figure import Figure
 
 from .stil import Plotstil
@@ -165,27 +166,28 @@ def speichere_arbeitsbild(
     """
     if pfad.suffix.lower() not in (".png", ".pdf"):
         raise ValueError(f"Bildformat {pfad.suffix!r} nicht unterstützt (.png oder .pdf)")
-    fig = neue_figure(stil, groesse_zoll)
-    # Rand für den Stempel **vor** dem Zeichnen: die Zeichenfunktionen messen in pt (Layout)
-    hoehe = 0.028 * len(stempel.zeilen) + 0.012
-    fig.set_layout_engine("constrained", rect=(0.0, hoehe, 1.0, 1.0 - hoehe))
-    zeichnung = zeichne(fig)
-    for index, (xlim, ylim) in (grenzen or {}).items():
-        ax = zeichnung.achsen[index]
-        if xlim is not None:
-            ax.set_xlim(*xlim)
-        if ylim is not None:
-            ax.set_ylim(*ylim)
-    for n, zeile in enumerate(reversed(stempel.zeilen)):
-        fig.text(
-            0.01,
-            0.008 + 0.028 * n,
-            zeile,
-            ha="left",
-            va="bottom",
-            fontsize=stil.schrift_pt * 0.85,
-            color=stil.text_gedaempft,
-        )
-    # PDF: explizit die Figure-DPI (Rasteranteile), nie ``savefig.dpi`` der rc-Datei
-    fig.savefig(pfad, dpi=dpi if pfad.suffix.lower() == ".png" else EXPORT_FIGURE_DPI)
-    return zeichnung
+    with rc_context(stil.schrift_rc()):  # Stempeltext und Messungen in der Stilschrift
+        fig = neue_figure(stil, groesse_zoll)
+        # Rand für den Stempel **vor** dem Zeichnen: die Zeichenfunktionen messen in pt (Layout)
+        hoehe = 0.028 * len(stempel.zeilen) + 0.012
+        fig.set_layout_engine("constrained", rect=(0.0, hoehe, 1.0, 1.0 - hoehe))
+        zeichnung = zeichne(fig)
+        for index, (xlim, ylim) in (grenzen or {}).items():
+            ax = zeichnung.achsen[index]
+            if xlim is not None:
+                ax.set_xlim(*xlim)
+            if ylim is not None:
+                ax.set_ylim(*ylim)
+        for n, zeile in enumerate(reversed(stempel.zeilen)):
+            fig.text(
+                0.01,
+                0.008 + 0.028 * n,
+                zeile,
+                ha="left",
+                va="bottom",
+                fontsize=stil.schrift_pt * 0.85,
+                color=stil.text_gedaempft,
+            )
+        # PDF: explizit die Figure-DPI (Rasteranteile), nie ``savefig.dpi`` der rc-Datei
+        fig.savefig(pfad, dpi=dpi if pfad.suffix.lower() == ".png" else EXPORT_FIGURE_DPI)
+        return zeichnung
