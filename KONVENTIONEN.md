@@ -98,6 +98,12 @@ uv run pytest --cov --cov-fail-under=90
 - GUI-Tests laufen mit den matplotlib-Standardwerten (`matplotlib.rcdefaults()` in
   `tests/gui/conftest.py`), unabhängig von einer `matplotlibrc` des Rechners; Pixelgrenzen der
   Oberfläche gelten für den matplotlib-Standard (100 dpi) (Nutzerentscheidung 2026-11-20).
+- Figures der Oberfläche werden immer mit `Figure(dpi=FIGURE_DPI)` (100, `gui/plotflaeche.py`)
+  angelegt, Export-Figures mit `EXPORT_FIGURE_DPI` (100, `darstellung/bild.py`); PDF-Export mit
+  expliziter DPI. Oberfläche und Exporte sind damit unabhängig von `figure.dpi`/`savefig.dpi`
+  einer `matplotlibrc` (Nutzerentscheidung 2026-11-20).
+- Tests, die PDF-Dateien byteweise vergleichen, setzen `SOURCE_DATE_EPOCH` per `monkeypatch`
+  (Nutzerentscheidung 2026-11-20).
 
 ## Abbildungen
 - Abbildungen entstehen nur per Skript aus gespeicherten Daten.
