@@ -91,6 +91,10 @@ uv run pytest --cov --cov-fail-under=90
 - Jede Auswertefunktion wird gegen einen analytischen Referenzfall aus
   `in_progress/fachgrundlagen/` getestet.
 - Toleranzen (`rtol`/`atol`) werden in Tests immer explizit angegeben und begründet.
+- Jeder reviewte Code-Stand wird sofort nach dem Review committet und gepusht, auch wenn das
+  Paket (z. B. weitere Korrekturrunden) noch nicht abgeschlossen ist; Laborbuch und
+  Nachverfolgung können nachgereicht werden (Schutz vor Verlust bei Containerwechsel,
+  Nutzerentscheidung 2026-11-20).
 
 ## Abbildungen
 - Abbildungen entstehen nur per Skript aus gespeicherten Daten.
