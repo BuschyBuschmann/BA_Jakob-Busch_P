@@ -4,8 +4,17 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-
+import matplotlib
 import pytest
+
+# Matplotlib liest beim Import eine ``matplotlibrc`` aus dem Arbeitsverzeichnis, ``$MATPLOTLIBRC``,
+# dem Benutzerverzeichnis oder (je nach Installation) aus ``/etc``. In einer Container-Umgebung
+# stand dort ``figure.dpi: 200`` (statt 100) und ``text.hinting: no_hinting``: alle Plot-Schriften
+# erschienen doppelt so groß, die Achse in Ansicht 3 bei 1366 x 768 war nur 113 statt mindestens
+# 160 px hoch, bei 1100 x 680 scheiterte constrained_layout (Paket K-GUI6). Die Oberfläche setzt
+# ``figure.dpi`` nicht selbst; am Messrechner gilt der Matplotlib-Standard. Die Oberflächentests
+# laufen deshalb immer mit den eingebauten Standardwerten, nie mit denen einer Rechnerdatei.
+matplotlib.rcdefaults()
 
 
 @pytest.fixture(autouse=True)

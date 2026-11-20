@@ -138,6 +138,48 @@ def test_waehrend_der_messung_fehlen_marker_und_labels_danach_unveraendert(
     assert _kinder_ids(z) == vorher  # Reihenfolge unverändert
 
 
+def _mit_fremden_artists(z: Zeichnung) -> tuple[list[Any], list[int]]:
+    """Mischt drei fremde Artists unter die Kinder: vor allen Punkten, mitten dazwischen, danach.
+
+    ``lange_platte`` hat nur Marker und Labels als Kinder; ohne Fremde wäre die Reihenfolge einer
+    Wiederherstellung nicht prüfbar (Punkte ``kinder[:] = [...] + [...]`` ergäben dasselbe).
+    Liefert die Kinderliste und die Ids der drei Fremden (vorn, mitte, hinten).
+    """
+    ax: Any = z.achsen[0]
+    kinder: list[Any] = ax._children
+    fremde = [ax.plot([0.0], [0.0], [0.0], gid=name)[0] for name in ("vorn", "mitte", "hinten")]
+    punkte = [a for a in kinder if a not in fremde]
+    marker = [a for a in punkte if id(a) in {id(m) for m in z.marker.values()}]
+    labels = [a for a in punkte if a not in marker]
+    assert marker and labels
+    kinder[:] = [fremde[0], *marker, fremde[1], *labels, fremde[2]]
+    return kinder, [id(f) for f in fremde]
+
+
+def test_fremde_artists_bleiben_erhalten_und_die_reihenfolge_stimmt_danach() -> None:
+    z = _zeichnung((9.0, 5.6), BLICK_VORGABEN["iso"])
+    ax: Any = z.achsen[0]
+    liste, fremde = _mit_fremden_artists(z)
+    vorher = _kinder_ids(z)
+    assert vorher[0] == fremde[0] and vorher[-1] == fremde[2]  # Ausgangslage mit Fremden
+    assert 0 < vorher.index(fremde[1]) < len(vorher) - 1
+    with _ohne_punkte(z):
+        im_kontext = _kinder_ids(z)
+        assert im_kontext == [fremde[0], fremde[1], fremde[2]]  # nur Fremde bleiben, geordnet
+    assert ax._children is liste  # dasselbe Listenobjekt
+    assert _kinder_ids(z) == vorher  # Fremde und Punkte in Ausgangsreihenfolge, gleiche Menge
+
+
+def test_fremde_artists_bleiben_auch_nach_exception_an_ihrer_stelle() -> None:
+    z = _zeichnung((9.0, 5.6), BLICK_VORGABEN["iso"])
+    _liste, fremde = _mit_fremden_artists(z)
+    vorher = _kinder_ids(z)
+    with pytest.raises(RuntimeError, match="boom"), _ohne_punkte(z):
+        raise RuntimeError("boom")
+    assert _kinder_ids(z) == vorher
+    assert [i for i in _kinder_ids(z) if i in fremde] == fremde
+
+
 def test_kinder_bleiben_auch_nach_exception_unveraendert() -> None:
     z = _zeichnung((9.0, 5.6), BLICK_VORGABEN["iso"])
     ax: Any = z.achsen[0]

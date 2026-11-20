@@ -9,8 +9,11 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Any
 
+import matplotlib
 import numpy as np
+import pytest
 from dar_animation_hilfen import lange_platte
+from matplotlib.backends.backend_agg import RendererAgg
 from matplotlib.figure import Figure
 
 from ldv_automation.darstellung.animation3d import (
@@ -36,6 +39,10 @@ LOCKER = lange_platte(2.25, 6, 3)  # 18 Punkte: alle Labels passen
 def _zeichnung(groesse: tuple[float, float], daten: AnimationsDaten = DATEN) -> Zeichnung:
     opt = AnimationsOptionen(punktlabels=True, blick=BLICK_VORGABEN["iso"])
     return zeichne_animation(Figure(figsize=groesse), daten, opt, THESIS_STIL)
+
+
+class _AndererRenderer(RendererAgg):
+    """Agg-Renderer eines anderen Typs (gleiche Maße): steht für einen anderen Backend-Renderer."""
 
 
 def _renderer(z: Zeichnung) -> Any:
@@ -128,6 +135,49 @@ def test_speicher_verworfen_bei_anderer_dpi() -> None:
     assert np.array_equal(_rechtecke(z, masse), _rechtecke(z, None))
     assert masse.anzahl_messungen == vorher + len(z.hilfsobjekte["punktlabels"])
     assert len(masse) == len(z.hilfsobjekte["punktlabels"])
+
+
+def test_speicher_verworfen_bei_anderem_hinting(monkeypatch: pytest.MonkeyPatch) -> None:
+    z = _zeichnung((9.0, 5.6))
+    masse: LabelMasse = z.hilfsobjekte["label_masse"]
+    anzahl = len(z.hilfsobjekte["punktlabels"])
+    vorher = masse.anzahl_messungen
+    alt = matplotlib.rcParams["text.hinting"]
+    neu = "force_autohint" if alt != "force_autohint" else "no_hinting"
+    monkeypatch.setitem(matplotlib.rcParams, "text.hinting", neu)
+    assert np.array_equal(_rechtecke(z, masse), _rechtecke(z, None))  # bitgleich zu ungespeichert
+    assert masse.anzahl_messungen == vorher + anzahl  # neu gemessen
+    assert len(masse) == anzahl
+    # Gegenprobe: das Hinting ändert die Textmaße tatsächlich (sonst wäre der Test belanglos)
+    t = z.hilfsobjekte["punktlabels"][0]
+    monkeypatch.setitem(matplotlib.rcParams, "text.hinting", alt)
+    m_alt = _renderer(z).get_text_width_height_descent(t.get_text(), t.get_fontproperties(), False)
+    monkeypatch.setitem(matplotlib.rcParams, "text.hinting", neu)
+    m_neu = _renderer(z).get_text_width_height_descent(t.get_text(), t.get_fontproperties(), False)
+    assert m_alt != m_neu
+
+
+def test_speicher_bleibt_bei_gleichen_messbedingungen_und_unwirksamen_rcparams(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    z = _zeichnung((9.0, 5.6))
+    masse: LabelMasse = z.hilfsobjekte["label_masse"]
+    vorher = masse.anzahl_messungen
+    monkeypatch.setitem(matplotlib.rcParams, "text.antialiased", False)  # wirkt nur beim Zeichnen
+    _rechtecke(z, masse)
+    assert masse.anzahl_messungen == vorher
+
+
+def test_speicher_verworfen_bei_anderem_renderertyp() -> None:
+    z = _zeichnung((9.0, 5.6))
+    masse: LabelMasse = z.hilfsobjekte["label_masse"]
+    labels = z.hilfsobjekte["punktlabels"]
+    vorher = masse.anzahl_messungen
+    anderer = _AndererRenderer(900, 560, _renderer(z).dpi)  # type: ignore[no-untyped-call]
+    assert anderer.dpi == _renderer(z).dpi
+    masse.abmessungen(anderer, labels)
+    assert masse.anzahl_messungen == vorher + len(labels)
+    assert len(masse) == len(labels)
 
 
 def test_speicher_verworfen_bei_anderen_labeltexten() -> None:

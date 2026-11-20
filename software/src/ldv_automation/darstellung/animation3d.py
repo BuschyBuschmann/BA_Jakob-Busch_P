@@ -29,6 +29,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from typing import Any, Literal
 
+import matplotlib
 import numpy as np
 from matplotlib.colors import Normalize, TwoSlopeNorm
 from matplotlib.figure import Figure
@@ -639,10 +640,15 @@ def _z_achse(ax: Any, sichtbar: bool, stil: Plotstil) -> None:
 class LabelMasse:
     """Speicher der Textmaße ``(Breite, Höhe, Abstieg)`` in Pixeln je Label-Text und Schrift.
 
-    Die Maße eines Labels hängen nur von Text, Schrift und Renderer-DPI ab, nicht vom Blick; die
-    Abfrage beim Renderer ist der Hauptkostenanteil der Label-Dichte (bei 1500 Punkten etwa
-    250 ms). Der Speicher leert sich, wenn sich die DPI des Renderers ändert, und behält nach
-    jeder Abfrage nur Einträge, die der aktuelle Labelsatz braucht.
+    Die Maße eines Labels hängen nur von Text, Schrift und den Messbedingungen des Renderers ab,
+    nicht vom Blick; die Abfrage beim Renderer ist der Hauptkostenanteil der Label-Dichte (bei
+    1500 Punkten etwa 250 ms). Die Messbedingungen (:meth:`_bedingungen`) sind Renderer-Typ, DPI
+    und ``rcParams["text.hinting"]``: Agg misst mit dem Hinting-Flag (gemessen: Breite 270,75 statt
+    270,28 px je nach Wert), die übrigen Text-``rcParams`` ändern das Maß nicht
+    (``text.antialiased`` wirkt nur beim Zeichnen; ``text.hinting_factor`` und
+    ``text.kerning_factor`` sind seit Matplotlib 3.11 wirkungslos und veraltet). Der Speicher leert
+    sich, wenn sich die Messbedingungen ändern, und behält nach jeder Abfrage nur Einträge, die
+    der aktuelle Labelsatz braucht.
 
     Der Schlüssel ist ein **Abbild** der Schrift (``FontProperties.copy``): ``Text.set_fontsize``
     ändert das Schriftobjekt des Textes an Ort und Stelle, ein Schlüssel auf das Original würde
@@ -656,18 +662,23 @@ class LabelMasse:
 
     def __init__(self) -> None:
         self._werte: dict[tuple[str, FontProperties], tuple[float, float, float]] = {}
-        self._dpi: float | None = None
+        self._messbedingungen: tuple[type, float, Any] | None = None
         self.anzahl_messungen = 0
+
+    @staticmethod
+    def _bedingungen(renderer: Any) -> tuple[type, float, Any]:
+        """Alles außer Text und Schrift, wovon das Textmaß abhängt: Typ, DPI, Hinting."""
+        return type(renderer), float(renderer.dpi), matplotlib.rcParams["text.hinting"]
 
     def __len__(self) -> int:
         return len(self._werte)
 
     def abmessungen(self, renderer: Any, labels: Sequence[Any]) -> list[tuple[float, float, float]]:
         """``(Breite, Höhe, Abstieg)`` in Pixeln je Label; Unbekanntes wird gemessen."""
-        dpi = float(renderer.dpi)
-        if dpi != self._dpi:
+        bedingungen = self._bedingungen(renderer)
+        if bedingungen != self._messbedingungen:
             self._werte.clear()
-            self._dpi = dpi
+            self._messbedingungen = bedingungen
         schluessel = [(t.get_text(), t.get_fontproperties().copy()) for t in labels]
         ergebnis: list[tuple[float, float, float]] = []
         for (text, schrift), t in zip(schluessel, labels, strict=True):
