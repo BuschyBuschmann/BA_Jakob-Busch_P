@@ -95,6 +95,9 @@ uv run pytest --cov --cov-fail-under=90
   Paket (z. B. weitere Korrekturrunden) noch nicht abgeschlossen ist; Laborbuch und
   Nachverfolgung können nachgereicht werden (Schutz vor Verlust bei Containerwechsel,
   Nutzerentscheidung 2026-11-20).
+- GUI-Tests laufen mit den matplotlib-Standardwerten (`matplotlib.rcdefaults()` in
+  `tests/gui/conftest.py`), unabhängig von einer `matplotlibrc` des Rechners; Pixelgrenzen der
+  Oberfläche gelten für den matplotlib-Standard (100 dpi) (Nutzerentscheidung 2026-11-20).
 
 ## Abbildungen
 - Abbildungen entstehen nur per Skript aus gespeicherten Daten.
