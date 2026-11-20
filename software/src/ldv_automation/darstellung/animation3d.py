@@ -33,7 +33,7 @@ import matplotlib
 import numpy as np
 from matplotlib.colors import Normalize, TwoSlopeNorm
 from matplotlib.figure import Figure
-from matplotlib.font_manager import FontProperties
+from matplotlib.font_manager import FontProperties, findfont
 from matplotlib.lines import Line2D
 from matplotlib.patheffects import withStroke
 from matplotlib.ticker import FuncFormatter, MaxNLocator, NullFormatter
@@ -652,7 +652,12 @@ class LabelMasse:
 
     Der Schlüssel ist ein **Abbild** der Schrift (``FontProperties.copy``): ``Text.set_fontsize``
     ändert das Schriftobjekt des Textes an Ort und Stelle, ein Schlüssel auf das Original würde
-    sich im Speicher mitändern.
+    sich im Speicher mitändern. Zusätzlich gehört die **aufgelöste Schriftdatei**
+    (``font_manager.findfont``) zum Schlüssel: Die Labels tragen die generische Familie
+    ``sans-serif``, welche Datei dahinter steht, entscheidet erst ``findfont`` beim Messen aus
+    ``rcParams["font.sans-serif"]``/``font.family`` (gemessen: nach ``font.sans-serif =
+    ["Caladea"]`` Breite 87 statt 106 px). Je Aufruf wird jede verschiedene Schrift nur einmal
+    aufgelöst. Nicht erfasst: Ersatzschriften für Zeichen, die die Hauptschrift nicht enthält.
 
     Attributes
     ----------
@@ -661,7 +666,7 @@ class LabelMasse:
     """
 
     def __init__(self) -> None:
-        self._werte: dict[tuple[str, FontProperties], tuple[float, float, float]] = {}
+        self._werte: dict[tuple[str, FontProperties, str], tuple[float, float, float]] = {}
         self._messbedingungen: tuple[type, float, Any] | None = None
         self.anzahl_messungen = 0
 
@@ -679,16 +684,24 @@ class LabelMasse:
         if bedingungen != self._messbedingungen:
             self._werte.clear()
             self._messbedingungen = bedingungen
-        schluessel = [(t.get_text(), t.get_fontproperties().copy()) for t in labels]
+        aufgeloest: dict[FontProperties, str] = {}
+        schluessel: list[tuple[str, FontProperties, str]] = []
+        for t in labels:
+            schrift = t.get_fontproperties().copy()
+            datei = aufgeloest.get(schrift)
+            if datei is None:
+                datei = aufgeloest[schrift] = findfont(schrift)
+            schluessel.append((t.get_text(), schrift, datei))
         ergebnis: list[tuple[float, float, float]] = []
-        for (text, schrift), t in zip(schluessel, labels, strict=True):
-            wert = self._werte.get((text, schrift))
+        for k, t in zip(schluessel, labels, strict=True):
+            text = k[0]
+            wert = self._werte.get(k)
             if wert is None:
                 breite, hoehe, abstieg = renderer.get_text_width_height_descent(
                     text, t.get_fontproperties(), False
                 )
                 wert = (float(breite), float(hoehe), float(abstieg))
-                self._werte[(text, schrift)] = wert
+                self._werte[k] = wert
                 self.anzahl_messungen += 1
             ergebnis.append(wert)
         gebraucht = set(schluessel)

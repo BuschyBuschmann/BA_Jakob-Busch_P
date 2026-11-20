@@ -85,7 +85,7 @@ from ldv_automation.gui.animation_steuerung import (
     wende_an,
 )
 from ldv_automation.gui.animation_tasten import aktion_aus_tastenereignis
-from ldv_automation.gui.plotflaeche import NEUZEICHNEN_MS
+from ldv_automation.gui.plotflaeche import FIGURE_DPI, NEUZEICHNEN_MS
 from ldv_automation.gui.stil import setze_eigenschaft
 
 __all__ = [
@@ -192,7 +192,7 @@ class AnimationsFlaeche(QFrame):
         self._skelett: list[Any] = []  # Linien des Achsen-Skeletts (L2, nur beim Drehen)
         self._marker_sichtbar: dict[str, bool] = {}  # Sichtbarkeit der Marker vor dem Skelett
 
-        self._figure = Figure()
+        self._figure = Figure(dpi=FIGURE_DPI)
         self._canvas = FigureCanvasQTAgg(self._figure)  # type: ignore[no-untyped-call]
         self._canvas.setObjectName("animation_canvas")
         self._canvas.setFocusPolicy(Qt.FocusPolicy.StrongFocus)

@@ -49,6 +49,16 @@ from ldv_automation.gui.stil import setze_eigenschaft
 __all__ = ["NEUZEICHNEN_ANSICHTEN", "NEUZEICHNEN_MS", "PlotFlaeche", "PlotToolbar"]
 
 NEUZEICHNEN_MS = 150
+
+FIGURE_DPI = 100.0
+"""Feste Auflösung der Oberflächen-Figures in dpi (logisch, vor dem Gerätepixelverhältnis).
+
+Ohne diese Angabe gilt ``rcParams["figure.dpi"]``, und das kann eine fremde ``matplotlibrc``
+(Arbeitsverzeichnis, ``$MATPLOTLIBRC``, Benutzerverzeichnis, ``/etc``) verstellen: bei 200 dpi
+werden alle Plotschriften und Abstände in Pixeln doppelt so groß, ``constrained_layout`` scheitert.
+Das Qt-Backend multipliziert diesen Wert selbst mit ``devicePixelRatio`` (HiDPI-Bildschirme); die
+Figure bleibt in Zoll gleich groß, nur die Pixelzahl wächst. Thesis-Abbildungen sind nicht betroffen
+(``darstellung/bild.py`` legt eigene Figures an und speichert mit expliziter DPI)."""
 """Entprellzeit: erst wenn die Größe so lange stillsteht, wird neu gezeichnet."""
 NEUZEICHNEN_ANSICHTEN = frozenset({Ansicht.SPITZEN, Ansicht.SCHWINGFORM, Ansicht.DIAGRAMM})
 """Ansichten, die Größen in pt zum Zeichenzeitpunkt messen (Beschriftungsabstände, Pfeillängen)
@@ -229,7 +239,7 @@ class PlotFlaeche(QFrame):
         self._achsen = achsen_zustand if achsen_zustand is not None else AchsenZustand()
         self._stil = stil
         matplotlib.rcParams.update(stil.rc())
-        self._figure = Figure()
+        self._figure = Figure(dpi=FIGURE_DPI)
         self._canvas = FigureCanvasQTAgg(self._figure)  # type: ignore[no-untyped-call]
         self._canvas.setObjectName("plot_canvas")
         self._canvas.setFocusPolicy(Qt.FocusPolicy.StrongFocus)

@@ -207,3 +207,42 @@ def test_punktlabels_anwenden_haelt_den_speicher_in_den_hilfsobjekten() -> None:
     masse = z.hilfsobjekte["label_masse"]
     _punktlabels_anwenden(z, DATEN, THESIS_STIL)
     assert z.hilfsobjekte["label_masse"] is masse
+
+
+def test_speicher_verworfen_bei_anderer_aufgeloester_schrift(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Die Labels tragen ``sans-serif``; erst ``findfont`` macht daraus eine Datei (Gegenprobe)."""
+    from matplotlib.font_manager import findfont, fontManager
+
+    # die generische Familie erzwingen (eine fremde matplotlibrc könnte eine Schrift nennen)
+    monkeypatch.setitem(matplotlib.rcParams, "font.family", ["sans-serif"])
+    z = _zeichnung((9.0, 5.6))
+    masse: LabelMasse = z.hilfsobjekte["label_masse"]
+    labels = z.hilfsobjekte["punktlabels"]
+    vorher_datei = findfont(labels[0].get_fontproperties())
+    andere = sorted(
+        {f.name for f in fontManager.ttflist if f.fname != vorher_datei and f.name != "DejaVu Sans"}
+    )
+    # eine Schrift mit tatsächlich anderen Maßen suchen (nicht jede Ersatzschrift misst anders)
+    t = labels[0]
+    ref = _renderer(z).get_text_width_height_descent(t.get_text(), t.get_fontproperties(), False)
+    kandidat = None
+    for name in andere:
+        monkeypatch.setitem(matplotlib.rcParams, "font.sans-serif", [name])
+        if findfont(t.get_fontproperties()) == vorher_datei:
+            continue
+        if (
+            _renderer(z).get_text_width_height_descent(t.get_text(), t.get_fontproperties(), False)
+            != ref
+        ):
+            kandidat = name
+            break
+    assert kandidat is not None, "keine zweite Schrift mit anderen Maßen installiert"
+    # Gegenprobe: ohne Neuauflösung wäre der Speicher falsch; mit ihr stimmt er mit dem Messen
+    # ohne Speicher überein
+    vorher = masse.anzahl_messungen
+    assert np.array_equal(_rechtecke(z, masse), _rechtecke(z, None))
+    assert masse.anzahl_messungen == vorher + len(labels)
+    monkeypatch.setitem(matplotlib.rcParams, "font.sans-serif", ["DejaVu Sans"])
+    assert np.array_equal(_rechtecke(z, masse), _rechtecke(z, None))

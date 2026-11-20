@@ -729,6 +729,16 @@ def test_k1_fehlerrahmen_ist_sichtbar_gestrichelt_und_vom_festen_feld_unterschei
 def test_k1_meldung_verschiebt_das_layout_nicht(baue: Bauer, qtbot: QtBot) -> None:
     a = geladen_mit(baue, qtbot)
     zeige(a)
+    # Ausgangslage abschließen (Paket U-HAERTUNG, M1): Nach dem ersten Zeichnen steht die Einheit
+    # „m/s“ im Betragsfeld, die Gruppe ist dadurch 15 px breiter (sizeHint 440 statt 425 px). Ob
+    # die Anordnung das schon übernommen hat, hing von der Last ab (LayoutRequest noch gepostet,
+    # gemessen: Gruppe 425 px bei sizeHint 440 px). Die Meldung ist hier nicht beteiligt.
+    for _ in range(2):
+        QApplication.sendPostedEvents(None, QEvent.Type.LayoutRequest)
+        layout = a.achsenleiste.layout()
+        assert layout is not None
+        layout.activate()
+        QApplication.processEvents()
 
     def geometrie() -> tuple[object, ...]:
         return (

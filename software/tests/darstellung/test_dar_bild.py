@@ -191,3 +191,28 @@ def test_diagramm_bild_traegt_den_stempel_die_zeichenfunktion_allein_nicht(
     assert not any("Arbeitsansicht" in t or "unbestätigte Größen" in t for t in reines)
     assert "A: a.svd" not in reines and "B: b.svd" not in reines
     assert len(ohne.linien) == len(z.linien) == 2  # dieselbe Zeichnung mit und ohne Stempel
+
+
+def test_arbeitsbild_png_ist_unabhaengig_von_der_figure_dpi_der_matplotlibrc(
+    sd: SpektrumDaten, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Thesis-Abbildungen (Zoll, ``savefig`` mit eigener DPI) ändern sich nicht (Paket U-HAERTUNG).
+
+    Die Oberflächen-Figures haben eine feste DPI (``gui/plotflaeche.py``); die Bildausgabe legt
+    eigene Figures an. Eine fremde ``figure.dpi`` darf an Pixelzahl und Bytes nichts ändern.
+    """
+    import matplotlib
+
+    inhalte: dict[float, bytes] = {}
+    for dpi in (100.0, 200.0):
+        monkeypatch.setitem(matplotlib.rcParams, "figure.dpi", dpi)
+        ziel = tmp_path / f"bild_{int(dpi)}.png"
+        speichere_arbeitsbild(
+            lambda fig: zeichne_spektrum(fig, sd, SpektrumOptionen(), STIL),
+            ziel,
+            baue_stempel(dateiname="a", ansicht="b", git_hash="c"),
+            STIL,
+            dpi=150,
+        )
+        inhalte[dpi] = ziel.read_bytes()
+    assert inhalte[100.0] == inhalte[200.0]

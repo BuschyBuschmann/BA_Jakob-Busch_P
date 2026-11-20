@@ -14,6 +14,9 @@ import pytest
 # 160 px hoch, bei 1100 x 680 scheiterte constrained_layout (Paket K-GUI6). Die Oberfläche setzt
 # ``figure.dpi`` nicht selbst; am Messrechner gilt der Matplotlib-Standard. Die Oberflächentests
 # laufen deshalb immer mit den eingebauten Standardwerten, nie mit denen einer Rechnerdatei.
+# Achtung: pytest importiert beim Sammeln alle ``conftest.py`` der Sitzung, dieser Aufruf gilt also
+# für die **ganze Testsitzung** (auch ``tests/darstellung``), nicht nur für die Oberflächentests;
+# wer die Darstellung unter einer fremden ``matplotlibrc`` prüfen will, startet sie getrennt.
 matplotlib.rcdefaults()
 
 
