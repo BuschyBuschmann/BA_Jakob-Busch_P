@@ -108,6 +108,8 @@ uv run pytest --cov --cov-fail-under=90
   Werkzeugskripten kommen aus dem Stil (`Plotstil.text_rc()`/`schrift_rc()`), nie aus der
   `matplotlibrc` des Rechners. Einheitenlabel der Achsenleiste: feste Breite, Überlängen
   gekürzt mit Tooltip (Nutzerentscheidung 2026-11-21).
+- Die Farbe des 3D-Gitters kommt aus `Plotstil.gitter_3d` (App: Token `#E1E3E5`, Thesis:
+  `#b0b0b0`), nicht aus `gitter` und nicht aus der `matplotlibrc` (Nutzerentscheidung 2026-11-21).
 
 ## Abbildungen
 - Abbildungen entstehen nur per Skript aus gespeicherten Daten.
