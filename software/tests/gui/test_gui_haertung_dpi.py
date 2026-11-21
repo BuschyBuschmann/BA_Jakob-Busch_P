@@ -218,3 +218,29 @@ def test_animationsflaeche_zeichnet_bei_allen_abweichenden_schluesseln_wie_im_st
     standard, _ = _pixel_der_flaeche(qtbot, monkeypatch, {})
     fremd, _ = _pixel_der_flaeche(qtbot, monkeypatch, dict(ABWEICHEND))
     assert fremd == standard
+
+
+def test_gitter_der_animation_hat_in_der_app_die_token_farbe_auch_bei_fremder_grid_color(
+    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from ldv_automation.gui import tokens
+    from ldv_automation.gui.plotstil import baue_plotstil
+
+    stil = baue_plotstil()
+    assert stil.text_rc()["grid.color"] == tokens.C_PLOT_GITTER
+
+    def pixel(rc: dict[Any, Any], mit_stil: Any) -> bytes:
+        for k, v in rc.items():
+            monkeypatch.setitem(matplotlib.rcParams, k, v)
+        f = AnimationsFlaeche(mit_stil, zeit=Uhr(), tempo_hz=0.25, blick_vorgabe="iso")
+        qtbot.addWidget(f)
+        f.resize(640, 480)
+        f.show()
+        qtbot.waitExposed(f)
+        f.zeichne(lange_platte(2.25, 45, 9), AnimationsOptionen(punktlabels=True), "Beschreibung")
+        f.canvas.draw()  # type: ignore[no-untyped-call]
+        return bytes(f.canvas.buffer_rgba())  # type: ignore[no-untyped-call]
+
+    standard = pixel({}, stil)
+    assert pixel({"grid.color": "red"}, stil) == standard
+    assert pixel({}, THESIS_STIL) != standard  # Token-Gitter ≠ #b0b0b0: die Farbe kommt vom Stil

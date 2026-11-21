@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +29,7 @@ from ldv_automation.darstellung.animation3d import (
     zeichne_animation,
 )
 from ldv_automation.darstellung.bild import baue_stempel, speichere_arbeitsbild
-from ldv_automation.darstellung.stil import STANDARD_RC_SCHLUESSEL
+from ldv_automation.darstellung.stil import STANDARD_RC_SCHLUESSEL, THESIS_STIL, Plotstil
 
 STANDARD: dict[Any, Any] = dict(rcParamsDefault)
 _ROT = (1.0, 0.0, 0.0, 1.0)
@@ -151,3 +152,31 @@ def test_2d_export_ist_bei_abweichender_axes_linewidth_gleich_dem_standard(
 
     standard = export(tmp_path / f"s.{endung}", {})
     assert export(tmp_path / f"f.{endung}", {"axes.linewidth": 3.0}) == standard
+
+
+def test_gitterfarbe_3d_kommt_aus_dem_stil_nicht_aus_der_rc_datei() -> None:
+    assert THESIS_STIL.text_rc()["grid.color"] == "#b0b0b0"  # Thesis: Matplotlib-Standard
+    assert THESIS_STIL.gitter != "#b0b0b0"  # die 2D-Gitterfarbe bleibt eine eigene Größe
+    assert replace(THESIS_STIL, gitter_3d="#E1E3E5").text_rc()["grid.color"] == "#E1E3E5"
+
+
+@pytest.mark.parametrize("endung", ["png", "pdf"])
+def test_standbild_traegt_die_gitterfarbe_3d_des_stils_auch_bei_fremder_grid_color(
+    endung: str, tmp_path: Path
+) -> None:
+    def export(ziel: Path, rc: dict[Any, Any], stil: Plotstil) -> bytes:
+        with _rc(rc):
+            speichere_arbeitsbild(
+                lambda f: zeichne_animation(f, PLATTE, OPT, stil),
+                ziel,
+                baue_stempel(dateiname="a.svd", ansicht="Animation", git_hash="abc"),
+                stil,
+            )
+        return ziel.read_bytes()
+
+    app = replace(ex.STIL, gitter_3d="#E1E3E5")
+    thesis = export(tmp_path / f"t.{endung}", {}, ex.STIL)
+    ein = export(tmp_path / f"a.{endung}", {}, app)
+    assert ein != thesis  # die Stilgröße wirkt (sonst prüfte der Vergleich unten nichts)
+    assert export(tmp_path / f"af.{endung}", {"grid.color": "red"}, app) == ein
+    assert export(tmp_path / f"tf.{endung}", {"grid.color": "red"}, ex.STIL) == thesis

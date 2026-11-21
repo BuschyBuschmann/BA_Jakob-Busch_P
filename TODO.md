@@ -74,7 +74,7 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☐ | Volltexte nach `Input/literatur/` (mind. Priorität A: peeters2004polymax, rohe2020alignment; Liste in leseliste.md) | Jakob | – | Leseliste R-B10 |
 | ☐ | Fragen an Daniel: A1–A6 (Abgleich), W1–W8 (Benachrichtigung), O11 (KOS-Transformation), O12 (PSV-Ansichten) | Jakob | 23.11. | Analyse A1-B13, Lastenheft |
 | ☐ | Am Messrechner: Abgleich einmal lesen (`P1-6-abgleich`), Typbibliothek der PolyAlignment-Typen auslesen | Jakob | 23.11. | Analyse A1-B13 |
-| ◐ | Auswerten-Erweiterung: Etappen A–C (R-073, R-058, R-059), Abgleich (R-003a/b) und Animation AN1–AN9 fertig (Prüfanleitung Animation für den Termin); offen: Label-Dichte-Kosten bei vielen Punkten, UI-38; Status-Regel „bestätigt …“ projektweit umsetzen (KONVENTIONEN 2026-11-19) | Orchestrator | – | Pläne P-AUSW2, P-AUSW3, P-R003 |
+| ◐ | Auswerten-Erweiterung: Etappen A–C (R-073, R-058, R-059), Abgleich (R-003a/b) und Animation AN1–AN9 fertig (Prüfanleitung Animation für den Termin); beschleunigt und gegen fremde matplotlibrc gehärtet; offen: UI-38; nach dem Termin: 2D-Ansichten gegen restliche rc-Abhängigkeiten härten (Gitterstil, Ticks, Schriftgewicht, Hinting); Status-Regel „bestätigt …“ projektweit umsetzen (KONVENTIONEN 2026-11-19) | Orchestrator | – | Pläne P-AUSW2, P-AUSW3, P-R003 |
 
 ## 4 Thesis
 

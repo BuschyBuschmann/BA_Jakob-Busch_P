@@ -29,6 +29,7 @@ def baue_plotstil() -> Plotstil:
     return Plotstil(
         haupt=t.C_PLOT_HAUPT,
         gitter=t.C_PLOT_GITTER,
+        gitter_3d=t.C_PLOT_GITTER,  # Gitter der 3D-Animation in der App: Token
         achse=t.C_PLOT_ACHSE,
         flaeche=t.C_PLOT_FLAECHE,
         text_gedaempft=t.C_TEXT_GEDAEMPFT,

@@ -96,6 +96,10 @@ class Plotstil:
         Farbe der ersten Kurve, der Marker und des Verlaufs-Dunkelendes.
     gitter, achse, flaeche : str
         Gitter-, Achsen-/Text- und Flächenfarbe (Hintergrund).
+    gitter_3d : str
+        Farbe des Gitters der 3D-Animation (eigene Größe, damit die 2D-Thesis-Abbildungen mit
+        ``gitter`` unverändert bleiben); Voreinstellung ist der Matplotlib-Standard ``#b0b0b0``,
+        die Oberfläche setzt ihren Token.
     text_gedaempft : str
         Nebentext (Konventionen, Platzhalter).
     band : str
@@ -127,6 +131,7 @@ class Plotstil:
 
     haupt: str = "#000000"
     gitter: str = "#CCCCCC"
+    gitter_3d: str = "#b0b0b0"
     achse: str = "#000000"
     flaeche: str = "#FFFFFF"
     text_gedaempft: str = "#555555"
@@ -192,11 +197,13 @@ class Plotstil:
         Für Zeichnungen, die Größen und Farben selbst setzen, aber Texte und Achsen ohne eigene
         Farbe der rc-Datei des Rechners überließen (Animation): kein Wert aus Größe oder Fläche.
         Dazu kommen die Schlüssel :data:`STANDARD_RC_SCHLUESSEL` (Gitter, Wände, Linienbreiten,
-        Ticks, Hinting …) mit dem Wert aus ``matplotlib.rcParamsDefault``: Die Animation sieht
+        Ticks, Hinting …) mit dem Wert aus ``matplotlib.rcParamsDefault``, ``grid.color`` aus
+        :attr:`gitter_3d`: Die Animation sieht
         damit unabhängig von der ``matplotlibrc`` des Rechners wie im Matplotlib-Standard aus.
         """
         return {
             **{k: _STANDARD[k] for k in STANDARD_RC_SCHLUESSEL},
+            "grid.color": self.gitter_3d,  # aus dem Stil, nicht aus der rc-Datei
             **self.schrift_rc(),
             "text.color": self.achse,
             "axes.edgecolor": self.achse,
