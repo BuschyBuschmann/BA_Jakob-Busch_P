@@ -42,6 +42,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+from matplotlib import rc_context
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PySide6.QtCore import QEvent, QObject, QPointF, Qt, QTimer, Signal
@@ -110,6 +111,24 @@ LANGSAM_PERIODENFAKTOR = 1.25
 erreicht: „langsam“ (vorläufiger Wert, bis zur Messung M2 am Messrechner)."""
 RASTE_WINKEL_EINHEIT = 120.0
 """``angleDelta`` einer Raste des Mausrads (Qt: 1/8 Grad, 15° je Raste = 120)."""
+
+
+class _StilCanvas(FigureCanvasQTAgg):
+    """Canvas, der jedes Zeichnen (auch ``draw_idle``) in der Schriftfamilie des Stils ausführt.
+
+    Die Texte tragen die generische Familie ``sans-serif``; welche Datei dahinter steht, entscheidet
+    ``findfont`` erst beim Zeichnen aus der globalen rc. Ohne diesen Kontext liefe die Darstellung
+    mit der Rechnerschrift, die Messung der Labels (``LabelMasse``) mit der Stilschrift.
+    """
+
+    def __init__(self, figure: Figure, stil: Plotstil) -> None:
+        super().__init__(figure)  # type: ignore[no-untyped-call]
+        self._stil_rc = stil.text_rc()
+
+    def draw(self) -> None:
+        """Zeichnet mit Schriftfamilie und Textfarben des Stils."""
+        with rc_context(self._stil_rc):
+            super().draw()  # type: ignore[no-untyped-call]
 
 
 class AnimationsFlaeche(QFrame):
@@ -193,7 +212,7 @@ class AnimationsFlaeche(QFrame):
         self._marker_sichtbar: dict[str, bool] = {}  # Sichtbarkeit der Marker vor dem Skelett
 
         self._figure = Figure(dpi=FIGURE_DPI)
-        self._canvas = FigureCanvasQTAgg(self._figure)  # type: ignore[no-untyped-call]
+        self._canvas = _StilCanvas(self._figure, stil)
         self._canvas.setObjectName("animation_canvas")
         self._canvas.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._canvas.setMinimumSize(0, 0)
@@ -359,7 +378,7 @@ class AnimationsFlaeche(QFrame):
         self._canvas.setAccessibleName("Animation der Betriebsschwingform")
         self._canvas.setAccessibleDescription(beschreibung)
         self._gezeichnet_groesse = (self._canvas.width(), self._canvas.height())
-        self._canvas.draw()  # type: ignore[no-untyped-call]
+        self._canvas.draw()
         return zeichnung
 
     def aktualisiere(
@@ -395,7 +414,7 @@ class AnimationsFlaeche(QFrame):
             self.zeichne(self._daten, basis, self._beschreibung)
             return
         self._basis = basis
-        self._canvas.draw()  # type: ignore[no-untyped-call]
+        self._canvas.draw()
 
     def setze_beschreibung(self, beschreibung: str) -> None:
         """Setzt die Textalternative (z. B. nach neuem Winkel oder Blick), ohne neu zu zeichnen."""
@@ -440,7 +459,7 @@ class AnimationsFlaeche(QFrame):
                 self._zeichnung, self._daten, self._optionen(self._basis, ereignis), self._stil
             )
             if sofort:
-                self._canvas.draw()  # type: ignore[no-untyped-call]
+                self._canvas.draw()
             else:
                 self._canvas.draw_idle()  # type: ignore[no-untyped-call]
         except Exception as fehler:  # Zeichenfunktion scheitert: melden statt verschlucken

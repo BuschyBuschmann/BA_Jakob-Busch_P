@@ -939,3 +939,33 @@ def test_optionen_der_aufrufer_werden_durch_den_zustand_der_flaeche_ersetzt(bau:
     )
     assert math.degrees(_optionen(f).theta_rad) == pytest.approx(33.0)
     assert f.blick == BLICK_VORGABEN["iso"] and not _optionen(f).vereinfacht
+
+
+def test_zeichnen_der_flaeche_loest_die_stilschrift_auf_auch_bei_fremder_sans_serif(
+    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ohne vorher gebaute PlotFlaeche: Zeichnen und Messen (LabelMasse) nutzen die Stilschrift."""
+    import matplotlib
+    from matplotlib.font_manager import findfont
+    from matplotlib.text import Text
+
+    fremd = "DejaVu Serif"  # in matplotlib enthalten, anders als die Stilschrift „DejaVu Sans“
+    monkeypatch.setitem(matplotlib.rcParams, "font.sans-serif", [fremd])
+    monkeypatch.setitem(matplotlib.rcParams, "font.family", ["sans-serif"])
+    f = AnimationsFlaeche(THESIS_STIL, zeit=Uhr(), tempo_hz=TEMPO_HZ, blick_vorgabe="iso")
+    qtbot.addWidget(f)
+    f.resize(640, 480)
+    f.show()
+    qtbot.waitExposed(f)
+    f.zeichne(_daten(), AnimationsOptionen(punktlabels=True), "Beschreibung")
+    aufgeloest: set[str] = set()
+    original = Text.draw
+
+    def erfasse(self: Text, renderer: Any) -> None:
+        if self.get_text():
+            aufgeloest.add(Path(findfont(self.get_fontproperties())).name)
+        original(self, renderer)
+
+    monkeypatch.setattr(Text, "draw", erfasse)
+    f.canvas.draw()  # type: ignore[no-untyped-call]
+    assert aufgeloest == {"DejaVuSans.ttf"}

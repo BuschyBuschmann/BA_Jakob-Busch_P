@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import dar_daten as dd
 import matplotlib
@@ -164,3 +165,39 @@ def test_export_ist_bei_fremder_font_family_gleich_dem_rc_standard(
             )
         inhalte[art] = ziel.read_bytes()
     assert inhalte["standard"] == inhalte["fremd"]
+
+
+@pytest.mark.parametrize("endung", ["png", "pdf"])
+@pytest.mark.parametrize("schluessel", ["text.color", "axes.edgecolor", "axes.labelcolor"])
+def test_animation_standbild_ist_bei_fremder_text_oder_achsenfarbe_gleich_dem_rc_standard(
+    schluessel: str, endung: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Texte und Achsen der Animation ohne eigene Farbe folgen dem Stil, nicht der rc-Datei."""
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1700000000")
+    inhalte: dict[str, bytes] = {}
+    for art, wert in (("standard", None), ("fremd", "red")):
+        with matplotlib.rc_context():
+            matplotlib.rcdefaults()
+            if wert is not None:
+                fremd: dict[Any, Any] = {schluessel: wert}
+                matplotlib.rcParams.update(fremd)
+
+            ziel = tmp_path / f"{art}.{endung}"
+            stempel = baue_stempel(dateiname="a.svd", ansicht="x", git_hash="a")
+            speichere_arbeitsbild(FAELLE["animation_standbild"], ziel, stempel, STIL)
+        inhalte[art] = ziel.read_bytes()
+    assert inhalte["standard"] == inhalte["fremd"]
+
+
+def test_animation_tick_und_textfarben_sind_stilfarben_bei_fremder_rc() -> None:
+    from ldv_automation.darstellung.bild import neue_figure
+
+    with matplotlib.rc_context({"xtick.color": "red", "ytick.color": "red", "text.color": "red"}):
+        z = FAELLE["animation_standbild"](neue_figure(STIL))
+        z.figure.canvas.draw()
+    farben = {
+        matplotlib.colors.to_hex(t.get_color())
+        for t in z.figure.findobj(matplotlib.text.Text)
+        if t.get_text() and t.get_visible()
+    }
+    assert "#ff0000" not in farben

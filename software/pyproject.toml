@@ -74,7 +74,7 @@ exclude = ["^\\.venv/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "tools/erkundung", "tools/build_info", "tools/svd_analyse", "tools/auswertung"]
+pythonpath = ["src", "tools/erkundung", "tools/build_info", "tools/svd_analyse", "tools/auswertung", "tests/darstellung"]
 addopts = "-ra --strict-markers -m 'not hardware and not gui'"
 # Das Constrained Layout darf nie wegen zu kleiner Achsen aussetzen (Oberfläche und Zeichenfunktionen).
 filterwarnings = ["error:constrained_layout not applied:UserWarning"]

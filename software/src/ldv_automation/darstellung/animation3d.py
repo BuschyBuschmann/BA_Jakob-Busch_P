@@ -1245,7 +1245,7 @@ def zeichne_animation(
         ``"punktlabels"``; ``texte`` mit dem Pflichttext
         und den Kennzeichen; ``hinweise`` mit dem Überlagerungshinweis.
     """
-    with rc_context(stil.schrift_rc()):
+    with rc_context(stil.text_rc()):
         return _zeichne_animation(fig, daten, opt, stil)
 
 
@@ -1477,7 +1477,7 @@ def aktualisiere_animation(
         des Bildes betrifft (``farbe``, ``farb_komponente``, ``ruhelage``, ``punktlabels``,
         Kennzeichen), unterscheidet sich: dann ist neu zu zeichnen.
     """
-    with rc_context(stil.schrift_rc()):
+    with rc_context(stil.text_rc()):
         _aktualisiere_animation(zeichnung, daten, opt, stil, zoom_fest=zoom_fest)
 
 

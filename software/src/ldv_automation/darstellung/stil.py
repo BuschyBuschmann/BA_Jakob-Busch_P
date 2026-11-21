@@ -145,6 +145,21 @@ class Plotstil:
         """Nur die Schriftfamilie für ``matplotlib.rc_context`` (nicht die der Rechner-rc-Datei)."""
         return {"font.family": "sans-serif", "font.sans-serif": list(self.schriftfamilie)}
 
+    def text_rc(self) -> dict[Any, Any]:
+        """Schriftfamilie und Text-/Achsenfarben für ``matplotlib.rc_context``.
+
+        Für Zeichnungen, die Größen und Farben selbst setzen, aber Texte und Achsen ohne eigene
+        Farbe der rc-Datei des Rechners überließen (Animation): kein Wert aus Größe oder Fläche.
+        """
+        return {
+            **self.schrift_rc(),
+            "text.color": self.achse,
+            "axes.edgecolor": self.achse,
+            "axes.labelcolor": self.achse,
+            "xtick.color": self.achse,
+            "ytick.color": self.achse,
+        }
+
     def rc(self) -> dict[Any, Any]:
         """``rcParams``-Wörterbuch für ``matplotlib.rc_context`` (kein globaler Zustand)."""
         return {
