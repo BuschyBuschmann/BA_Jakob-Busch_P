@@ -1,6 +1,6 @@
-# Ablaufplan: nächster Termin am Messrechner (Entwurf zur Freigabe)
+# Ablaufplan: nächster Termin am Messrechner
 
-**Status:** ENTWURF (überarbeitet nach Fachprüfung FD-P3), nicht freigegeben · **Datum:** 2026-11-23 (Mo, F3, verschoben) · **Rechner:** BEOWOLF
+**Status:** FREIGEGEBEN durch Jakob am 2026-11-21 (überarbeitet nach Fachprüfung FD-P3) · **Datum:** 2026-11-23 (Mo, F3, verschoben) · **Rechner:** BEOWOLF
 **Bearbeiter am Rechner:** Jakob (mit dem Orchestrator direkt, KONVENTIONEN „Arbeitsweise bei Terminen vor Ort“)
 Paket P3 (Planung). Dazu gehören [protokoll.md](protokoll.md) (zum Ausfüllen) und [pruefzettel.md](pruefzettel.md) (Kurzliste zum Abhaken).
 
