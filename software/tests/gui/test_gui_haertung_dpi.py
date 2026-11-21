@@ -10,12 +10,14 @@ from __future__ import annotations
 import warnings
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import matplotlib
 import pytest
 from dar_animation_hilfen import lange_platte
 from gui_ausw_hilfen import Bauer
 from pytestqt.qtbot import QtBot
+from test_dar_animation_rc_haertung import ABWEICHEND
 from test_gui_animation import animation, oeffne
 from test_gui_animationsflaeche import Uhr
 from test_gui_ansicht_5 import aufbau as aufbau_5
@@ -174,3 +176,45 @@ def test_animation_standbild_export_ist_bei_rc_figure_dpi_100_und_200_gleich(
     inhalte = _bytes_je_dpi(monkeypatch, erzeuge)
     assert schritte[100.0] == schritte[200.0] and schritte[100.0] != 0
     assert inhalte[100.0] == inhalte[200.0]
+
+
+# --- Paket U-HAERTUNG-3D: Gitter, Wände, Linien, Hinting der Animation aus dem Standard ---------
+
+
+def _pixel_der_flaeche(
+    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, rc: dict[Any, Any]
+) -> tuple[bytes, Any]:
+    """Pixelpuffer der gezeichneten Animationsfläche unter den rc-Werten ``rc`` (vor dem Bau)."""
+    for k, v in rc.items():
+        monkeypatch.setitem(matplotlib.rcParams, k, v)
+    f = AnimationsFlaeche(THESIS_STIL, zeit=Uhr(), tempo_hz=0.25, blick_vorgabe="iso")
+    qtbot.addWidget(f)
+    f.resize(640, 480)
+    f.show()
+    qtbot.waitExposed(f)
+    f.zeichne(lange_platte(2.25, 45, 9), AnimationsOptionen(punktlabels=True), "Beschreibung")
+    f.canvas.draw()  # type: ignore[no-untyped-call]
+    puffer = bytes(f.canvas.buffer_rgba())  # type: ignore[no-untyped-call]
+    z = f.zeichnung
+    assert z is not None
+    for k in rc:  # außerhalb des Kontexts der Fläche bleibt der Wert des Rechners stehen
+        assert matplotlib.rcParams[k] == rc[k]
+    return puffer, z.hilfsobjekte["punktlabels_schritt"]
+
+
+@pytest.mark.parametrize("schluessel", sorted(ABWEICHEND))
+def test_animationsflaeche_zeichnet_bei_abweichendem_rc_schluessel_wie_im_standard(
+    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, schluessel: str
+) -> None:
+    standard, s0 = _pixel_der_flaeche(qtbot, monkeypatch, {})
+    fremd, s1 = _pixel_der_flaeche(qtbot, monkeypatch, {schluessel: ABWEICHEND[schluessel]})
+    assert s0 not in (None, 0) and s1 == s0
+    assert fremd == standard
+
+
+def test_animationsflaeche_zeichnet_bei_allen_abweichenden_schluesseln_wie_im_standard(
+    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    standard, _ = _pixel_der_flaeche(qtbot, monkeypatch, {})
+    fremd, _ = _pixel_der_flaeche(qtbot, monkeypatch, dict(ABWEICHEND))
+    assert fremd == standard

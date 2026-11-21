@@ -160,6 +160,12 @@ def test_speicher_verworfen_bei_anderem_hinting(monkeypatch: pytest.MonkeyPatch)
 def test_speicher_bleibt_bei_gleichen_messbedingungen_und_unwirksamen_rcparams(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    # Die Zeichnung misst mit dem Standard-Hinting (``Plotstil.text_rc``); die Messung unten liegt
+    # außerhalb ihres Kontexts, also muss die rc dort denselben Wert tragen (eine Rechnerdatei
+    # mit anderem Hinting würde den Speicher zu Recht leeren).
+    monkeypatch.setitem(
+        matplotlib.rcParams, "text.hinting", matplotlib.rcParamsDefault["text.hinting"]
+    )
     z = _zeichnung((9.0, 5.6))
     masse: LabelMasse = z.hilfsobjekte["label_masse"]
     vorher = masse.anzahl_messungen

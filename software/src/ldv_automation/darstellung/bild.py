@@ -178,16 +178,19 @@ def speichere_arbeitsbild(
                 ax.set_xlim(*xlim)
             if ylim is not None:
                 ax.set_ylim(*ylim)
-        for n, zeile in enumerate(reversed(stempel.zeilen)):
-            fig.text(
-                0.01,
-                0.008 + 0.028 * n,
-                zeile,
-                ha="left",
-                va="bottom",
-                fontsize=stil.schrift_pt * 0.85,
-                color=stil.text_gedaempft,
-            )
-        # PDF: explizit die Figure-DPI (Rasteranteile), nie ``savefig.dpi`` der rc-Datei
-        fig.savefig(pfad, dpi=dpi if pfad.suffix.lower() == ".png" else EXPORT_FIGURE_DPI)
+        # Stempel und Speichern im Kontext der Zeichnung (Animation: Matplotlib-Standard für
+        # Hinting, Antialiasing, Schriftgewicht, Speicherfläche), sonst nur in der Stilschrift
+        with rc_context(zeichnung.hilfsobjekte.get("zeichen_rc", {})):
+            for n, zeile in enumerate(reversed(stempel.zeilen)):
+                fig.text(
+                    0.01,
+                    0.008 + 0.028 * n,
+                    zeile,
+                    ha="left",
+                    va="bottom",
+                    fontsize=stil.schrift_pt * 0.85,
+                    color=stil.text_gedaempft,
+                )
+            # PDF: explizit die Figure-DPI (Rasteranteile), nie ``savefig.dpi`` der rc-Datei
+            fig.savefig(pfad, dpi=dpi if pfad.suffix.lower() == ".png" else EXPORT_FIGURE_DPI)
         return zeichnung

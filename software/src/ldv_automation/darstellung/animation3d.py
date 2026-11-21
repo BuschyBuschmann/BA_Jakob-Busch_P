@@ -1242,7 +1242,8 @@ def zeichne_animation(
         ``"skalierung"`` (Auslenkung: :math:`s`, Schnelle: :math:`\kappa` in s),
         ``"ueberhoehung"`` (dimensionslos: bei Schnelle die äquivalente Überhöhung
         :math:`\kappa\omega`, NaN bei :math:`\omega \le 0`), ``"farbbereich"`` und
-        ``"punktlabels"``; ``texte`` mit dem Pflichttext
+        ``"punktlabels"``; ``"zeichen_rc"`` (:meth:`Plotstil.text_rc`, gilt auch für Stempel und
+        Speichern); ``texte`` mit dem Pflichttext
         und den Kennzeichen; ``hinweise`` mit dem Überlagerungshinweis.
     """
     with rc_context(stil.text_rc()):
@@ -1320,6 +1321,7 @@ def _zeichne_animation(
     z = Zeichnung(figure=fig, achsen=(ax,))
     z.hilfsobjekte["stil"] = stil
     z.hilfsobjekte["stil_eingabe"] = stil_eingabe
+    z.hilfsobjekte["zeichen_rc"] = stil_eingabe.text_rc()  # für Stempel und Speichern
     z.hilfsobjekte["kompakt"] = kompakt
     z.hilfsobjekte["grund_zoom"] = 1.0
     z.hilfsobjekte["daten"] = daten

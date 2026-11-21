@@ -13,12 +13,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from matplotlib import colormaps
+from matplotlib import colormaps, rcParamsDefault
 from matplotlib.colors import Colormap, LinearSegmentedColormap
 
 __all__ = [
     "DIVERGIEREND_FARBEN_BUNT",
     "LINIENARTEN",
+    "STANDARD_RC_SCHLUESSEL",
     "THESIS_STIL",
     "ZYKLISCHE_SKALA",
     "Plotstil",
@@ -43,6 +44,46 @@ DIVERGIEREND_FARBEN_BUNT: tuple[str, str, str] = ("#A9D0EC", "#8C8C8C", "#5A2D0C
 Die Helligkeit fällt von „negativ“ nach „positiv“ streng monoton (Luma 202, 140, 52), das
 Vorzeichen bleibt in Graustufen lesbar; Blau und Braun sind bei Rot-Grün-Schwäche unterscheidbar,
 es kommt kein Gelb vor."""
+
+STANDARD_RC_SCHLUESSEL: tuple[str, ...] = (
+    "axes.axisbelow",
+    "axes.facecolor",
+    "axes.grid",
+    "axes.labelpad",
+    "axes.labelweight",
+    "axes.linewidth",
+    "axes3d.automargin",
+    "axes3d.grid",
+    "axes3d.xaxis.panecolor",
+    "axes3d.yaxis.panecolor",
+    "axes3d.zaxis.panecolor",
+    "font.weight",
+    "grid.alpha",
+    "grid.color",
+    "grid.linestyle",
+    "grid.linewidth",
+    "lines.antialiased",
+    "patch.linewidth",
+    "savefig.facecolor",
+    "text.antialiased",
+    "text.hinting",
+    "xtick.direction",
+    "xtick.major.pad",
+    "xtick.major.size",
+    "xtick.major.width",
+    "ytick.direction",
+    "ytick.major.pad",
+    "ytick.major.size",
+    "ytick.major.width",
+)
+"""``rcParams``-Schlüssel, die das Bild der 3D-Animation ändern, obwohl die Zeichnung sie nicht
+selbst setzt (gemessen am PNG-/PDF-Hash des Standbilds mit abweichendem Wert je Schlüssel:
+Gitter, Wände, Achsenlinien, Ticks, Schriftgewicht, Hinting, Antialiasing, Speicherfläche). Der
+Animations-Kontext (:meth:`Plotstil.text_rc`) setzt sie auf den Matplotlib-Standard, damit eine
+fremde ``matplotlibrc`` des Rechners Bildschirm und Standbild nicht verändert."""
+
+_STANDARD: dict[Any, Any] = dict(rcParamsDefault)
+"""Matplotlib-Standard der ``rcParams`` (unveränderliche Kopie beim Import)."""
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -146,12 +187,16 @@ class Plotstil:
         return {"font.family": "sans-serif", "font.sans-serif": list(self.schriftfamilie)}
 
     def text_rc(self) -> dict[Any, Any]:
-        """Schriftfamilie und Text-/Achsenfarben für ``matplotlib.rc_context``.
+        """Schriftfamilie, Text-/Achsenfarben und Matplotlib-Standard für den Animations-Kontext.
 
         Für Zeichnungen, die Größen und Farben selbst setzen, aber Texte und Achsen ohne eigene
         Farbe der rc-Datei des Rechners überließen (Animation): kein Wert aus Größe oder Fläche.
+        Dazu kommen die Schlüssel :data:`STANDARD_RC_SCHLUESSEL` (Gitter, Wände, Linienbreiten,
+        Ticks, Hinting …) mit dem Wert aus ``matplotlib.rcParamsDefault``: Die Animation sieht
+        damit unabhängig von der ``matplotlibrc`` des Rechners wie im Matplotlib-Standard aus.
         """
         return {
+            **{k: _STANDARD[k] for k in STANDARD_RC_SCHLUESSEL},
             **self.schrift_rc(),
             "text.color": self.achse,
             "axes.edgecolor": self.achse,
@@ -169,6 +214,7 @@ class Plotstil:
             "xtick.labelsize": self.schrift_pt,
             "ytick.labelsize": self.schrift_pt,
             "legend.fontsize": self.schrift_pt,
+            "axes.linewidth": _STANDARD["axes.linewidth"],  # nicht die der Rechner-rc-Datei
             "axes.edgecolor": self.achse,
             "axes.labelcolor": self.achse,
             "xtick.color": self.achse,
