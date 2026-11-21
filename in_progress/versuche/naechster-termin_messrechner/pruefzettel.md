@@ -11,7 +11,7 @@ Dauern sind Annahmen. Bei Zeitmangel gilt die Streichreihenfolge aus Ablaufplan 
 ## Vorher (zu Hause / Entwicklungsrechner)
 
 - [ ] Fragen F1 bis F8 an Daniel gestellt, Antworten notiert (Registrierung, **Anregung**, Termin (F3: Montag 2026-11-23, ganzer Tag, Nutzer 2026-11-18), Waage, **Laser auf Kopf und Reflexfolie auf der Stirnfläche**, Internet/Stick, Handbücher, Zeitdaten)
-- [ ] Wheel **0.2.0** (Version bleibt, nie ausgeliefert) **neu gebaut**: Build 1208ea2be20a5a45a9475f5acb7c6cb9151bbfad, SHA-256 1947897ee964cf10f2754a7b3e9db817487dc2018c446c3131adf5619f189552 (beide auch in `stick/LIESMICH.txt`), gepusht; Abhängigkeits-Wheels auf dem Stick · [ ] Skripte im aktuellen Stand im Repo (`stick/`; `tools/auswertung/speicher_messen.py` für AV V1 fehlt noch auf dem Stick, **[offen]**) · [ ] Stick gepackt (Jakob)
+- [ ] Wheel **0.2.0** (Version bleibt, nie ausgeliefert) **neu gebaut**: Build cebac63e5e9c25d66a76e3d87b073a64bbf1e177, SHA-256 c193caa70a1ed17bd85d47cfc7f6b9682807c5cee538b80db1156faee687960d (beide auch in `stick/LIESMICH.txt`), gepusht; Abhängigkeits-Wheels auf dem Stick · [ ] Skripte im aktuellen Stand im Repo (`stick/`; `tools/auswertung/speicher_messen.py` für AV V1 fehlt noch auf dem Stick, **[offen]**) · [ ] Stick gepackt (Jakob)
 - [ ] Kandidaten für M11 **am Einzelpunkt** vorab geprüft ✔ erledigt: 921,5 / 632,5 / 483,8 Hz (Reserve 949,3 / 644,8)? · Namen für Golden File v2 geklärt oder Skript erweitert?
 - [ ] SHA-256 der vorhandenen Handbücher notiert
 - [ ] Offene Fragen an Daniel/Betreuer bereit (Stand in Ablaufplan 3.1 und 7): A1 bis A6 (Abgleich), W1 bis W8 (Benachrichtigung), O11 (Transformation), O12 (PSV-Ansichten), Amplitude 0,04 V, Zeitdaten, Reflexfolie, Waage, Handbücher, Datenblatt PCB 288D01, Gliederung G1 bis G4, Umfang und Abgabetermin
@@ -21,8 +21,9 @@ Dauern sind Annahmen. Bei Zeitmangel gilt die Streichreihenfolge aus Ablaufplan 
 
 - [ ] **M** (–) **Notieren:** Arbeitsspeicher (gesamt/frei, Task-Manager) ______ · `git -C "D:\Messdaten\DAL\BA Jakob Busch\PyCharmProject" status` (nur lesen, Hash-Quelle; ohne `git`: „kein git“): ______
 - [ ] **M** (–) **A0 Schritt 0:** `Get-Process PSV` (höchstens 1), **Erkundung Stufe 0 zuerst**, `PSV.AcquisitionInstance` registriert? → ja: Start über **„PSV 10.4 Deutsch“** (`/Acquisition`), **PID notieren**: ______
-- [ ] **M** (–) **A1 Update:** neues Wheel 0.2.0 (Build 1208ea2be20a5a45a9475f5acb7c6cb9151bbfad, SHA-256 1947897ee964cf10f2754a7b3e9db817487dc2018c446c3131adf5619f189552; `pip install --upgrade --no-deps`; `--force-reinstall` nur als Rückfall), Skripte neu, I1 bis I7 (I3: `ldv-automation 0.2.0`), Git-Hash passt (`git_dirty` false). Bei Zeitverlust: nur I1 bis I4 + Skripte (ca. 10 min)
+- [ ] **M** (–) **A1 Update:** neues Wheel 0.2.0 (Build cebac63e5e9c25d66a76e3d87b073a64bbf1e177, SHA-256 c193caa70a1ed17bd85d47cfc7f6b9682807c5cee538b80db1156faee687960d; `pip install --upgrade --no-deps`; `--force-reinstall` nur als Rückfall), Skripte neu, I1 bis I7 (I3: `ldv-automation 0.2.0`), Git-Hash passt (`git_dirty` false). Bei Zeitverlust: nur I1 bis I4 + Skripte (ca. 10 min)
 - [ ] N1 bis N7 Installationsprüfung Auswerten direkt nach A1 (N1 bis N3 fehlgeschlagen: nichts weiter installieren, EP-3) [4.3]
+- [ ] **Kann:** matplotlibrc prüfen: in der venv `python -c "import matplotlib; print(matplotlib.matplotlib_fname())"` (liegt dort eine `matplotlibrc`?) und die Schrift der Animation kurz sichten; Befund notieren (Hintergrund: Laborbuch `2026-11-21_haertung-matplotlibrc.md`).
 - [ ] **M** (–) **A2 Sicherung** (spätestens 30 min vor Ende): Ordner, Protokoll, Fotos, Dateien; PSV sauber; Shaker aus
 
 ## Pfad A (COM funktioniert)

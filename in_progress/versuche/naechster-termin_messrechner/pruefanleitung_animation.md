@@ -15,7 +15,7 @@ Befund, kein Fehler der Anleitung: Zahl notieren, weitermachen, nichts vor Ort �
 
 ## Voraussetzungen
 
-- Installation nach `installation_0.2.0.md` mit dem Build 1208ea2 (enthält AN8 und AN9; Version bleibt
+- Installation nach `installation_0.2.0.md` mit dem Build cebac63 (enthält AN8 und AN9; Version bleibt
   0.2.0). Erkennbar: In der Animationsleiste unter dem Bild steht der Knopf „Werte als Tabelle“
   (unter 1200 px Fensterbreite „Tabelle“).
 - Eine **Kopie** von `20261012_ref_Mitte.svd` (3D-Messung mit Referenz, 135 Punkte); es wird nur gelesen.

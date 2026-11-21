@@ -1,6 +1,6 @@
 # Installation Version 0.2.0 (Auswertungsoberfläche) am PSV-Messrechner
 
-Stand: 2026-11-05, Paket U-AUSW-T5; aktualisiert 2026-11-18 (P-TERMIN-23: Termin verschoben auf Montag 2026-11-23, Version bleibt 0.2.0, Build 2026-11-19: Git 1208ea2be20a5a45a9475f5acb7c6cb9151bbfad, SHA-256 des Wheels 1947897ee964cf10f2754a7b3e9db817487dc2018c446c3131adf5619f189552; Animation AN7 bis AN9 enthalten; Anleitung für den privaten Rechner: `installation_privat.md`). Ergänzt `ablaufplan.md` Block A1 (dort Wheel 0.2.0) und
+Stand: 2026-11-05, Paket U-AUSW-T5; aktualisiert 2026-11-18 (P-TERMIN-23: Termin verschoben auf Montag 2026-11-23, Version bleibt 0.2.0, Build 2026-11-21 (ersetzt Build 1208ea2): Git cebac63e5e9c25d66a76e3d87b073a64bbf1e177, SHA-256 des Wheels c193caa70a1ed17bd85d47cfc7f6b9682807c5cee538b80db1156faee687960d; Animation AN7 bis AN9 enthalten; Anleitung für den privaten Rechner: `installation_privat.md`). Ergänzt `ablaufplan.md` Block A1 (dort Wheel 0.2.0) und
 `../2026-11-02_prototyp/installation_messrechner.md` (Prüfschritte I1 bis I7, Python,
 Rückbau); Letzteres bleibt gültig, hier steht nur, was für den neuen Build 0.2.0 neu ist.
 
@@ -41,8 +41,8 @@ $PY = "D:\Messdaten\DAL\BA Jakob Busch\PyCharmProject\.venv\Scripts\python.exe"
 & $PY --version        # erwartet Python 3.11.9
 ```
 
-Die venv wird nicht aktiviert, alle Befehle rufen `$PY` auf. Wheel-Name: `ldv_automation-0.2.0-py3-none-any.whl`; SHA-256: 1947897ee964cf10f2754a7b3e9db817487dc2018c446c3131adf5619f189552 (der frühere Wert des ersetzten Builds a0ee2fc gilt nicht mehr);
-Ablageort: `stick/wheelhouse/` (Build 1208ea2be20a5a45a9475f5acb7c6cb9151bbfad, git_dirty false).
+Die venv wird nicht aktiviert, alle Befehle rufen `$PY` auf. Wheel-Name: `ldv_automation-0.2.0-py3-none-any.whl`; SHA-256: c193caa70a1ed17bd85d47cfc7f6b9682807c5cee538b80db1156faee687960d (der frühere Wert des ersetzten Builds a0ee2fc gilt nicht mehr);
+Ablageort: `stick/wheelhouse/` (Build cebac63e5e9c25d66a76e3d87b073a64bbf1e177, git_dirty false).
 
 ## 3 Neue Abhängigkeiten installieren
 
@@ -92,7 +92,7 @@ früherer Build mit gleicher Versionsnummer bereits installiert war (nicht beleg
 |---|---|---|
 | N1 | `& $PY -m pip list` | `ldv-automation 0.2.0`, `matplotlib 3.11.2`, `olefile 0.47`, `tzdata 2026.6`, `numpy 2.4.6`, `PySide6_Essentials 6.11.3`, `shiboken6 6.11.3`, `pywin32 312`; **kein** PySide6 6.12.0 |
 | N2 | `& $PY -c "import ldv_automation; print(ldv_automation.__version__)"` | `0.2.0` |
-| N3 | `& $PY -c "import json,importlib.resources as r; print(json.loads(r.files('ldv_automation').joinpath('_build_info.json').read_text('utf-8')))"` | `git_hash` = Hash des Builds (1208ea2be20a5a45a9475f5acb7c6cb9151bbfad, voller Wert in `stick/LIESMICH.txt`), `git_dirty` = `False` |
+| N3 | `& $PY -c "import json,importlib.resources as r; print(json.loads(r.files('ldv_automation').joinpath('_build_info.json').read_text('utf-8')))"` | `git_hash` = Hash des Builds (cebac63e5e9c25d66a76e3d87b073a64bbf1e177, voller Wert in `stick/LIESMICH.txt`), `git_dirty` = `False` |
 | N4 | `& $PY -c "import matplotlib.font_manager; print('Font-Cache ok')"` | `Font-Cache ok`. Der **erste** Import baut den Schriftcache und kann spürbar dauern (Dauer notieren, siehe Prüfanleitung); der zweite ist schnell |
 | N5 | I1 bis I4 und I5 wie im [alten Plan](../2026-11-02_prototyp/installation_messrechner.md) | wie dort |
 | N6 | `& $PY -m ldv_automation gui --simulator` | Oberfläche startet, Reiter „Messen“ und „Auswerten“ sichtbar |
@@ -105,7 +105,7 @@ Für Jakobs privaten Windows-Rechner (nur Auswerten, Simulator): [installation_p
 
 ## 6 Offene Punkte
 
-- **[erledigt 2026-11-19]** Build: Git `1208ea2be20a5a45a9475f5acb7c6cb9151bbfad`, SHA-256 `1947897ee964cf10f2754a7b3e9db817487dc2018c446c3131adf5619f189552`, `git_dirty` false; Wheelhouse der neuen Pakete in `stick/wheelhouse/` (unverändert).
+- **[erledigt 2026-11-21]** Build: Git `cebac63e5e9c25d66a76e3d87b073a64bbf1e177`, SHA-256 `c193caa70a1ed17bd85d47cfc7f6b9682807c5cee538b80db1156faee687960d`, `git_dirty` false; Wheelhouse der neuen Pakete in `stick/wheelhouse/` (unverändert).
 - **[erledigt]** `tools/auswertung/speicher_messen.py` (für AV V1) liegt auf dem Stick.
 - **[offen]** Ob der Messrechner Internet hat (F7) und damit Weg 1 oder 2 gilt.
 - **[Annahme]** Python 3.11.9 und `pywin32 312` sind wie im Ablaufplan A1 beschrieben vorhanden.

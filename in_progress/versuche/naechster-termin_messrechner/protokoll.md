@@ -31,8 +31,8 @@ Uhrzeiten immer mit eintragen. Nicht Zutreffendes mit „entfällt“ und Grund 
 | PSV-Version und Optionen (*Hilfe > PSV Info*; Foto) | |
 | Python-Version (`& $PY --version`) / Bitness (soll 64) | |
 | Installationsweg (G Git / S Stick / R Bestand) | |
-| Wheel (erwartet `ldv_automation-0.2.0-py3-none-any.whl`): Dateiname / **SHA-256** (`Get-FileHash`) / erwarteter SHA-256 1947897ee964cf10f2754a7b3e9db817487dc2018c446c3131adf5619f189552 (auch in `stick/LIESMICH.txt`) | |
-| **Git-Hash des Wheels** (`_build_info.json`, I6; erwartet 1208ea2be20a5a45a9475f5acb7c6cb9151bbfad) / `git_dirty` (soll false) | |
+| Wheel (erwartet `ldv_automation-0.2.0-py3-none-any.whl`): Dateiname / **SHA-256** (`Get-FileHash`) / erwarteter SHA-256 c193caa70a1ed17bd85d47cfc7f6b9682807c5cee538b80db1156faee687960d (auch in `stick/LIESMICH.txt`) | |
+| **Git-Hash des Wheels** (`_build_info.json`, I6; erwartet cebac63e5e9c25d66a76e3d87b073a64bbf1e177) / `git_dirty` (soll false) | |
 | Hash stimmt mit dem Stand auf dem Branch überein (ja/nein) | |
 | Skriptordner `$ARB` / Ausgabeordner `$T` | |
 | `erkundung.py` Version / `skript_sha256` (aus `bericht.json`); `einstellungen_lesen.py`, `daten_lesen.py`: Stand | |

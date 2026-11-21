@@ -18,8 +18,9 @@ Nichts gilt als bestanden, bevor Jakob es bestätigt hat. Ein Hardwaretest gilt 
 ## Block 1: Start und COM (100 bis 130 min)
 - [ ] **A0** COM-Registrierung prüfen (`Get-Process PSV`, Stufe 0), PID notieren, Datum und Befehl ins Protokoll [A0]
 - [ ] **Notieren:** Arbeitsspeicher gesamt und frei (Task-Manager, Leistung) und `git -C "D:\Messdaten\DAL\BA Jakob Busch\PyCharmProject" status` (Ausgabe ins Protokoll; nur lesen; Hash-Quelle der Build-Info, Laborbuch 2026-11-06; ist `git` nicht vorhanden: „kein git“ notieren)
-- [ ] **A1** Wheel 0.2.0 installieren (neuer Build, Hash und SHA-256 laut `stick/LIESMICH.txt`; Build 1208ea2be20a5a45a9475f5acb7c6cb9151bbfad, SHA-256 1947897ee964cf10f2754a7b3e9db817487dc2018c446c3131adf5619f189552), I1 bis I7 (bei Zeitverlust I1 bis I4) [A1]
+- [ ] **A1** Wheel 0.2.0 installieren (neuer Build, Hash und SHA-256 laut `stick/LIESMICH.txt`; Build cebac63e5e9c25d66a76e3d87b073a64bbf1e177, SHA-256 c193caa70a1ed17bd85d47cfc7f6b9682807c5cee538b80db1156faee687960d), I1 bis I7 (bei Zeitverlust I1 bis I4) [A1]
 - [ ] N1 bis N7 Installationsprüfung Auswerten direkt nach A1; N1 bis N3 fehlgeschlagen: nichts weiter installieren (EP-3) [4.3]
+- [ ] **Kann:** matplotlibrc prüfen: in der venv `python -c "import matplotlib; print(matplotlib.matplotlib_fname())"` (liegt dort eine `matplotlibrc`?) und die Schrift der Animation kurz sichten; Befund notieren (Hintergrund: Laborbuch `2026-11-21_haertung-matplotlibrc.md`).
 - [ ] **C1** Kopien der Beispieldatei `20261012_ref_Mitte.svd` anlegen; C2, C3, N7 und `einstellungen_lesen.py` nur auf Kopien [Zweig C]
 - [ ] **B1** Erkundung Stufe 1 über „PSV 10.4 Deutsch“ (`/Acquisition`). Verbinden scheitert: Fehlerbild sichern, dann EP-1. Ergebnis `P1-6-abgleich` (`Alignments3D.Count`, `Valid`, `CurrentQuality`, Fehlerbild) notieren (Voraussetzung für Block 4a)
 - [ ] **B2** Ergebnisse sichern, Konfigkopie mit SHA-256 [B2]; Konfig mit `abgleich_pruefung` = `warnen`, **keine** Grenzwerte eingetragen (Vorlage `stick/konfig/beispiel_messrechner.json`)

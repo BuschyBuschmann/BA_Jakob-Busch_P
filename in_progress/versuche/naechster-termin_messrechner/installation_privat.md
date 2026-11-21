@@ -13,7 +13,7 @@ Beispieldatei aus dem Repository verwenden; keine PSV-Daten vom Messrechner her�
   python.org (Windows installer 64-bit) oder der Installer vom Stick (Rückfall 3.11.9).
 - Der Stick bzw. eine Kopie von `stick/wheelhouse/` und `in_progress/versuche/2026-11-02_prototyp/stick/wheelhouse/`
   (dort numpy, PySide6-Essentials, shiboken6). Wheel: `ldv_automation-0.2.0-py3-none-any.whl`,
-  SHA-256 `1947897ee964cf10f2754a7b3e9db817487dc2018c446c3131adf5619f189552` (Git `1208ea2be20a5a45a9475f5acb7c6cb9151bbfad`).
+  SHA-256 `c193caa70a1ed17bd85d47cfc7f6b9682807c5cee538b80db1156faee687960d` (Git `cebac63e5e9c25d66a76e3d87b073a64bbf1e177`).
 - Kein Internet nötig, kein Administrator nötig **[Annahme]**.
 
 ## Installation (PowerShell, offline)
@@ -34,7 +34,7 @@ $PY = "C:\ldv_privat\venv\Scripts\python.exe"
 
 `pywin32` entfällt, denn der Simulator braucht es nicht **[Annahme: der COM-Import ist verzögert, auf Windows
 nicht geprüft]**. Das Wheel immer mit `--no-deps` installieren (PySide6 6.12.0 darf nie hinein, ADR-001).
-Prüfen wie N1 bis N4 aus `installation_0.2.0.md` (Version 0.2.0, `git_hash` 1208ea2…, `git_dirty` False).
+Prüfen wie N1 bis N4 aus `installation_0.2.0.md` (Version 0.2.0, `git_hash` cebac63…, `git_dirty` False).
 
 ## Start und Daten
 

@@ -10,7 +10,7 @@ Gehört zu [versuchsplan.md](versuchsplan.md). Allgemeine Punkte des Tages (Kopf
 |---|---|
 | Datum (Soll 2026-11-23), Beginn, Ende | |
 | Personen | |
-| Software (Git-Hash aus Build-Info, Soll 1208ea2be20a5a45a9475f5acb7c6cb9151bbfad, `git_dirty` false; SHA-256 des Wheels Soll 1947897ee964cf10f2754a7b3e9db817487dc2018c446c3131adf5619f189552) | |
+| Software (Git-Hash aus Build-Info, Soll cebac63e5e9c25d66a76e3d87b073a64bbf1e177, `git_dirty` false; SHA-256 des Wheels Soll c193caa70a1ed17bd85d47cfc7f6b9682807c5cee538b80db1156faee687960d) | |
 | PSV-Version | |
 | Raumtemperatur Beginn / Ende [°C] | |
 | Änderungen am Aufbau seit 12.10. | |
