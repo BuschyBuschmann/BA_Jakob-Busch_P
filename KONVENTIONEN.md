@@ -104,6 +104,10 @@ uv run pytest --cov --cov-fail-under=90
   einer `matplotlibrc` (Nutzerentscheidung 2026-11-20).
 - Tests, die PDF-Dateien byteweise vergleichen, setzen `SOURCE_DATE_EPOCH` per `monkeypatch`
   (Nutzerentscheidung 2026-11-20).
+- Schriftfamilie und Text-/Achsenfarben in Zeichenfunktionen, Animationsfläche und
+  Werkzeugskripten kommen aus dem Stil (`Plotstil.text_rc()`/`schrift_rc()`), nie aus der
+  `matplotlibrc` des Rechners. Einheitenlabel der Achsenleiste: feste Breite, Überlängen
+  gekürzt mit Tooltip (Nutzerentscheidung 2026-11-21).
 
 ## Abbildungen
 - Abbildungen entstehen nur per Skript aus gespeicherten Daten.
