@@ -2,29 +2,26 @@
   "schema_version": 1,
   "skript_version": "0.1.0",
   "skript_sha256": "a90d45f135fcfe2594f195191fc2ba48cb189e4a8e42431bc23ffa1616a148d7",
-  "zeitstempel_lokal": "2026-11-23T14:43:30+01:00",
-  "zeitstempel_utc": "2026-11-23T13:43:30+00:00",
+  "zeitstempel_lokal": "2026-11-23T15:41:25+01:00",
+  "zeitstempel_utc": "2026-11-23T14:41:25+00:00",
   "rechnername": "BEOWOLF",
   "benutzername_entfernt": true,
   "kommandozeile": [
     "--stufe",
     "1",
-    "--datei",
-    "D:\\Messdaten\\DAL\\BA Jakob Busch\\daten\\20261012_ref_Mitte_kopie.svd",
     "--out",
     "D:\\Messdaten\\DAL\\BA Jakob Busch\\termin_2026-11-23\\erkundung"
   ],
   "stufen": [
     "0",
-    "1",
-    "1b"
+    "1"
   ],
   "parameter": {
     "timeout_s": 60.0,
     "max_punkte": 3,
     "max_werte": 6,
     "start_psv": false,
-    "datei": "D:\\Messdaten\\DAL\\BA Jakob Busch\\daten\\20261012_ref_Mitte_kopie.svd"
+    "datei": null
   },
   "lauf": {
     "status": "vollstaendig",
@@ -83,7 +80,7 @@
         "windows_bit_einschaetzung": 64
       },
       "auffaelligkeiten": [],
-      "dauer_s": 0.047,
+      "dauer_s": 0.063,
       "exception": null
     },
     {
@@ -100,7 +97,7 @@
         "fehler": null
       },
       "auffaelligkeiten": [],
-      "dauer_s": 0.016,
+      "dauer_s": 0.047,
       "exception": null
     },
     {
@@ -283,7 +280,7 @@
         ]
       },
       "auffaelligkeiten": [],
-      "dauer_s": 0.0,
+      "dauer_s": 0.016,
       "exception": null
     },
     {
@@ -2116,7 +2113,7 @@
         ]
       },
       "auffaelligkeiten": [],
-      "dauer_s": 0.203,
+      "dauer_s": 0.218,
       "exception": null
     },
     {
@@ -2877,7 +2874,7 @@
         }
       },
       "auffaelligkeiten": [],
-      "dauer_s": 0.032,
+      "dauer_s": 0.063,
       "exception": null
     },
     {
@@ -2892,12 +2889,12 @@
         "psv_prozesse": [
           {
             "name": "PSV.exe",
-            "pid": "2404"
+            "pid": "9992"
           }
         ]
       },
       "auffaelligkeiten": [],
-      "dauer_s": 0.187,
+      "dauer_s": 0.61,
       "exception": null
     },
     {
@@ -2905,14 +2902,16 @@
       "stufe": "1",
       "titel": "Verbinden (ohne Start)",
       "beleg_ref": "I5 3.1; 10 P1-5",
-      "status": "uebersprungen",
-      "kernwert": "",
-      "hinweis": "PSV läuft nicht (IsRunning=False). Bitte PSV im Datenerfassungsmodus starten und Stufe 1 erneut ausführen. Das Skript startet PSV nicht (nur mit --start-psv).",
+      "status": "ok",
+      "kernwert": "verbunden",
+      "hinweis": "",
       "werte": {
-        "IsRunning": false
+        "IsRunning": true,
+        "GetApplication_dauer_s": 0.0205,
+        "GetApplication_gestartet": false
       },
       "auffaelligkeiten": [],
-      "dauer_s": 0.015,
+      "dauer_s": 0.047,
       "exception": null
     },
     {
@@ -2920,12 +2919,20 @@
       "stufe": "1",
       "titel": "Application: Version, Mode",
       "beleg_ref": "I5 3.1; 10 P1-5",
-      "status": "uebersprungen",
-      "kernwert": "",
-      "hinweis": "Voraussetzung fehlt (P1-5-verbinden)",
-      "werte": {},
+      "status": "ok",
+      "kernwert": "Version '10.4.0.1', Mode 1",
+      "hinweis": "",
+      "werte": {
+        "Version": "10.4.0.1",
+        "Mode": 1,
+        "Visible": true,
+        "WarningLevel": 0,
+        "SuppressMessagesForAutomation": true,
+        "MessagesLoggingEnabled": false,
+        "Acquisition_erreichbar": true
+      },
       "auffaelligkeiten": [],
-      "dauer_s": 0.0,
+      "dauer_s": 0.078,
       "exception": null
     },
     {
@@ -2933,12 +2940,24 @@
       "stufe": "1",
       "titel": "Acquisition: Zustand, Laser",
       "beleg_ref": "I5 2.2; 10 P1-6, P3-4",
-      "status": "uebersprungen",
-      "kernwert": "",
-      "hinweis": "Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)",
-      "werte": {},
+      "status": "ok",
+      "kernwert": "State 0, GeneratorsOn False",
+      "hinweis": "",
+      "werte": {
+        "State": 0,
+        "Mode": 1,
+        "ScanCaps": 11,
+        "GeneratorsOn": false,
+        "ScanFileName": "",
+        "GetLaserOn": {
+          "-1": true,
+          "1": true,
+          "2": true,
+          "3": true
+        }
+      },
       "auffaelligkeiten": [],
-      "dauer_s": 0.0,
+      "dauer_s": 0.078,
       "exception": null
     },
     {
@@ -2946,12 +2965,61 @@
       "stufe": "1",
       "titel": "Eigenschaften-Gruppen, FFT",
       "beleg_ref": "I5 2.5, 2.6; 10 P1-5/6",
-      "status": "uebersprungen",
-      "kernwert": "",
-      "hinweis": "Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)",
-      "werte": {},
+      "status": "ok",
+      "kernwert": "Gruppen: General, Average, Fft, Channels, Vibrometers, Generators, Trigger, SignalEnhancement, FrontEnd",
+      "hinweis": "",
+      "werte": {
+        "HasGeneralProperties": true,
+        "HasAverageProperties": true,
+        "HasFftProperties": true,
+        "HasTimeProperties": false,
+        "HasZoomFftProperties": false,
+        "HasChannelsProperties": true,
+        "HasVibrometersProperties": true,
+        "HasGeneratorsProperties": true,
+        "HasTriggerProperties": true,
+        "HasSignalEnhancementProperties": true,
+        "HasFrontEndProperties": true,
+        "HasMultiFrameProperties": false,
+        "HasFastScansProperties": false,
+        "gruppen_vorhanden": [
+          "General",
+          "Average",
+          "Fft",
+          "Channels",
+          "Vibrometers",
+          "Generators",
+          "Trigger",
+          "SignalEnhancement",
+          "FrontEnd"
+        ],
+        "Fft": {
+          "Bandwidth": 100000.0,
+          "StartFrequency": 0.0,
+          "EndFrequency": 100000.0,
+          "Lines": 50,
+          "SampleResolution": 2000.0,
+          "Overlap": 0,
+          "SampleFrequency": 250000.0,
+          "SampleTime": 0.0005
+        },
+        "FftAcqPropertiesValidator_vorhanden": true,
+        "Average": {
+          "Type": 2,
+          "Count": 4
+        },
+        "General": {
+          "AutoRemeasure": false,
+          "AutoRemeasureAutoRange": false,
+          "BandWidthExtension": 0,
+          "IsAutoRemeasurePossible": true,
+          "PrincipalComponentAnalysis": false,
+          "RealSampleFrequency": 250000.0,
+          "SaveTimeDataForScan": false
+        }
+      },
       "auffaelligkeiten": [],
-      "dauer_s": 0.0,
+      "dauer_s": 0.36,
       "exception": null
     },
     {
@@ -2959,12 +3027,52 @@
       "stufe": "1",
       "titel": "Hardware",
       "beleg_ref": "I5 2.8; 10 P1-6",
-      "status": "uebersprungen",
-      "kernwert": "",
-      "hinweis": "Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)",
-      "werte": {},
+      "status": "ok",
+      "kernwert": "FrontEnd 124",
+      "hinweis": "",
+      "werte": {
+        "Infos_Has": {
+          "HasHardware": true,
+          "HasScanHeadDevicesInfo": true,
+          "HasAlignments": true,
+          "HasMeasPoints": true,
+          "HasPositionDevice": false,
+          "HasVibrometers": true
+        },
+        "Hardware": {
+          "AcqBoardName": "Polytec Ethernet Datenerfassung",
+          "AcqBoardFirmwareVersion": "1.0302",
+          "AcqBoardChannelCount": 11,
+          "FrontEnd": 124,
+          "FrontEndFirmwareVersion": "2.50",
+          "GeneratorName": "Polytec Ethernet Generator",
+          "GeneratorType": 13,
+          "GeneratorFirmwareVersion": "",
+          "ScanHeadType": 23,
+          "SensorHeadNames": [
+            "PSV-I-680",
+            "PSV-I-690",
+            "PSV-I-690"
+          ],
+          "SensorHeadSerialNumbers": [
+            "360783",
+            "360784",
+            "360785"
+          ],
+          "SensorHeadVersions": [
+            "2.5305",
+            "2.5305",
+            "2.5305"
+          ],
+          "CoherenceOptimizerVersions": [
+            "",
+            "",
+            ""
+          ]
+        }
+      },
       "auffaelligkeiten": [],
-      "dauer_s": 0.0,
+      "dauer_s": 0.234,
       "exception": null
     },
     {
@@ -2972,12 +3080,16 @@
       "stufe": "1",
       "titel": "Scankopf",
       "beleg_ref": "I5 2.8; 10 P1-6",
-      "status": "uebersprungen",
-      "kernwert": "",
-      "hinweis": "Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)",
-      "werte": {},
+      "status": "ok",
+      "kernwert": "ScanHeadType 23",
+      "hinweis": "",
+      "werte": {
+        "HasScanHeadDevicesInfo": true,
+        "ScanHeadName": "PSV-I-6xx",
+        "ScanHeadType": 23
+      },
       "auffaelligkeiten": [],
-      "dauer_s": 0.0,
+      "dauer_s": 0.031,
       "exception": null
     },
     {
@@ -2985,12 +3097,69 @@
       "stufe": "1",
       "titel": "Vibrometer/Controller",
       "beleg_ref": "I5 2.8; 10 P1-6",
-      "status": "uebersprungen",
-      "kernwert": "",
-      "hinweis": "Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)",
-      "werte": {},
+      "status": "ok",
+      "kernwert": "Vibrometers.Count 1",
+      "hinweis": "",
+      "werte": {
+        "HasVibrometers": true,
+        "Count": 1,
+        "gruppen": [
+          {
+            "item": 1,
+            "DeviceName": "Vibrometer",
+            "FirmwareVersion": "2.50",
+            "Name": "PSV-F-600-3D",
+            "SerialNumber": "356929",
+            "Controllers_Count": 3,
+            "controller": [
+              {
+                "controller": 0,
+                "SensorHeads_Count": 1,
+                "sensorkoepfe": [
+                  {
+                    "sensorkopf": 0,
+                    "Name": "PSV-I-680",
+                    "SerialNumber": "360783",
+                    "FirmwareVersion": "2.5305",
+                    "LaserWavelength": 1549.7,
+                    "LaserPower": 3.33
+                  }
+                ]
+              },
+              {
+                "controller": 1,
+                "SensorHeads_Count": 1,
+                "sensorkoepfe": [
+                  {
+                    "sensorkopf": 0,
+                    "Name": "PSV-I-690",
+                    "SerialNumber": "360784",
+                    "FirmwareVersion": "2.5305",
+                    "LaserWavelength": 1549.7,
+                    "LaserPower": 3.33
+                  }
+                ]
+              },
+              {
+                "controller": 2,
+                "SensorHeads_Count": 1,
+                "sensorkoepfe": [
+                  {
+                    "sensorkopf": 0,
+                    "Name": "PSV-I-690",
+                    "SerialNumber": "360785",
+                    "FirmwareVersion": "2.5305",
+                    "LaserWavelength": 1549.7,
+                    "LaserPower": 3.33
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "auffaelligkeiten": [],
-      "dauer_s": 0.0,
+      "dauer_s": 0.063,
       "exception": null
     },
     {
@@ -2998,12 +3167,98 @@
       "stufe": "1",
       "titel": "Messpunkte, Index/Label",
       "beleg_ref": "I5 1.7; 10 P1-6, P2-6, P2-12",
-      "status": "uebersprungen",
-      "kernwert": "",
-      "hinweis": "Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)",
-      "werte": {},
+      "status": "ok",
+      "kernwert": "MeasPoints.Count 153",
+      "hinweis": "",
+      "werte": {
+        "HasMeasPoints": true,
+        "Count": 153,
+        "stichprobe": [
+          {
+            "item_position": 1,
+            "Index": 1,
+            "Label": 1,
+            "ScanStatus": 0,
+            "AverageCount": -1,
+            "Sigma": 0.0,
+            "CoordXYZ": [
+              -0.016646631062030792,
+              -0.6526207327842712,
+              -0.06488407403230667
+            ]
+          },
+          {
+            "item_position": 2,
+            "Index": 2,
+            "Label": 2,
+            "ScanStatus": 0,
+            "AverageCount": -1,
+            "Sigma": 0.0,
+            "CoordXYZ": [
+              -0.014591287821531296,
+              -0.6603056788444519,
+              0.2731080949306488
+            ]
+          },
+          {
+            "item_position": 3,
+            "Index": 3,
+            "Label": 3,
+            "ScanStatus": 0,
+            "AverageCount": -1,
+            "Sigma": 0.0,
+            "CoordXYZ": [
+              0.5585538148880005,
+              -0.6660476326942444,
+              0.2608071267604828
+            ]
+          },
+          {
+            "item_position": 151,
+            "Index": 151,
+            "Label": 151,
+            "ScanStatus": 0,
+            "AverageCount": -1,
+            "Sigma": 0.0,
+            "CoordXYZ": [
+              0.4478414058685303,
+              -0.6643359065055847,
+              0.18576861917972565
+            ]
+          },
+          {
+            "item_position": 152,
+            "Index": 152,
+            "Label": 152,
+            "ScanStatus": 0,
+            "AverageCount": -1,
+            "Sigma": 0.0,
+            "CoordXYZ": [
+              0.44554319977760315,
+              -0.662665605545044,
+              0.14717987179756165
+            ]
+          },
+          {
+            "item_position": 153,
+            "Index": 153,
+            "Label": 153,
+            "ScanStatus": 0,
+            "AverageCount": -1,
+            "Sigma": 0.0,
+            "CoordXYZ": [
+              0.4825873076915741,
+              -0.6630512475967407,
+              0.14591491222381592
+            ]
+          }
+        ],
+        "LabelToIndex_erstes_Label": 1,
+        "LabelToIndex_label": 1,
+        "LabelToIndex_index_des_punkts": 1
+      },
       "auffaelligkeiten": [],
-      "dauer_s": 0.0,
+      "dauer_s": 0.032,
       "exception": null
     },
     {
@@ -3011,12 +3266,60 @@
       "stufe": "1",
       "titel": "Abgleich (3D/2D)",
       "beleg_ref": "I5 2.7; 10 P1-6, P2-12",
-      "status": "uebersprungen",
-      "kernwert": "",
-      "hinweis": "Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)",
-      "werte": {},
+      "status": "ok",
+      "kernwert": "3D-Abgleiche: 3",
+      "hinweis": "",
+      "werte": {
+        "HasAlignments": true,
+        "Alignments3D": {
+          "Count": 3,
+          "eintraege": [
+            {
+              "item": 1,
+              "Valid": true,
+              "CurrentQuality": 1.0704983625573413e-10,
+              "TargetQuality": 0.0015,
+              "PositionUncertainty": 1.0704983625573413e-10,
+              "AngleUncertainty": 4.0833964465197604e-11
+            },
+            {
+              "item": 2,
+              "Valid": true,
+              "CurrentQuality": 0.001499322562623781,
+              "TargetQuality": 0.0015,
+              "PositionUncertainty": 0.001499322562623781,
+              "AngleUncertainty": 0.0005056067820977237
+            },
+            {
+              "item": 3,
+              "Valid": true,
+              "CurrentQuality": 0.0015266641040394052,
+              "TargetQuality": 0.0015,
+              "PositionUncertainty": 0.0015266641040394052,
+              "AngleUncertainty": 0.0005204417132509109
+            }
+          ]
+        },
+        "Alignments2D": {
+          "Count": 3,
+          "eintraege": [
+            {
+              "item": 1,
+              "Valid": true
+            },
+            {
+              "item": 2,
+              "Valid": true
+            },
+            {
+              "item": 3,
+              "Valid": true
+            }
+          ]
+        }
+      },
       "auffaelligkeiten": [],
-      "dauer_s": 0.0,
+      "dauer_s": 0.094,
       "exception": null
     },
     {
@@ -3024,10 +3327,13 @@
       "stufe": "1",
       "titel": "PositionDevice, DigitalPorts (Existenz)",
       "beleg_ref": "I5 10 P3-2",
-      "status": "uebersprungen",
-      "kernwert": "",
-      "hinweis": "Voraussetzung fehlt (P1-5-application: Acquisition nicht erreichbar)",
-      "werte": {},
+      "status": "ok",
+      "kernwert": "PositionDevice False, DigitalPorts True",
+      "hinweis": "",
+      "werte": {
+        "HasPositionDevice": false,
+        "DigitalPorts_vorhanden": true
+      },
       "auffaelligkeiten": [],
       "dauer_s": 0.0,
       "exception": null
@@ -3803,582 +4109,7 @@
         }
       },
       "auffaelligkeiten": [],
-      "dauer_s": 0.157,
-      "exception": null
-    },
-    {
-      "id": "P1-10-oeffnen",
-      "stufe": "1b",
-      "titel": "Datei schreibgeschützt öffnen",
-      "beleg_ref": "I5 4.2; 10 P1-10",
-      "status": "fehler",
-      "kernwert": "geöffnet, Programmversion '10.4.0.1'",
-      "hinweis": "",
-      "werte": {
-        "ReadOnly_gesetzt": true,
-        "IsOpen": true,
-        "Version": {
-          "FileID": 4,
-          "FileTime": "2026-10-12T11:32:52+00:00",
-          "FileVersion": 2624,
-          "ProgramID": 2,
-          "ProgramVersion": 41985,
-          "ProgramVersionString": "10.4.0.1",
-          "ProgramVersionMajor": 10,
-          "ProgramVersionMinor": 4,
-          "ProgramVersionRevision": 1,
-          "ProgramVersionBuild": 0
-        },
-        "SummaryInfo": {
-          "Title": "",
-          "Author": "<user>",
-          "Subject": "",
-          "Comments": ""
-        },
-        "HasHardware": true,
-        "Hardware": {
-          "AcqBoardName": {
-            "fehler": {
-              "typ": "com_error",
-              "meldung": "(-2147352567, 'Ausnahmefehler aufgetreten.', (0, None, None, None, 0, -2147467263), None)",
-              "hresult": -2147352567,
-              "hresult_hex": "0x80020009",
-              "excepinfo": [
-                0,
-                null,
-                null,
-                null,
-                0,
-                -2147467263
-              ],
-              "strerror": "Ausnahmefehler aufgetreten.",
-              "argerror": null,
-              "traceback_gekuerzt": "ssdaten\\DAL\\BA Jakob Busch\\stick\\erkundung\\erkundung.py\", line 1376, in <lambda>\n    values[name] = self.rd(name, lambda n=name: getattr(proxy, n), into=into)\n                                                ^^^^^^^^^^^^^^^^^\n  File \"D:\\Messdaten\\DAL\\BA Jakob Busch\\stick\\erkundung\\erkundung.py\", line 700, in __getattr__\n    value = self._invoke(name, \"get\", (), lambda: getattr(obj, name))\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Messdaten\\DAL\\BA Jakob Busch\\stick\\erkundung\\erkundung.py\", line 681, in _invoke\n    result = fn()\n             ^^^^\n  File \"D:\\Messdaten\\DAL\\BA Jakob Busch\\stick\\erkundung\\erkundung.py\", line 700, in <lambda>\n    value = self._invoke(name, \"get\", (), lambda: getattr(obj, name))\n                                                  ^^^^^^^^^^^^^^^^^^\n  File \"D:\\Messdaten\\DAL\\BA Jakob Busch\\PyCharmProject\\.venv\\Lib\\site-packages\\win32com\\client\\dynamic.py\", line 620, in __getattr__\n    ret = self._oleobj_.Invoke(retEntry.dispid, 0, invoke_type, 1)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\npywintypes.com_error: (-2147352567, 'Ausnahmefehler aufgetreten.', (0, None, None, None, 0, -2147467263), None)\n"
-            }
-          },
-          "AcqBoardFirmwareVersion": "1.0302",
-          "AcqBoardChannelCount": 11,
-          "FrontEnd": 124,
-          "FrontEndFirmwareVersion": "2.50",
-          "GeneratorName": {
-            "fehler": {
-              "typ": "com_error",
-              "meldung": "(-2147352567, 'Ausnahmefehler aufgetreten.', (0, None, None, None, 0, -2147467263), None)",
-              "hresult": -2147352567,
-              "hresult_hex": "0x80020009",
-              "excepinfo": [
-                0,
-                null,
-                null,
-                null,
-                0,
-                -2147467263
-              ],
-              "strerror": "Ausnahmefehler aufgetreten.",
-              "argerror": null,
-              "traceback_gekuerzt": "ssdaten\\DAL\\BA Jakob Busch\\stick\\erkundung\\erkundung.py\", line 1376, in <lambda>\n    values[name] = self.rd(name, lambda n=name: getattr(proxy, n), into=into)\n                                                ^^^^^^^^^^^^^^^^^\n  File \"D:\\Messdaten\\DAL\\BA Jakob Busch\\stick\\erkundung\\erkundung.py\", line 700, in __getattr__\n    value = self._invoke(name, \"get\", (), lambda: getattr(obj, name))\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Messdaten\\DAL\\BA Jakob Busch\\stick\\erkundung\\erkundung.py\", line 681, in _invoke\n    result = fn()\n             ^^^^\n  File \"D:\\Messdaten\\DAL\\BA Jakob Busch\\stick\\erkundung\\erkundung.py\", line 700, in <lambda>\n    value = self._invoke(name, \"get\", (), lambda: getattr(obj, name))\n                                                  ^^^^^^^^^^^^^^^^^^\n  File \"D:\\Messdaten\\DAL\\BA Jakob Busch\\PyCharmProject\\.venv\\Lib\\site-packages\\win32com\\client\\dynamic.py\", line 620, in __getattr__\n    ret = self._oleobj_.Invoke(retEntry.dispid, 0, invoke_type, 1)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\npywintypes.com_error: (-2147352567, 'Ausnahmefehler aufgetreten.', (0, None, None, None, 0, -2147467263), None)\n"
-            }
-          },
-          "GeneratorType": 13,
-          "GeneratorFirmwareVersion": "",
-          "ScanHeadType": 23,
-          "SensorHeadNames": [
-            "PSV-I-680",
-            "PSV-I-690",
-            "PSV-I-690"
-          ],
-          "SensorHeadSerialNumbers": [
-            "360783",
-            "360784",
-            "360785"
-          ],
-          "SensorHeadVersions": [
-            "2.5305",
-            "2.5305",
-            "2.5305"
-          ],
-          "CoherenceOptimizerVersions": [
-            "",
-            "",
-            ""
-          ]
-        },
-        "HasMeasPoints": true,
-        "Count": 135,
-        "stichprobe": [
-          {
-            "item_position": 1,
-            "Index": 1,
-            "Label": 132,
-            "ScanStatus": 3,
-            "AverageCount": 7,
-            "Sigma": 5.563675631314879e-10,
-            "CoordXYZ": [
-              0.19088853895664215,
-              0.42601722478866577,
-              -0.2312525510787964
-            ]
-          },
-          {
-            "item_position": 2,
-            "Index": 2,
-            "Label": 133,
-            "ScanStatus": 3,
-            "AverageCount": 7,
-            "Sigma": 1.0594728427903988e-09,
-            "CoordXYZ": [
-              0.19055554270744324,
-              0.3568050265312195,
-              -0.22988663613796234
-            ]
-          },
-          {
-            "item_position": 3,
-            "Index": 3,
-            "Label": 134,
-            "ScanStatus": 3,
-            "AverageCount": 7,
-            "Sigma": 2.482050565077998e-09,
-            "CoordXYZ": [
-              0.19023627042770386,
-              0.28741371631622314,
-              -0.22971847653388977
-            ]
-          },
-          {
-            "item_position": 133,
-            "Index": 133,
-            "Label": 348,
-            "ScanStatus": 3,
-            "AverageCount": 7,
-            "Sigma": 3.49978801494899e-09,
-            "CoordXYZ": [
-              0.36186257004737854,
-              -0.01929861679673195,
-              -0.21655260026454926
-            ]
-          },
-          {
-            "item_position": 134,
-            "Index": 134,
-            "Label": 349,
-            "ScanStatus": 3,
-            "AverageCount": 7,
-            "Sigma": 8.445898425080145e-10,
-            "CoordXYZ": [
-              0.38591670989990234,
-              -0.019181741401553154,
-              -0.21459448337554932
-            ]
-          },
-          {
-            "item_position": 135,
-            "Index": 135,
-            "Label": 350,
-            "ScanStatus": 3,
-            "AverageCount": 7,
-            "Sigma": 9.527909572426552e-10,
-            "CoordXYZ": [
-              0.361879825592041,
-              -0.05574314296245575,
-              -0.21562129259109497
-            ]
-          }
-        ],
-        "LabelToIndex_erstes_Label": 1,
-        "LabelToIndex_label": 132,
-        "LabelToIndex_index_des_punkts": 1
-      },
-      "auffaelligkeiten": [
-        "AcqBoardName: com_error: (-2147352567, 'Ausnahmefehler aufgetreten.', (0, None, None, None, 0, -2147467263), None)",
-        "GeneratorName: com_error: (-2147352567, 'Ausnahmefehler aufgetreten.', (0, None, None, None, 0, -2147467263), None)"
-      ],
-      "dauer_s": 0.375,
-      "exception": null
-    },
-    {
-      "id": "P1-10-struktur",
-      "stufe": "1b",
-      "titel": "Domänen, Kanäle, Signale",
-      "beleg_ref": "I5 4.3; 10 P1-10",
-      "status": "ok",
-      "kernwert": "2 Domäne(n), 12 Kanäle in der gewählten Domäne",
-      "hinweis": "",
-      "werte": {
-        "Count": 2,
-        "domaenen": [
-          {
-            "item": 1,
-            "Name": "FFT",
-            "Type": 3,
-            "gewaehlt_fuer_daten": true
-          },
-          {
-            "item": 2,
-            "Name": "Terzen",
-            "Type": 4
-          }
-        ],
-        "Kanaele_Count": 12,
-        "kanaele": [
-          {
-            "kanal": 1,
-            "Name": "Vib X",
-            "Signale_Count": 12,
-            "signale": [
-              {
-                "signal": 1,
-                "Name": "Weg",
-                "DomainType": 3,
-                "FunctionType": 12,
-                "Complex": true,
-                "YAxis_Werte": {
-                  "Name": "Weg",
-                  "Unit": "m",
-                  "Min": 0.0,
-                  "Max": 0.000125
-                },
-                "Displays_Count": 10,
-                "displays": [
-                  {
-                    "display": 1,
-                    "Name": "Amplitude",
-                    "Type": 1
-                  },
-                  {
-                    "display": 2,
-                    "Name": "Amplitude [dB]",
-                    "Type": 3
-                  },
-                  {
-                    "display": 3,
-                    "Name": "Amplitude [dB(A)]",
-                    "Type": 5
-                  },
-                  {
-                    "display": 4,
-                    "Name": "Ampl. & Phase",
-                    "Type": 2
-                  },
-                  {
-                    "display": 5,
-                    "Name": "Ampl. [dB] & Phase",
-                    "Type": 4
-                  },
-                  {
-                    "display": 6,
-                    "Name": "Phase",
-                    "Type": 6
-                  },
-                  {
-                    "display": 7,
-                    "Name": "Real",
-                    "Type": 7
-                  },
-                  {
-                    "display": 8,
-                    "Name": "Imaginär",
-                    "Type": 8
-                  }
-                ]
-              },
-              {
-                "signal": 2,
-                "Name": "Geschwindigkeit"
-              },
-              {
-                "signal": 3,
-                "Name": "Beschleunigung"
-              },
-              {
-                "signal": 4,
-                "Name": "AP Weg²"
-              },
-              {
-                "signal": 5,
-                "Name": "AP Geschwindigkeit²"
-              },
-              {
-                "signal": 6,
-                "Name": "AP Beschleunigung²"
-              }
-            ]
-          },
-          {
-            "kanal": 2,
-            "Name": "Vib Y",
-            "Signale_Count": 12,
-            "signale": [
-              {
-                "signal": 1,
-                "Name": "Weg"
-              },
-              {
-                "signal": 2,
-                "Name": "Geschwindigkeit"
-              },
-              {
-                "signal": 3,
-                "Name": "Beschleunigung"
-              },
-              {
-                "signal": 4,
-                "Name": "AP Weg²"
-              },
-              {
-                "signal": 5,
-                "Name": "AP Geschwindigkeit²"
-              },
-              {
-                "signal": 6,
-                "Name": "AP Beschleunigung²"
-              }
-            ]
-          },
-          {
-            "kanal": 3,
-            "Name": "Vib Z",
-            "Signale_Count": 12,
-            "signale": [
-              {
-                "signal": 1,
-                "Name": "Weg"
-              },
-              {
-                "signal": 2,
-                "Name": "Geschwindigkeit"
-              },
-              {
-                "signal": 3,
-                "Name": "Beschleunigung"
-              },
-              {
-                "signal": 4,
-                "Name": "AP Weg²"
-              },
-              {
-                "signal": 5,
-                "Name": "AP Geschwindigkeit²"
-              },
-              {
-                "signal": 6,
-                "Name": "AP Beschleunigung²"
-              }
-            ]
-          },
-          {
-            "kanal": 4,
-            "Name": "Ref1",
-            "Signale_Count": 5,
-            "signale": [
-              {
-                "signal": 1,
-                "Name": "Kraft"
-              },
-              {
-                "signal": 2,
-                "Name": "Spannung"
-              },
-              {
-                "signal": 3,
-                "Name": "AP Kraft²"
-              },
-              {
-                "signal": 4,
-                "Name": "PSD Kraft² / Frequenz"
-              },
-              {
-                "signal": 5,
-                "Name": "ESD Kraft² * Zeit / Frequenz"
-              }
-            ]
-          },
-          {
-            "kanal": 5,
-            "Name": "Ref2",
-            "Signale_Count": 13,
-            "signale": [
-              {
-                "signal": 1,
-                "Name": "Weg"
-              },
-              {
-                "signal": 2,
-                "Name": "Geschwindigkeit"
-              },
-              {
-                "signal": 3,
-                "Name": "Beschleunigung"
-              },
-              {
-                "signal": 4,
-                "Name": "Spannung"
-              },
-              {
-                "signal": 5,
-                "Name": "AP Weg²"
-              },
-              {
-                "signal": 6,
-                "Name": "AP Geschwindigkeit²"
-              }
-            ]
-          },
-          {
-            "kanal": 6,
-            "Name": "Vib X & Ref1",
-            "Signale_Count": 8,
-            "signale": [
-              {
-                "signal": 1,
-                "Name": "CP Kraft * Geschwindigkeit"
-              },
-              {
-                "signal": 2,
-                "Name": "H1 Weg / Kraft"
-              },
-              {
-                "signal": 3,
-                "Name": "H1 Geschwindigkeit / Kraft"
-              },
-              {
-                "signal": 4,
-                "Name": "H1 Beschleunigung / Kraft"
-              },
-              {
-                "signal": 5,
-                "Name": "H2 Weg / Kraft"
-              },
-              {
-                "signal": 6,
-                "Name": "H2 Geschwindigkeit / Kraft"
-              }
-            ]
-          },
-          {
-            "kanal": 7,
-            "Name": "Vib Y & Ref1",
-            "Signale_Count": 8,
-            "signale": [
-              {
-                "signal": 1,
-                "Name": "CP Kraft * Geschwindigkeit"
-              },
-              {
-                "signal": 2,
-                "Name": "H1 Weg / Kraft"
-              },
-              {
-                "signal": 3,
-                "Name": "H1 Geschwindigkeit / Kraft"
-              },
-              {
-                "signal": 4,
-                "Name": "H1 Beschleunigung / Kraft"
-              },
-              {
-                "signal": 5,
-                "Name": "H2 Weg / Kraft"
-              },
-              {
-                "signal": 6,
-                "Name": "H2 Geschwindigkeit / Kraft"
-              }
-            ]
-          },
-          {
-            "kanal": 8,
-            "Name": "Vib Z & Ref1",
-            "Signale_Count": 8,
-            "signale": [
-              {
-                "signal": 1,
-                "Name": "CP Kraft * Geschwindigkeit"
-              },
-              {
-                "signal": 2,
-                "Name": "H1 Weg / Kraft"
-              },
-              {
-                "signal": 3,
-                "Name": "H1 Geschwindigkeit / Kraft"
-              },
-              {
-                "signal": 4,
-                "Name": "H1 Beschleunigung / Kraft"
-              },
-              {
-                "signal": 5,
-                "Name": "H2 Weg / Kraft"
-              },
-              {
-                "signal": 6,
-                "Name": "H2 Geschwindigkeit / Kraft"
-              }
-            ]
-          }
-        ]
-      },
-      "auffaelligkeiten": [],
-      "dauer_s": 0.078,
-      "exception": null
-    },
-    {
-      "id": "P1-10-daten",
-      "stufe": "1b",
-      "titel": "GetData und Frequenzachse",
-      "beleg_ref": "I5 4.4; 10 P1-10",
-      "status": "ok",
-      "kernwert": "GetData-Länge 1600, MaxCount 1600",
-      "hinweis": "",
-      "werte": {
-        "DataPoints_Count": 135,
-        "AverageCount": "<nicht erwarteter Rückgabetyp method>",
-        "GetData_dauer_s": 0.0046,
-        "GetData_laenge": 1600,
-        "GetData_erste_werte": [
-          1.3331668014870957e-05,
-          3.070234697588603e-06,
-          1.1845518201880623e-06,
-          2.87076204585901e-07,
-          2.5163336658806656e-07,
-          1.766429704730399e-07
-        ],
-        "XAxis_Werte": {
-          "Min": 0.625,
-          "Max": 1000.0,
-          "MaxCount": 1600,
-          "Name": "Frequenz",
-          "Unit": "Hz"
-        },
-        "GetMidX": {
-          "0": 0.625,
-          "1": 1.25,
-          "1599": 1000.0
-        },
-        "abgeleitet": {
-          "delta_f_aus_achse_hz": 0.625,
-          "mid0_durch_delta_f": 1.0,
-          "datenlaenge_durch_maxcount": 1.0
-        }
-      },
-      "auffaelligkeiten": [],
-      "dauer_s": 0.015,
-      "exception": null
-    },
-    {
-      "id": "P1-10-schliessen",
-      "stufe": "1b",
-      "titel": "Datei schließen",
-      "beleg_ref": "I5 4.2",
-      "status": "ok",
-      "kernwert": "geschlossen",
-      "hinweis": "",
-      "werte": {
-        "IsOpen_nach_Close": false
-      },
-      "auffaelligkeiten": [],
-      "dauer_s": 0.0,
+      "dauer_s": 0.14,
       "exception": null
     }
   ],
@@ -4390,7 +4121,7 @@
       "pfad": "Dispatch.PSV.AcquisitionInstance",
       "op": "dispatch",
       "argumente": [],
-      "dauer_s": 0.016753,
+      "dauer_s": 0.018632,
       "fehler": null
     },
     {
@@ -4399,2615 +4130,1824 @@
       "pfad": "AcquisitionInstance.IsRunning",
       "op": "get",
       "argumente": [],
-      "dauer_s": 0.000843,
+      "dauer_s": 0.007843,
       "fehler": null
     },
     {
       "nr": 3,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Dispatch.PolyFile.PolyFile",
-      "op": "dispatch",
-      "argumente": [],
-      "dauer_s": 0.046921,
+      "pruefpunkt": "P1-5-verbinden",
+      "pfad": "AcquisitionInstance.GetApplication",
+      "op": "call",
+      "argumente": [
+        "False"
+      ],
+      "dauer_s": 0.020459,
       "fehler": null
     },
     {
       "nr": 4,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "PolyFile.ReadOnly",
-      "op": "set",
-      "argumente": [
-        "True"
-      ],
-      "dauer_s": 0.000426,
+      "pruefpunkt": "P1-5-application",
+      "pfad": "Application.Version",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.003574,
       "fehler": null
     },
     {
       "nr": 5,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "PolyFile.Open",
-      "op": "call",
-      "argumente": [
-        "'D:\\\\Messdaten\\\\DAL\\\\BA Jakob Busch\\\\daten\\\\20261012_ref_Mitte_kopie.svd'"
-      ],
-      "dauer_s": 0.017822,
+      "pruefpunkt": "P1-5-application",
+      "pfad": "Application.Mode",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.014045,
       "fehler": null
     },
     {
       "nr": 6,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "PolyFile.IsOpen",
+      "pruefpunkt": "P1-5-application",
+      "pfad": "Application.Visible",
       "op": "get",
       "argumente": [],
-      "dauer_s": 6.7e-05,
+      "dauer_s": 0.008763,
       "fehler": null
     },
     {
       "nr": 7,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "PolyFile.Version",
+      "pruefpunkt": "P1-5-application",
+      "pfad": "Application.WarningLevel",
       "op": "get",
       "argumente": [],
-      "dauer_s": 0.000245,
+      "dauer_s": 0.017944,
       "fehler": null
     },
     {
       "nr": 8,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "FileVersion.FileID",
+      "pruefpunkt": "P1-5-application",
+      "pfad": "Application.SuppressMessagesForAutomation",
       "op": "get",
       "argumente": [],
-      "dauer_s": 5.7e-05,
+      "dauer_s": 0.008841,
       "fehler": null
     },
     {
       "nr": 9,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "FileVersion.FileTime",
+      "pruefpunkt": "P1-5-application",
+      "pfad": "Application.MessagesLoggingEnabled",
       "op": "get",
       "argumente": [],
-      "dauer_s": 0.011802,
+      "dauer_s": 0.008225,
       "fehler": null
     },
     {
       "nr": 10,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "FileVersion.FileVersion",
+      "pruefpunkt": "P1-5-application",
+      "pfad": "Application.Acquisition",
       "op": "get",
       "argumente": [],
-      "dauer_s": 6.4e-05,
+      "dauer_s": 0.021601,
       "fehler": null
     },
     {
       "nr": 11,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "FileVersion.ProgramID",
+      "pruefpunkt": "P1-6-zustand",
+      "pfad": "Acquisition.State",
       "op": "get",
       "argumente": [],
-      "dauer_s": 0.001223,
+      "dauer_s": 0.01506,
       "fehler": null
     },
     {
       "nr": 12,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "FileVersion.ProgramVersion",
+      "pruefpunkt": "P1-6-zustand",
+      "pfad": "Acquisition.Mode",
       "op": "get",
       "argumente": [],
-      "dauer_s": 4.1e-05,
+      "dauer_s": 0.019801,
       "fehler": null
     },
     {
       "nr": 13,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "FileVersion.ProgramVersionString",
+      "pruefpunkt": "P1-6-zustand",
+      "pfad": "Acquisition.ScanCaps",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.9e-05,
+      "dauer_s": 0.015454,
       "fehler": null
     },
     {
       "nr": 14,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "FileVersion.ProgramVersionMajor",
+      "pruefpunkt": "P1-6-zustand",
+      "pfad": "Acquisition.GeneratorsOn",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.2e-05,
+      "dauer_s": 0.009061,
       "fehler": null
     },
     {
       "nr": 15,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "FileVersion.ProgramVersionMinor",
+      "pruefpunkt": "P1-6-zustand",
+      "pfad": "Acquisition.ScanFileName",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.7e-05,
+      "dauer_s": 0.00838,
       "fehler": null
     },
     {
       "nr": 16,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "FileVersion.ProgramVersionRevision",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.7e-05,
+      "pruefpunkt": "P1-6-zustand",
+      "pfad": "Acquisition.GetLaserOn",
+      "op": "call",
+      "argumente": [
+        "-1"
+      ],
+      "dauer_s": 0.007231,
       "fehler": null
     },
     {
       "nr": 17,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "FileVersion.ProgramVersionBuild",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 18,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "PolyFile.SummaryInfo",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 0.001039,
-      "fehler": null
-    },
-    {
-      "nr": 19,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "SummaryInfo.Title",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 20,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "SummaryInfo.Author",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 21,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "SummaryInfo.Subject",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.1e-05,
-      "fehler": null
-    },
-    {
-      "nr": 22,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "SummaryInfo.Comments",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.9e-05,
-      "fehler": null
-    },
-    {
-      "nr": 23,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "PolyFile.Infos",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 0.27472,
-      "fehler": null
-    },
-    {
-      "nr": 24,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Infos.HasHardware",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 5.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 25,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Infos.Hardware",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 0.001216,
-      "fehler": null
-    },
-    {
-      "nr": 26,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.AcqBoardName",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 5.3e-05,
-      "fehler": "com_error: (-2147352567, 'Ausnahmefehler aufgetreten.', (0, None, None, None, 0, -2147467263), None)"
-    },
-    {
-      "nr": 27,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.AcqBoardFirmwareVersion",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 5.8e-05,
-      "fehler": null
-    },
-    {
-      "nr": 28,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.AcqBoardChannelCount",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.1e-05,
-      "fehler": null
-    },
-    {
-      "nr": 29,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.FrontEnd",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 4.2e-05,
-      "fehler": null
-    },
-    {
-      "nr": 30,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.FrontEndFirmwareVersion",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 31,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.GeneratorName",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.2e-05,
-      "fehler": "com_error: (-2147352567, 'Ausnahmefehler aufgetreten.', (0, None, None, None, 0, -2147467263), None)"
-    },
-    {
-      "nr": 32,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.GeneratorType",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 0.001054,
-      "fehler": null
-    },
-    {
-      "nr": 33,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.GeneratorFirmwareVersion",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.2e-05,
-      "fehler": null
-    },
-    {
-      "nr": 34,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.ScanHeadType",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 0.000998,
-      "fehler": null
-    },
-    {
-      "nr": 35,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.SensorHeadNames",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 4.9e-05,
-      "fehler": null
-    },
-    {
-      "nr": 36,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.SensorHeadSerialNumbers",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 37,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.SensorHeadVersions",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 38,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Hardware.CoherenceOptimizerVersions",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 39,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Infos.HasMeasPoints",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.7e-05,
-      "fehler": null
-    },
-    {
-      "nr": 40,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "Infos.MeasPoints",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 0.000201,
-      "fehler": null
-    },
-    {
-      "nr": 41,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoints.Count",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 42,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoints.Item",
+      "pruefpunkt": "P1-6-zustand",
+      "pfad": "Acquisition.GetLaserOn",
       "op": "call",
       "argumente": [
         "1"
       ],
-      "dauer_s": 0.000358,
+      "dauer_s": 0.001128,
       "fehler": null
     },
     {
-      "nr": 43,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Index",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 4.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 44,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Label",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 45,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.ScanStatus",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.7e-05,
-      "fehler": null
-    },
-    {
-      "nr": 46,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.AverageCount",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 47,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Sigma",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 48,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.CoordXYZ",
-      "op": "call",
-      "argumente": [],
-      "dauer_s": 0.000169,
-      "fehler": null
-    },
-    {
-      "nr": 49,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoints.Item",
+      "nr": 18,
+      "pruefpunkt": "P1-6-zustand",
+      "pfad": "Acquisition.GetLaserOn",
       "op": "call",
       "argumente": [
         "2"
       ],
-      "dauer_s": 2e-05,
+      "dauer_s": 0.001109,
       "fehler": null
     },
     {
-      "nr": 50,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Index",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.7e-05,
-      "fehler": null
-    },
-    {
-      "nr": 51,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Label",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.2e-05,
-      "fehler": null
-    },
-    {
-      "nr": 52,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.ScanStatus",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.7e-05,
-      "fehler": null
-    },
-    {
-      "nr": 53,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.AverageCount",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.8e-05,
-      "fehler": null
-    },
-    {
-      "nr": 54,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Sigma",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.8e-05,
-      "fehler": null
-    },
-    {
-      "nr": 55,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.CoordXYZ",
-      "op": "call",
-      "argumente": [],
-      "dauer_s": 0.000149,
-      "fehler": null
-    },
-    {
-      "nr": 56,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoints.Item",
+      "nr": 19,
+      "pruefpunkt": "P1-6-zustand",
+      "pfad": "Acquisition.GetLaserOn",
       "op": "call",
       "argumente": [
         "3"
       ],
-      "dauer_s": 1.9e-05,
+      "dauer_s": 0.001328,
+      "fehler": null
+    },
+    {
+      "nr": 20,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "Acquisition.ActiveProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.029398,
+      "fehler": null
+    },
+    {
+      "nr": 21,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasGeneralProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.007619,
+      "fehler": null
+    },
+    {
+      "nr": 22,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasAverageProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.008047,
+      "fehler": null
+    },
+    {
+      "nr": 23,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasFftProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.013678,
+      "fehler": null
+    },
+    {
+      "nr": 24,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasTimeProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.008275,
+      "fehler": null
+    },
+    {
+      "nr": 25,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasZoomFftProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.007055,
+      "fehler": null
+    },
+    {
+      "nr": 26,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasChannelsProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.00737,
+      "fehler": null
+    },
+    {
+      "nr": 27,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasVibrometersProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.010849,
+      "fehler": null
+    },
+    {
+      "nr": 28,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasGeneratorsProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.006979,
+      "fehler": null
+    },
+    {
+      "nr": 29,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasTriggerProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.006916,
+      "fehler": null
+    },
+    {
+      "nr": 30,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasSignalEnhancementProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.00669,
+      "fehler": null
+    },
+    {
+      "nr": 31,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasFrontEndProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.006617,
+      "fehler": null
+    },
+    {
+      "nr": 32,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasMultiFrameProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.006687,
+      "fehler": null
+    },
+    {
+      "nr": 33,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.HasFastScansProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.009794,
+      "fehler": null
+    },
+    {
+      "nr": 34,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.FftProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.01733,
+      "fehler": null
+    },
+    {
+      "nr": 35,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "FftProperties.Bandwidth",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.008105,
+      "fehler": null
+    },
+    {
+      "nr": 36,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "FftProperties.StartFrequency",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.011044,
+      "fehler": null
+    },
+    {
+      "nr": 37,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "FftProperties.EndFrequency",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.008014,
+      "fehler": null
+    },
+    {
+      "nr": 38,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "FftProperties.Lines",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.008111,
+      "fehler": null
+    },
+    {
+      "nr": 39,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "FftProperties.SampleResolution",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.006815,
+      "fehler": null
+    },
+    {
+      "nr": 40,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "FftProperties.Overlap",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.007089,
+      "fehler": null
+    },
+    {
+      "nr": 41,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "FftProperties.SampleFrequency",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.011435,
+      "fehler": null
+    },
+    {
+      "nr": 42,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "FftProperties.SampleTime",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.006908,
+      "fehler": null
+    },
+    {
+      "nr": 43,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "FftProperties.FftAcqPropertiesValidator",
+      "op": "exists",
+      "argumente": [],
+      "dauer_s": 0.001091,
+      "fehler": null
+    },
+    {
+      "nr": 44,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.AverageProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.018129,
+      "fehler": null
+    },
+    {
+      "nr": 45,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AverageProperties.Type",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.023426,
+      "fehler": null
+    },
+    {
+      "nr": 46,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AverageProperties.Count",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.008371,
+      "fehler": null
+    },
+    {
+      "nr": 47,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "AcquisitionProperties.GeneralProperties",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.021696,
+      "fehler": null
+    },
+    {
+      "nr": 48,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "GeneralProperties.AutoRemeasure",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.008788,
+      "fehler": null
+    },
+    {
+      "nr": 49,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "GeneralProperties.AutoRemeasureAutoRange",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.0084,
+      "fehler": null
+    },
+    {
+      "nr": 50,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "GeneralProperties.BandWidthExtension",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.010426,
+      "fehler": null
+    },
+    {
+      "nr": 51,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "GeneralProperties.IsAutoRemeasurePossible",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.001633,
+      "fehler": null
+    },
+    {
+      "nr": 52,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "GeneralProperties.PrincipalComponentAnalysis",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.010832,
+      "fehler": null
+    },
+    {
+      "nr": 53,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "GeneralProperties.RealSampleFrequency",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.008408,
+      "fehler": null
+    },
+    {
+      "nr": 54,
+      "pruefpunkt": "P1-6-eigenschaften",
+      "pfad": "GeneralProperties.SaveTimeDataForScan",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.008289,
+      "fehler": null
+    },
+    {
+      "nr": 55,
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Acquisition.Infos",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.044111,
+      "fehler": null
+    },
+    {
+      "nr": 56,
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Infos.HasHardware",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.007095,
       "fehler": null
     },
     {
       "nr": 57,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Index",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Infos.HasScanHeadDevicesInfo",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.6e-05,
+      "dauer_s": 0.006725,
       "fehler": null
     },
     {
       "nr": 58,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Label",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Infos.HasAlignments",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.2e-05,
+      "dauer_s": 0.009739,
       "fehler": null
     },
     {
       "nr": 59,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.ScanStatus",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Infos.HasMeasPoints",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.5e-05,
+      "dauer_s": 0.006697,
       "fehler": null
     },
     {
       "nr": 60,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.AverageCount",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Infos.HasPositionDevice",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.8e-05,
+      "dauer_s": 0.006033,
       "fehler": null
     },
     {
       "nr": 61,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Sigma",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Infos.HasVibrometers",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.8e-05,
+      "dauer_s": 0.007034,
       "fehler": null
     },
     {
       "nr": 62,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.CoordXYZ",
-      "op": "call",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Infos.Hardware",
+      "op": "get",
       "argumente": [],
-      "dauer_s": 0.000149,
+      "dauer_s": 0.027199,
       "fehler": null
     },
     {
       "nr": 63,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoints.Item",
-      "op": "call",
-      "argumente": [
-        "133"
-      ],
-      "dauer_s": 2.3e-05,
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.AcqBoardName",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.007095,
       "fehler": null
     },
     {
       "nr": 64,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Index",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.AcqBoardFirmwareVersion",
       "op": "get",
       "argumente": [],
-      "dauer_s": 5e-05,
+      "dauer_s": 0.007174,
       "fehler": null
     },
     {
       "nr": 65,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Label",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.AcqBoardChannelCount",
       "op": "get",
       "argumente": [],
-      "dauer_s": 5.1e-05,
+      "dauer_s": 0.006922,
       "fehler": null
     },
     {
       "nr": 66,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.ScanStatus",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.FrontEnd",
       "op": "get",
       "argumente": [],
-      "dauer_s": 6.3e-05,
+      "dauer_s": 0.019496,
       "fehler": null
     },
     {
       "nr": 67,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.AverageCount",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.FrontEndFirmwareVersion",
       "op": "get",
       "argumente": [],
-      "dauer_s": 5.2e-05,
+      "dauer_s": 0.006863,
       "fehler": null
     },
     {
       "nr": 68,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Sigma",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.GeneratorName",
       "op": "get",
       "argumente": [],
-      "dauer_s": 5.6e-05,
+      "dauer_s": 0.007223,
       "fehler": null
     },
     {
       "nr": 69,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.CoordXYZ",
-      "op": "call",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.GeneratorType",
+      "op": "get",
       "argumente": [],
-      "dauer_s": 0.000229,
+      "dauer_s": 0.013479,
       "fehler": null
     },
     {
       "nr": 70,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoints.Item",
-      "op": "call",
-      "argumente": [
-        "134"
-      ],
-      "dauer_s": 2.7e-05,
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.GeneratorFirmwareVersion",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.007,
       "fehler": null
     },
     {
       "nr": 71,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Index",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.ScanHeadType",
       "op": "get",
       "argumente": [],
-      "dauer_s": 5.7e-05,
+      "dauer_s": 0.011942,
       "fehler": null
     },
     {
       "nr": 72,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Label",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.SensorHeadNames",
       "op": "get",
       "argumente": [],
-      "dauer_s": 5.8e-05,
+      "dauer_s": 0.005971,
       "fehler": null
     },
     {
       "nr": 73,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.ScanStatus",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.SensorHeadSerialNumbers",
       "op": "get",
       "argumente": [],
-      "dauer_s": 6e-05,
+      "dauer_s": 0.006981,
       "fehler": null
     },
     {
       "nr": 74,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.AverageCount",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.SensorHeadVersions",
       "op": "get",
       "argumente": [],
-      "dauer_s": 4.5e-05,
+      "dauer_s": 0.010084,
       "fehler": null
     },
     {
       "nr": 75,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Sigma",
+      "pruefpunkt": "P1-6-hardware",
+      "pfad": "Hardware.CoherenceOptimizerVersions",
       "op": "get",
       "argumente": [],
-      "dauer_s": 4.7e-05,
+      "dauer_s": 0.007292,
       "fehler": null
     },
     {
       "nr": 76,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.CoordXYZ",
-      "op": "call",
+      "pruefpunkt": "P1-6-scankopf",
+      "pfad": "Infos.HasScanHeadDevicesInfo",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000265,
+      "fehler": null
+    },
+    {
+      "nr": 77,
+      "pruefpunkt": "P1-6-scankopf",
+      "pfad": "Infos.ScanHeadDevicesInfo",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.019797,
+      "fehler": null
+    },
+    {
+      "nr": 78,
+      "pruefpunkt": "P1-6-scankopf",
+      "pfad": "ScanHeadDevicesInfo.ScanHeadName",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.006997,
+      "fehler": null
+    },
+    {
+      "nr": 79,
+      "pruefpunkt": "P1-6-scankopf",
+      "pfad": "ScanHeadDevicesInfo.ScanHeadType",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.01038,
+      "fehler": null
+    },
+    {
+      "nr": 80,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "Infos.HasVibrometers",
+      "op": "get",
       "argumente": [],
       "dauer_s": 0.000218,
       "fehler": null
     },
     {
-      "nr": 77,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoints.Item",
-      "op": "call",
-      "argumente": [
-        "135"
-      ],
-      "dauer_s": 2.8e-05,
-      "fehler": null
-    },
-    {
-      "nr": 78,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Index",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 5.7e-05,
-      "fehler": null
-    },
-    {
-      "nr": 79,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Label",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 80,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.ScanStatus",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 6.5e-05,
-      "fehler": null
-    },
-    {
       "nr": 81,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.AverageCount",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "Infos.Vibrometers",
       "op": "get",
       "argumente": [],
-      "dauer_s": 5.5e-05,
+      "dauer_s": 0.021845,
       "fehler": null
     },
     {
       "nr": 82,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.Sigma",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "Vibrometers.Count",
       "op": "get",
       "argumente": [],
-      "dauer_s": 5.4e-05,
+      "dauer_s": 0.006936,
       "fehler": null
     },
     {
       "nr": 83,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoint.CoordXYZ",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "Vibrometers.Item",
       "op": "call",
-      "argumente": [],
-      "dauer_s": 0.000242,
+      "argumente": [
+        "1"
+      ],
+      "dauer_s": 0.012727,
       "fehler": null
     },
     {
       "nr": 84,
-      "pruefpunkt": "P1-10-oeffnen",
-      "pfad": "MeasPoints.LabelToIndex",
-      "op": "call",
-      "argumente": [
-        "132"
-      ],
-      "dauer_s": 0.000187,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "ControllerGroup.ControllerInfo",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.001236,
       "fehler": null
     },
     {
       "nr": 85,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "PolyFile.GetPointDomains",
-      "op": "call",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "ControllerInfo.DeviceName",
+      "op": "get",
       "argumente": [],
-      "dauer_s": 0.071978,
+      "dauer_s": 0.001031,
       "fehler": null
     },
     {
       "nr": 86,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "PointDomains.Count",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "ControllerInfo.FirmwareVersion",
       "op": "get",
       "argumente": [],
-      "dauer_s": 5.7e-05,
+      "dauer_s": 0.000488,
       "fehler": null
     },
     {
       "nr": 87,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "PointDomains.Item",
-      "op": "call",
-      "argumente": [
-        "1"
-      ],
-      "dauer_s": 0.00054,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "ControllerInfo.Name",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000474,
       "fehler": null
     },
     {
       "nr": 88,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "PointDomain.Name",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "ControllerInfo.SerialNumber",
       "op": "get",
       "argumente": [],
-      "dauer_s": 4.5e-05,
+      "dauer_s": 0.000379,
       "fehler": null
     },
     {
       "nr": 89,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "PointDomain.Type",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "ControllerGroup.Controllers",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.7e-05,
+      "dauer_s": 0.002338,
       "fehler": null
     },
     {
       "nr": 90,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "PointDomains.Item",
-      "op": "call",
-      "argumente": [
-        "2"
-      ],
-      "dauer_s": 2e-05,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "Controllers.Count",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000356,
       "fehler": null
     },
     {
       "nr": 91,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "PointDomain.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.5e-05,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "Controllers.Item",
+      "op": "call",
+      "argumente": [
+        "0"
+      ],
+      "dauer_s": 0.000853,
       "fehler": null
     },
     {
       "nr": 92,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "PointDomain.Type",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "Controller.SensorHeads",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.1e-05,
+      "dauer_s": 0.001584,
       "fehler": null
     },
     {
       "nr": 93,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "PointDomain.Channels",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeads.Count",
       "op": "get",
       "argumente": [],
-      "dauer_s": 0.000173,
+      "dauer_s": 0.000381,
       "fehler": null
     },
     {
       "nr": 94,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channels.Count",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.2e-05,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeads.Item",
+      "op": "call",
+      "argumente": [
+        "0"
+      ],
+      "dauer_s": 0.000886,
       "fehler": null
     },
     {
       "nr": 95,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channels.Item",
-      "op": "call",
-      "argumente": [
-        "1"
-      ],
-      "dauer_s": 0.000284,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHead.SensorHeadInfo",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.001191,
       "fehler": null
     },
     {
       "nr": 96,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Name",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.Name",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.7e-05,
+      "dauer_s": 0.000425,
       "fehler": null
     },
     {
       "nr": 97,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Signals",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.SerialNumber",
       "op": "get",
       "argumente": [],
-      "dauer_s": 0.000166,
+      "dauer_s": 0.000291,
       "fehler": null
     },
     {
       "nr": 98,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Count",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.FirmwareVersion",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.2e-05,
+      "dauer_s": 0.000268,
       "fehler": null
     },
     {
       "nr": 99,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "1"
-      ],
-      "dauer_s": 0.000286,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.LaserWavelength",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000272,
       "fehler": null
     },
     {
       "nr": 100,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.LaserPower",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.7e-05,
+      "dauer_s": 0.000271,
       "fehler": null
     },
     {
       "nr": 101,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Description",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 0.000175,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "Controllers.Item",
+      "op": "call",
+      "argumente": [
+        "1"
+      ],
+      "dauer_s": 0.000219,
       "fehler": null
     },
     {
       "nr": 102,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "SignalDescription.DomainType",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "Controller.SensorHeads",
       "op": "get",
       "argumente": [],
-      "dauer_s": 4.3e-05,
+      "dauer_s": 0.000677,
       "fehler": null
     },
     {
       "nr": 103,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "SignalDescription.FunctionType",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeads.Count",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.2e-05,
+      "dauer_s": 0.000267,
       "fehler": null
     },
     {
       "nr": 104,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "SignalDescription.Complex",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.7e-05,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeads.Item",
+      "op": "call",
+      "argumente": [
+        "0"
+      ],
+      "dauer_s": 0.00073,
       "fehler": null
     },
     {
       "nr": 105,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "SignalDescription.Name",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHead.SensorHeadInfo",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.5e-05,
+      "dauer_s": 0.000561,
       "fehler": null
     },
     {
       "nr": 106,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "SignalDescription.YAxis",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.Name",
       "op": "get",
       "argumente": [],
-      "dauer_s": 0.000163,
+      "dauer_s": 0.000254,
       "fehler": null
     },
     {
       "nr": 107,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "YAxis.Name",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.SerialNumber",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.6e-05,
+      "dauer_s": 0.000251,
       "fehler": null
     },
     {
       "nr": 108,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "YAxis.Unit",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.FirmwareVersion",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.7e-05,
+      "dauer_s": 0.00025,
       "fehler": null
     },
     {
       "nr": 109,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "YAxis.Min",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.LaserWavelength",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000244,
       "fehler": null
     },
     {
       "nr": 110,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "YAxis.Max",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.LaserPower",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.5e-05,
+      "dauer_s": 0.000307,
       "fehler": null
     },
     {
       "nr": 111,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Displays",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 0.000219,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "Controllers.Item",
+      "op": "call",
+      "argumente": [
+        "2"
+      ],
+      "dauer_s": 0.000229,
       "fehler": null
     },
     {
       "nr": 112,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Displays.Count",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "Controller.SensorHeads",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.4e-05,
+      "dauer_s": 0.000679,
       "fehler": null
     },
     {
       "nr": 113,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Displays.Item",
-      "op": "call",
-      "argumente": [
-        "1"
-      ],
-      "dauer_s": 0.000283,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeads.Count",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000257,
       "fehler": null
     },
     {
       "nr": 114,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.9e-05,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeads.Item",
+      "op": "call",
+      "argumente": [
+        "0"
+      ],
+      "dauer_s": 0.000738,
       "fehler": null
     },
     {
       "nr": 115,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Type",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHead.SensorHeadInfo",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.2e-05,
+      "dauer_s": 0.00056,
       "fehler": null
     },
     {
       "nr": 116,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Displays.Item",
-      "op": "call",
-      "argumente": [
-        "2"
-      ],
-      "dauer_s": 1.8e-05,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.Name",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000254,
       "fehler": null
     },
     {
       "nr": 117,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Name",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.SerialNumber",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.8e-05,
+      "dauer_s": 0.000254,
       "fehler": null
     },
     {
       "nr": 118,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Type",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.FirmwareVersion",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.7e-05,
+      "dauer_s": 0.00024,
       "fehler": null
     },
     {
       "nr": 119,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Displays.Item",
-      "op": "call",
-      "argumente": [
-        "3"
-      ],
-      "dauer_s": 1.5e-05,
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.LaserWavelength",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000257,
       "fehler": null
     },
     {
       "nr": 120,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Name",
+      "pruefpunkt": "P1-6-vibrometer",
+      "pfad": "SensorHeadInfo.LaserPower",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.7e-05,
+      "dauer_s": 0.000293,
       "fehler": null
     },
     {
       "nr": 121,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Type",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "Infos.HasMeasPoints",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.5e-05,
+      "dauer_s": 0.000207,
       "fehler": null
     },
     {
       "nr": 122,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Displays.Item",
-      "op": "call",
-      "argumente": [
-        "4"
-      ],
-      "dauer_s": 1.5e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "Infos.MeasPoints",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.01473,
       "fehler": null
     },
     {
       "nr": 123,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoints.Count",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000323,
       "fehler": null
     },
     {
       "nr": 124,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Type",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.5e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoints.Item",
+      "op": "call",
+      "argumente": [
+        "1"
+      ],
+      "dauer_s": 0.000892,
       "fehler": null
     },
     {
       "nr": 125,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Displays.Item",
-      "op": "call",
-      "argumente": [
-        "5"
-      ],
-      "dauer_s": 1.4e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Index",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.005614,
       "fehler": null
     },
     {
       "nr": 126,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Label",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000379,
       "fehler": null
     },
     {
       "nr": 127,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Type",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.ScanStatus",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000572,
       "fehler": null
     },
     {
       "nr": 128,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Displays.Item",
-      "op": "call",
-      "argumente": [
-        "6"
-      ],
-      "dauer_s": 1.4e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.AverageCount",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000338,
       "fehler": null
     },
     {
       "nr": 129,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Sigma",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000282,
       "fehler": null
     },
     {
       "nr": 130,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Type",
-      "op": "get",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.CoordXYZ",
+      "op": "call",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000441,
       "fehler": null
     },
     {
       "nr": 131,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Displays.Item",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoints.Item",
       "op": "call",
       "argumente": [
-        "7"
+        "2"
       ],
-      "dauer_s": 9.7e-05,
+      "dauer_s": 0.000209,
       "fehler": null
     },
     {
       "nr": 132,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Index",
       "op": "get",
       "argumente": [],
-      "dauer_s": 6.4e-05,
+      "dauer_s": 0.000303,
       "fehler": null
     },
     {
       "nr": 133,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Type",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Label",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.7e-05,
+      "dauer_s": 0.00044,
       "fehler": null
     },
     {
       "nr": 134,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Displays.Item",
-      "op": "call",
-      "argumente": [
-        "8"
-      ],
-      "dauer_s": 2.2e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.ScanStatus",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000653,
       "fehler": null
     },
     {
       "nr": 135,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.AverageCount",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3e-05,
+      "dauer_s": 0.000362,
       "fehler": null
     },
     {
       "nr": 136,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Display.Type",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Sigma",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.7e-05,
+      "dauer_s": 0.000327,
       "fehler": null
     },
     {
       "nr": 137,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.CoordXYZ",
       "op": "call",
-      "argumente": [
-        "2"
-      ],
-      "dauer_s": 1.8e-05,
+      "argumente": [],
+      "dauer_s": 0.000931,
       "fehler": null
     },
     {
       "nr": 138,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.9e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoints.Item",
+      "op": "call",
+      "argumente": [
+        "3"
+      ],
+      "dauer_s": 0.000239,
       "fehler": null
     },
     {
       "nr": 139,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "3"
-      ],
-      "dauer_s": 1.5e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Index",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000356,
       "fehler": null
     },
     {
       "nr": 140,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Label",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.7e-05,
+      "dauer_s": 0.000309,
       "fehler": null
     },
     {
       "nr": 141,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "4"
-      ],
-      "dauer_s": 1.5e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.ScanStatus",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000541,
       "fehler": null
     },
     {
       "nr": 142,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.AverageCount",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000277,
       "fehler": null
     },
     {
       "nr": 143,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "5"
-      ],
-      "dauer_s": 1.4e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Sigma",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.00027,
       "fehler": null
     },
     {
       "nr": 144,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.CoordXYZ",
+      "op": "call",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000394,
       "fehler": null
     },
     {
       "nr": 145,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoints.Item",
       "op": "call",
       "argumente": [
-        "6"
+        "151"
       ],
-      "dauer_s": 1.3e-05,
+      "dauer_s": 0.000196,
       "fehler": null
     },
     {
       "nr": 146,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Index",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000228,
       "fehler": null
     },
     {
       "nr": 147,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channels.Item",
-      "op": "call",
-      "argumente": [
-        "2"
-      ],
-      "dauer_s": 1.4e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Label",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000266,
       "fehler": null
     },
     {
       "nr": 148,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.ScanStatus",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000493,
       "fehler": null
     },
     {
       "nr": 149,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Signals",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.AverageCount",
       "op": "get",
       "argumente": [],
-      "dauer_s": 4.3e-05,
+      "dauer_s": 0.000266,
       "fehler": null
     },
     {
       "nr": 150,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Count",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Sigma",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.5e-05,
+      "dauer_s": 0.000278,
       "fehler": null
     },
     {
       "nr": 151,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.CoordXYZ",
       "op": "call",
-      "argumente": [
-        "1"
-      ],
-      "dauer_s": 0.000169,
+      "argumente": [],
+      "dauer_s": 0.000373,
       "fehler": null
     },
     {
       "nr": 152,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.3e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoints.Item",
+      "op": "call",
+      "argumente": [
+        "152"
+      ],
+      "dauer_s": 0.000191,
       "fehler": null
     },
     {
       "nr": 153,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "2"
-      ],
-      "dauer_s": 1.6e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Index",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000239,
       "fehler": null
     },
     {
       "nr": 154,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Label",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.8e-05,
+      "dauer_s": 0.000338,
       "fehler": null
     },
     {
       "nr": 155,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "3"
-      ],
-      "dauer_s": 1.5e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.ScanStatus",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.0005,
       "fehler": null
     },
     {
       "nr": 156,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.AverageCount",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.7e-05,
+      "dauer_s": 0.000275,
       "fehler": null
     },
     {
       "nr": 157,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "4"
-      ],
-      "dauer_s": 1.3e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Sigma",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000269,
       "fehler": null
     },
     {
       "nr": 158,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.CoordXYZ",
+      "op": "call",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000365,
       "fehler": null
     },
     {
       "nr": 159,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoints.Item",
       "op": "call",
       "argumente": [
-        "5"
+        "153"
       ],
-      "dauer_s": 1.3e-05,
+      "dauer_s": 0.000231,
       "fehler": null
     },
     {
       "nr": 160,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Index",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000255,
       "fehler": null
     },
     {
       "nr": 161,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "6"
-      ],
-      "dauer_s": 1.3e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Label",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000271,
       "fehler": null
     },
     {
       "nr": 162,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.ScanStatus",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000491,
       "fehler": null
     },
     {
       "nr": 163,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channels.Item",
-      "op": "call",
-      "argumente": [
-        "3"
-      ],
-      "dauer_s": 1.4e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.AverageCount",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000263,
       "fehler": null
     },
     {
       "nr": 164,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Name",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.Sigma",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000268,
       "fehler": null
     },
     {
       "nr": 165,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Signals",
-      "op": "get",
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoint.CoordXYZ",
+      "op": "call",
       "argumente": [],
-      "dauer_s": 4.3e-05,
+      "dauer_s": 0.000394,
       "fehler": null
     },
     {
       "nr": 166,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Count",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.5e-05,
+      "pruefpunkt": "P1-6-messpunkte",
+      "pfad": "MeasPoints.LabelToIndex",
+      "op": "call",
+      "argumente": [
+        "1"
+      ],
+      "dauer_s": 0.000354,
       "fehler": null
     },
     {
       "nr": 167,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "1"
-      ],
-      "dauer_s": 0.000154,
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Infos.HasAlignments",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000302,
       "fehler": null
     },
     {
       "nr": 168,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Infos.Alignments",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.2e-05,
+      "dauer_s": 0.021571,
       "fehler": null
     },
     {
       "nr": 169,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "2"
-      ],
-      "dauer_s": 1.6e-05,
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignments.Alignments3D",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.028582,
       "fehler": null
     },
     {
       "nr": 170,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignments3D.Count",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.8e-05,
+      "dauer_s": 0.000303,
       "fehler": null
     },
     {
       "nr": 171,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignments3D.Item",
       "op": "call",
       "argumente": [
-        "3"
+        "1"
       ],
-      "dauer_s": 1.4e-05,
+      "dauer_s": 0.000804,
       "fehler": null
     },
     {
       "nr": 172,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.Valid",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000265,
       "fehler": null
     },
     {
       "nr": 173,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "4"
-      ],
-      "dauer_s": 1.3e-05,
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.CurrentQuality",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000241,
       "fehler": null
     },
     {
       "nr": 174,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.TargetQuality",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.7e-05,
+      "dauer_s": 0.000255,
       "fehler": null
     },
     {
       "nr": 175,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "5"
-      ],
-      "dauer_s": 1.3e-05,
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.PositionUncertainty",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000239,
       "fehler": null
     },
     {
       "nr": 176,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.AngleUncertainty",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000248,
       "fehler": null
     },
     {
       "nr": 177,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignments3D.Item",
       "op": "call",
       "argumente": [
-        "6"
+        "2"
       ],
-      "dauer_s": 1.3e-05,
+      "dauer_s": 0.000188,
       "fehler": null
     },
     {
       "nr": 178,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.Valid",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000278,
       "fehler": null
     },
     {
       "nr": 179,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channels.Item",
-      "op": "call",
-      "argumente": [
-        "4"
-      ],
-      "dauer_s": 1.5e-05,
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.CurrentQuality",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000271,
       "fehler": null
     },
     {
       "nr": 180,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.TargetQuality",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.7e-05,
+      "dauer_s": 0.000252,
       "fehler": null
     },
     {
       "nr": 181,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Signals",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.PositionUncertainty",
       "op": "get",
       "argumente": [],
-      "dauer_s": 5e-05,
+      "dauer_s": 0.000247,
       "fehler": null
     },
     {
       "nr": 182,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Count",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.AngleUncertainty",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.5e-05,
+      "dauer_s": 0.000243,
       "fehler": null
     },
     {
       "nr": 183,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignments3D.Item",
       "op": "call",
       "argumente": [
-        "1"
+        "3"
       ],
-      "dauer_s": 0.000219,
+      "dauer_s": 0.000191,
       "fehler": null
     },
     {
       "nr": 184,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.Valid",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3.6e-05,
+      "dauer_s": 0.000218,
       "fehler": null
     },
     {
       "nr": 185,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "2"
-      ],
-      "dauer_s": 1.6e-05,
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.CurrentQuality",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000285,
       "fehler": null
     },
     {
       "nr": 186,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.TargetQuality",
       "op": "get",
       "argumente": [],
-      "dauer_s": 3e-05,
+      "dauer_s": 0.000255,
       "fehler": null
     },
     {
       "nr": 187,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "3"
-      ],
-      "dauer_s": 1.4e-05,
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.PositionUncertainty",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000239,
       "fehler": null
     },
     {
       "nr": 188,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment3D.AngleUncertainty",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.7e-05,
+      "dauer_s": 0.000237,
       "fehler": null
     },
     {
       "nr": 189,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "4"
-      ],
-      "dauer_s": 1.3e-05,
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignments.Alignments2D",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.021934,
       "fehler": null
     },
     {
       "nr": 190,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignments2D.Count",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000299,
       "fehler": null
     },
     {
       "nr": 191,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignments2D.Item",
       "op": "call",
       "argumente": [
-        "5"
+        "1"
       ],
-      "dauer_s": 1.3e-05,
+      "dauer_s": 0.000785,
       "fehler": null
     },
     {
       "nr": 192,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment2D.Valid",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.6e-05,
+      "dauer_s": 0.000255,
       "fehler": null
     },
     {
       "nr": 193,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channels.Item",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignments2D.Item",
       "op": "call",
       "argumente": [
-        "5"
+        "2"
       ],
-      "dauer_s": 1.4e-05,
+      "dauer_s": 0.000199,
       "fehler": null
     },
     {
       "nr": 194,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Name",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment2D.Valid",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.7e-05,
+      "dauer_s": 0.00024,
       "fehler": null
     },
     {
       "nr": 195,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Signals",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 4.3e-05,
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignments2D.Item",
+      "op": "call",
+      "argumente": [
+        "3"
+      ],
+      "dauer_s": 0.0002,
       "fehler": null
     },
     {
       "nr": 196,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Count",
+      "pruefpunkt": "P1-6-abgleich",
+      "pfad": "Alignment2D.Valid",
       "op": "get",
       "argumente": [],
-      "dauer_s": 2.5e-05,
+      "dauer_s": 0.000239,
       "fehler": null
     },
     {
       "nr": 197,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "1"
-      ],
-      "dauer_s": 0.000153,
+      "pruefpunkt": "P3-2-existenz",
+      "pfad": "Infos.HasPositionDevice",
+      "op": "get",
+      "argumente": [],
+      "dauer_s": 0.000202,
       "fehler": null
     },
     {
       "nr": 198,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
+      "pruefpunkt": "P3-2-existenz",
+      "pfad": "Application.DigitalPorts",
+      "op": "exists",
       "argumente": [],
-      "dauer_s": 3.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 199,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "2"
-      ],
-      "dauer_s": 1.5e-05,
-      "fehler": null
-    },
-    {
-      "nr": 200,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.7e-05,
-      "fehler": null
-    },
-    {
-      "nr": 201,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "3"
-      ],
-      "dauer_s": 1.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 202,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 203,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "4"
-      ],
-      "dauer_s": 1.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 204,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 205,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "5"
-      ],
-      "dauer_s": 1.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 206,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.5e-05,
-      "fehler": null
-    },
-    {
-      "nr": 207,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "6"
-      ],
-      "dauer_s": 1.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 208,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.5e-05,
-      "fehler": null
-    },
-    {
-      "nr": 209,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channels.Item",
-      "op": "call",
-      "argumente": [
-        "6"
-      ],
-      "dauer_s": 1.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 210,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 211,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Signals",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 4.1e-05,
-      "fehler": null
-    },
-    {
-      "nr": 212,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Count",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 213,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "1"
-      ],
-      "dauer_s": 0.00015,
-      "fehler": null
-    },
-    {
-      "nr": 214,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.2e-05,
-      "fehler": null
-    },
-    {
-      "nr": 215,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "2"
-      ],
-      "dauer_s": 1.5e-05,
-      "fehler": null
-    },
-    {
-      "nr": 216,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.7e-05,
-      "fehler": null
-    },
-    {
-      "nr": 217,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "3"
-      ],
-      "dauer_s": 1.5e-05,
-      "fehler": null
-    },
-    {
-      "nr": 218,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 219,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "4"
-      ],
-      "dauer_s": 1.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 220,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 221,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "5"
-      ],
-      "dauer_s": 1.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 222,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 223,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "6"
-      ],
-      "dauer_s": 1.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 224,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.5e-05,
-      "fehler": null
-    },
-    {
-      "nr": 225,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channels.Item",
-      "op": "call",
-      "argumente": [
-        "7"
-      ],
-      "dauer_s": 1.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 226,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 227,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Signals",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 4.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 228,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Count",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.5e-05,
-      "fehler": null
-    },
-    {
-      "nr": 229,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "1"
-      ],
-      "dauer_s": 0.000151,
-      "fehler": null
-    },
-    {
-      "nr": 230,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 231,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "2"
-      ],
-      "dauer_s": 1.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 232,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.2e-05,
-      "fehler": null
-    },
-    {
-      "nr": 233,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "3"
-      ],
-      "dauer_s": 1.7e-05,
-      "fehler": null
-    },
-    {
-      "nr": 234,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 235,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "4"
-      ],
-      "dauer_s": 1.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 236,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.9e-05,
-      "fehler": null
-    },
-    {
-      "nr": 237,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "5"
-      ],
-      "dauer_s": 1.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 238,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 239,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "6"
-      ],
-      "dauer_s": 1.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 240,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 241,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channels.Item",
-      "op": "call",
-      "argumente": [
-        "8"
-      ],
-      "dauer_s": 1.8e-05,
-      "fehler": null
-    },
-    {
-      "nr": 242,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.8e-05,
-      "fehler": null
-    },
-    {
-      "nr": 243,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Channel.Signals",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 4.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 244,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Count",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 245,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "1"
-      ],
-      "dauer_s": 0.000153,
-      "fehler": null
-    },
-    {
-      "nr": 246,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 3.2e-05,
-      "fehler": null
-    },
-    {
-      "nr": 247,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "2"
-      ],
-      "dauer_s": 1.5e-05,
-      "fehler": null
-    },
-    {
-      "nr": 248,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.9e-05,
-      "fehler": null
-    },
-    {
-      "nr": 249,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "3"
-      ],
-      "dauer_s": 1.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 250,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 251,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "4"
-      ],
-      "dauer_s": 1.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 252,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.5e-05,
-      "fehler": null
-    },
-    {
-      "nr": 253,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "5"
-      ],
-      "dauer_s": 1.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 254,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 255,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signals.Item",
-      "op": "call",
-      "argumente": [
-        "6"
-      ],
-      "dauer_s": 1.3e-05,
-      "fehler": null
-    },
-    {
-      "nr": 256,
-      "pruefpunkt": "P1-10-struktur",
-      "pfad": "Signal.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 257,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "PointDomain.DataPoints",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 0.000439,
-      "fehler": null
-    },
-    {
-      "nr": 258,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "DataPoints.Count",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 5e-05,
-      "fehler": null
-    },
-    {
-      "nr": 259,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "DataPoints.Item",
-      "op": "call",
-      "argumente": [
-        "1"
-      ],
-      "dauer_s": 0.000452,
-      "fehler": null
-    },
-    {
-      "nr": 260,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "DataPoint.AverageCount",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 0.000145,
-      "fehler": null
-    },
-    {
-      "nr": 261,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "DataPoint.GetData",
-      "op": "call",
-      "argumente": [
-        "<Display>",
-        "0"
-      ],
-      "dauer_s": 0.004313,
-      "fehler": null
-    },
-    {
-      "nr": 262,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "PointDomain.GetXAxis",
-      "op": "call",
-      "argumente": [
-        "<Display>"
-      ],
-      "dauer_s": 0.00043,
-      "fehler": null
-    },
-    {
-      "nr": 263,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "XAxis.Min",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 4.2e-05,
-      "fehler": null
-    },
-    {
-      "nr": 264,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "XAxis.Max",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.7e-05,
-      "fehler": null
-    },
-    {
-      "nr": 265,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "XAxis.MaxCount",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.6e-05,
-      "fehler": null
-    },
-    {
-      "nr": 266,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "XAxis.Name",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.9e-05,
-      "fehler": null
-    },
-    {
-      "nr": 267,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "XAxis.Unit",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.4e-05,
-      "fehler": null
-    },
-    {
-      "nr": 268,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "XAxis.GetMidX",
-      "op": "call",
-      "argumente": [
-        "0"
-      ],
-      "dauer_s": 0.00011,
-      "fehler": null
-    },
-    {
-      "nr": 269,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "XAxis.GetMidX",
-      "op": "call",
-      "argumente": [
-        "1"
-      ],
-      "dauer_s": 3e-06,
-      "fehler": null
-    },
-    {
-      "nr": 270,
-      "pruefpunkt": "P1-10-daten",
-      "pfad": "XAxis.GetMidX",
-      "op": "call",
-      "argumente": [
-        "1599"
-      ],
-      "dauer_s": 3e-06,
-      "fehler": null
-    },
-    {
-      "nr": 271,
-      "pruefpunkt": "P1-10-schliessen",
-      "pfad": "PolyFile.Close",
-      "op": "call",
-      "argumente": [],
-      "dauer_s": 0.006275,
-      "fehler": null
-    },
-    {
-      "nr": 272,
-      "pruefpunkt": "P1-10-schliessen",
-      "pfad": "PolyFile.IsOpen",
-      "op": "get",
-      "argumente": [],
-      "dauer_s": 2.1e-05,
+      "dauer_s": 0.001506,
       "fehler": null
     }
   ],
   "verweigert": [],
-  "dateien": {
-    "eingabedatei_vorher": {
-      "pfad": "D:\\Messdaten\\DAL\\BA Jakob Busch\\daten\\20261012_ref_Mitte_kopie.svd",
-      "groesse_byte": 27115520,
-      "mtime_ns": 1795440508687167600,
-      "sha256": "7ef46262df0055f5a45470ae0fc5e6bde547624cdee6b5dc3838060a452e790b"
-    },
-    "eingabedatei_nachher": {
-      "pfad": "D:\\Messdaten\\DAL\\BA Jakob Busch\\daten\\20261012_ref_Mitte_kopie.svd",
-      "groesse_byte": 27115520,
-      "mtime_ns": 1795440508687167600,
-      "sha256": "7ef46262df0055f5a45470ae0fc5e6bde547624cdee6b5dc3838060a452e790b"
-    },
-    "unveraendert": true
-  }
+  "dateien": {}
 }
