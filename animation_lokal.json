@@ -1,0 +1,136 @@
+{
+  "umgebung": {
+    "datei": "20261012_ref_Mitte_kopie.svd",
+    "rechner": "BEOWOLF",
+    "sitzungsart": "lokal",
+    "system": "Windows-10-10.0.17763-SP0",
+    "frequenz_hz": "105,000",
+    "python": "3.11.9",
+    "numpy": "2.4.6",
+    "matplotlib": "3.11.2",
+    "pyside6": "6.11.3",
+    "qt_plattform": "windows"
+  },
+  "messungen": [
+    {
+      "nr": "M1",
+      "name": "Bild voll (Achsen, Panes, Ticks)",
+      "median_ms": 126.35444999978063,
+      "max_ms": 133.35259999985283,
+      "n": 100,
+      "notiz": ""
+    },
+    {
+      "nr": "M1",
+      "name": "Bild mit vereinfachten Achsen",
+      "median_ms": 97.98154999953113,
+      "max_ms": 133.6989999999787,
+      "n": 100,
+      "notiz": ""
+    },
+    {
+      "nr": "M1",
+      "name": "Drehschritt (view_init und Zeichnen), vereinfacht",
+      "median_ms": 98.9431500001956,
+      "max_ms": 134.7390999999334,
+      "n": 100,
+      "notiz": ""
+    },
+    {
+      "nr": "M1",
+      "name": "Drehschritt (view_init und Zeichnen), voll",
+      "median_ms": 276.7306499999904,
+      "max_ms": 307.97309999979916,
+      "n": 100,
+      "notiz": ""
+    },
+    {
+      "nr": "M2",
+      "name": "Wiedergabe bei Soll 5 Bildern/s",
+      "median_ms": 99.56884999974136,
+      "max_ms": null,
+      "n": 50,
+      "notiz": "effektiv 5,0 Bilder/s, 0 von 50 Bildern ausgelassen; Median = Zeichenzeit je Bild; „langsam“ gemeldet: nein"
+    },
+    {
+      "nr": "M2",
+      "name": "Wiedergabe bei Soll 10 Bildern/s",
+      "median_ms": 99.64254999977129,
+      "max_ms": null,
+      "n": 99,
+      "notiz": "effektiv 9,9 Bilder/s, 1 von 100 Bildern ausgelassen; Median = Zeichenzeit je Bild; „langsam“ gemeldet: nein"
+    },
+    {
+      "nr": "M2",
+      "name": "Wiedergabe bei Soll 20 Bildern/s",
+      "median_ms": 100.46204999980546,
+      "max_ms": null,
+      "n": 100,
+      "notiz": "effektiv 10,0 Bilder/s, 100 von 200 Bildern ausgelassen; Median = Zeichenzeit je Bild; „langsam“ gemeldet: nein"
+    },
+    {
+      "nr": "M3",
+      "name": "Mausziehen bis sichtbares Neuzeichnen",
+      "median_ms": 102.04810000050202,
+      "max_ms": 104.63380000146572,
+      "n": 100,
+      "notiz": ""
+    },
+    {
+      "nr": "M4",
+      "name": "Phasenregler ziehen, je Schritt",
+      "median_ms": 127.54259999928763,
+      "max_ms": 1206.2095000001136,
+      "n": 100,
+      "notiz": ""
+    },
+    {
+      "nr": "M4",
+      "name": "Phasenregler loslassen (Voll-Neuzeichnen)",
+      "median_ms": 126.83914999979606,
+      "max_ms": 163.11659999882977,
+      "n": 100,
+      "notiz": ""
+    },
+    {
+      "nr": "M5",
+      "name": "animation_daten, drei Kanalpaare, kalt",
+      "median_ms": 240.85034999916388,
+      "max_ms": 271.09720000044035,
+      "n": 10,
+      "notiz": ""
+    },
+    {
+      "nr": "M5",
+      "name": "animation_daten, drei Kanalpaare, warm",
+      "median_ms": 17.304800000601972,
+      "max_ms": 17.541900000651367,
+      "n": 10,
+      "notiz": ""
+    },
+    {
+      "nr": "M5",
+      "name": "Arbeitsspeicher-Zuwachs der drei Kanalpaare (RSS)",
+      "median_ms": null,
+      "max_ms": null,
+      "n": 10,
+      "notiz": "größter Zuwachs 0,0 MiB"
+    },
+    {
+      "nr": "M6",
+      "name": "Standbild speichern (PNG)",
+      "median_ms": 692.9211500009842,
+      "max_ms": 749.1128999990906,
+      "n": 10,
+      "notiz": "223,2 KiB"
+    },
+    {
+      "nr": "M6",
+      "name": "Standbild speichern (PDF)",
+      "median_ms": 640.4787500005114,
+      "max_ms": 3383.3184000013716,
+      "n": 10,
+      "notiz": "42,9 KiB"
+    }
+  ]
+}
