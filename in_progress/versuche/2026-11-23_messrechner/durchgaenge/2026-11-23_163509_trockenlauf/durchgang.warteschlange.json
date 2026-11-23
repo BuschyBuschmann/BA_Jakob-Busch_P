@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "art": "ldv-warteschlange",
+  "erstellt_utc": "2026-11-23T15:35:09.282421+00:00",
+  "paket_version": "0.2.0",
+  "git_hash": "cebac63e5e9c25d66a76e3d87b073a64bbf1e177",
+  "eintraege": [
+    {
+      "art": "messung",
+      "id": "c274cea2-5f97-4500-b6c5-3df6a8492902",
+      "name": "D_test",
+      "einstellungsdatei": "D:/Messdaten/DAL/BA Jakob Busch/vorlagen/test_5000Hz.set",
+      "parameter": {},
+      "zeitlimit_s": null,
+      "notiz": ""
+    }
+  ]
+}

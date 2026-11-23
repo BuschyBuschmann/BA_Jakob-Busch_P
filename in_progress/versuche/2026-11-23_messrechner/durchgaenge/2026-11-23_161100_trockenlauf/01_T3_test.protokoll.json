@@ -1,0 +1,128 @@
+{
+  "schema_version": 2,
+  "messung_id": "a15f28a7-f7f3-4722-a7ad-5e012dcb9af8",
+  "name": "T3_test",
+  "versuch": 1,
+  "durchgang_id": "6e07ed16-07e0-4ff4-8cdf-ff04031457af",
+  "position": 1,
+  "messdatei": "D:\\Messdaten\\DAL\\BA Jakob Busch\\daten\\2026-11-23_161100_trockenlauf\\01_T3_test.svd",
+  "messdatei_sha256": null,
+  "messdatei_sha256_grund": "Kein Scan gestartet; Datei stammt nicht aus diesem Messversuch",
+  "status": "fehler",
+  "fehler": {
+    "art": "geraet",
+    "text": "Ungültiger Wert",
+    "hresult": -2147352567,
+    "excepinfo": "Ungültiger Wert",
+    "methode": "FftProperties.FftAcqPropertiesValidator"
+  },
+  "fehlerstrategie": "PausierenUndNachfragen (vorläufig, O1/F20)",
+  "fehlerentscheidung": "ausstehend",
+  "zeit_start": {
+    "lokal": "2026-11-23T16:11:00.759417+01:00",
+    "utc": "2026-11-23T15:11:00.759417+00:00"
+  },
+  "zeit_ende": {
+    "lokal": "2026-11-23T16:11:01.653551+01:00",
+    "utc": "2026-11-23T15:11:01.653551+00:00"
+  },
+  "dauer_s": 0.8910000000000764,
+  "zeitlimit_s": 600.0,
+  "paket_version": "0.2.0",
+  "git_hash": "cebac63e5e9c25d66a76e3d87b073a64bbf1e177",
+  "git_hash_grund": null,
+  "git_dirty": false,
+  "psv_version": "10.4.0.1",
+  "betriebsart": "trockenlauf",
+  "hardware": {
+    "erfassungskarte": "Polytec Ethernet Datenerfassung",
+    "erfassungskarte_firmware": "1.0302",
+    "frontend": "124",
+    "frontend_firmware": "2.50",
+    "generator": "Polytec Ethernet Generator",
+    "scankopf_typ": "23",
+    "sensorkoepfe": "('PSV-I-680', 'PSV-I-690', 'PSV-I-690')",
+    "sensorkopf_seriennummern": "('360783', '360784', '360785')",
+    "sensorkopf_versionen": "('2.5305', '2.5305', '2.5305')",
+    "psv_prozesse": "PSV.exe"
+  },
+  "messpunkte_anzahl": null,
+  "einstellungsdatei": {
+    "pfad": "D:/Messdaten/DAL/BA Jakob Busch/vorlagen/test_5000Hz.set",
+    "sha256": "c6115fd514ae96b1f610e56234b5a9c0a693e8653a69d3a7b96fe39f356605a8"
+  },
+  "lademaske": "Acquisition|Alignment|APS|2DAlignment|3DAlignment",
+  "geaenderte_parameter": [
+    {
+      "schluessel": "fft.bandbreite_hz",
+      "einheit": "Hz",
+      "soll": 4000.0,
+      "ist": null
+    }
+  ],
+  "einstellungen_ist": null,
+  "frequenzachse": {
+    "delta_f_psv_hz": null,
+    "delta_f_berechnet_hz": null,
+    "f_max_bandbreite_hz": null,
+    "f_max_end_hz": null,
+    "linien_anzahl": null,
+    "blockdauer_s": null,
+    "nicht_lesbar": {
+      "delta_f_psv_hz": "Einstellungsstand nicht gelesen",
+      "f_max_bandbreite_hz": "Einstellungsstand nicht gelesen",
+      "f_max_end_hz": "Einstellungsstand nicht gelesen",
+      "linien_anzahl": "Einstellungsstand nicht gelesen",
+      "blockdauer_s": "Einstellungsstand nicht gelesen",
+      "delta_f_berechnet_hz": "Bandbreite (> 0) oder Linienzahl nicht lesbar"
+    },
+    "hinweis": "Werte aus einstellungen_ist.gruppen.fft; delta_f_psv_hz ist COM SampleResolution (Einheit Hz laut I5 2.5, am Gerät unbestätigt), delta_f_berechnet_hz = Bandbreite/Linien. blockdauer_s ist COM SampleTime; die Einheit s ist nur über das Zoom-FFT-Thema belegt und am Gerät unbestätigt."
+  },
+  "abgleich": {
+    "gelesen": false,
+    "grund": "Lesen des Abgleichs nicht erreicht (Messung vorher beendet)",
+    "zeit": null,
+    "anzahl_3d": null,
+    "anzahl_2d": null,
+    "abgleich_3d": [],
+    "abgleich_2d": [],
+    "nicht_lesbar": {},
+    "pruefung": {
+      "modus": "warnen",
+      "ergebnis": "nicht_ausgefuehrt",
+      "grenzen": {
+        "qualitaet_max_m": null,
+        "position_max_m": null,
+        "winkel_max_rad": null,
+        "pruefe_2d": false
+      },
+      "befunde": [
+        "Prüfung nicht ausgeführt: Messung endete vor der Abgleichprüfung"
+      ]
+    },
+    "hinweis": "Werte aus COM Infos.Alignments (nur lesend), Einheiten laut BEM, am Gerät unbestätigt; gehört zur geladenen Einstellungsdatei (einstellungsdatei.sha256, lademaske)."
+  },
+  "meldungen": [],
+  "meldungen_hinweis": "Ohne Ereignisbetrieb werden Meldungen nicht empfangen; sie stehen in der Messdatei (SummaryInfo.Subject).",
+  "fortschritt_quelle": "zeitschaetzung",
+  "einschraenkungen": [
+    "Vollständigkeit des Scans im Prototyp nicht geprüft (vorzeitig beendeter Scan gilt als fertig, wenn die Datei existiert)"
+  ],
+  "konfiguration": {
+    "pfad": "D:\\Messdaten\\DAL\\BA Jakob Busch\\termin_2026-11-23\\konfig_termin.json",
+    "sha256": "db98f78ee5b7ec78be4910c9803e7b2ad65c56d785a122c59fab4437735b5dba",
+    "werte": {
+      "validator_rueckfall_direkt": false,
+      "lademaske": "Acquisition|Alignment|APS|2DAlignment|3DAlignment",
+      "aufruf_grenze_s": 60.0,
+      "aufruf_warnung_s": 5.0,
+      "stop_frist_s": 10.0,
+      "standard_zeitlimit_s": 600.0,
+      "abgleich_pruefung": "warnen",
+      "abgleich_qualitaet_max_m": null,
+      "abgleich_position_max_m": null,
+      "abgleich_winkel_max_rad": null,
+      "abgleich_2d_pruefen": false
+    }
+  }
+}

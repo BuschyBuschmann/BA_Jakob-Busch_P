@@ -1,0 +1,296 @@
+{
+  "schema_version": 2,
+  "messung_id": "c274cea2-5f97-4500-b6c5-3df6a8492902",
+  "name": "D_test",
+  "versuch": 1,
+  "durchgang_id": "c2c16bdf-bfb7-41ad-a22d-b4e8cc6c229b",
+  "position": 0,
+  "messdatei": "D:\\Messdaten\\DAL\\BA Jakob Busch\\daten\\2026-11-23_163509_trockenlauf\\01_D_test.svd",
+  "messdatei_sha256": null,
+  "messdatei_sha256_grund": "Kein Scan gestartet; Datei stammt nicht aus diesem Messversuch",
+  "status": "trockenlauf",
+  "fehler": null,
+  "fehlerstrategie": "PausierenUndNachfragen (vorläufig, O1/F20)",
+  "fehlerentscheidung": null,
+  "zeit_start": {
+    "lokal": "2026-11-23T16:35:09.287414+01:00",
+    "utc": "2026-11-23T15:35:09.287414+00:00"
+  },
+  "zeit_ende": {
+    "lokal": "2026-11-23T16:35:11.712919+01:00",
+    "utc": "2026-11-23T15:35:11.712919+00:00"
+  },
+  "dauer_s": 2.4220000000000255,
+  "zeitlimit_s": 600.0,
+  "paket_version": "0.2.0",
+  "git_hash": "cebac63e5e9c25d66a76e3d87b073a64bbf1e177",
+  "git_hash_grund": null,
+  "git_dirty": false,
+  "psv_version": "10.4.0.1",
+  "betriebsart": "trockenlauf",
+  "hardware": {
+    "erfassungskarte": "Polytec Ethernet Datenerfassung",
+    "erfassungskarte_firmware": "1.0302",
+    "frontend": "124",
+    "frontend_firmware": "2.50",
+    "generator": "Polytec Ethernet Generator",
+    "scankopf_typ": "23",
+    "sensorkoepfe": "('PSV-I-680', 'PSV-I-690', 'PSV-I-690')",
+    "sensorkopf_seriennummern": "('360783', '360784', '360785')",
+    "sensorkopf_versionen": "('2.5305', '2.5305', '2.5305')",
+    "psv_prozesse": "PSV.exe"
+  },
+  "messpunkte_anzahl": 153,
+  "einstellungsdatei": {
+    "pfad": "D:/Messdaten/DAL/BA Jakob Busch/vorlagen/test_5000Hz.set",
+    "sha256": "c6115fd514ae96b1f610e56234b5a9c0a693e8653a69d3a7b96fe39f356605a8"
+  },
+  "lademaske": "Acquisition|Alignment|APS|2DAlignment|3DAlignment",
+  "geaenderte_parameter": [],
+  "einstellungen_ist": {
+    "modus": "Fft",
+    "messpunkte_anzahl": 153,
+    "generator_aktiv": false,
+    "generator_amplitude_v": 1.0,
+    "gruppen": {
+      "fft": {
+        "bandbreite_hz": 5000.0,
+        "start_frequenz_hz": 0.0,
+        "end_frequenz_hz": 5000.0,
+        "linien": 400,
+        "ueberlappung_prozent": 0,
+        "abtastfrequenz_hz": 12500.0,
+        "aufloesung_hz": 12.5,
+        "messzeit_s": 0.08
+      },
+      "mittelung": {
+        "typ": 2,
+        "anzahl": 3
+      },
+      "allgemein": {
+        "auto_nachmessen": false,
+        "auto_nachmessen_bereich": false,
+        "zeitdaten_speichern": false,
+        "pca": false
+      },
+      "trigger": {
+        "quelle": 0,
+        "flanke": 0,
+        "pegel_prozent": 0.0,
+        "vortrigger_prozent": 0.0,
+        "phase_aus_referenz": true,
+        "analog_quellkanal": 1
+      },
+      "se": {
+        "modus": 0,
+        "speckle_tracking": false
+      },
+      "kanaele": {
+        "anzahl": 9,
+        "k0.name": "Vibrometer 3D",
+        "k0.aktiv": true,
+        "k0.referenz": false,
+        "k0.groesse": 13,
+        "k0.einheit": "m/s",
+        "k0.eingangsbereich_v": null,
+        "k0.eingangsbereich_v__fehler": "Der Kanal unterstützt keinen Eingangsbereich.",
+        "k0.kalibrierfaktor_si_je_v": 0.05,
+        "k0.schwingrichtung": 6,
+        "k0.fensterfunktion": 0,
+        "k0.signalverzoegerung_s": 0.001333688,
+        "k1.name": "Reference 1",
+        "k1.aktiv": true,
+        "k1.referenz": true,
+        "k1.groesse": 0,
+        "k1.einheit": "m/s² / V",
+        "k1.eingangsbereich_v": 1.0,
+        "k1.kalibrierfaktor_si_je_v": 987.913569022508,
+        "k1.schwingrichtung": 0,
+        "k1.fensterfunktion": 0,
+        "k1.signalverzoegerung_s": 0.000130769,
+        "k2.name": "Reference 2",
+        "k2.aktiv": false,
+        "k2.referenz": false,
+        "k2.groesse": 14,
+        "k2.einheit": "",
+        "k2.eingangsbereich_v": 10.0,
+        "k2.kalibrierfaktor_si_je_v": 1.0,
+        "k2.schwingrichtung": 0,
+        "k2.fensterfunktion": 0,
+        "k2.signalverzoegerung_s": 0.0,
+        "k3.name": "Reference 3",
+        "k3.aktiv": false,
+        "k3.referenz": false,
+        "k3.groesse": 14,
+        "k3.einheit": "",
+        "k3.eingangsbereich_v": 10.0,
+        "k3.kalibrierfaktor_si_je_v": 1.0,
+        "k3.schwingrichtung": 0,
+        "k3.fensterfunktion": 0,
+        "k3.signalverzoegerung_s": 0.0,
+        "k4.name": "Reference 4",
+        "k4.aktiv": false,
+        "k4.referenz": false,
+        "k4.groesse": 14,
+        "k4.einheit": "",
+        "k4.eingangsbereich_v": 10.0,
+        "k4.kalibrierfaktor_si_je_v": 1.0,
+        "k4.schwingrichtung": 0,
+        "k4.fensterfunktion": 0,
+        "k4.signalverzoegerung_s": 0.0,
+        "k5.name": "Reference 5",
+        "k5.aktiv": false,
+        "k5.referenz": false,
+        "k5.groesse": 14,
+        "k5.einheit": "",
+        "k5.eingangsbereich_v": 10.0,
+        "k5.kalibrierfaktor_si_je_v": 1.0,
+        "k5.schwingrichtung": 0,
+        "k5.fensterfunktion": 0,
+        "k5.signalverzoegerung_s": 0.0,
+        "k6.name": "Reference 6",
+        "k6.aktiv": false,
+        "k6.referenz": false,
+        "k6.groesse": 14,
+        "k6.einheit": "",
+        "k6.eingangsbereich_v": 10.0,
+        "k6.kalibrierfaktor_si_je_v": 1.0,
+        "k6.schwingrichtung": 0,
+        "k6.fensterfunktion": 0,
+        "k6.signalverzoegerung_s": 0.0,
+        "k7.name": "Reference 7",
+        "k7.aktiv": false,
+        "k7.referenz": false,
+        "k7.groesse": 14,
+        "k7.einheit": "",
+        "k7.eingangsbereich_v": 10.0,
+        "k7.kalibrierfaktor_si_je_v": 1.0,
+        "k7.schwingrichtung": 0,
+        "k7.fensterfunktion": 0,
+        "k7.signalverzoegerung_s": 0.0,
+        "k8.name": "Reference 8",
+        "k8.aktiv": false,
+        "k8.referenz": false,
+        "k8.groesse": 14,
+        "k8.einheit": "",
+        "k8.eingangsbereich_v": 10.0,
+        "k8.kalibrierfaktor_si_je_v": 1.0,
+        "k8.schwingrichtung": 0,
+        "k8.fensterfunktion": 0,
+        "k8.signalverzoegerung_s": 0.0
+      },
+      "generator": {
+        "anzahl": 1,
+        "aktiv": false,
+        "amplitude_v": 1.0,
+        "signalform_typ": 0,
+        "generatoren_an": false
+      }
+    }
+  },
+  "frequenzachse": {
+    "delta_f_psv_hz": 12.5,
+    "delta_f_berechnet_hz": 12.5,
+    "f_max_bandbreite_hz": 5000.0,
+    "f_max_end_hz": 5000.0,
+    "linien_anzahl": 400,
+    "blockdauer_s": 0.08,
+    "nicht_lesbar": {},
+    "hinweis": "Werte aus einstellungen_ist.gruppen.fft; delta_f_psv_hz ist COM SampleResolution (Einheit Hz laut I5 2.5, am Gerät unbestätigt), delta_f_berechnet_hz = Bandbreite/Linien. blockdauer_s ist COM SampleTime; die Einheit s ist nur über das Zoom-FFT-Thema belegt und am Gerät unbestätigt."
+  },
+  "abgleich": {
+    "gelesen": true,
+    "grund": null,
+    "zeit": {
+      "lokal": "2026-11-23T16:35:11.712919+01:00",
+      "utc": "2026-11-23T15:35:11.712919+00:00"
+    },
+    "anzahl_3d": 3,
+    "anzahl_2d": 3,
+    "abgleich_3d": [
+      {
+        "index": 0,
+        "gueltig": true,
+        "qualitaet_ist_m": 1.0704983625573413e-10,
+        "qualitaet_soll_m": 0.0015,
+        "positionsunsicherheit_m": 1.0704983625573413e-10,
+        "winkelunsicherheit_rad": 4.0833964465197604e-11,
+        "nicht_lesbar": {}
+      },
+      {
+        "index": 1,
+        "gueltig": true,
+        "qualitaet_ist_m": 0.001499322562623781,
+        "qualitaet_soll_m": 0.0015,
+        "positionsunsicherheit_m": 0.001499322562623781,
+        "winkelunsicherheit_rad": 0.0005056067820977237,
+        "nicht_lesbar": {}
+      },
+      {
+        "index": 2,
+        "gueltig": true,
+        "qualitaet_ist_m": 0.0015266641040394052,
+        "qualitaet_soll_m": 0.0015,
+        "positionsunsicherheit_m": 0.0015266641040394052,
+        "winkelunsicherheit_rad": 0.0005204417132509109,
+        "nicht_lesbar": {}
+      }
+    ],
+    "abgleich_2d": [
+      {
+        "index": 0,
+        "gueltig": true,
+        "scankopfabstand_m": 1.0,
+        "nicht_lesbar": {}
+      },
+      {
+        "index": 1,
+        "gueltig": true,
+        "scankopfabstand_m": 0.0,
+        "nicht_lesbar": {}
+      },
+      {
+        "index": 2,
+        "gueltig": true,
+        "scankopfabstand_m": 0.0,
+        "nicht_lesbar": {}
+      }
+    ],
+    "nicht_lesbar": {},
+    "pruefung": {
+      "modus": "warnen",
+      "ergebnis": "bestanden",
+      "grenzen": {
+        "qualitaet_max_m": null,
+        "position_max_m": null,
+        "winkel_max_rad": null,
+        "pruefe_2d": false
+      },
+      "befunde": []
+    },
+    "hinweis": "Werte aus COM Infos.Alignments (nur lesend), Einheiten laut BEM, am Gerät unbestätigt; gehört zur geladenen Einstellungsdatei (einstellungsdatei.sha256, lademaske)."
+  },
+  "meldungen": [],
+  "meldungen_hinweis": "Ohne Ereignisbetrieb werden Meldungen nicht empfangen; sie stehen in der Messdatei (SummaryInfo.Subject).",
+  "fortschritt_quelle": "zeitschaetzung",
+  "einschraenkungen": [
+    "Vollständigkeit des Scans im Prototyp nicht geprüft (vorzeitig beendeter Scan gilt als fertig, wenn die Datei existiert)"
+  ],
+  "konfiguration": {
+    "pfad": "D:\\Messdaten\\DAL\\BA Jakob Busch\\termin_2026-11-23\\konfig_termin.json",
+    "sha256": "db98f78ee5b7ec78be4910c9803e7b2ad65c56d785a122c59fab4437735b5dba",
+    "werte": {
+      "validator_rueckfall_direkt": false,
+      "lademaske": "Acquisition|Alignment|APS|2DAlignment|3DAlignment",
+      "aufruf_grenze_s": 60.0,
+      "aufruf_warnung_s": 5.0,
+      "stop_frist_s": 10.0,
+      "standard_zeitlimit_s": 600.0,
+      "abgleich_pruefung": "warnen",
+      "abgleich_qualitaet_max_m": null,
+      "abgleich_position_max_m": null,
+      "abgleich_winkel_max_rad": null,
+      "abgleich_2d_pruefen": false
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "art": "ldv-warteschlange",
+  "erstellt_utc": "2026-11-23T15:24:09.033993+00:00",
+  "paket_version": "0.2.0",
+  "git_hash": "cebac63e5e9c25d66a76e3d87b073a64bbf1e177",
+  "eintraege": [
+    {
+      "art": "messung",
+      "id": "dd9eebab-ae2d-4d63-8adb-97d3d238c3dc",
+      "name": "T2_test",
+      "einstellungsdatei": "D:/Messdaten/DAL/BA Jakob Busch/vorlagen/test_5000Hz.set",
+      "parameter": {
+        "fft.bandbreite_hz": 5600.0
+      },
+      "zeitlimit_s": null,
+      "notiz": ""
+    },
+    {
+      "art": "messung",
+      "id": "a15f28a7-f7f3-4722-a7ad-5e012dcb9af8",
+      "name": "T3_test",
+      "einstellungsdatei": "D:/Messdaten/DAL/BA Jakob Busch/vorlagen/test_5000Hz.set",
+      "parameter": {
+        "fft.bandbreite_hz": 4000.0
+      },
+      "zeitlimit_s": null,
+      "notiz": ""
+    },
+    {
+      "art": "messung",
+      "id": "acd78165-a238-4271-9a72-a67285315c04",
+      "name": "t4_test",
+      "einstellungsdatei": "D:/Messdaten/DAL/BA Jakob Busch/vorlagen/test_5000Hz.set",
+      "parameter": {
+        "fft.bandbreite_hz": 6250.0,
+        "mittelung.anzahl": 5
+      },
+      "zeitlimit_s": null,
+      "notiz": ""
+    },
+    {
+      "art": "messung",
+      "id": "5851ec2f-6f84-4224-a516-5d8812c2ac51",
+      "name": "T6_Linien",
+      "einstellungsdatei": "D:/Messdaten/DAL/BA Jakob Busch/vorlagen/test_5000Hz.set",
+      "parameter": {
+        "fft.linien": 800
+      },
+      "zeitlimit_s": null,
+      "notiz": ""
+    },
+    {
+      "art": "pausenpunkt",
+      "id": "58e4c5ff-c7a8-4059-8cdc-16e2ace9e323",
+      "text": "Pause_test"
+    },
+    {
+      "art": "messung",
+      "id": "b071ccbc-b03a-4c99-9601-701775879286",
+      "name": "T7_typ",
+      "einstellungsdatei": "D:/Messdaten/DAL/BA Jakob Busch/vorlagen/test_5000Hz.set",
+      "parameter": {
+        "mittelung.anzahl": 10,
+        "mittelung.typ": "Magnitude"
+      },
+      "zeitlimit_s": null,
+      "notiz": ""
+    }
+  ]
+}

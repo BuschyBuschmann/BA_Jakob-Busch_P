@@ -12,8 +12,22 @@ Termin nach freigegebenem Ablaufplan (`../naechster-termin_messrechner/ablaufpla
 | `konfig/konfig_abgleich_verweigern.json` | wie oben, Modus `verweigern` | **nur für den Test** AB7/AB8 |
 | `messungen/zeiten.json` | `tools/auswertung/zeiten_messen.py`, Kopie von `20261012_ref_Mitte.svd`, 3 Wiederholungen | W1 (Spawn, Lesen, Paar, Prüfjob, Import) |
 | `messungen/animation_lokal.md`, `.json` | `tools/auswertung/animation_messen.py`, lokal, 105 Hz | Animation M1 bis M6 |
+| `durchgaenge/2026-11-23_<Zeit>_trockenlauf/` | Durchgangsordner der Oberfläche (`D:\…\daten\`), je Ordner `*.protokoll.json` je Versuch, `durchgang.ereignisse.jsonl`, `durchgang.warteschlange.json`; hochgeladen als ZIP | Trockenläufe, Übersicht unten |
+
+## Trockenläufe (aus den Messprotokollen)
+
+| Ordner | Eintrag (Versuch) | Status | Fehler / Abgleich | Test |
+|---|---|---|---|---|
+| 160721 | T2_test, T2_test_v2 (Bandbreite 5600 Hz) | fehler | Abweichung beim Zurücklesen: Soll 5600, Ist 5000 | T2, Befund 2-2 |
+| 161100 | T3_test (Bandbreite 4000 Hz) | fehler | „Ungültiger Wert“ (PSV, HRESULT −2147352567) | T2, Befund |
+| 161429 | t4_test (Bandbreite 6250 Hz, Mittelung 5) | trockenlauf (fertig) | Abgleich gelesen, Prüfung bestanden (ohne Grenzen) | T2; „Bis“ blieb 5 kHz |
+| 162409 | T6_Linien v1–v3 | fehler | „Die Einstellungen der Datenerfassung sind gesperrt …“ (PSV-Einstellungsdialog offen) | Test 1, Befund |
+| 162409 | T6_Linien v4 (Linien 800), Pausenpunkt, T7_typ (Magnitude, 10) | trockenlauf (fertig) | – | Test 1 |
+| 162916 | AB_warnen (Grenze 1,5 mm) | trockenlauf (fertig) | Abgleich nicht_bestanden: 3D-Abgleich 2, 1,527 mm (Warnung) | Test 2, AB9 |
+| 163221 | AB_verweigern (Grenze 1,5 mm) | fehler | Abgleich nicht_bestanden, Durchgang angehalten | Test 2, AB7/AB8 |
+| 163509, 163842 | D_test | trockenlauf (fertig) | – | Test 3 (Voraussetzung Freischaltung) |
 
 ## Nicht hochgeladen (liegt nur am Messrechner bzw. in den Chat-Ausgaben)
 
 - Erkundungsläufe 14:34 (Stufe 0), 14:43 (Stufe 1b ohne Messköpfe, PolyFile), 14:45 (Stufe 1 ohne Messköpfe); Ergebnisse als Konsolenausgabe dokumentiert.
-- Durchgangsordner `D:\…\daten\2026-11-23_*_trockenlauf\` (Messprotokolle T2/T3/t4_test, T6/T7, AB_warnen, AB_verweigern, D_test) und `D:\…\vorlagen\` (`test_5000Hz.set`, SHA-256 `c6115fd514ae96b1f610e56234b5a9c0a693e8653a69d3a7b96fe39f356605a8`; `sicherung_ausgangsstand_2026-11-23.set`, SHA-256 `34a86025cfba182dc1989e7ef2446a0ea5f855c0b1d8d8e05b4add0e10293332`).
+- `D:\…\vorlagen\` (`test_5000Hz.set`, SHA-256 `c6115fd514ae96b1f610e56234b5a9c0a693e8653a69d3a7b96fe39f356605a8`; `sicherung_ausgangsstand_2026-11-23.set`, SHA-256 `34a86025cfba182dc1989e7ef2446a0ea5f855c0b1d8d8e05b4add0e10293332`).
