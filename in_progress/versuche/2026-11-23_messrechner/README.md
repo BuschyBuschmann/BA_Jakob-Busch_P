@@ -12,6 +12,7 @@ Termin nach freigegebenem Ablaufplan (`../naechster-termin_messrechner/ablaufpla
 | `konfig/konfig_abgleich_verweigern.json` | wie oben, Modus `verweigern` | **nur für den Test** AB7/AB8 |
 | `messungen/zeiten.json` | `tools/auswertung/zeiten_messen.py`, Kopie von `20261012_ref_Mitte.svd`, 3 Wiederholungen | W1 (Spawn, Lesen, Paar, Prüfjob, Import) |
 | `messungen/animation_lokal.md`, `.json` | `tools/auswertung/animation_messen.py`, lokal, 105 Hz | Animation M1 bis M6 |
+| `vorlagen/test_5000Hz.set` | in PSV angelegt (B3), private Kopie des Projekts | Test-Einstellungen: FFT 5 kHz (0–5 kHz), 400 Linien, Mittelung komplex 3, Rechteckfenster, Generator aus, 153 Punkte; SHA-256 `c6115fd514ae96b1f610e56234b5a9c0a693e8653a69d3a7b96fe39f356605a8` |
 | `durchgaenge/2026-11-23_<Zeit>_trockenlauf/` | Durchgangsordner der Oberfläche (`D:\…\daten\`), je Ordner `*.protokoll.json` je Versuch, `durchgang.ereignisse.jsonl`, `durchgang.warteschlange.json`; hochgeladen als ZIP | Trockenläufe, Übersicht unten |
 
 ## Trockenläufe (aus den Messprotokollen)
@@ -30,4 +31,4 @@ Termin nach freigegebenem Ablaufplan (`../naechster-termin_messrechner/ablaufpla
 ## Nicht hochgeladen (liegt nur am Messrechner bzw. in den Chat-Ausgaben)
 
 - Erkundungsläufe 14:34 (Stufe 0), 14:43 (Stufe 1b ohne Messköpfe, PolyFile), 14:45 (Stufe 1 ohne Messköpfe); Ergebnisse als Konsolenausgabe dokumentiert.
-- `D:\…\vorlagen\` (`test_5000Hz.set`, SHA-256 `c6115fd514ae96b1f610e56234b5a9c0a693e8653a69d3a7b96fe39f356605a8`; `sicherung_ausgangsstand_2026-11-23.set`, SHA-256 `34a86025cfba182dc1989e7ef2446a0ea5f855c0b1d8d8e05b4add0e10293332`).
+- `D:\…\vorlagen\` (`sicherung_ausgangsstand_2026-11-23.set`, SHA-256 `34a86025cfba182dc1989e7ef2446a0ea5f855c0b1d8d8e05b4add0e10293332`).
