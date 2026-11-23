@@ -46,6 +46,9 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-071 | `auswertung/animation.py`, `darstellung/animation_daten.py`, `animation3d.py`, `gui/animation_steuerung.py`, `gui/animationsflaeche.py`, `gui/animation_anzeige.py`, `gui/animation_tasten.py`, Ansicht 4, `gui/animation_tabelle.py`, Standbild speichern, `tools/auswertung/animation_messen.py` (ADR-029) | `test_aw_animation.py`, `test_dar_animation_*.py`, `test_animation_steuerung.py`, `test_gui_animationsflaeche.py`, `test_gui_animation.py`, `test_animation_anzeige.py` | Laborbuch 2026-11-12_animation-rechenkern, 2026-11-18_animation-daten-zeichnung, 2026-11-18_animation-flaeche-an6, 2026-11-19_animation-ansicht4-an7, 2026-11-19_animation-an8-an9, 2026-11-20_animation-label-zoom-tempo, 2026-11-21_haertung-matplotlibrc | 4.4 | M1–M7 gemessen; UI-38 nicht bestanden (23.11.; Laborbuch 2026-11-23_messrechner-com-trockenlauf) |
 | R-072 | – | – | – | – | offen |
 | R-073 | `darstellung/achsen.py`, `gui/achsen_zustand.py`, `gui/achsenleiste.py`, `plotflaeche.py` (ADR-028) | `test_dar_achsen*.py`, `test_dar_regression_achsen.py`, `test_gui_achsen.py`, `test_achsen_zustand.py` | Laborbuch 2026-11-11_auswerten-etappe-a-achsen | 4.4/4.5 | getestet (offscreen); UI-38 am Gerät offen |
+| R-074 | – | – | – | – | offen |
+| R-080 | – | – | – | – | offen |
+| R-081 | – | – | – | – | offen |
 | R-060 | `pyproject.toml` (`requires-python >=3.11,<3.12`) | gesamte Testsuite unter Python 3.11 | Laborbuch 2026-10-27_u4 | – | umgesetzt |
 | R-061 | `geraet/simulator.py` (U2), COM-Fake (U3) | gesamte Testsuite | Laborbuch 2026-10-26_u2, _u3 | – | umgesetzt |
 | R-062 | Standard-Prüfung aus KONVENTIONEN | ruff, mypy --strict, pytest ≥ 90 % (97,95 %) | Laborbuch 2026-10-27_u5 | – | umgesetzt |

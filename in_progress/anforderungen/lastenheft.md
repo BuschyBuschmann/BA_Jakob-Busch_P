@@ -11,6 +11,8 @@
 - **N3**: Entscheidung Nutzer vom 2026-11-03 (Lastenheft-Ergänzung)
 - **B**: Betreuertermin mit Daniel am 2026-11-09 (Laborbuch `2026-11-09_betreuertermin-daniel`, Vorgaben B1–B10)
 - **N4**: Entscheidung Nutzer vom 2026-11-09 (Lesart der Vorgaben B1, B3, B5; Priorität aller Vorgaben: Muss)
+- **D**: Nachbesprechung mit Daniel und Florian am 2026-11-23 (Laborbuch `2026-11-23_betreuertermin-daniel-florian`, Vorgaben N1, N1a, N2)
+- **N5**: Entscheidung Nutzer vom 2026-11-23 (Priorität der Vorgaben N1, N1a, N2)
 
 **Priorität:** Muss (Kern der Arbeit) · Soll (wichtig) · Kann (falls Zeit bleibt).
 **Status:** offen · abgestimmt · gestrichen.
@@ -45,6 +47,13 @@ Technischer Hintergrund zur Machbarkeit (keine Anforderungsquelle):
 | R-017 | Zwischen zwei Messungen lassen sich Pausenpunkte setzen (z. B. für einen Umbau am Versuchsaufbau); die Warteschlange läuft erst nach Bestätigung durch den Nutzer weiter. | Muss | N | Ein Pausenpunkt hält die Warteschlange an; ohne Bestätigung startet keine weitere Messung, nach Bestätigung läuft sie weiter. | offen |
 | R-018 | Ein Durchgang lässt sich jederzeit pausieren, fortsetzen und abbrechen. | Muss | N | Pausieren: nach der laufenden Messung startet keine weitere, bis fortgesetzt wird. Abbrechen: der Durchgang endet, der Zustand jeder Messung ist im Protokoll nachvollziehbar. Verhalten der gerade laufenden Messung beim Abbrechen: offene Frage O1. | offen |
 | R-019 | Verhalten bei einer fehlgeschlagenen Messung (z. B. Fehlermeldung der PSV-Software, Zeitüberschreitung). | – | N | **Mit dem Betreuer zu klären (O1).** | offen |
+
+## 2a Steuerung per Python-Skript (Schritt 1)
+
+| ID | Anforderung | Priorität | Quelle | Akzeptanzkriterium | Status |
+|---|---|---|---|---|---|
+| R-080 | Anwender steuern die Software aus eigenen Python-Skripten über Funktionen: Warteschlange anlegen, Werte einzelner Messungen ändern, Trockenlauf und Messung starten. Direkte PSV-Einstellungen aus dem Skript sind vorerst nicht Teil. | Muss | D (N1), N5 | Ein Skript legt gegen den Simulator eine Warteschlange an, ändert einen Wert einer Messung und startet einen Trockenlauf; Ablauf und Messprotokoll entsprechen einem gleichen Durchgang aus der Oberfläche. Welche Werte änderbar sind: R-011 bzw. O3. | offen |
+| R-081 | Eine echte Messung lässt sich aus einem Skript starten, ohne dass eine Person `MESSEN` eingibt. | Muss | D (N1a), N5 | Am Messrechner startet ein Skript eine echte Messung ohne Startdialog; die Messdatei liegt danach am vorgegebenen Pfad, und das Messprotokoll vermerkt den Start aus dem Skript. Welche Sicherheitsbedingungen die menschliche Bestätigung ersetzen: O13. | offen |
 
 ## 3 Datenhaltung und Dokumentation
 
@@ -89,6 +98,7 @@ Technischer Hintergrund zur Machbarkeit (keine Anforderungsquelle):
 | R-071 | Betriebsschwingformen lassen sich als Animation darstellen. | Muss | B (B7) | Bei gewählter Frequenz zeigt die Software eine animierte Schwingform auf der Messgeometrie; die Phase der Bewegung entspricht der dargestellten Phase. | offen |
 | R-072 | Die Visualisierungen der PSV-Software werden in der Software nachgebildet. | Muss | B (B8) | Für jede Ansicht der Liste aus O12 gibt es eine Entsprechung in der Software. | offen |
 | R-073 | Ausschnitte lassen sich einfach darstellen: Achsenbereiche (Frequenz, Betrag, Phase) und Skalierung (linear/logarithmisch) sind direkt einstellbar. | Muss | B (B9) | In jeder Diagrammansicht lassen sich unterer und oberer Achsenwert eingeben und die Skalierung umschalten; die Einstellung bleibt beim Wechsel des Messpunkts erhalten. | offen |
+| R-074 | Die Software erzeugt automatisch einen Bericht als Jupyter-Notebook (vorgesehen gegen Ende der Arbeit). | Kann | D (N2), N5 | Zu einer Messung bzw. einem Durchgang entsteht ohne Handarbeit ein ausführbares Notebook; Inhalte: O14. | offen |
 
 ## 7 Qualität und Rahmen
 
@@ -120,6 +130,8 @@ Noch nicht festgelegt; mit dem Betreuer zu klären (Erwartungsmanagement F19).
 | O10 | Fragen W1–W8 an den Betreuer zur Benachrichtigung (Kanal, Webex Bot/Webhook und Konto, E-Mail-Server, Datenschutz, Netzfreigabe, Menge, Fehlerfälle, Zustellfehler), Wortlaut in `in_progress/analysen/2026-11-09_A1-B13_alignment-benachrichtigung.md`. | Machbarkeit und Kanal von R-025 | R-025 |
 | O11 | Welche Formen für die Transformation (Kugel, Zylinder, Freiform)? Woher kommt die Normale (PSV-Geometrie oder vorgegebene Form)? Welche Toleranz? | Umfang und Prüfkriterium von R-070 | R-070 |
 | O12 | Welche PSV-Visualisierungen genau sollen übernommen werden (z. B. Farbdarstellung auf der Geometrie, Kurvenansichten, Mittelwertansicht, Animation)? | Prüfliste von R-072 | R-072 |
+| O13 | Was ersetzt bei einer Messung aus dem Skript die Bestätigung durch eine Person (z. B. gelten die Freischaltbedingungen Verbindung, Git-Hash, Messdaten-Ordner, Trockenlauf vorher; ausdrückliche Freigabe im Skript; Verantwortung für den Aufbau mit Anregung/Shaker)? Mit den Betreuern zu klären; Plan zur Freigabe durch den Nutzer. | Sicherheitskonzept und Akzeptanzkriterium von R-081 | R-081 |
+| O14 | Was soll der Jupyter-Bericht enthalten (z. B. Protokoll, Spektren, Peaks, Animation), und für welche Einheit entsteht er (je Messung oder je Durchgang)? | Umfang von R-074 | R-074 |
 
 ## Änderungsprotokoll
 
@@ -129,3 +141,4 @@ Noch nicht festgelegt; mit dem Betreuer zu klären (Erwartungsmanagement F19).
 | 2026-11-03 | R-002, R-023, R-024, R-032, R-055, R-056, R-057 ergänzt; O2, O5 teilweise und O4, O6 beantwortet; O7, O8 neu | L, N3 |
 | 2026-11-09 | R-003, R-025, R-058, R-059, R-070–R-073 ergänzt (Muss); R-054 Status ergänzt; Abgrenzung Netzsteuerung; O9–O12 neu | B, N4 |
 | 2026-11-09 | R-003 aufgeteilt in R-003a (lesen), R-003b (prüfen), R-003c (auslösen, offen) | N4, Analyse A1-B13 |
+| 2026-11-23 | R-080, R-081 (Muss) und R-074 (Kann) ergänzt; O13, O14 neu | D, N5 |
