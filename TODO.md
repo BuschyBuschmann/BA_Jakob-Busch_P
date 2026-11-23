@@ -3,8 +3,8 @@
 Zentrale Übersicht über offene Aufgaben der Bachelorarbeit. Wird nach jedem Arbeitsschritt
 und jedem Betreuertermin aktualisiert. Details stehen in den verlinkten Dateien.
 
-**Stand:** 2026-11-06
-**Nächster fester Termin:** Mo 23.11.2026, ganzer Tag am PSV-Messrechner (Termin 09.11. ausgefallen; Unterlagen in `in_progress/versuche/naechster-termin_messrechner/` aktualisiert; Wheel 0.2.0 gebaut am 2026-11-21, Build cebac63, mit AN7–AN9, Beschleunigung und Härtung; Anleitung privater Rechner `installation_privat.md`)
+**Stand:** 2026-11-23
+**Nächster fester Termin:** noch nicht festgelegt. Messrechner-Termin Mo 23.11.2026 durchgeführt (Wheel 0.2.0, Build cebac63; Laborbuch `2026-11-23_messrechner-com-trockenlauf`, Daten `in_progress/versuche/2026-11-23_messrechner/`), anschließend Nachbesprechung mit Daniel und Florian (Laborbuch `2026-11-23_betreuertermin-daniel-florian`)
 
 Legende: ☐ offen · ◐ in Arbeit · ☑ erledigt · ⏳ wartet auf andere
 
@@ -69,12 +69,30 @@ Ziel: Schnittstellendaten am echten Gerät lesen und verstehen, ersten Prototyp 
 | ☐ | Nach 09.11.: .svd-Dateien R/A/B und T4–T6 ins Repo, Abbildungen in der Cloud erzeugen (`darstellung_beispiel.py`), Sichtprüfung durch Jakob | Jakob, Orchestrator | nach 09.11. | ADR-027 |
 | ☐ | Möglicher Auftrag: Hash-Quelle in `protokoll/version.py` robust machen (venv in fremdem Git-Repo) | software-engineer | nach Prüfung am 09.11. | Laborbuch 2026-11-06 |
 | ☐ | Versuch Prüfdateien/Warteschlange durchführen (09.11. ausgefallen, verschoben; Ordnername bleibt) | Jakob | 23.11. | `in_progress/versuche/2026-11-09_pruefdateien-warteschlange/`, `checkliste_montag.md` |
-| ☐ | Vorgaben B1–B10 aus dem Betreuertermin 09.11. ins Lastenheft (`/anforderungs-analyst`), dann planen | Orchestrator, Jakob | – | Laborbuch 2026-11-09_betreuertermin-daniel |
+| ☑ | Vorgaben B1–B10 aus dem Betreuertermin 09.11. ins Lastenheft (`/anforderungs-analyst`), dann planen | Orchestrator, Jakob | – | Laborbuch 2026-11-09_betreuertermin-daniel |
 | ◐ | B10 Recherche erledigt (FA-B10: Empfehlung V1–V7; R-B10: 24 Quellen, Prüfstand metadaten); mit Daniel klären: FE-Modell vorhanden (V6)? Fremdbibliothek als Gegenprobe (V7)? Danach Lastenheft | Jakob, Orchestrator | 23.11. | `in_progress/analysen/2026-11-09_FA-B10_auswertung-ueber-psv-hinaus.md` |
 | ☐ | Volltexte nach `Input/literatur/` (mind. Priorität A: peeters2004polymax, rohe2020alignment; Liste in leseliste.md) | Jakob | – | Leseliste R-B10 |
-| ☐ | Fragen an Daniel: A1–A6 (Abgleich), W1–W8 (Benachrichtigung), O11 (KOS-Transformation), O12 (PSV-Ansichten) | Jakob | 23.11. | Analyse A1-B13, Lastenheft |
-| ☐ | Am Messrechner: Abgleich einmal lesen (`P1-6-abgleich`), Typbibliothek der PolyAlignment-Typen auslesen | Jakob | 23.11. | Analyse A1-B13 |
-| ◐ | Auswerten-Erweiterung: Etappen A–C (R-073, R-058, R-059), Abgleich (R-003a/b) und Animation AN1–AN9 fertig (Prüfanleitung Animation für den Termin); beschleunigt und gegen fremde matplotlibrc gehärtet; offen: UI-38; nach dem Termin: 2D-Ansichten gegen restliche rc-Abhängigkeiten härten (Gitterstil, Ticks, Schriftgewicht, Hinting); Status-Regel „bestätigt …“ projektweit umsetzen (KONVENTIONEN 2026-11-19) | Orchestrator | – | Pläne P-AUSW2, P-AUSW3, P-R003 |
+| ☐ | Fragen an Daniel: A1–A6 (Abgleich), W1–W8 (Benachrichtigung), O11 (KOS-Transformation), O12 (PSV-Ansichten); am 23.11. nicht besprochen | Jakob | nächster Betreuertermin | Analyse A1-B13, Lastenheft |
+| ◐ | Am Messrechner: Abgleich einmal lesen (`P1-6-abgleich`) – am 23.11. gelesen; Typbibliothek der PolyAlignment-Typen in `typelibs.txt` der Erkundung BEOWOLF vom 23.11. prüfen | Jakob, Orchestrator | – | Analyse A1-B13 |
+| ◐ | Auswerten-Erweiterung: Etappen A–C (R-073, R-058, R-059), Abgleich (R-003a/b) und Animation AN1–AN9 fertig (Prüfanleitung Animation für den Termin); beschleunigt und gegen fremde matplotlibrc gehärtet; offen: UI-38 (am 23.11. nicht bestanden, siehe Abschnitt 3a); nach dem Termin: 2D-Ansichten gegen restliche rc-Abhängigkeiten härten (Gitterstil, Ticks, Schriftgewicht, Hinting); Status-Regel „bestätigt …“ projektweit umsetzen (KONVENTIONEN 2026-11-19) | Orchestrator | – | Pläne P-AUSW2, P-AUSW3, P-R003 |
+
+## 3a Nach dem Messrechner-Termin 23.11.
+
+Quelle: Laborbuch `2026-11-23_messrechner-com-trockenlauf` (Befunde) und `2026-11-23_betreuertermin-daniel-florian` (N1, N1a, N2). Jedes Paket über den Orchestrator mit Plan bzw. Freigabe und Review.
+
+| | Aufgabe | Wer | Bis | Hinweis |
+|---|---|---|---|---|
+| ☐ | **Bandbreite nur in PSV-Stufen zulassen und „Von/Bis“ mitsetzen** (T2: „Bis“ blieb auf 5 kHz) | software-engineer | **vor jeder echten Messung** | R-001, R-011 |
+| ☐ | Abgleich-Meldungen: Warnung nicht nur im Ereignisfeld; Dezimalpunkt und „nicht_bestanden“ in Meldungstexten | software-engineer / ui-designer | – | R-003b |
+| ☐ | Animation: flüssiger (M7 ruckelt leicht); Überlappung von Punktnummern, x-Ticks und y-Beschriftung; Meldung „langsam“ bei 20 Bildern/s fehlt | ui-designer, software-engineer | – | R-071, UI-38 |
+| ☐ | Plausibilitätsprüfung dauert am Messrechner 6,3 s: Ursache prüfen | software-engineer | – | |
+| ☐ | Versionszähler zählt Fehlversuche mit | software-engineer | – | |
+| ☐ | Nachweis-.set entsteht über die Oberfläche nicht | software-engineer | – | |
+| ☐ | 2D-Ansichten gegen restliche matplotlibrc-Abhängigkeiten härten; Status-Regel „bestätigt …“ projektweit | software-engineer | – | KONVENTIONEN 2026-11-19/21 |
+| ☐ | **Skript-Steuerung (R-080) und echte Messung aus dem Skript ohne `MESSEN` (R-081)**: Planungspaket mit Sicherheitskonzept (O13), Freigabe durch Jakob, dann Umsetzung und Review | software-engineer, Jakob | – | Lastenheft 2a, sicherheitskritisch |
+| ☐ | Automatischer Bericht als Jupyter-Notebook (R-074, Kann); Inhalte klären (O14) | – | gegen Ende der Arbeit | |
+| ☐ | Fragen an Daniel aus dem Termin: 3D-Abgleich Index 0 mit Qualität ≈ 1e-10 m; Index 2 mit 1,527 mm bei Soll 1,5 mm und sinnvolle Grenzwerte; „Inv.“ bei Ref1 (M8); O13 Sicherheitskonzept | Jakob | nächster Betreuertermin | in der Nachbesprechung nicht besprochen |
+| ☐ | Nächster Termin am Messrechner: echte Messungen T4–T6, R/A/B, D1–D3, W3–W10, Remotedesktop, X1, B5, AV | Jakob | Termin offen | erst nach Bandbreiten-Paket |
 
 ## 4 Thesis
 
