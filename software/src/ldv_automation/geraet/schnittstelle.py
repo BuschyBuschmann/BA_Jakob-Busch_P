@@ -168,6 +168,13 @@ class GeraeteInfo:
         (z. B. ``"Acquisition|Alignment|APS|2DAlignment|3DAlignment"``). Leer, wenn das
         Gerät keine Maske verwendet (z. B. Simulator). Sie ist Konfiguration des
         Geräts und steht hier nur zur Dokumentation im Protokoll.
+    bandbreiten_stufen_hz : tuple of float or None
+        Von PSV gemeldete Bandbreiten-Stufen (COM ``AvailableBandwidths``, Hz) beim Verbinden.
+        ``None``: nicht lesbar bzw. unbekannt (fail-closed: keine Ersatzliste), Grund in
+        ``bandbreiten_stufen_fehler``. Die maßgebliche Prüfung liest das Gerät beim Setzen
+        erneut; diese Liste dient der Auswahl in der Oberfläche und der Vorprüfung.
+    bandbreiten_stufen_fehler : str
+        Grund, warum die Stufenliste fehlt (leer, wenn sie gelesen wurde).
     """
 
     psv_version: str
@@ -176,6 +183,8 @@ class GeraeteInfo:
     zustand: GeraeteZustand
     hardware: Mapping[str, str] = field(default_factory=dict)
     lademaske: str = ""
+    bandbreiten_stufen_hz: tuple[float, ...] | None = None
+    bandbreiten_stufen_fehler: str = ""
 
 
 @dataclass(frozen=True, kw_only=True)

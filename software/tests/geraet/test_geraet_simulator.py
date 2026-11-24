@@ -400,3 +400,68 @@ def test_abgleich_langsamer_aufruf(tmp_path: Path) -> None:
     vorher = uhr.monotonic()
     sim.lies_abgleich()
     assert uhr.monotonic() - vorher == pytest.approx(7.0, rel=1e-12)
+
+
+# --- BW-2: Stufen und Von/Bis ---------------------------------------------------------------
+
+
+def _lade(sim: Simulator, tmp_path: Path) -> None:
+    sim.lade_einstellungen(_set(tmp_path))
+
+
+def _fft(sim: Simulator) -> dict[str, float]:
+    gruppe = sim.lies_einstellungsstand().gruppen["fft"]
+    return {k: float(v) for k, v in gruppe.items() if k.endswith("_hz") and v is not None}
+
+
+def test_bw2_verbinde_meldet_stufen() -> None:
+    sim = Simulator(
+        Testuhr().monotonic, konfiguration=SimulatorKonfiguration(bandbreiten_hz=(1.0, 2.0))
+    )
+    assert sim.verbinde().bandbreiten_stufen_hz == (1.0, 2.0)
+
+
+def test_bw2_stufe_setzt_von_bis(tmp_path: Path) -> None:
+    sim = _sim(Testuhr())
+    _lade(sim, tmp_path)
+    sim.setze_parameter({"fft.bandbreite_hz": 6250.0})
+    fft = _fft(sim)
+    assert (fft["bandbreite_hz"], fft["start_frequenz_hz"], fft["end_frequenz_hz"]) == (
+        6250.0,
+        0.0,
+        6250.0,
+    )
+    # ein neuer Ladevorgang setzt den Anfangszustand zurück
+    _lade(sim, tmp_path)
+    assert _fft(sim)["end_frequenz_hz"] == 3125.0
+
+
+def test_bw2_ohne_von_bis_folgt_bleibt_bis(tmp_path: Path) -> None:
+    sim = _sim(Testuhr(), von_bis_folgt=False)
+    _lade(sim, tmp_path)
+    sim.setze_parameter({"fft.bandbreite_hz": 6250.0})
+    assert _fft(sim)["end_frequenz_hz"] == 3125.0
+
+
+def test_bw2_ausserhalb_ignorieren_behaelt_wert_und_bis(tmp_path: Path) -> None:
+    sim = _sim(Testuhr(), bandbreite_ausserhalb="ignorieren")
+    _lade(sim, tmp_path)
+    sim.setze_parameter({"fft.bandbreite_hz": 5600.0})
+    fft = _fft(sim)
+    assert (fft["bandbreite_hz"], fft["end_frequenz_hz"]) == (3125.0, 3125.0)
+
+
+def test_bw2_ausserhalb_fehler(tmp_path: Path) -> None:
+    sim = _sim(Testuhr(), bandbreite_ausserhalb="fehler")
+    _lade(sim, tmp_path)
+    with pytest.raises(GeraeteFehler, match="Ungültiger Wert"):
+        sim.setze_parameter({"fft.bandbreite_hz": 4000.0})
+    assert _fft(sim)["bandbreite_hz"] == 3125.0
+
+
+def test_bw2_ausserhalb_einrasten_ist_standard(tmp_path: Path) -> None:
+    sim = _sim(Testuhr())
+    _lade(sim, tmp_path)
+    sim.setze_parameter({"fft.bandbreite_hz": 5600.0})
+    fft = _fft(sim)
+    assert (fft["bandbreite_hz"], fft["end_frequenz_hz"]) == (5000.0, 5000.0)

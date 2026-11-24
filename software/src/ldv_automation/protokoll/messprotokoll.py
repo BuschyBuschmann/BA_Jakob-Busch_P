@@ -44,6 +44,12 @@ siehe ``einstellungsdatei.sha256`` und ``lademaske``). Aufbau siehe :func:`abgle
 ist immer vorhanden, auch bei ``fehler`` und ``abgebrochen``; nicht lesbare Werte stehen als
 ``null`` mit Grund. Die Werte sind am Gerät **unbestätigt**.
 
+Feld ``geaenderte_parameter``: je Zeile ``schluessel``, ``einheit``, ``soll`` und ``ist``. Gehört
+``fft.bandbreite_hz`` zur Messung, stehen zusätzlich die Zeilen ``fft.start_frequenz_hz`` (Soll 0)
+und ``fft.end_frequenz_hz`` (Soll = Soll-Bandbreite) mit dem von PSV zurückgelesenen Ist
+(Rückprobe, BW-2; ``schema_version`` bleibt 2, da nur Zeilen derselben Form hinzukommen). Die
+Bandbreite ist immer eine von PSV gemeldete Stufe; ``f_max_end_hz`` entspricht dann der Bandbreite.
+
 Zeitstempel sind Objekte ``{"lokal": "<ISO 8601 mit Zone>", "utc": "<ISO 8601, UTC>"}``.
 
 Ereignisprotokoll: JSON Lines, eine Zeile je Ereignis, nur anhängend.

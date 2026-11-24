@@ -68,7 +68,7 @@ from ldv_automation.domaene.eintraege import (
     Pausenpunkt,
     PausenpunktZustand,
 )
-from ldv_automation.domaene.parameter import KATALOG, ParameterWert
+from ldv_automation.domaene.parameter import KATALOG, REL_TOL_ZURUECKLESEN, ParameterWert
 from ldv_automation.domaene.warteschlange import Warteschlange
 from ldv_automation.geraet.schnittstelle import (
     Abgleichsleser,
@@ -1440,6 +1440,13 @@ class Steuerung:
             else:
                 abweichung = None
             stand = self._aufruf("lies_einstellungsstand", self.geraet.lies_einstellungsstand)
+            bereich_abweichung = self._pruefe_frequenzbereich(aktiv, m.parameter, stand)
+            if bereich_abweichung is not None:
+                abweichung = (
+                    bereich_abweichung
+                    if abweichung is None
+                    else f"{abweichung}; {bereich_abweichung}"
+                )
             aktiv.einstellungen_ist = einstellungsstand_zu_dict(stand)
             aktiv.messpunkte = stand.messpunkte_anzahl
             self._merke_einstellungsstand(aktiv, stand)
@@ -1613,6 +1620,43 @@ class Steuerung:
                 probleme.append(f"{schluessel}: Soll {soll_wert!r}, Ist {ist_wert!r}")
         if probleme:
             return "Abweichung beim Zurücklesen: " + "; ".join(probleme)
+        return None
+
+    @staticmethod
+    def _pruefe_frequenzbereich(
+        aktiv: _Aktiv, soll: Mapping[str, ParameterWert], stand: EinstellungsStand
+    ) -> str | None:
+        """Rückprobe von Von/Bis nach dem Setzen der Bandbreite (Nutzerentscheidung 2026-11-23).
+
+        Läuft nur, wenn ``fft.bandbreite_hz`` zur Messung gehört. Erwartet Von = 0 und
+        Bis = Soll-Bandbreite (voller Bereich); verglichen wird wie beim Zurücklesen der
+        Parameter mit ``REL_TOL_ZURUECKLESEN`` (abs 0). Nicht lesbare Werte (``None``) gelten
+        als Abweichung. Füllt ``geaenderte_parameter`` mit den Schlüsseln
+        ``fft.start_frequenz_hz`` und ``fft.end_frequenz_hz``.
+        """
+        bandbreite = soll.get("fft.bandbreite_hz")
+        if bandbreite is None:
+            return None
+        bw_soll = float(bandbreite)
+        fft = stand.gruppen.get("fft", {})
+        probleme: list[str] = []
+        for schluessel, feld, soll_hz in (
+            ("fft.start_frequenz_hz", "start_frequenz_hz", 0.0),
+            ("fft.end_frequenz_hz", "end_frequenz_hz", bw_soll),
+        ):
+            ist = fft.get(feld)
+            aktiv.geaenderte.append(
+                {"schluessel": schluessel, "einheit": "Hz", "soll": soll_hz, "ist": ist}
+            )
+            ok = (
+                isinstance(ist, int | float)
+                and not isinstance(ist, bool)
+                and math.isclose(soll_hz, float(ist), rel_tol=REL_TOL_ZURUECKLESEN, abs_tol=0.0)
+            )
+            if not ok:
+                probleme.append(f"{schluessel}: Soll {soll_hz!r}, Ist {ist!r}")
+        if probleme:
+            return "Abweichung beim Frequenzbereich (Von/Bis): " + "; ".join(probleme)
         return None
 
     def _pruefe_scan(self, aktiv: _Aktiv) -> None:

@@ -52,7 +52,7 @@ import os
 import threading
 from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import TypeAlias
+from typing import Literal, TypeAlias
 
 from ldv_automation.domaene.parameter import ParameterWert
 from ldv_automation.geraet.schnittstelle import (
@@ -264,6 +264,14 @@ class SimulatorKonfiguration:
         Dauer je Punkt in s (> 0).
     bandbreiten_hz : tuple of float
         Verfügbare Bandbreiten; gesetzte Werte rasten auf die nächste Stufe ein.
+    bandbreite_ausserhalb : {"einrasten", "ignorieren", "fehler"}
+        Verhalten bei einer Bandbreite, die keine Stufe ist: ``"einrasten"`` (Standard)
+        rastet auf die nächste Stufe, ``"ignorieren"`` behält den alten Wert still (wie
+        5600 Hz am Messrechner, 2026-11-23), ``"fehler"`` wirft ``GeraeteFehler`` „Ungültiger
+        Wert“ (wie 4000 Hz).
+    von_bis_folgt : bool
+        ``True`` (Standard): Von = 0 und Bis = Bandbreite werden mit der Bandbreite gesetzt;
+        ``False`` lässt Von/Bis unverändert (Verhalten vor der Änderung am Messrechner).
     linien : tuple of int
         Verfügbare Linienzahlen; Einrasten wie bei der Bandbreite.
     validator_vorhanden : bool
@@ -303,6 +311,8 @@ class SimulatorKonfiguration:
         12500.0,
         25000.0,
     )
+    bandbreite_ausserhalb: Literal["einrasten", "ignorieren", "fehler"] = "einrasten"
+    von_bis_folgt: bool = True
     linien: tuple[int, ...] = (100, 200, 400, 800, 1600, 3200, 6400, 12800)
     validator_vorhanden: bool = True
     rueckfall_direkt: bool = False
@@ -332,6 +342,8 @@ _STANDARDWERTE: Mapping[str, ParameterWert] = {
     "mittelung.anzahl": 3,
     "mittelung.typ": "Complex",
 }
+_STANDARD_VON_HZ = 0.0
+_STANDARD_BIS_HZ = 3125.0
 
 
 def _einrasten(soll: float, stufen: Sequence[float]) -> float:
@@ -400,6 +412,8 @@ class Simulator:
         self._freigabe = False
         self._fremd = self.konfiguration.fremde_messung
         self._werte: dict[str, ParameterWert] = dict(_STANDARDWERTE)
+        self._von_hz = _STANDARD_VON_HZ
+        self._bis_hz = _STANDARD_BIS_HZ
         self._modus = "Fft"
         self._abgleich = self.konfiguration.abgleich
         self._vorgang = -1
@@ -522,6 +536,7 @@ class Simulator:
             meldungen_unterdrueckt=self.konfiguration.meldungen_unterdrueckt,
             zustand=self.zustand(),
             hardware=dict(self.konfiguration.hardware),
+            bandbreiten_stufen_hz=tuple(self.konfiguration.bandbreiten_hz),
         )
 
     def trenne(self) -> None:
@@ -581,6 +596,8 @@ class Simulator:
                 argumente=(pfad,),
             )
         self._werte = dict(_STANDARDWERTE)
+        self._von_hz = _STANDARD_VON_HZ
+        self._bis_hz = _STANDARD_BIS_HZ
         teil = self._ereignisse(TeilLaden)
         self._modus = teil[0].modus if teil and isinstance(teil[0], TeilLaden) else "Fft"
         self._abgleich = self.konfiguration.abgleich
@@ -599,9 +616,24 @@ class Simulator:
         if fft and not konf.validator_vorhanden and not konf.rueckfall_direkt:
             raise GeraeteFehler("Simulator: Validator fehlt", methode="setze_parameter")
         neu = dict(self._werte)
+        bereich: tuple[float, float] | None = None
         for schluessel, wert in parameter.items():
             if schluessel == "fft.bandbreite_hz":
-                neu[schluessel] = _einrasten(float(wert), konf.bandbreiten_hz)
+                soll_hz = float(wert)
+                ist_stufe = any(
+                    math.isclose(soll_hz, st, rel_tol=1e-9, abs_tol=0.0)
+                    for st in konf.bandbreiten_hz
+                )
+                if ist_stufe or konf.bandbreite_ausserhalb == "einrasten":
+                    neu[schluessel] = _einrasten(soll_hz, konf.bandbreiten_hz)
+                elif konf.bandbreite_ausserhalb == "fehler":
+                    raise GeraeteFehler(
+                        f"Simulator: Ungültiger Wert für Bandbreite: {soll_hz:g} Hz",
+                        methode="setze_parameter",
+                        argumente=(schluessel, wert),
+                    )
+                if konf.von_bis_folgt and (ist_stufe or konf.bandbreite_ausserhalb == "einrasten"):
+                    bereich = (0.0, float(neu[schluessel]))
             elif schluessel == "fft.linien":
                 neu[schluessel] = int(_einrasten(float(wert), [float(x) for x in konf.linien]))
             elif schluessel == "mittelung.anzahl":
@@ -620,6 +652,8 @@ class Simulator:
                     methode="setze_parameter",
                 )
         self._werte = neu
+        if bereich is not None:
+            self._von_hz, self._bis_hz = bereich
 
     def lies_parameter(self, schluessel: Collection[str]) -> Mapping[str, ParameterWert]:
         """Liest die aktuellen (ggf. eingerasteten) Werte."""
@@ -652,7 +686,12 @@ class Simulator:
             generator_aktiv=konf.generator_aktiv,
             generator_amplitude_v=konf.generator_amplitude_v,
             gruppen={
-                "fft": {"bandbreite_hz": w["fft.bandbreite_hz"], "linien": w["fft.linien"]},
+                "fft": {
+                    "bandbreite_hz": w["fft.bandbreite_hz"],
+                    "start_frequenz_hz": self._von_hz,
+                    "end_frequenz_hz": self._bis_hz,
+                    "linien": w["fft.linien"],
+                },
                 "mittelung": {"anzahl": w["mittelung.anzahl"], "typ": w["mittelung.typ"]},
                 "generator": generator,
             },

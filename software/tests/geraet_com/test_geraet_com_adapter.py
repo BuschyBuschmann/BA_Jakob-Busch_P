@@ -95,6 +95,11 @@ ERWARTETE_FOLGE = [
     "Hardware.GeneratorName:get", "Hardware.ScanHeadType:get",
     "Hardware.SensorHeadNames:get", "Hardware.SensorHeadSerialNumbers:get",
     "Hardware.SensorHeadVersions:get",
+    # V2 Bandbreiten-Stufen (Validator, nur lesend)
+    "Acquisition.ActiveProperties:get", "AcquisitionProperties.HasFftProperties:get",
+    "AcquisitionProperties.FftProperties:get",
+    "FftProperties.FftAcqPropertiesValidator:exists",
+    "FftProperties.FftAcqPropertiesValidator:get", "FftValidator.AvailableBandwidths:get",
     # M2 Zustand (Steuerung)
     "Acquisition.State:get",
     # M3 Laden (Adapter prüft State erneut)
@@ -104,7 +109,9 @@ ERWARTETE_FOLGE = [
     "AcquisitionProperties.FftProperties:get",
     "FftProperties.FftAcqPropertiesValidator:exists",
     "FftProperties.FftAcqPropertiesValidator:get",
+    "FftValidator.AvailableBandwidths:get",
     "FftValidator.Bandwidth:set", "FftValidator.Lines:set",
+    "FftValidator.StartFrequency:set", "FftValidator.EndFrequency:set",
     "FftProperties.FftAcqPropertiesValidator:set",
     "AcquisitionProperties.HasAverageProperties:get",
     "AcquisitionProperties.AverageProperties:get",
@@ -420,13 +427,19 @@ def test_u3_5_ohne_validator_und_ohne_schalter_validator_fehlt() -> None:
 def test_u3_5_ohne_validator_mit_schalter_s4() -> None:
     geraet, fake, _ = _geraet(validator=False, rueckfall=True)
     geraet.verbinde()
-    geraet.setze_parameter({"fft.bandbreite_hz": 2400.0, "fft.linien": 1600})
-    assert "FftProperties.Bandwidth:set" in fake.welt.schreibende()
+    geraet.setze_parameter({"fft.linien": 1600})
     assert "FftProperties.Lines:set" in fake.welt.schreibende()
-    assert geraet.lies_parameter(["fft.bandbreite_hz", "fft.linien"]) == {
-        "fft.bandbreite_hz": 2500.0,  # eingerastet
-        "fft.linien": 1600,
-    }
+    assert geraet.lies_parameter(["fft.linien"]) == {"fft.linien": 1600}
+
+
+def test_u3_5_s4_ohne_stufenliste_wird_keine_bandbreite_gesetzt() -> None:
+    geraet, fake, _ = _geraet(validator=False, rueckfall=True)
+    info = geraet.verbinde()
+    assert info.bandbreiten_stufen_hz is None
+    assert "nicht vorhanden" in info.bandbreiten_stufen_fehler
+    with pytest.raises(GeraeteFehler, match="keine Stufenliste"):
+        geraet.setze_parameter({"fft.bandbreite_hz": 2500.0})
+    assert not [o for o in fake.welt.schreibende() if o.startswith("FftProperties")]
 
 
 def test_u3_5_mit_validator_wird_s4_nicht_genutzt() -> None:
@@ -446,7 +459,8 @@ def test_validator_liefert_nichts() -> None:
 
 
 def test_einrasten_wird_beim_zuruecklesen_sichtbar() -> None:
-    geraet, _, _ = _geraet()
+    # Das Gerät meldet 5600 Hz als Stufe, rastet aber still auf 5000 Hz ein (Rückprobe nötig).
+    geraet, _, _ = _geraet(stufen_roh=(1250.0, 5000.0, 5600.0))
     geraet.verbinde()
     geraet.setze_parameter({"fft.bandbreite_hz": 5600.0})
     ist = geraet.lies_parameter(["fft.bandbreite_hz"])

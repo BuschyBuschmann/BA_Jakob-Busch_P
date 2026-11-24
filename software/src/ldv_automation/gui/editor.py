@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
 )
 
 from ldv_automation.domaene import KATALOG, Parameterkatalog, ParameterSpec, ParameterWert
+from ldv_automation.domaene.parameter import REL_TOL_ZURUECKLESEN
 from ldv_automation.gui import tokens as t
 from ldv_automation.gui.anzeige import (
     Knopf,
@@ -46,9 +47,15 @@ from ldv_automation.gui.anzeige import (
     zieldatei_text,
 )
 from ldv_automation.gui.stil import schrift
+from ldv_automation.gui.tokens import symbol
 from ldv_automation.sitzung import EintragBild
 
 AUS_SET = "(aus .set)"
+BANDBREITE = "fft.bandbreite_hz"
+"""Katalogschlüssel der Bandbreite: Auswahlliste mit den PSV-Stufen statt freier Eingabe."""
+HINWEIS_OFFLINE = "Erst mit PSV verbinden"
+HINWEIS_STUFEN_NICHT_LESBAR = "Stufenliste nicht lesbar"
+_ROLLE_UNGUELTIG = Qt.ItemDataRole.UserRole + 1
 ZEITLIMIT_MAX_S = 864_000
 """Obergrenze des Zeitlimit-Felds (10 Tage); nur Eingabegrenze des Felds."""
 STANDARD_LIMIT_START_S = 600.0
@@ -74,7 +81,17 @@ class _ParameterZeile:
         self.aendern = QCheckBox("ändern")
         self.aendern.setObjectName(f"param_aendern_{spec.schluessel}")
         self.eingabe: QLineEdit | QComboBox
-        if spec.typ == "str" and spec.erlaubt:
+        self.ist_bandbreite = spec.schluessel == BANDBREITE
+        self.stufen: tuple[float, ...] | None = None
+        self.stufen_hinweis = HINWEIS_OFFLINE
+        self._wert: float | None = None
+        self._gesperrt = False
+        if self.ist_bandbreite:
+            stufen_combo = QComboBox()
+            stufen_combo.currentIndexChanged.connect(self._auswahl_geaendert)
+            stufen_combo.currentIndexChanged.connect(lambda _i: bei_aenderung())
+            self.eingabe = stufen_combo
+        elif spec.typ == "str" and spec.erlaubt:
             combo = QComboBox()
             combo.addItem(AUS_SET)
             combo.addItems(list(spec.erlaubt))
@@ -92,9 +109,13 @@ class _ParameterZeile:
         # zeigt die Liste selbst die erlaubten Werte.
         self.bereich_text = f"{einheit}{spec.bereich_text()}"
         name = parameter_bezeichnung(spec)
-        self.beschriftung = (
-            name if spec.typ == "str" and spec.erlaubt else f"{name} ({self.bereich_text})"
-        )
+        if self.ist_bandbreite:
+            self.bereich_text = f"{spec.einheit} · nur Stufen, die PSV anbietet"
+            self.beschriftung = f"{name} ({spec.einheit} · PSV-Stufe)"
+        else:
+            self.beschriftung = (
+                name if spec.typ == "str" and spec.erlaubt else f"{name} ({self.bereich_text})"
+            )
         self.eingabe.setToolTip(self.bereich_text)
         self.fehler = QLabel()
         self.fehler.setObjectName(f"param_fehler_{spec.schluessel}")
@@ -103,9 +124,82 @@ class _ParameterZeile:
         self.fehler.hide()
         self.aendern.toggled.connect(self._umschalten)
         self.aendern.toggled.connect(lambda _b: bei_aenderung())
+        if self.ist_bandbreite:
+            self._fuelle_stufen()
         self._umschalten(False)
 
+    def _freigabe(self) -> None:
+        """Bandbreite: ohne Stufenliste ist die Auswahl gesperrt (nur Anzeige eines Werts)."""
+        liste_da = self.stufen is not None
+        self.aendern.setEnabled(not self._gesperrt and (liste_da or self.aendern.isChecked()))
+        self.eingabe.setEnabled(not self._gesperrt and self.aendern.isChecked() and liste_da)
+
+    def _auswahl_geaendert(self, _index: int) -> None:
+        if not isinstance(self.eingabe, QComboBox):  # pragma: no cover  # nur Bandbreite
+            return
+        daten = self.eingabe.currentData()
+        self._wert = daten if isinstance(daten, float) else None
+
+    def setze_stufen(self, stufen: tuple[float, ...] | None, hinweis: str) -> None:
+        """Setzt die PSV-Stufen der Bandbreite (``None``: unbekannt, Auswahl gesperrt).
+
+        Der gewählte bzw. gespeicherte Wert bleibt erhalten; liegt er nicht in der Liste,
+        steht er als „keine PSV-Stufe“ mit Fehler da.
+        """
+        if stufen == self.stufen and hinweis == self.stufen_hinweis:
+            return
+        self.stufen = stufen
+        self.stufen_hinweis = hinweis
+        self._fuelle_stufen()
+
+    def _ist_stufe(self, wert: float) -> bool:
+        return self.stufen is not None and any(
+            math.isclose(wert, s, rel_tol=REL_TOL_ZURUECKLESEN, abs_tol=0.0) for s in self.stufen
+        )
+
+    def _fuelle_stufen(self) -> None:
+        combo = self.eingabe
+        if not isinstance(combo, QComboBox):  # pragma: no cover  # nur Bandbreite
+            return
+        wert = self._wert
+        combo.blockSignals(True)
+        try:
+            combo.clear()
+            combo.addItem(AUS_SET if self.stufen is not None else self.stufen_hinweis)
+            for stufe in self.stufen or ():
+                combo.addItem(wert_text(stufe), stufe)
+            if wert is not None and not self._ist_stufe(wert):
+                unbekannt = self.stufen is not None
+                text = wert_text(wert) + (" (keine PSV-Stufe)" if unbekannt else "")
+                combo.addItem(text, wert)
+                combo.setItemData(combo.count() - 1, unbekannt, _ROLLE_UNGUELTIG)
+            index = 0
+            if wert is not None:
+                for i in range(1, combo.count()):
+                    daten = combo.itemData(i)
+                    if isinstance(daten, float) and math.isclose(
+                        daten, wert, rel_tol=REL_TOL_ZURUECKLESEN, abs_tol=0.0
+                    ):
+                        index = i
+                        break
+            elif self.aendern.isChecked() and combo.count() > 1:
+                index = 1
+            combo.setCurrentIndex(index)
+        finally:
+            combo.blockSignals(False)
+        combo.setToolTip(self.bereich_text if self.stufen is not None else self.stufen_hinweis)
+        self._freigabe()
+
     def _umschalten(self, an: bool) -> None:
+        if self.ist_bandbreite and isinstance(self.eingabe, QComboBox):
+            if an and self.eingabe.currentIndex() == 0 and self.eingabe.count() > 1:
+                self.eingabe.setCurrentIndex(1)
+            elif not an:
+                self.eingabe.setCurrentIndex(0)
+                self._wert = None
+                self._fuelle_stufen()
+            self._freigabe()
+            return
         self.eingabe.setEnabled(an)
         if isinstance(self.eingabe, QComboBox):
             if not an:
@@ -117,6 +211,11 @@ class _ParameterZeile:
 
     def setze(self, wert: ParameterWert | None) -> None:
         """Zeigt einen Wert (``None`` = nicht geändert)."""
+        if self.ist_bandbreite and isinstance(self.eingabe, QComboBox):
+            self._wert = float(wert) if wert is not None else None
+            self._fuelle_stufen()
+            self.aendern.setChecked(wert is not None)
+            return
         self.aendern.setChecked(wert is not None)
         if wert is None:
             return
@@ -130,14 +229,41 @@ class _ParameterZeile:
         """``(wert, fehler)``; ``(None, None)``, wenn der Parameter nicht geändert wird."""
         if not self.aendern.isChecked():
             return None, None
+        if self.ist_bandbreite and isinstance(self.eingabe, QComboBox):
+            return self._lies_bandbreite(self.eingabe)
         if isinstance(self.eingabe, QComboBox):
             text = self.eingabe.currentText() if self.eingabe.currentIndex() > 0 else ""
         else:
             text = self.eingabe.text()
         return lies_parameter(self.spec, text)
 
+    def _lies_bandbreite(self, combo: QComboBox) -> tuple[ParameterWert | None, str | None]:
+        name = parameter_bezeichnung(self.spec)
+        index = combo.currentIndex()
+        daten = combo.itemData(index) if index > 0 else None
+        if not isinstance(daten, float):
+            if self.stufen is None:
+                return None, f"{symbol('fehler')} {name}: {self.stufen_hinweis.lower()}."
+            return None, f"{symbol('fehler')} {name}: Wert fehlt."
+        if combo.itemData(index, _ROLLE_UNGUELTIG) is True:
+            return None, (
+                f"{symbol('fehler')} {name}: {wert_text(daten, self.spec.einheit)} "
+                "ist keine PSV-Stufe."
+            )
+        try:
+            return self.spec.pruefe(daten), None
+        except ValueError:
+            return None, (
+                f"{symbol('fehler')} {name}: {wert_text(daten)} "
+                f"liegt außerhalb {self.spec.bereich_text()}."
+            )
+
     def sperren(self, gesperrt: bool) -> None:
         """Alle Felder der Zeile sperren bzw. freigeben."""
+        self._gesperrt = gesperrt
+        if self.ist_bandbreite:
+            self._freigabe()
+            return
         self.aendern.setEnabled(not gesperrt)
         self.eingabe.setEnabled(not gesperrt and self.aendern.isChecked())
 
@@ -391,6 +517,16 @@ class Editor(QFrame):
         self.btn_uebernehmen.setVisible(editierbar)
         self.btn_verwerfen.setVisible(editierbar)
         self._sperren(not editierbar)
+
+    def setze_bandbreiten_stufen(self, stufen: tuple[float, ...] | None, hinweis: str) -> None:
+        """Übernimmt die PSV-Stufen der Bandbreite (``None``: Auswahl gesperrt, mit Hinweis).
+
+        Ändert nichts, wenn Liste und Hinweis gleich geblieben sind; Eingaben bleiben erhalten.
+        """
+        for pz in self.parameter:
+            if pz.ist_bandbreite:
+                pz.setze_stufen(stufen, hinweis)
+        self._pruefe()
 
     def _sperren(self, gesperrt: bool) -> None:
         self.name.setReadOnly(gesperrt)

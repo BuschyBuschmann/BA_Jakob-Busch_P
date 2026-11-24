@@ -59,7 +59,7 @@ from ldv_automation.ablauf.steuerung import (
 )
 from ldv_automation.ablauf.uhr import Echtzeituhr, Uhr
 from ldv_automation.domaene.eintraege import Eintrag, Messung, MessungZustand, Pausenpunkt
-from ldv_automation.domaene.parameter import ParameterWert
+from ldv_automation.domaene.parameter import REL_TOL_ZURUECKLESEN, ParameterWert
 from ldv_automation.domaene.warteschlange import Warteschlange
 from ldv_automation.geraet.schnittstelle import GeraeteInfo, GeraeteZustand, Messgeraet
 from ldv_automation.persistenz.warteschlangendatei import (
@@ -948,6 +948,32 @@ class Sitzung:
             ),
         )
 
+    def _bandbreiten_probleme(self, verbindung: GeraeteInfo) -> list[str]:
+        """Messungen der Warteschlange mit einer Bandbreite, die keine PSV-Stufe ist.
+
+        Nur mit bekannter Stufenliste (``GeraeteInfo.bandbreiten_stufen_hz``); ohne Liste
+        prüft das Gerät beim Setzen (fail-closed, Adapter).
+        """
+        stufen = verbindung.bandbreiten_stufen_hz
+        if stufen is None:
+            return []
+        probleme: list[str] = []
+        for e in self.warteschlange.eintraege():
+            if not isinstance(e, Messung):
+                continue
+            wert = e.parameter.get("fft.bandbreite_hz")
+            if wert is None:
+                continue
+            soll = float(wert)
+            if not any(
+                math.isclose(soll, st, rel_tol=REL_TOL_ZURUECKLESEN, abs_tol=0.0) for st in stufen
+            ):
+                probleme.append(
+                    f"Messung '{e.name}': Bandbreite {soll:g} Hz ist keine PSV-Stufe "
+                    f"(Stufen: {', '.join(f'{x:g}' for x in stufen)} Hz)"
+                )
+        return probleme
+
     def messen_voraussetzungen(self) -> tuple[Voraussetzung, ...]:
         """Voraussetzungen für ``MESSEN``, jede einzeln mit Text."""
         stand = self.steuerung.momentaufnahme()
@@ -1120,6 +1146,9 @@ class Sitzung:
                 )
         if stand.verbindung is None:
             raise ValueError("Start nicht möglich: keine Verbindung zum Gerät")
+        stufen_probleme = self._bandbreiten_probleme(stand.verbindung)
+        if stufen_probleme:
+            raise ValueError("Start nicht möglich: " + "; ".join(stufen_probleme))
         if self._wurzel is None:
             raise ValueError("Start nicht möglich: keine Messdaten-Wurzel gesetzt")
         if self._wurzel_probleme:

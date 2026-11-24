@@ -234,6 +234,28 @@ def bandbreiten_pruefung(katalog: Parameterkatalog) -> WertPruefung:
     return pruefe
 
 
+def _frequenz_pruefung(schluessel: str) -> WertPruefung:
+    def pruefe(wert: object, kontext: ProxyKontext) -> str | None:
+        if (grund := _schreiben(kontext)) is not None:
+            return grund
+        if not isinstance(wert, float) or not math.isfinite(wert):
+            return f"{schluessel}: endlicher float erwartet, erhalten {wert!r}"
+        if wert < 0.0:
+            return f"{schluessel}: Wert >= 0 erwartet, erhalten {wert!r}"
+        return None
+
+    return pruefe
+
+
+def frequenzbereich_pruefung() -> tuple[WertPruefung, WertPruefung]:
+    """S3: ``StartFrequency`` und ``EndFrequency`` (float, endlich, >= 0; Hz).
+
+    Die Obergrenze ergibt sich aus PSV (Validator); der Adapter setzt Von = 0 und
+    Bis = Bandbreite.
+    """
+    return _frequenz_pruefung("StartFrequency"), _frequenz_pruefung("EndFrequency")
+
+
 def linien_pruefung(katalog: Parameterkatalog) -> WertPruefung:
     """S3: ``Lines`` (int, Bereich aus ``katalog``)."""
 
@@ -446,6 +468,7 @@ def erstelle_richtlinie(katalog: Parameterkatalog = KATALOG) -> Richtlinie:
 
 
 def _richtlinie(pruefe_bandbreite: WertPruefung, pruefe_linien: WertPruefung) -> Richtlinie:
+    pruefe_von, pruefe_bis = frequenzbereich_pruefung()
     return Richtlinie(
         objekte={
             "AcquisitionInstance": {
@@ -550,6 +573,14 @@ def _richtlinie(pruefe_bandbreite: WertPruefung, pruefe_linien: WertPruefung) ->
                 "Lines": Schreibrecht(
                     pruefung=pruefe_linien, begruendung="S3: R-011, nur Staging im Validator"
                 ),
+                "StartFrequency": Schreibrecht(
+                    pruefung=pruefe_von,
+                    begruendung="S3: R-011, Von = 0 mit der Bandbreite, nur Staging im Validator",
+                ),
+                "EndFrequency": Schreibrecht(
+                    pruefung=pruefe_bis,
+                    begruendung="S3: R-011, Bis = Bandbreite, nur Staging im Validator",
+                ),
             },
             "FftProperties": {
                 "FftAcqPropertiesValidator": Schreibrecht(
@@ -562,6 +593,14 @@ def _richtlinie(pruefe_bandbreite: WertPruefung, pruefe_linien: WertPruefung) ->
                 ),
                 "Lines": Schreibrecht(
                     pruefung=nur_mit_rueckfall(pruefe_linien),
+                    begruendung="S4: Rückfall ohne Validator (ADR-005)",
+                ),
+                "StartFrequency": Schreibrecht(
+                    pruefung=nur_mit_rueckfall(pruefe_von),
+                    begruendung="S4: Rückfall ohne Validator (ADR-005)",
+                ),
+                "EndFrequency": Schreibrecht(
+                    pruefung=nur_mit_rueckfall(pruefe_bis),
                     begruendung="S4: Rückfall ohne Validator (ADR-005)",
                 ),
             },

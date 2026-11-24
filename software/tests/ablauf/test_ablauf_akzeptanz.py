@@ -339,7 +339,10 @@ def test_u2_7_eingerasteter_wert_ist_fehler_vor_scan(tmp_path: Path) -> None:
     assert isinstance(fehler, dict)
     assert fehler["art"] == "abweichung"
     assert p["geaenderte_parameter"] == [
-        {"schluessel": "fft.bandbreite_hz", "einheit": "Hz", "soll": 5000.0, "ist": 6250.0}
+        {"schluessel": "fft.bandbreite_hz", "einheit": "Hz", "soll": 5000.0, "ist": 6250.0},
+        # BW-2: Von/Bis folgen der Bandbreite des Geräts (hier eingerastet auf 6250 Hz)
+        {"schluessel": "fft.start_frequenz_hz", "einheit": "Hz", "soll": 0.0, "ist": 0.0},
+        {"schluessel": "fft.end_frequenz_hz", "einheit": "Hz", "soll": 5000.0, "ist": 6250.0},
     ]
 
 

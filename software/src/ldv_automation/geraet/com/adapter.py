@@ -32,7 +32,12 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import ParamSpec, TypeVar
 
-from ldv_automation.domaene.parameter import KATALOG, Parameterkatalog, ParameterWert
+from ldv_automation.domaene.parameter import (
+    KATALOG,
+    REL_TOL_ZURUECKLESEN,
+    Parameterkatalog,
+    ParameterWert,
+)
 from ldv_automation.geraet.com.bindung import ComBindung
 from ldv_automation.geraet.com.konstanten import (
     ACQ_MODE_NAMEN,
@@ -76,6 +81,7 @@ from ldv_automation.geraet.schnittstelle import (
     GeraetNichtBereitFehler,
     Meldung,
     VerweigertFehler,
+    ZeitlimitFehler,
 )
 
 HINWEIS_NICHT_REGISTRIERT = (
@@ -241,6 +247,35 @@ def _als_float(wert: object, pfad: str) -> float:
     if isinstance(wert, int | float) and not isinstance(wert, bool):
         return float(wert)
     raise GeraeteFehler(f"{pfad}: Zahl erwartet, erhalten {wert!r}", methode=pfad)
+
+
+def _stufen_aus_roh(roh: object, pfad: str) -> tuple[float, ...]:
+    """Wandelt ``AvailableBandwidths`` strikt in ``tuple[float, ...]`` (Hz).
+
+    Raises
+    ------
+    GeraeteFehler
+        Wenn ``roh`` kein Tupel bzw. keine Liste endlicher Zahlen > 0 oder leer ist
+        (fail-closed, keine Ersatzliste).
+    """
+    if not isinstance(roh, tuple | list) or not roh:
+        raise GeraeteFehler(f"{pfad}: nichtleere Liste erwartet, erhalten {roh!r}", methode=pfad)
+    stufen: list[float] = []
+    for element in roh:
+        zahl = _als_float(element, pfad)
+        if not math.isfinite(zahl) or zahl <= 0.0:
+            raise GeraeteFehler(
+                f"{pfad}: endliche Bandbreite > 0 erwartet, erhalten {element!r}", methode=pfad
+            )
+        stufen.append(zahl)
+    return tuple(stufen)
+
+
+def _ist_stufe(soll_hz: float, stufen_hz: tuple[float, ...]) -> bool:
+    """Prüft, ob ``soll_hz`` eine der Stufen ist (``isclose``, rel. 1e-9, abs 0)."""
+    return any(
+        math.isclose(soll_hz, s, rel_tol=REL_TOL_ZURUECKLESEN, abs_tol=0.0) for s in stufen_hz
+    )
 
 
 def _lies_toleriert(lesen: Callable[[], object]) -> tuple[object, str | None]:
@@ -554,6 +589,7 @@ class PsvComGeraet:
         try:
             zustand = self.zustand()
             hardware = self._lies_hardware(acq)
+            stufen, stufen_fehler = self._lies_bandbreiten_stufen()
         except BaseException:
             self._app = self._acq = self._info = None
             raise
@@ -564,8 +600,32 @@ class PsvComGeraet:
             zustand=zustand,
             hardware={**hardware, "psv_prozesse": ", ".join(treffer or ())},
             lademaske=lademaske_text(self._konf.lademaske),
+            bandbreiten_stufen_hz=stufen,
+            bandbreiten_stufen_fehler=stufen_fehler,
         )
         return self._info
+
+    def _lies_bandbreiten_stufen(self) -> tuple[tuple[float, ...] | None, str]:
+        """Liest ``AvailableBandwidths`` beim Verbinden; Fehler werden zum Grund-Text.
+
+        Ein hängender Aufruf (``ZeitlimitFehler``) wird nicht gefangen.
+        """
+        try:
+            fft = self._gruppe(self._eigenschaften(), "fft")
+            if not fft.existiert("FftAcqPropertiesValidator"):
+                return None, "FftAcqPropertiesValidator nicht vorhanden (keine Stufenliste)"
+            validator: WhitelistProxy | None = fft.FftAcqPropertiesValidator
+            if validator is None:
+                return None, "FftAcqPropertiesValidator lieferte kein Objekt"
+            return _stufen_aus_roh(
+                validator.AvailableBandwidths, "FftValidator.AvailableBandwidths"
+            ), ""
+        except ZeitlimitFehler:
+            raise
+        except GeraeteFehler as exc:
+            return None, exc.text
+        except ComFehler as exc:
+            return None, f"COM-Fehler beim Lesen: {exc.text}"
 
     def _progid_registriert(self, progid: str) -> bool | None:
         """Registry-Prüfung der ProgID (nur lesend, über die Bindung)."""
@@ -699,10 +759,33 @@ class PsvComGeraet:
                 "(validator_rueckfall_direkt) ist ausgeschaltet",
                 methode="FftProperties.FftAcqPropertiesValidator",
             )
+        bandbreite_hz: float | None = None
         if "fft.bandbreite_hz" in werte:
-            ziel.Bandwidth = float(werte["fft.bandbreite_hz"])
+            bandbreite_hz = float(werte["fft.bandbreite_hz"])
+            if ziel is fft:
+                raise GeraeteFehler(
+                    "Bandbreite: ohne Validator (Rückfall S4) gibt es keine Stufenliste "
+                    "(AvailableBandwidths); Bandbreite wird nicht gesetzt",
+                    methode="FftProperties.FftAcqPropertiesValidator",
+                    argumente=(f"{bandbreite_hz!r}",),
+                )
+            stufen = _stufen_aus_roh(ziel.AvailableBandwidths, "FftValidator.AvailableBandwidths")
+            if not _ist_stufe(bandbreite_hz, stufen):
+                raise GeraeteFehler(
+                    f"Bandbreite {bandbreite_hz:g} Hz ist keine PSV-Stufe "
+                    f"(Stufen: {', '.join(f'{x:g}' for x in stufen)} Hz)",
+                    methode="FftValidator.AvailableBandwidths",
+                    argumente=(f"{bandbreite_hz!r}",),
+                )
+            ziel.Bandwidth = bandbreite_hz
         if "fft.linien" in werte:
             ziel.Lines = int(werte["fft.linien"])
+        if bandbreite_hz is not None:
+            # Voller Bereich: Von = 0, Bis = Bandbreite (Nutzerentscheidung 2026-11-23); erst
+            # nach Bandwidth und Lines (GetMinMaxFrequencyRange, I5 2.6). Die Rückprobe
+            # (Steuerung) prüft, ob PSV die Werte übernommen hat.
+            ziel.StartFrequency = 0.0
+            ziel.EndFrequency = bandbreite_hz
         if ziel is not fft:
             fft.FftAcqPropertiesValidator = ziel
 

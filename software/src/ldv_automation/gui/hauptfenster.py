@@ -90,7 +90,7 @@ from ldv_automation.gui.dialoge import (
     frage,
     trockenlauf_dialog,
 )
-from ldv_automation.gui.editor import Editor
+from ldv_automation.gui.editor import HINWEIS_OFFLINE, HINWEIS_STUFEN_NICHT_LESBAR, Editor
 from ldv_automation.gui.fassade import SitzungsFassade
 from ldv_automation.gui.hinweisband import Hinweisband
 from ldv_automation.gui.stil import schrift, setze_eigenschaft
@@ -722,6 +722,14 @@ class Hauptfenster(QMainWindow):
     def _zeige_bild(self, bild: Zustandsbild) -> None:
         self._bild = bild
         self._automatik(bild)
+        verbindung = bild.verbindung
+        if verbindung is None:
+            self.editor.setze_bandbreiten_stufen(None, HINWEIS_OFFLINE)
+        else:
+            self.editor.setze_bandbreiten_stufen(
+                verbindung.bandbreiten_stufen_hz,
+                verbindung.bandbreiten_stufen_fehler or HINWEIS_STUFEN_NICHT_LESBAR,
+            )
         z = bild.durchgang
         gesperrt = self._befehl_gesperrt(bild)
 

@@ -170,6 +170,8 @@ def baue_psv(
     bandbreiten_hz: tuple[float, ...] = (1250.0, 2500.0, 5000.0, 6250.0, 10000.0),
     linien: tuple[int, ...] = (100, 200, 400, 800, 1600, 3200),
     dateiname_echo: Callable[[str], str] | None = None,
+    end_ignorieren: bool = False,
+    stufen_roh: Any = None,
     has_alignments: bool = True,
     alignments_3d: Sequence[dict[str, Any] | None] | None = None,
     alignments_2d: Sequence[dict[str, Any] | None] | None = None,
@@ -189,10 +191,22 @@ def baue_psv(
     }
 
     def validator_neu() -> FakeKnoten:
-        staging = {"Bandwidth": fft_werte["Bandwidth"], "Lines": fft_werte["Lines"]}
+        staging = {
+            "Bandwidth": fft_werte["Bandwidth"],
+            "Lines": fft_werte["Lines"],
+            "StartFrequency": fft_werte["StartFrequency"],
+            "EndFrequency": fft_werte["EndFrequency"],
+        }
 
         def setze_bw(wert: float) -> None:
             staging["Bandwidth"] = _naechster(bandbreiten_hz, wert)
+
+        def setze_start(wert: float) -> None:
+            staging["StartFrequency"] = wert
+
+        def setze_end(wert: float) -> None:
+            if not end_ignorieren:
+                staging["EndFrequency"] = wert
 
         def setze_linien(wert: int) -> None:
             staging["Lines"] = _naechster(linien, wert)
@@ -200,14 +214,29 @@ def baue_psv(
         return FakeKnoten(
             "FftValidator",
             welt,
-            props={"AvailableBandwidths": bandbreiten_hz, "AvailableLines": linien},
-            getter={"Bandwidth": lambda: staging["Bandwidth"], "Lines": lambda: staging["Lines"]},
-            setter={"Bandwidth": setze_bw, "Lines": setze_linien},
+            props={
+                "AvailableBandwidths": bandbreiten_hz if stufen_roh is None else stufen_roh,
+                "AvailableLines": linien,
+            },
+            getter={
+                "Bandwidth": lambda: staging["Bandwidth"],
+                "Lines": lambda: staging["Lines"],
+                "StartFrequency": lambda: staging["StartFrequency"],
+                "EndFrequency": lambda: staging["EndFrequency"],
+            },
+            setter={
+                "Bandwidth": setze_bw,
+                "Lines": setze_linien,
+                "StartFrequency": setze_start,
+                "EndFrequency": setze_end,
+            },
         )
 
     def uebernehme(v: FakeKnoten) -> None:
         fft_werte["Bandwidth"] = v.Bandwidth
         fft_werte["Lines"] = v.Lines
+        fft_werte["StartFrequency"] = v.StartFrequency
+        fft_werte["EndFrequency"] = v.EndFrequency
 
     def setze_fft(name: str, raster: tuple[Any, ...]) -> Callable[[Any], None]:
         def setzen(wert: Any) -> None:
@@ -222,6 +251,8 @@ def baue_psv(
     fft_setter: dict[str, Callable[[Any], None]] = {
         "Bandwidth": setze_fft("Bandwidth", bandbreiten_hz),
         "Lines": setze_fft("Lines", linien),
+        "StartFrequency": lambda wert: fft_werte.__setitem__("StartFrequency", wert),
+        "EndFrequency": lambda wert: fft_werte.__setitem__("EndFrequency", wert),
     }
     if validator:
         fft_getter["FftAcqPropertiesValidator"] = validator_neu
