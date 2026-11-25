@@ -9,11 +9,11 @@ from typing import Any, Literal
 import pytest
 from ablauf_hilfen import Aufbau, aufbau, messung
 
-from ldv_automation.ablauf.steuerung import DurchgangErgebnis
+from ldv_automation.ablauf.steuerung import DurchgangErgebnis, DurchgangZustand
 from ldv_automation.domaene.eintraege import MessungZustand
 from ldv_automation.domaene.parameter import ParameterWert
 from ldv_automation.geraet.schnittstelle import EinstellungsStand, GeraeteFehler
-from ldv_automation.geraet.simulator import Simulator, SimulatorKonfiguration
+from ldv_automation.geraet.simulator import LangsamerAufruf, Simulator, SimulatorKonfiguration
 
 STUFEN = (3125.0, 5000.0, 6250.0, 12500.0)
 """Simulator-Stufen für die Tests (erfunden, keine Gerätewerte)."""
@@ -82,7 +82,7 @@ def test_4000_ungueltiger_wert_ist_geraetefehler_ohne_scan(tmp_path: Path) -> No
     fft = ist["gruppen"]["fft"]
     assert fft["bandbreite_hz"] == 3125.0  # nicht übernommen (Standard des Simulators)
     assert p["geaenderte_parameter"] == [
-        {"schluessel": "fft.bandbreite_hz", "einheit": "Hz", "soll": 4000.0, "ist": None},
+        {"schluessel": "fft.bandbreite_hz", "einheit": "Hz", "soll": 4000.0, "ist": 3125.0},
         {
             "schluessel": "fft.start_frequenz_hz",
             "einheit": "Hz",
@@ -137,6 +137,32 @@ def test_4000_fehler_und_stand_nicht_lesbar_behaelt_urspruenglichen_fehler(
         {"schluessel": "fft.start_frequenz_hz", "einheit": "Hz", "soll": 0.0, "ist": None},
         {"schluessel": "fft.end_frequenz_hz", "einheit": "Hz", "soll": 4000.0, "ist": None},
     ]
+
+
+def test_4000_nachlesen_ueber_der_aufrufgrenze_ist_ein_haenger(tmp_path: Path) -> None:
+    # K-U2b gilt auch beim Nachlesen im Fehlerpfad: GERAET_UNKLAR, keine weiteren Aufrufe.
+    a = aufbau(
+        tmp_path,
+        [messung(tmp_path, "M1", {"fft.bandbreite_hz": 4000.0})],
+        sim_konfiguration=SimulatorKonfiguration(
+            bandbreiten_hz=STUFEN, bandbreite_ausserhalb="fehler"
+        ),
+        drehbuch=[LangsamerAufruf(vorgang=0, methode="lies_einstellungsstand", dauer_s=61.0)],
+    )
+    a.starte()
+    a.steuerung.bis_ruhe()
+    assert a.steuerung.zustand is DurchgangZustand.GERAET_UNKLAR
+    assert a.steuerung._aufruf_haengt is True
+    assert "starte_scan" not in a.sim.aufgerufene_methoden()
+    p = a.protokoll("01_M1")
+    fehler = p["fehler"]
+    assert isinstance(fehler, dict)
+    assert fehler["art"] == "geraet_unklar"
+    assert "lies_einstellungsstand" in str(fehler["text"])
+    assert "hängt" in str(fehler["text"])
+    assert "Ungültiger Wert für Bandbreite" in str(fehler["text"])  # ursprünglicher Fehler
+    assert any("hängt" in e.text for e in a.ereignisse if e.art == "fehler")
+    assert p["einstellungen_ist"] is None
 
 
 def test_bis_bleibt_ist_abweichung_wie_am_23_11(tmp_path: Path) -> None:

@@ -1486,36 +1486,54 @@ class Steuerung:
         except ZeitlimitFehler as fehler:
             self._haenger(aktiv, fehler)
         except GeraetNichtBereitFehler as fehler:
-            self._lese_stand_tolerant(aktiv, parameter_begonnen)
+            if self._lese_stand_tolerant(aktiv, parameter_begonnen, fehler):
+                return
             self._messung_fehler(aktiv, FehlerArt.GERAET_NICHT_BEREIT, fehler.text, fehler)
         except VerweigertFehler as fehler:
-            self._lese_stand_tolerant(aktiv, parameter_begonnen)
+            if self._lese_stand_tolerant(aktiv, parameter_begonnen, fehler):
+                return
             self._messung_fehler(aktiv, FehlerArt.VERWEIGERT, fehler.text, fehler)
         except GeraeteFehler as fehler:
-            self._lese_stand_tolerant(aktiv, parameter_begonnen)
+            if self._lese_stand_tolerant(aktiv, parameter_begonnen, fehler):
+                return
             self._messung_fehler(aktiv, FehlerArt.GERAET, fehler.text, fehler)
 
-    def _lese_stand_tolerant(self, aktiv: _Aktiv, parameter_begonnen: bool) -> None:
-        """Liest im Fehlerpfad den Einstellungsstand, soweit möglich (BW-4, A3).
+    def _lese_stand_tolerant(
+        self, aktiv: _Aktiv, parameter_begonnen: bool, ursprung: GeraeteFehler
+    ) -> bool:
+        """Liest im Fehlerpfad den Einstellungsstand, soweit möglich (BW-4/BW-6, A3).
 
         Nur wenn das Setzen der Parameter begonnen hatte und der Stand noch nicht gelesen
-        ist; sonst stünde ein Stand im Protokoll, der nicht zur Messung gehört. Jeder
-        Gerätefehler beim Lesen (auch ein Zeitlimit) wird verworfen: der ursprüngliche Fehler
-        bleibt Status und Fehlerart der Messung.
+        ist; sonst stünde ein Stand im Protokoll, der nicht zur Messung gehört. Ein normaler
+        Gerätefehler beim Lesen wird verworfen: der ursprüngliche Fehler bleibt Status und
+        Fehlerart der Messung. Überschreitet der Aufruf die Aufrufgrenze (K-U2b), gilt wie
+        überall ein Hänger: ``GERAET_UNKLAR`` über :meth:`_haenger`, keine weiteren
+        Geräteaufrufe; der ursprüngliche Fehlertext steht im Text des Hängers.
+
+        Returns
+        -------
+        bool
+            ``True``, wenn der Hänger-Pfad die Messung beendet hat (Aufrufer kehrt zurück).
         """
         if not parameter_begonnen or aktiv.einstellungen_ist is not None:
-            return
+            return False
         try:
             stand = self._aufruf("lies_einstellungsstand", self.geraet.lies_einstellungsstand)
+        except ZeitlimitFehler as haenger:
+            self._haenger(aktiv, haenger, ursprung=ursprung)
+            return True
         except GeraeteFehler:
-            return
+            return False
         aktiv.einstellungen_ist = einstellungsstand_zu_dict(stand)
+        return False
 
     @staticmethod
     def _geaenderte_zeilen(aktiv: _Aktiv) -> list[dict[str, object]]:
         """Protokollzeilen ``geaenderte_parameter``, auch im Fehlerfall vollständig (A3).
 
-        Ohne gelesene Zeilen stehen die Soll-Werte mit ``ist = None``. Gehört
+        Ohne gelesene Zeilen stehen die Soll-Werte mit ``ist = None``; ein fehlendes Ist der
+        Bandbreite wird aus dem nachgelesenen Stand ergänzt (vorhandene Werte aus der
+        Rückprobe bleiben). Gehört
         ``fft.bandbreite_hz`` zur Messung, fehlen aber die Zeilen für Von/Bis (Fehler vor der
         Rückprobe), werden sie mit Soll 0 bzw. Soll-Bandbreite ergänzt; das Ist stammt aus dem
         Einstellungsstand, soweit er gelesen werden konnte, sonst ``None``.
@@ -1531,6 +1549,10 @@ class Steuerung:
         vorhanden = {z["schluessel"] for z in zeilen}
         gruppen = (aktiv.einstellungen_ist or {}).get("gruppen")
         fft = gruppen.get("fft") if isinstance(gruppen, dict) else None
+        # Ist der Bandbreite aus dem nachgelesenen Stand, nur wenn es noch fehlt.
+        for z in zeilen:
+            if z["schluessel"] == "fft.bandbreite_hz" and z["ist"] is None:
+                z["ist"] = fft.get("bandbreite_hz") if isinstance(fft, dict) else None
         for schluessel, feld, soll_hz in (
             ("fft.start_frequenz_hz", "start_frequenz_hz", 0.0),
             ("fft.end_frequenz_hz", "end_frequenz_hz", float(bandbreite)),
@@ -1846,15 +1868,22 @@ class Steuerung:
                 self._punktdauer_s = dauer / aktiv.messpunkte
         self._schliesse_messung(aktiv, MessungZustand.FERTIG)
 
-    def _haenger(self, aktiv: _Aktiv, fehler: ZeitlimitFehler) -> None:
+    def _haenger(
+        self, aktiv: _Aktiv, fehler: ZeitlimitFehler, *, ursprung: GeraeteFehler | None = None
+    ) -> None:
         """Ein Geräteaufruf hing (Plan 2.3): ``GERAET_UNKLAR`` ohne Strategie und ohne Stop.
 
         Kein vorsorgliches ``stoppe()``, kein Wiederholen: Das Gerät hat gerade nicht
-        geantwortet; jeder weitere Aufruf könnte erneut hängen.
+        geantwortet; jeder weitere Aufruf könnte erneut hängen. ``ursprung`` ist ein
+        Gerätefehler, der dem Hänger voranging (Nachlesen im Fehlerpfad); sein Text bleibt im
+        Text des Hängers erhalten.
         """
         self._markiere_verloren(haengt=True)
         methode = fehler.methode or "unbekannt"
-        self._geraet_unklar(aktiv, f"Geräteaufruf '{methode}' hängt: {fehler.text}", fehler)
+        text = f"Geräteaufruf '{methode}' hängt: {fehler.text}"
+        if ursprung is not None:
+            text += f" (vorheriger Fehler: {ursprung.text})"
+        self._geraet_unklar(aktiv, text, fehler)
 
     def _geraet_unklar(
         self, aktiv: _Aktiv | None, text: str, fehler: BaseException | None = None
