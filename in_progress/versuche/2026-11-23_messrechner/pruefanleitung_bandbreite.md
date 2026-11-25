@@ -25,7 +25,9 @@ notieren, keine Korrektur vor Ort.
   (überschreibt den in PSV geladenen Abgleich, siehe `../naechster-termin_messrechner/pruefanleitung_abgleich.md`)
   und setzen Parameter, aber starten keinen Scan. Nur die Test-`.set` verwenden, keinen Abgleich
   überschreiben, den eine echte Messung braucht.
-- Generator bleibt aus, keine Anregung.
+- Generator bleibt aus, keine Anregung. Shaker bzw. Signalkabel bleiben getrennt (Shaker erst nach
+  Freigabe, vgl. `../naechster-termin_messrechner/ablaufplan.md`, Grundregel 2); das gilt als
+  Vorbedingung für alle Abschnitte.
 - Vorlage: `vorlagen/test_5000Hz.set` (FFT 0 bis 5 kHz, 400 Linien, Mittelung komplex 3).
 
 ## 0. Lese-Sonde: Stufenliste (nur lesend, vor allem anderen)
@@ -68,7 +70,8 @@ Stufe und PSV lehnt sie am 23.11. aus anderem Grund ab; Ergebnis des Trockenlauf
      `fft.start_frequenz_hz` (soll 0, ist 0), `fft.end_frequenz_hz` (soll 6250, ist 6250).
    - `einstellungen_ist.gruppen.fft`: `bandbreite_hz` 6250, `start_frequenz_hz` 0, `end_frequenz_hz` 6250
      (am 23.11. stand dort 5000), `linien` 400, `abtastfrequenz_hz` 15625 (2,5 mal Bandbreite, Nicht-M-System,
-     vgl. I5 2.5), `aufloesung_hz` 15,625 (Bandbreite / Linien).
+     vgl. I5 2.5; der Faktor 2,5·BW ist laut I5 **[ungeprüft]**, eine Abweichung ist ein Befund
+     zum Faktor, nicht zur Bandbreite), `aufloesung_hz` 15,625 (Bandbreite / Linien).
 4. In PSV nachsehen: FFT-Einstellung „Von“ = 0, **„Bis“ = 6,25 kHz** (am 23.11. blieb „Bis“ bei 5 kHz).
    Nur ansehen, nichts ändern.
 
@@ -80,7 +83,7 @@ Die Software zeigt in jedem dieser Fälle einen Fehler mit der Strategie „Paus
 | Beobachtung | Bedeutung | Zu sichern |
 |---|---|---|
 | Fehler „Abweichung beim Frequenzbereich (Von/Bis)“, `fft.end_frequenz_hz`: Ist ≠ Soll | PSV hat „Bis“ nicht übernommen | `*.protokoll.json` (steht trotzdem komplett im Protokoll), Foto/Text der PSV-FFT-Einstellung |
-| Gerätefehler beim Setzen (z. B. „Ungültiger Wert“, HRESULT) | PSV lehnt Bandbreite oder Von/Bis im Validator ab | Fehlertext aus Protokoll und Ereignisprotokoll (`durchgang.ereignisse.jsonl`), Wert, bei dem es auftrat |
+| Gerätefehler beim Setzen (z. B. „Ungültiger Wert“, HRESULT) | PSV lehnt Bandbreite oder Von/Bis im Validator ab | Fehlertext aus Protokoll und Ereignisprotokoll (`durchgang.ereignisse.jsonl`), Wert, bei dem es auftrat. Erwartung im Protokoll: `geaenderte_parameter` enthält auch dann die Zeilen `fft.start_frequenz_hz` (soll 0) und `fft.end_frequenz_hz` (soll = Soll-Bandbreite); `ist` stammt aus dem danach gelesenen Stand, sonst `null` (dann auch `einstellungen_ist` = `null`). Der Fehlertext bleibt der des Setzens. |
 | „Bandbreite … ist keine PSV-Stufe“ aus dem Gerät | Stufenliste beim Setzen weicht von der beim Verbinden ab | beide Listen notieren |
 | „Stufenliste nicht lesbar“ | `AvailableBandwidths` nicht lesbar oder unerwartete Form | vollständiger Text |
 

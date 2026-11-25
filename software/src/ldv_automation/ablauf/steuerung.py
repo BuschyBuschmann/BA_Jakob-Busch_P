@@ -1419,6 +1419,7 @@ class Steuerung:
         if vorpruefung is not None:
             self._messung_fehler(aktiv, FehlerArt.VORPRUEFUNG, vorpruefung, None)
             return
+        parameter_begonnen = False
         try:
             if self._aufruf("zustand", self.geraet.zustand) is not GeraeteZustand.GESTOPPT:
                 self._messung_fehler(
@@ -1432,6 +1433,7 @@ class Steuerung:
                 "lade_einstellungen", lambda: self.geraet.lade_einstellungen(m.einstellungsdatei)
             )
             if m.parameter:
+                parameter_begonnen = True
                 self._aufruf("setze_parameter", lambda: self.geraet.setze_parameter(m.parameter))
                 ist = self._aufruf(
                     "lies_parameter", lambda: self.geraet.lies_parameter(tuple(m.parameter))
@@ -1484,11 +1486,61 @@ class Steuerung:
         except ZeitlimitFehler as fehler:
             self._haenger(aktiv, fehler)
         except GeraetNichtBereitFehler as fehler:
+            self._lese_stand_tolerant(aktiv, parameter_begonnen)
             self._messung_fehler(aktiv, FehlerArt.GERAET_NICHT_BEREIT, fehler.text, fehler)
         except VerweigertFehler as fehler:
+            self._lese_stand_tolerant(aktiv, parameter_begonnen)
             self._messung_fehler(aktiv, FehlerArt.VERWEIGERT, fehler.text, fehler)
         except GeraeteFehler as fehler:
+            self._lese_stand_tolerant(aktiv, parameter_begonnen)
             self._messung_fehler(aktiv, FehlerArt.GERAET, fehler.text, fehler)
+
+    def _lese_stand_tolerant(self, aktiv: _Aktiv, parameter_begonnen: bool) -> None:
+        """Liest im Fehlerpfad den Einstellungsstand, soweit möglich (BW-4, A3).
+
+        Nur wenn das Setzen der Parameter begonnen hatte und der Stand noch nicht gelesen
+        ist; sonst stünde ein Stand im Protokoll, der nicht zur Messung gehört. Jeder
+        Gerätefehler beim Lesen (auch ein Zeitlimit) wird verworfen: der ursprüngliche Fehler
+        bleibt Status und Fehlerart der Messung.
+        """
+        if not parameter_begonnen or aktiv.einstellungen_ist is not None:
+            return
+        try:
+            stand = self._aufruf("lies_einstellungsstand", self.geraet.lies_einstellungsstand)
+        except GeraeteFehler:
+            return
+        aktiv.einstellungen_ist = einstellungsstand_zu_dict(stand)
+
+    @staticmethod
+    def _geaenderte_zeilen(aktiv: _Aktiv) -> list[dict[str, object]]:
+        """Protokollzeilen ``geaenderte_parameter``, auch im Fehlerfall vollständig (A3).
+
+        Ohne gelesene Zeilen stehen die Soll-Werte mit ``ist = None``. Gehört
+        ``fft.bandbreite_hz`` zur Messung, fehlen aber die Zeilen für Von/Bis (Fehler vor der
+        Rückprobe), werden sie mit Soll 0 bzw. Soll-Bandbreite ergänzt; das Ist stammt aus dem
+        Einstellungsstand, soweit er gelesen werden konnte, sonst ``None``.
+        """
+        parameter = aktiv.messung.parameter
+        zeilen: list[dict[str, object]] = list(aktiv.geaenderte) or [
+            {"schluessel": k, "einheit": KATALOG.spec(k).einheit, "soll": v, "ist": None}
+            for k, v in parameter.items()
+        ]
+        bandbreite = parameter.get("fft.bandbreite_hz")
+        if bandbreite is None:
+            return zeilen
+        vorhanden = {z["schluessel"] for z in zeilen}
+        gruppen = (aktiv.einstellungen_ist or {}).get("gruppen")
+        fft = gruppen.get("fft") if isinstance(gruppen, dict) else None
+        for schluessel, feld, soll_hz in (
+            ("fft.start_frequenz_hz", "start_frequenz_hz", 0.0),
+            ("fft.end_frequenz_hz", "end_frequenz_hz", float(bandbreite)),
+        ):
+            if schluessel not in vorhanden:
+                ist = fft.get(feld) if isinstance(fft, dict) else None
+                zeilen.append(
+                    {"schluessel": schluessel, "einheit": "Hz", "soll": soll_hz, "ist": ist}
+                )
+        return zeilen
 
     def _lese_abgleich(self, aktiv: _Aktiv) -> None:
         """R-003a: Abgleich nach dem Laden lesen und für das Protokoll merken.
@@ -1978,11 +2030,7 @@ class Steuerung:
                 "sha256": aktiv.einstellungsdatei_sha256,
             },
             "lademaske": info.lademaske if info else None,
-            "geaenderte_parameter": list(aktiv.geaenderte)
-            or [
-                {"schluessel": k, "einheit": KATALOG.spec(k).einheit, "soll": v, "ist": None}
-                for k, v in m.parameter.items()
-            ],
+            "geaenderte_parameter": self._geaenderte_zeilen(aktiv),
             "einstellungen_ist": aktiv.einstellungen_ist,
             "frequenzachse": frequenzachse_zu_dict(aktiv.einstellungen_ist),
             "abgleich": self._abgleichfeld(aktiv),

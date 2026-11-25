@@ -595,14 +595,6 @@ def _richtlinie(pruefe_bandbreite: WertPruefung, pruefe_linien: WertPruefung) ->
                     pruefung=nur_mit_rueckfall(pruefe_linien),
                     begruendung="S4: Rückfall ohne Validator (ADR-005)",
                 ),
-                "StartFrequency": Schreibrecht(
-                    pruefung=nur_mit_rueckfall(pruefe_von),
-                    begruendung="S4: Rückfall ohne Validator (ADR-005)",
-                ),
-                "EndFrequency": Schreibrecht(
-                    pruefung=nur_mit_rueckfall(pruefe_bis),
-                    begruendung="S4: Rückfall ohne Validator (ADR-005)",
-                ),
             },
             "AverageProperties": {
                 "Type": Schreibrecht(pruefung=pruefe_mittelungstyp, begruendung="S5: R-011"),

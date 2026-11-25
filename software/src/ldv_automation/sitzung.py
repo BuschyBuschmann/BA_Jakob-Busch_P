@@ -59,7 +59,7 @@ from ldv_automation.ablauf.steuerung import (
 )
 from ldv_automation.ablauf.uhr import Echtzeituhr, Uhr
 from ldv_automation.domaene.eintraege import Eintrag, Messung, MessungZustand, Pausenpunkt
-from ldv_automation.domaene.parameter import REL_TOL_ZURUECKLESEN, ParameterWert
+from ldv_automation.domaene.parameter import ParameterWert, ist_stufe
 from ldv_automation.domaene.warteschlange import Warteschlange
 from ldv_automation.geraet.schnittstelle import GeraeteInfo, GeraeteZustand, Messgeraet
 from ldv_automation.persistenz.warteschlangendatei import (
@@ -965,9 +965,7 @@ class Sitzung:
             if wert is None:
                 continue
             soll = float(wert)
-            if not any(
-                math.isclose(soll, st, rel_tol=REL_TOL_ZURUECKLESEN, abs_tol=0.0) for st in stufen
-            ):
+            if not ist_stufe(soll, stufen):
                 probleme.append(
                     f"Messung '{e.name}': Bandbreite {soll:g} Hz ist keine PSV-Stufe "
                     f"(Stufen: {', '.join(f'{x:g}' for x in stufen)} Hz)"

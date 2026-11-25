@@ -54,7 +54,7 @@ from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Literal, TypeAlias
 
-from ldv_automation.domaene.parameter import ParameterWert
+from ldv_automation.domaene.parameter import ParameterWert, ist_stufe
 from ldv_automation.geraet.schnittstelle import (
     Abgleich2D,
     Abgleich3D,
@@ -620,11 +620,8 @@ class Simulator:
         for schluessel, wert in parameter.items():
             if schluessel == "fft.bandbreite_hz":
                 soll_hz = float(wert)
-                ist_stufe = any(
-                    math.isclose(soll_hz, st, rel_tol=1e-9, abs_tol=0.0)
-                    for st in konf.bandbreiten_hz
-                )
-                if ist_stufe or konf.bandbreite_ausserhalb == "einrasten":
+                stufe_ok = ist_stufe(soll_hz, konf.bandbreiten_hz)
+                if stufe_ok or konf.bandbreite_ausserhalb == "einrasten":
                     neu[schluessel] = _einrasten(soll_hz, konf.bandbreiten_hz)
                 elif konf.bandbreite_ausserhalb == "fehler":
                     raise GeraeteFehler(
@@ -632,7 +629,7 @@ class Simulator:
                         methode="setze_parameter",
                         argumente=(schluessel, wert),
                     )
-                if konf.von_bis_folgt and (ist_stufe or konf.bandbreite_ausserhalb == "einrasten"):
+                if konf.von_bis_folgt and (stufe_ok or konf.bandbreite_ausserhalb == "einrasten"):
                     bereich = (0.0, float(neu[schluessel]))
             elif schluessel == "fft.linien":
                 neu[schluessel] = int(_einrasten(float(wert), [float(x) for x in konf.linien]))

@@ -70,6 +70,38 @@ def test_stufenliste_unveraendert_behaelt_auswahl(qtbot: QtBot) -> None:
     assert pz.lies() == (5000.0, None)
 
 
+def test_listenwechsel_waehlt_ohne_auswahl_keine_stufe_still(qtbot: QtBot) -> None:
+    ed = _editor(qtbot)
+    ed.setze_bandbreiten_stufen(STUFEN, "")
+    pz = _zeile(ed)
+    pz.aendern.setChecked(True)
+    pz.eingabe.setCurrentIndex(0)  # "(aus .set)" bei aktivem "ändern"
+    assert pz.lies()[1] is not None and "Wert fehlt" in pz.lies()[1]
+    ed.setze_bandbreiten_stufen((5000.0, 6250.0), "")
+    wert, fehler = pz.lies()
+    assert wert is None and fehler is not None and "Wert fehlt" in fehler
+    assert pz.eingabe.currentIndex() == 0
+    assert pz._wert is None
+    assert ed.fehler()
+
+
+def test_unveraenderte_stufen_pruefen_nicht_erneut(qtbot: QtBot, monkeypatch: Any) -> None:
+    ed = _editor(qtbot)
+    ed.setze_bandbreiten_stufen(STUFEN, "")
+    aufrufe: list[int] = []
+    original = ed._pruefe
+
+    def zaehlend() -> None:
+        aufrufe.append(1)
+        original()
+
+    monkeypatch.setattr(ed, "_pruefe", zaehlend)
+    ed.setze_bandbreiten_stufen(STUFEN, "")
+    assert aufrufe == []
+    ed.setze_bandbreiten_stufen((5000.0,), "")
+    assert aufrufe == [1]
+
+
 def test_gespeicherter_wert_ausserhalb_der_liste_ist_fehler(qtbot: QtBot) -> None:
     ed = _editor(qtbot)
     pz = _zeile(ed)

@@ -25,6 +25,26 @@ ParameterWert: TypeAlias = int | float | str
 REL_TOL_ZURUECKLESEN = 1e-9
 
 
+def ist_stufe(wert_hz: float, stufen_hz: Iterable[float]) -> bool:
+    """Prüft, ob ``wert_hz`` eine der Stufen ist (``isclose``, ``REL_TOL_ZURUECKLESEN``, abs 0).
+
+    Parameters
+    ----------
+    wert_hz : float
+        Zu prüfender Wert in Hz.
+    stufen_hz : iterable of float
+        Von PSV gemeldete Stufen in Hz.
+
+    Returns
+    -------
+    bool
+        ``True``, wenn eine Stufe innerhalb der relativen Toleranz liegt.
+    """
+    return any(
+        math.isclose(wert_hz, s, rel_tol=REL_TOL_ZURUECKLESEN, abs_tol=0.0) for s in stufen_hz
+    )
+
+
 def _zahl_text(zahl: float) -> str:
     """Kurztext einer Zahl für Meldungen; kein Überlauf bei riesigen Ganzzahlen."""
     text = str(zahl) if isinstance(zahl, int) else f"{zahl:g}"

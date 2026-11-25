@@ -10,13 +10,21 @@ from test_sitzung_fassade import _set, _sitzung
 from ldv_automation.ablauf.steuerung import DurchgangErgebnis
 from ldv_automation.domaene.eintraege import Messung
 from ldv_automation.geraet.simulator import SimulatorKonfiguration
+from ldv_automation.sitzung import Betriebsart
 
 STUFEN = (3125.0, 5000.0, 6250.0)
 
 
+@pytest.mark.parametrize("betriebsart", [Betriebsart.SIMULATOR, Betriebsart.TROCKENLAUF])
 @pytest.mark.parametrize("soll_hz", [5600.0, 4000.0])
-def test_a1_start_gesperrt_bei_nicht_stufe(tmp_path: Path, soll_hz: float) -> None:
-    s, fabrik = _sitzung(tmp_path, konfiguration=SimulatorKonfiguration(bandbreiten_hz=STUFEN))
+def test_a1_start_gesperrt_bei_nicht_stufe(
+    tmp_path: Path, soll_hz: float, betriebsart: Betriebsart
+) -> None:
+    s, fabrik = _sitzung(
+        tmp_path,
+        betriebsart=betriebsart,
+        konfiguration=SimulatorKonfiguration(bandbreiten_hz=STUFEN),
+    )
     assert s.zustandsbild().verbindung is not None
     assert s.zustandsbild().verbindung.bandbreiten_stufen_hz == STUFEN  # type: ignore[union-attr]
     s.einfuegen(

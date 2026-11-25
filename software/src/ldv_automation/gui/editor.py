@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (
 )
 
 from ldv_automation.domaene import KATALOG, Parameterkatalog, ParameterSpec, ParameterWert
-from ldv_automation.domaene.parameter import REL_TOL_ZURUECKLESEN
+from ldv_automation.domaene.parameter import REL_TOL_ZURUECKLESEN, ist_stufe
 from ldv_automation.gui import tokens as t
 from ldv_automation.gui.anzeige import (
     Knopf,
@@ -140,22 +140,27 @@ class _ParameterZeile:
         daten = self.eingabe.currentData()
         self._wert = daten if isinstance(daten, float) else None
 
-    def setze_stufen(self, stufen: tuple[float, ...] | None, hinweis: str) -> None:
+    def setze_stufen(self, stufen: tuple[float, ...] | None, hinweis: str) -> bool:
         """Setzt die PSV-Stufen der Bandbreite (``None``: unbekannt, Auswahl gesperrt).
 
         Der gewählte bzw. gespeicherte Wert bleibt erhalten; liegt er nicht in der Liste,
-        steht er als „keine PSV-Stufe“ mit Fehler da.
+        steht er als „keine PSV-Stufe“ mit Fehler da. Ohne gewählten Wert wird nach einem
+        Listenwechsel keine Stufe still gewählt (Fehler „Wert fehlt“ bleibt).
+
+        Returns
+        -------
+        bool
+            ``True``, wenn sich Liste oder Hinweis geändert haben.
         """
         if stufen == self.stufen and hinweis == self.stufen_hinweis:
-            return
+            return False
         self.stufen = stufen
         self.stufen_hinweis = hinweis
         self._fuelle_stufen()
+        return True
 
     def _ist_stufe(self, wert: float) -> bool:
-        return self.stufen is not None and any(
-            math.isclose(wert, s, rel_tol=REL_TOL_ZURUECKLESEN, abs_tol=0.0) for s in self.stufen
-        )
+        return self.stufen is not None and ist_stufe(wert, self.stufen)
 
     def _fuelle_stufen(self) -> None:
         combo = self.eingabe
@@ -182,9 +187,10 @@ class _ParameterZeile:
                     ):
                         index = i
                         break
-            elif self.aendern.isChecked() and combo.count() > 1:
-                index = 1
             combo.setCurrentIndex(index)
+            # _wert bleibt konsistent zur sichtbaren Auswahl (Signale sind blockiert).
+            daten_neu = combo.itemData(index) if index > 0 else None
+            self._wert = daten_neu if isinstance(daten_neu, float) else None
         finally:
             combo.blockSignals(False)
         combo.setToolTip(self.bereich_text if self.stufen is not None else self.stufen_hinweis)
@@ -522,11 +528,14 @@ class Editor(QFrame):
         """Übernimmt die PSV-Stufen der Bandbreite (``None``: Auswahl gesperrt, mit Hinweis).
 
         Ändert nichts, wenn Liste und Hinweis gleich geblieben sind; Eingaben bleiben erhalten.
+        Die Prüfung der Eingaben läuft nur bei tatsächlicher Änderung.
         """
+        geaendert = False
         for pz in self.parameter:
             if pz.ist_bandbreite:
-                pz.setze_stufen(stufen, hinweis)
-        self._pruefe()
+                geaendert = pz.setze_stufen(stufen, hinweis) or geaendert
+        if geaendert:
+            self._pruefe()
 
     def _sperren(self, gesperrt: bool) -> None:
         self.name.setReadOnly(gesperrt)

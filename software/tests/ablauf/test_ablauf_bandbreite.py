@@ -12,7 +12,7 @@ from ablauf_hilfen import Aufbau, aufbau, messung
 from ldv_automation.ablauf.steuerung import DurchgangErgebnis
 from ldv_automation.domaene.eintraege import MessungZustand
 from ldv_automation.domaene.parameter import ParameterWert
-from ldv_automation.geraet.schnittstelle import EinstellungsStand
+from ldv_automation.geraet.schnittstelle import EinstellungsStand, GeraeteFehler
 from ldv_automation.geraet.simulator import Simulator, SimulatorKonfiguration
 
 STUFEN = (3125.0, 5000.0, 6250.0, 12500.0)
@@ -75,6 +75,68 @@ def test_4000_ungueltiger_wert_ist_geraetefehler_ohne_scan(tmp_path: Path) -> No
     fehler = p["fehler"]
     assert isinstance(fehler, dict)
     assert "Ungültiger Wert" in str(fehler["text"])
+    # A3 im Fehlerfall: Von/Bis-Zeilen mit Soll, Ist aus dem danach gelesenen Stand
+    assert fehler["art"] == "geraet"
+    ist = p["einstellungen_ist"]
+    assert isinstance(ist, dict)
+    fft = ist["gruppen"]["fft"]
+    assert fft["bandbreite_hz"] == 3125.0  # nicht übernommen (Standard des Simulators)
+    assert p["geaenderte_parameter"] == [
+        {"schluessel": "fft.bandbreite_hz", "einheit": "Hz", "soll": 4000.0, "ist": None},
+        {
+            "schluessel": "fft.start_frequenz_hz",
+            "einheit": "Hz",
+            "soll": 0.0,
+            "ist": fft["start_frequenz_hz"],
+        },
+        {
+            "schluessel": "fft.end_frequenz_hz",
+            "einheit": "Hz",
+            "soll": 4000.0,
+            "ist": fft["end_frequenz_hz"],
+        },
+    ]
+    assert fft["start_frequenz_hz"] == 0.0
+    assert fft["end_frequenz_hz"] == 3125.0
+
+
+class _StandKaputt:
+    """Hülle um den Simulator: ``lies_einstellungsstand`` schlägt fehl."""
+
+    def __init__(self, sim: Simulator) -> None:
+        self._sim = sim
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._sim, name)
+
+    def lies_einstellungsstand(self) -> EinstellungsStand:
+        raise GeraeteFehler("Stand nicht lesbar", methode="lies_einstellungsstand")
+
+
+def test_4000_fehler_und_stand_nicht_lesbar_behaelt_urspruenglichen_fehler(
+    tmp_path: Path,
+) -> None:
+    a = aufbau(
+        tmp_path,
+        [messung(tmp_path, "M1", {"fft.bandbreite_hz": 4000.0})],
+        sim_konfiguration=SimulatorKonfiguration(
+            bandbreiten_hz=STUFEN, bandbreite_ausserhalb="fehler"
+        ),
+        huelle=_StandKaputt,
+    )
+    a.starte()
+    a.steuerung.bis_ruhe()
+    assert a.ws.eintraege()[0].zustand is MessungZustand.FEHLER
+    p = a.protokoll("01_M1")
+    fehler = p["fehler"]
+    assert isinstance(fehler, dict)
+    assert "Ungültiger Wert" in str(fehler["text"])  # nicht durch das Lesen überdeckt
+    assert p["einstellungen_ist"] is None
+    assert p["geaenderte_parameter"] == [
+        {"schluessel": "fft.bandbreite_hz", "einheit": "Hz", "soll": 4000.0, "ist": None},
+        {"schluessel": "fft.start_frequenz_hz", "einheit": "Hz", "soll": 0.0, "ist": None},
+        {"schluessel": "fft.end_frequenz_hz", "einheit": "Hz", "soll": 4000.0, "ist": None},
+    ]
 
 
 def test_bis_bleibt_ist_abweichung_wie_am_23_11(tmp_path: Path) -> None:

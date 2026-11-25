@@ -48,7 +48,16 @@ Feld ``geaenderte_parameter``: je Zeile ``schluessel``, ``einheit``, ``soll`` un
 ``fft.bandbreite_hz`` zur Messung, stehen zusätzlich die Zeilen ``fft.start_frequenz_hz`` (Soll 0)
 und ``fft.end_frequenz_hz`` (Soll = Soll-Bandbreite) mit dem von PSV zurückgelesenen Ist
 (Rückprobe, BW-2; ``schema_version`` bleibt 2, da nur Zeilen derselben Form hinzukommen). Die
-Bandbreite ist immer eine von PSV gemeldete Stufe; ``f_max_end_hz`` entspricht dann der Bandbreite.
+Bandbreite ist immer eine von PSV gemeldete Stufe; ``f_max_end_hz`` entspricht bei bestandener
+Rückprobe der Bandbreite.
+
+Im Fehlerfall (BW-4) stehen die Von/Bis-Zeilen ebenfalls, auch wenn der Fehler vor der Rückprobe
+auftrat (z. B. abgelehnte Bandbreite): Soll 0 bzw. Soll-Bandbreite, ``ist`` aus dem
+Einstellungsstand, soweit er danach noch lesbar war, sonst ``null``. Dafür wird der Stand nach
+einem Gerätefehler tolerant gelesen (nur wenn das Setzen der Parameter begonnen hatte, nicht
+nach einem Hänger); schlägt dieses Lesen fehl, bleiben ``einstellungen_ist`` und die ``ist``-Werte
+``null``, und der ursprüngliche Fehler bleibt Status und Fehlerart. Bei einer Messung, die vor
+dem Setzen der Parameter endet (z. B. Vorprüfung), sind alle ``ist``-Werte ``null``.
 
 Zeitstempel sind Objekte ``{"lokal": "<ISO 8601 mit Zone>", "utc": "<ISO 8601, UTC>"}``.
 

@@ -132,11 +132,16 @@ def _kontext(schreiben: bool = True) -> ProxyKontext:
     return ProxyKontext(schreiben_erlaubt=schreiben)
 
 
-@pytest.mark.parametrize("typ", ["FftValidator", "FftProperties"])
+def test_richtlinie_von_bis_nur_ueber_den_validator() -> None:
+    """S4 (Rückfall) lehnt die Bandbreite ab; Von/Bis haben dort kein Schreibrecht."""
+    for name in ("StartFrequency", "EndFrequency"):
+        assert name not in PRODUKTIV.schreiben["FftProperties"]
+
+
 @pytest.mark.parametrize("name", ["StartFrequency", "EndFrequency"])
-def test_richtlinie_frequenz_schreibrecht_pruefung(typ: str, name: str) -> None:
-    recht = PRODUKTIV.schreiben[typ][name]
-    assert recht.begruendung.startswith(("S3", "S4"))
+def test_richtlinie_frequenz_schreibrecht_pruefung(name: str) -> None:
+    recht = PRODUKTIV.schreiben["FftValidator"][name]
+    assert recht.begruendung.startswith("S3")
     von, bis = frequenzbereich_pruefung()
     pruefe = von if name == "StartFrequency" else bis
     kontext = _kontext()

@@ -34,9 +34,9 @@ from typing import ParamSpec, TypeVar
 
 from ldv_automation.domaene.parameter import (
     KATALOG,
-    REL_TOL_ZURUECKLESEN,
     Parameterkatalog,
     ParameterWert,
+    ist_stufe,
 )
 from ldv_automation.geraet.com.bindung import ComBindung
 from ldv_automation.geraet.com.konstanten import (
@@ -269,13 +269,6 @@ def _stufen_aus_roh(roh: object, pfad: str) -> tuple[float, ...]:
             )
         stufen.append(zahl)
     return tuple(stufen)
-
-
-def _ist_stufe(soll_hz: float, stufen_hz: tuple[float, ...]) -> bool:
-    """Prüft, ob ``soll_hz`` eine der Stufen ist (``isclose``, rel. 1e-9, abs 0)."""
-    return any(
-        math.isclose(soll_hz, s, rel_tol=REL_TOL_ZURUECKLESEN, abs_tol=0.0) for s in stufen_hz
-    )
 
 
 def _lies_toleriert(lesen: Callable[[], object]) -> tuple[object, str | None]:
@@ -770,7 +763,7 @@ class PsvComGeraet:
                     argumente=(f"{bandbreite_hz!r}",),
                 )
             stufen = _stufen_aus_roh(ziel.AvailableBandwidths, "FftValidator.AvailableBandwidths")
-            if not _ist_stufe(bandbreite_hz, stufen):
+            if not ist_stufe(bandbreite_hz, stufen):
                 raise GeraeteFehler(
                     f"Bandbreite {bandbreite_hz:g} Hz ist keine PSV-Stufe "
                     f"(Stufen: {', '.join(f'{x:g}' for x in stufen)} Hz)",

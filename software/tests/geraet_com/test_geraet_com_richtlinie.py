@@ -116,8 +116,6 @@ def test_jede_schreibende_operation_hat_eine_begruendung() -> None:
         "FftProperties.FftAcqPropertiesValidator=": "S3",
         "FftProperties.Bandwidth=": "S4",
         "FftProperties.Lines=": "S4",
-        "FftProperties.StartFrequency=": "S4",
-        "FftProperties.EndFrequency=": "S4",
         "AverageProperties.Type=": "S5",
         "AverageProperties.Count=": "S5",
         "Acquisition.ScanFileName=": "S6",
