@@ -10,7 +10,7 @@ Bandbreite nur als von PSV angebotene Stufe zulassen und „Von/Bis“ mitsetzen
 
 ## Vorgehen
 1. Aufbereitung und Entscheidungen des Nutzers (Stufen aus PSV, Von = 0/Bis = Bandbreite, nur Auswahlliste, Rückprobe fail-closed; offline gesperrt, Schema 2, Altdateien laden/Start sperren).
-2. BW-1 Plan (Befund:  wurde nie gelesen, Von/Bis nie geschrieben), freigegeben.
+2. BW-1 Plan (Befund: `AvailableBandwidths` wurde nie gelesen, Von/Bis nie geschrieben), freigegeben.
 3. BW-2 Umsetzung (27004a3); Review BW-3: Freigabe mit Auflagen, 4 MINOR, 3 NITPICK – alle vom Nutzer zur Umsetzung gewählt.
 4. BW-4 Korrektur (be665fb); Re-Review BW-5: neuer MAJOR (Zeitlimit beim Nachlesen verschluckt, Widerspruch zu K-U2b), MINOR (Ist der Bandbreite im Fehlerpfad fehlte).
 5. BW-6 Korrektur nach Entscheidung des Nutzers (96257ce); Re-Review BW-7: neuer MAJOR (Ergänzung überschrieb leeres Rückprobe-Ist, Messungszustand verändert), MINOR (zwei Handler ungetestet).
