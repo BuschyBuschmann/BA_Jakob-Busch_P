@@ -4,15 +4,21 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Literal
 
 import pytest
 from ablauf_hilfen import Aufbau, aufbau, messung
 
-from ldv_automation.ablauf.steuerung import DurchgangErgebnis, DurchgangZustand
-from ldv_automation.domaene.eintraege import MessungZustand
+from ldv_automation.ablauf.steuerung import DurchgangErgebnis, DurchgangZustand, Steuerung
+from ldv_automation.domaene.eintraege import Messung, MessungZustand
 from ldv_automation.domaene.parameter import ParameterWert
-from ldv_automation.geraet.schnittstelle import EinstellungsStand, GeraeteFehler
+from ldv_automation.geraet.schnittstelle import (
+    EinstellungsStand,
+    GeraeteFehler,
+    GeraetNichtBereitFehler,
+    VerweigertFehler,
+)
 from ldv_automation.geraet.simulator import LangsamerAufruf, Simulator, SimulatorKonfiguration
 
 STUFEN = (3125.0, 5000.0, 6250.0, 12500.0)
@@ -163,6 +169,112 @@ def test_4000_nachlesen_ueber_der_aufrufgrenze_ist_ein_haenger(tmp_path: Path) -
     assert "Ungültiger Wert für Bandbreite" in str(fehler["text"])  # ursprünglicher Fehler
     assert any("hängt" in e.text for e in a.ereignisse if e.art == "fehler")
     assert p["einstellungen_ist"] is None
+
+
+class _SetzenScheitert:
+    """Hülle um den Simulator: ``setze_parameter`` wirft einen vorgegebenen Gerätefehler."""
+
+    def __init__(self, sim: Simulator, fehler: GeraeteFehler) -> None:
+        self._sim = sim
+        self._fehler = fehler
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._sim, name)
+
+    def setze_parameter(self, parameter: Any) -> None:
+        raise self._fehler
+
+
+@pytest.mark.parametrize(
+    "fehler",
+    [
+        GeraetNichtBereitFehler("Simulator: nicht bereit (Test)", methode="setze_parameter"),
+        VerweigertFehler("Simulator: verweigert (Test)", methode="setze_parameter"),
+    ],
+)
+def test_nachlesen_haengt_nach_nicht_bereit_und_verweigert_ist_geraet_unklar(
+    tmp_path: Path, fehler: GeraeteFehler
+) -> None:
+    a = aufbau(
+        tmp_path,
+        [messung(tmp_path, "M1", {"fft.bandbreite_hz": 6250.0})],
+        sim_konfiguration=SimulatorKonfiguration(bandbreiten_hz=STUFEN),
+        drehbuch=[LangsamerAufruf(vorgang=0, methode="lies_einstellungsstand", dauer_s=61.0)],
+        huelle=lambda sim: _SetzenScheitert(sim, fehler),
+    )
+    a.starte()
+    a.steuerung.bis_ruhe()
+    assert a.steuerung.zustand is DurchgangZustand.GERAET_UNKLAR
+    assert a.steuerung._aufruf_haengt is True
+    fehler_feld = a.protokoll("01_M1")["fehler"]
+    assert isinstance(fehler_feld, dict)
+    assert fehler_feld["art"] == "geraet_unklar"  # nicht die Art des ursprünglichen Fehlers
+    assert "hängt" in str(fehler_feld["text"])
+    assert fehler.text in str(fehler_feld["text"])
+
+
+class _OhneBandbreiteImRueckgabewert:
+    """Hülle um den Simulator: ``lies_parameter`` lässt ``fft.bandbreite_hz`` weg."""
+
+    def __init__(self, sim: Simulator) -> None:
+        self._sim = sim
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._sim, name)
+
+    def lies_parameter(self, schluessel: Any) -> dict[str, ParameterWert]:
+        ist = dict(self._sim.lies_parameter(schluessel))
+        ist.pop("fft.bandbreite_hz", None)
+        return ist
+
+
+def test_rueckprobe_ohne_ist_bleibt_none_und_wird_nicht_aus_dem_stand_ergaenzt(
+    tmp_path: Path,
+) -> None:
+    a = aufbau(
+        tmp_path,
+        [messung(tmp_path, "M1", {"fft.bandbreite_hz": 5000.0})],
+        sim_konfiguration=SimulatorKonfiguration(bandbreiten_hz=STUFEN),
+        huelle=_OhneBandbreiteImRueckgabewert,
+    )
+    a.starte()
+    a.steuerung.bis_ruhe()
+    p = a.protokoll("01_M1")
+    fehler = p["fehler"]
+    assert isinstance(fehler, dict)
+    assert fehler["art"] == "abweichung"
+    assert "fft.bandbreite_hz: Soll 5000.0, Ist None" in str(fehler["text"])
+    zeilen = p["geaenderte_parameter"]
+    assert isinstance(zeilen, list)
+    bandbreite = next(z for z in zeilen if z["schluessel"] == "fft.bandbreite_hz")
+    assert bandbreite["ist"] is None  # der Stand zeigt 5000, die Rückprobe aber nichts
+
+
+def test_geaenderte_zeilen_veraendert_den_messungszustand_nicht() -> None:
+    messung_ = Messung(
+        name="M1", einstellungsdatei="x.set", parameter={"fft.bandbreite_hz": 5000.0}
+    )
+    zeile = {"schluessel": "fft.bandbreite_hz", "einheit": "Hz", "soll": 5000.0, "ist": None}
+    aktiv = SimpleNamespace(
+        messung=messung_,
+        geaenderte=[zeile],
+        einstellungen_ist={"gruppen": {"fft": {"bandbreite_hz": 5000.0, "start_frequenz_hz": 0.0}}},
+    )
+    zeilen = Steuerung._geaenderte_zeilen(aktiv)  # type: ignore[arg-type]
+    assert zeile == {
+        "schluessel": "fft.bandbreite_hz",
+        "einheit": "Hz",
+        "soll": 5000.0,
+        "ist": None,
+    }
+    assert len(aktiv.geaenderte) == 1  # Von/Bis nur in der Rückgabe ergänzt
+    assert zeilen[0] is not zeile
+    assert zeilen[0]["ist"] is None
+    assert [z["schluessel"] for z in zeilen[1:]] == [
+        "fft.start_frequenz_hz",
+        "fft.end_frequenz_hz",
+    ]
+    assert zeilen[1]["ist"] == 0.0 and zeilen[2]["ist"] is None
 
 
 def test_bis_bleibt_ist_abweichung_wie_am_23_11(tmp_path: Path) -> None:

@@ -1531,27 +1531,33 @@ class Steuerung:
     def _geaenderte_zeilen(aktiv: _Aktiv) -> list[dict[str, object]]:
         """Protokollzeilen ``geaenderte_parameter``, auch im Fehlerfall vollständig (A3).
 
-        Ohne gelesene Zeilen stehen die Soll-Werte mit ``ist = None``; ein fehlendes Ist der
-        Bandbreite wird aus dem nachgelesenen Stand ergänzt (vorhandene Werte aus der
-        Rückprobe bleiben). Gehört
-        ``fft.bandbreite_hz`` zur Messung, fehlen aber die Zeilen für Von/Bis (Fehler vor der
-        Rückprobe), werden sie mit Soll 0 bzw. Soll-Bandbreite ergänzt; das Ist stammt aus dem
-        Einstellungsstand, soweit er gelesen werden konnte, sonst ``None``.
+        Ohne gelesene Zeilen (die Rückprobe der Parameter lief nicht) stehen die Soll-Werte
+        mit ``ist = None``; dann wird das Ist der Bandbreite aus dem nachgelesenen Stand
+        ergänzt. Zeilen aus der Rückprobe bleiben unverändert, auch mit ``ist = None``
+        (PSV lieferte nichts). Gehört ``fft.bandbreite_hz`` zur Messung, fehlen aber die Zeilen
+        für Von/Bis (Fehler vor deren Rückprobe), werden sie mit Soll 0 bzw. Soll-Bandbreite
+        ergänzt; das Ist stammt aus dem Einstellungsstand, soweit er gelesen werden konnte,
+        sonst ``None``. Ergänzt wird nur in Kopien; ``aktiv.geaenderte`` bleibt unverändert.
         """
         parameter = aktiv.messung.parameter
-        zeilen: list[dict[str, object]] = list(aktiv.geaenderte) or [
-            {"schluessel": k, "einheit": KATALOG.spec(k).einheit, "soll": v, "ist": None}
-            for k, v in parameter.items()
-        ]
+        rueckprobe_lief = bool(aktiv.geaenderte)
+        zeilen: list[dict[str, object]] = (
+            [dict(z) for z in aktiv.geaenderte]
+            if rueckprobe_lief
+            else [
+                {"schluessel": k, "einheit": KATALOG.spec(k).einheit, "soll": v, "ist": None}
+                for k, v in parameter.items()
+            ]
+        )
         bandbreite = parameter.get("fft.bandbreite_hz")
         if bandbreite is None:
             return zeilen
         vorhanden = {z["schluessel"] for z in zeilen}
         gruppen = (aktiv.einstellungen_ist or {}).get("gruppen")
         fft = gruppen.get("fft") if isinstance(gruppen, dict) else None
-        # Ist der Bandbreite aus dem nachgelesenen Stand, nur wenn es noch fehlt.
+        # Ist der Bandbreite aus dem nachgelesenen Stand, nur wenn die Rückprobe nicht lief.
         for z in zeilen:
-            if z["schluessel"] == "fft.bandbreite_hz" and z["ist"] is None:
+            if not rueckprobe_lief and z["schluessel"] == "fft.bandbreite_hz":
                 z["ist"] = fft.get("bandbreite_hz") if isinstance(fft, dict) else None
         for schluessel, feld, soll_hz in (
             ("fft.start_frequenz_hz", "start_frequenz_hz", 0.0),

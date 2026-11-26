@@ -55,8 +55,9 @@ Im Fehlerfall (BW-4) stehen die Von/Bis-Zeilen ebenfalls, auch wenn der Fehler v
 auftrat (z. B. abgelehnte Bandbreite): Soll 0 bzw. Soll-Bandbreite, ``ist`` aus dem
 Einstellungsstand, soweit er danach noch lesbar war, sonst ``null``. Dafür wird der Stand nach
 einem Gerätefehler tolerant gelesen (nur wenn das Setzen der Parameter begonnen hatte, nicht
-nach einem Hänger). Ein fehlendes ``ist`` der Bandbreite wird aus diesem Stand ergänzt (Werte
-aus der Rückprobe bleiben). Schlägt das Lesen mit einem normalen Gerätefehler fehl, bleiben
+nach einem Hänger). Lief die Rückprobe der Parameter nicht, wird das ``ist`` der Bandbreite
+aus diesem Stand ergänzt; Zeilen aus der Rückprobe bleiben unverändert, auch mit ``ist``
+``null``. Schlägt das Lesen mit einem normalen Gerätefehler fehl, bleiben
 ``einstellungen_ist`` und die ``ist``-Werte ``null``, und der ursprüngliche Fehler bleibt
 Status und Fehlerart. Überschreitet das Lesen die Aufrufgrenze (K-U2b), endet die Messung wie
 bei jedem Hänger als ``geraet_unklar``; der ursprüngliche Fehlertext steht im Text des Hängers.
