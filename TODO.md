@@ -82,7 +82,7 @@ Quelle: Laborbuch `2026-11-23_messrechner-com-trockenlauf` (Befunde) und `2026-1
 
 | | Aufgabe | Wer | Bis | Hinweis |
 |---|---|---|---|---|
-| ☐ | **Bandbreite nur in PSV-Stufen zulassen und „Von/Bis“ mitsetzen** (T2: „Bis“ blieb auf 5 kHz) | software-engineer | **vor jeder echten Messung** | R-001, R-011 |
+| ◐ | **Bandbreite nur in PSV-Stufen zulassen und „Von/Bis“ mitsetzen** (T2: „Bis“ blieb auf 5 kHz): Software fertig und reviewt (ADR-031, Laborbuch 2026-11-26); offen: `pruefanleitung_bandbreite.md` am Messrechner | Jakob | **vor jeder echten Messung** | R-001, R-011 |
 | ☐ | Abgleich-Meldungen: Warnung nicht nur im Ereignisfeld; Dezimalpunkt und „nicht_bestanden“ in Meldungstexten | software-engineer / ui-designer | – | R-003b |
 | ☐ | Animation: flüssiger (M7 ruckelt leicht); Überlappung von Punktnummern, x-Ticks und y-Beschriftung; Meldung „langsam“ bei 20 Bildern/s fehlt | ui-designer, software-engineer | – | R-071, UI-38 |
 | ☐ | Plausibilitätsprüfung dauert am Messrechner 6,3 s: Ursache prüfen | software-engineer | – | |

@@ -13,7 +13,7 @@ Stand: offen · in Arbeit · umgesetzt · getestet · am Gerät bestätigt · do
 | R-003b | `ablauf/abgleich.py`, `ablauf/steuerung.py`, `konfig.py` (ADR-030) | `test_ablauf_abgleich.py`, `test_ablauf_abgleich_steuerung.py`, `test_konfig.py` | Laborbuch 2026-11-13_abgleich-lesen-pruefen | 4.2 | am Gerät bestätigt (warnen/verweigern mit Testgrenze, 23.11.; Laborbuch 2026-11-23_messrechner-com-trockenlauf) |
 | R-003c | – | – | – | – | offen |
 | R-010 | `ablauf/steuerung.py` (U2) | `test_u2_1_*` | Laborbuch 2026-10-26_u2 | – | Warteschlange/Pausenpunkt im Trockenlauf am Gerät bestätigt; Messen offen (23.11.; Laborbuch 2026-11-23_messrechner-com-trockenlauf) |
-| R-011 | `domaene/eintraege.py`, `domaene/parameter.py` (U1) | `tests/domaene/test_domaene_parameter.py`, `test_domaene_eintraege.py` | Laborbuch 2026-10-26_u1 | – | umgesetzt (Domäne; Ablauf in U2) |
+| R-011 | `domaene/eintraege.py`, `domaene/parameter.py` (U1); Bandbreite nur als PSV-Stufe, Von/Bis mitgesetzt (`geraet/com/adapter.py`, `ablauf/steuerung.py`, `sitzung.py`, `gui/editor.py`, ADR-031) | `tests/domaene/test_domaene_parameter.py`, `test_domaene_eintraege.py`, `test_*_bandbreite.py` | Laborbuch 2026-10-26_u1, 2026-11-26_bandbreite-psv-stufen | – | umgesetzt; Bandbreite/Von-Bis getestet (Simulator/Fake), am Gerät offen (Prüfanleitung Bandbreite) |
 | R-012 | `domaene/warteschlange.py` (U1) | `test_u1_1_*` | Laborbuch 2026-10-26_u1 | – | getestet (Domäne) |
 | R-013 | `domaene/warteschlange.py` (U1) | `test_u1_2_*` | Laborbuch 2026-10-26_u1 | – | getestet (Domäne) |
 | R-014 | `domaene/warteschlange.py` (U1) | `test_u1_2_*`, `test_u1_3_*` | Laborbuch 2026-10-26_u1 | – | getestet (Domäne) |
